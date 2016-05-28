@@ -1,10 +1,10 @@
-package cyano.basemetals.init;
+package cyano.orespawn.init;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import cyano.basemetals.worldgen.OreSpawnData;
-import cyano.basemetals.worldgen.OreSpawner;
+import cyano.orespawn.worldgen.OreSpawnData;
+import cyano.orespawn.worldgen.OreSpawner;
 import net.minecraft.world.gen.feature.WorldGenMinable;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.registry.GameRegistry;
@@ -20,7 +20,7 @@ import java.util.*;
 /**
  * This class contains static initializers to add ore spawning as world-gen. 
  * To add a new ore via the Base Metals mod, either add the appropriate entry 
- * in the config file config/basemetals/ore-spawn.json or directly invoke the 
+ * in the config file config/orespawn/ore-spawn.json or directly invoke the
  * addOreSpawner(...) method from this class.
  * @author DrCyano
  *

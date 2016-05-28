@@ -1,4 +1,4 @@
-package cyano.basemetals.worldgen;
+package cyano.orespawn.worldgen;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

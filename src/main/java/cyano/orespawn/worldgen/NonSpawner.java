@@ -1,4 +1,4 @@
-package cyano.basemetals.worldgen;
+package cyano.orespawn.worldgen;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;

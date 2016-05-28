@@ -1,14 +1,14 @@
 [
 {
-  "modid": "examplemod",
-  "name": "Example Mod",
-  "description": "Example placeholder mod.",
+  "modid": "orespawn",
+  "name": "Ore Spawn",
+  "description": "A customizable ore-spawning system that uses JSON files to specify custom ore generation",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
+  "authorList": ["DrCyano"],
+  "credits": "The Forge and FML guys, the authors of this mod, and prospectors everywhere",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []

@@ -1,4 +1,4 @@
-package cyano.basemetals.data;
+package cyano.orespawn.data;
 
 public abstract class DataConstants {
 

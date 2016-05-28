@@ -1,10 +1,7 @@
-package cyano.basemetals;
+package cyano.orespawn;
 
-import cyano.basemetals.data.DataConstants;
-import cyano.basemetals.events.OreGenDisabler;
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import cyano.orespawn.data.DataConstants;
+import cyano.orespawn.events.OreGenDisabler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.FMLLog;
@@ -15,7 +12,6 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.oredict.OreDictionary;
 import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
@@ -83,9 +79,17 @@ public class OreSpawn
 		
 
 
-		disableVanillaOreGen = config.getBoolean("disable_standard_ore_generation", "options", disableVanillaOreGen, 
-				"If true, then ore generation will be handled exclusively by oregen .json files \n"
-			+	"(vanilla ore generation will be disabled)");
+		disableVanillaOreGen = config.getBoolean("disable_standard_ore_generation", "options", disableVanillaOreGen,
+				"If true, then default Minecraft ore generation will be handled exclusively by orespawn .json files \n"
+						+	"(vanilla ore generation will be disabled)");
+
+		disableOtherOreGen = config.getBoolean("disable_other_ore_generation", "options", disableOtherOreGen,
+				"If true, then all mods will have their ore generation replaced by orespawn .json files. \n"
+						+	"(set generate_orespawn_templates to true to automatically create the equivalent orespawn files)");
+
+		autoGenerateOrespawnFiles = config.getBoolean("generate_orespawn_templates", "options", autoGenerateOrespawnFiles,
+				"If true, then all mods will have their ore generation replaced by orespawn .json files. \n"
+						+	"(vanilla ore generation will be disabled)");
 
 		forceOreGen = config.getBoolean("force_ore_generation", "options", forceOreGen, 
 				"If true, then ore generation cannot be disabled by other mods.");
@@ -167,17 +171,20 @@ public class OreSpawn
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
+		// remove orespawning
+		// TODO: remove other mod orespawns and generate JSON files
+
 		// parse orespawn data
 		for(Path oreSpawnFile : oreSpawnConfigFiles){
 			try {
-				cyano.basemetals.init.WorldGen.loadConfig(oreSpawnFile);
+				cyano.orespawn.init.WorldGen.loadConfig(oreSpawnFile);
 
 			} catch (IOException e) {
 				FMLLog.log(Level.ERROR, e,MODID+": Error parsing ore-spawn config file "+oreSpawnFile);
 			}
 		}
 		
-		cyano.basemetals.init.WorldGen.init();
+		cyano.orespawn.init.WorldGen.init();
 
 
 
@@ -203,46 +210,6 @@ public class OreSpawn
 	}
 	
 
-	/**
-	 * Parses a String in the format (stack-size)*(modid):(item/block name)#(metadata value). The 
-	 * stacksize and metadata value parameters are optional.
-	 * @param str A String describing an itemstack (e.g. "4*minecraft:dye#15" or "minecraft:bow")
-	 * @param allowWildcard If true, then item strings that do not specify a metadata value will use 
-	 * the OreDictionary wildcard value. If false, then the default meta value is 0 instead.
-	 * @return An ItemStack representing the item, or null if the item is not found
-	 */
-	public static ItemStack parseStringAsItemStack(String str, boolean allowWildcard){
-		str = str.trim();
-		int count = 1;
-		int meta;
-		if(allowWildcard){
-			meta = OreDictionary.WILDCARD_VALUE;
-		} else {
-			meta = 0;
-		}
-		int nameStart = 0;
-		int nameEnd = str.length();
-		if(str.contains("*")){
-			count = Integer.parseInt(str.substring(0,str.indexOf("*")).trim());
-			nameStart = str.indexOf("*")+1;
-		}
-		if(str.contains("#")){
-			meta = Integer.parseInt(str.substring(str.indexOf("#")+1,str.length()).trim());
-			nameEnd = str.indexOf("#");
-		}
-		String id = str.substring(nameStart,nameEnd).trim();
-		if(Block.getBlockFromName(id) != null){
-			// is a block
-			return new ItemStack(Block.getBlockFromName(id),count,meta);
-		} else if(Item.getByNameOrId(id) != null){
-			// is an item
-			return new ItemStack(Item.getByNameOrId(id),count,meta);
-		} else {
-			// item not found
-			FMLLog.severe("Failed to find item or block for ID '"+id+"'");
-			return null;
-		}
-	}
 
 
 

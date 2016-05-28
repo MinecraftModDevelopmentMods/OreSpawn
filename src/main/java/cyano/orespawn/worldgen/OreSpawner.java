@@ -1,8 +1,8 @@
-package cyano.basemetals.worldgen;
+package cyano.orespawn.worldgen;
 
 import com.google.common.base.Predicate;
-import cyano.basemetals.OreSpawn;
-import cyano.basemetals.events.OreGenEvent;
+import cyano.orespawn.OreSpawn;
+import cyano.orespawn.events.OreGenEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -11,7 +11,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
@@ -19,22 +19,20 @@ import net.minecraftforge.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class OreSpawner implements IWorldGenerator {
 
+	private static final int maxCacheSize = 1024;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
-	private static final Map<Integer3D,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>();
+	private static final Map<Integer3D,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(maxCacheSize);
 	private static final Deque<Integer3D> cacheOrder = new LinkedList<>();
-	private static final int maxCacheSize = 64; 
+	private static final HashSet<Block> spawnBlocks = new HashSet<>();
 
 	private static final Set<Integer> registeredDimensions = new HashSet<>();
 
 	private final long hash; // used to make prng's different
 	private final Integer dimension; // can be null
-	private final boolean miscDimension;
 
 	private final OreSpawnData spawnData;
 
@@ -53,13 +51,22 @@ public class OreSpawner implements IWorldGenerator {
 		this.hash = hash;
 		this.dimension = dimension;
 		if(dimension != null)registeredDimensions.add(dimension);
-		this.miscDimension = false;
 	}
 
 
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world,
                          IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+		if(spawnBlocks.isEmpty()){
+			// initialize
+			spawnBlocks.add(Blocks.STONE);
+			spawnBlocks.add(Blocks.NETHERRACK);
+			spawnBlocks.add(Blocks.END_STONE);
+			for(ItemStack o : OreDictionary.getOres("stone")){
+				if(o.getItem() instanceof ItemBlock)
+				spawnBlocks.add(((ItemBlock)o.getItem()).getBlock());
+			}
+		}
 		// restriction checks
 		if(dimension == null){
 			// check if misc dimension (do not generate if there is any data specific for this dimension) 
@@ -75,10 +82,10 @@ public class OreSpawner implements IWorldGenerator {
 		
 		
 		if(spawnData.restrictBiomes){
-			BiomeGenBase biome = world.getBiomeGenForCoords(coord);
+			Biome biome = world.getBiomeGenForCoords(coord);
 			if(!(
                     spawnData.biomesByName.contains(biome.getBiomeName())
-					|| spawnData.biomesByName.contains(String.valueOf(BiomeGenBase.getIdForBiome(biome)))
+					|| spawnData.biomesByName.contains(String.valueOf(Biome.getIdForBiome(biome)))
                 )
              ){
 				// wrong biome
@@ -224,34 +231,16 @@ public class OreSpawner implements IWorldGenerator {
 			target[n] = temp;
 		}
 	}
+
 	private static final Predicate stonep = new Predicate<IBlockState>(){
-		Set<Block> cache = null;
-		boolean cacheEmpty = true;
-		private final Lock initLock = new ReentrantLock();
 		@Override
 		public boolean apply(IBlockState input) {
 			Block b = input.getBlock();
 			if(b == Blocks.AIR) return false;
-			if(cacheEmpty){
-				initLock.lock();
-				try{
-					if(cacheEmpty){
-						cacheEmpty = false;
-						cache = new HashSet<>();
-						List<ItemStack> dict = OreDictionary.getOres("stone");
-						for(ItemStack i : dict){
-							if(i.getItem() instanceof ItemBlock){
-								cache.add(((ItemBlock)i.getItem()).getBlock());
-							}
-						}
-					}
-				}finally{
-					initLock.unlock();
-				}
-			}
-			return cache.contains(b);
+			return spawnBlocks.contains(b);
 		}
 	};
+
 	private static void spawn(Block b, int m, World w, BlockPos coord, int dimension, boolean cacheOverflow){
 		if(m == 0){
 			spawn( b.getDefaultState(), w,coord,dimension,cacheOverflow);
@@ -266,22 +255,8 @@ public class OreSpawner implements IWorldGenerator {
 			if(w.isAirBlock(coord)) return;
 			IBlockState bs = w.getBlockState(coord);
 			//	FMLLog.info("Spawning ore block "+b.getUnlocalizedName()+" at "+coord);
-			switch(dimension){
-			case -1: // nether
-				if(bs.getBlock() == Blocks.NETHERRACK || bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep)){
-					w.setBlockState(coord, b, 2);
-				}
-				break;
-			case 1: // end
-				if(bs.getBlock() == Blocks.END_STONE || bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep)){
-					w.setBlockState(coord, b, 2);
-				}
-				break;
-			default:
-				if(bs.getBlock() == Blocks.STONE || bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep)){
-					w.setBlockState(coord, b, 2);
-				}
-				break;
+			if(bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep) || spawnBlocks.contains(bs.getBlock())){
+				w.setBlockState(coord, b, 2);
 			}
 		} else if(cacheOverflow){
 			// cache the block

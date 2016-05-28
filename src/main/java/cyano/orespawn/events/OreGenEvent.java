@@ -1,4 +1,4 @@
-package cyano.basemetals.events;
+package cyano.orespawn.events;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;

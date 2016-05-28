@@ -1,12 +1,12 @@
-package cyano.basemetals.events;
+package cyano.orespawn.events;
+
+import cyano.orespawn.OreSpawn;
+import net.minecraftforge.fml.common.eventhandler.Event.Result;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import cyano.basemetals.OreSpawn;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.eventhandler.Event.Result;
 
 public class OreGenDisabler {
 
