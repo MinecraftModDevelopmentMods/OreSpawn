@@ -28,18 +28,18 @@ import java.util.Locale;
 /**
  * This is the entry point for this mod. If you are writing your own mod that 
  * uses this mod,You only need to create the appropriate JSON files in the
- * config/orespawn folder (no API .jar file required).
+ * config/orespawn folder (no .jar dependency required).
  * @author DrCyano
  *
  */
 @Mod(
 		modid = OreSpawn.MODID,
 		name= OreSpawn.NAME,
-		version = OreSpawn.VERSION,
-		dependencies = "required-after:Forge",
-		acceptedMinecraftVersions = "1.9.4)")
+		version = OreSpawn.VERSION
+//		dependencies = "required-after:Forge"
+//		acceptedMinecraftVersions = "1.9.4")
 //		updateJSON = "https://raw.githubusercontent.com/cyanobacterium/OreSpawn/master/update.json")
-
+)
 public class OreSpawn
 {
 	
@@ -57,10 +57,6 @@ public class OreSpawn
 
 	/** Whether or not vanilla ore-gen has been disabled */
 	public static boolean disableVanillaOreGen = false;
-	/** Whether or not other mod's ore-gen has been disabled */
-	public static boolean disableOtherOreGen = false;
-	/** If true, convert all removed ore-spawning to an orespawn JSON of equivalent value */
-	public static boolean autoGenerateOrespawnFiles = true;
 	/** Ignores other mods telling this mod not to generate ore */
 	public static boolean forceOreGen = false;
 	/** location of ore-spawn files */
@@ -73,22 +69,11 @@ public class OreSpawn
 		// load config
 		Configuration config = new Configuration(event.getSuggestedConfigurationFile());
 		config.load();
-		
-//		enablePotionRecipes = config.getBoolean("enable_potions", "options", enablePotionRecipes, 
-//				"If true, then some metals can be used to brew potions.");
-		
+
 
 
 		disableVanillaOreGen = config.getBoolean("disable_standard_ore_generation", "options", disableVanillaOreGen,
 				"If true, then default Minecraft ore generation will be handled exclusively by orespawn .json files \n"
-						+	"(vanilla ore generation will be disabled)");
-
-		disableOtherOreGen = config.getBoolean("disable_other_ore_generation", "options", disableOtherOreGen,
-				"If true, then all mods will have their ore generation replaced by orespawn .json files. \n"
-						+	"(set generate_orespawn_templates to true to automatically create the equivalent orespawn files)");
-
-		autoGenerateOrespawnFiles = config.getBoolean("generate_orespawn_templates", "options", autoGenerateOrespawnFiles,
-				"If true, then all mods will have their ore generation replaced by orespawn .json files. \n"
 						+	"(vanilla ore generation will be disabled)");
 
 		forceOreGen = config.getBoolean("force_ore_generation", "options", forceOreGen, 
@@ -171,9 +156,6 @@ public class OreSpawn
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
-		// remove orespawning
-		// TODO: remove other mod orespawns and generate JSON files
-
 		// parse orespawn data
 		for(Path oreSpawnFile : oreSpawnConfigFiles){
 			try {
@@ -209,9 +191,6 @@ public class OreSpawn
 		// server-only code
 	}
 	
-
-
-
 
 
 }

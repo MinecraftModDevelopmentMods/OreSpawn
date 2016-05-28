@@ -35,7 +35,7 @@ archivesBaseName = "orespawn_1.9.4"
 
 minecraft {
     version = "1.9.4-12.17.0.1922-1.9.4"
-    runDir = "run"
+	runDir = "run"
     mappings = "snapshot_20160518"
 }
 
