@@ -31,7 +31,7 @@ allprojects {
 
 version = "1.0.0"
 group= "cyano.orespawn"
-archivesBaseName = "orespawn_1.9.4"
+archivesBaseName = "OreSpawn_1.9.4"
 
 minecraft {
     version = "1.9.4-12.17.0.1922-1.9.4"
