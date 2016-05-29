@@ -19,6 +19,7 @@ import net.minecraftforge.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OreSpawner implements IWorldGenerator {
 
@@ -66,6 +67,12 @@ public class OreSpawner implements IWorldGenerator {
 				if(o.getItem() instanceof ItemBlock)
 				spawnBlocks.add(((ItemBlock)o.getItem()).getBlock());
 			}
+			spawnBlocks.addAll(
+					OreSpawn.additionalStoneBlocks.stream()
+							.map((String id)->Block.getBlockFromName(id))
+							.filter((Block b)->b != null)
+							.collect(Collectors.toSet())
+			);
 		}
 		// restriction checks
 		if(dimension == null){

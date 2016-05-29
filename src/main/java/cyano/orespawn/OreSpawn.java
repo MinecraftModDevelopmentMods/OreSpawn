@@ -19,10 +19,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 
 /**
@@ -51,9 +48,12 @@ public class OreSpawn
 	/** Version number, in Major.Minor.Build format. The minor number is increased whenever a change 
 	 * is made that has the potential to break compatibility with other mods that depend on this one. */
 	public static final String VERSION = "1.0.0";
-	
+
 	/** All ore-spawn files discovered in the ore-spawn folder */
 	public static final List<Path> oreSpawnConfigFiles = new LinkedList<>();
+
+	/** User-specified stones for spawning ores (in case they want to spawn in gravel or something) */
+	public static final List<String> additionalStoneBlocks = new ArrayList<>();
 
 	/** Whether or not vanilla ore-gen has been disabled */
 	public static boolean disableVanillaOreGen = false;
@@ -80,7 +80,15 @@ public class OreSpawn
 				"If true, then ore generation cannot be disabled by other mods.");
 
 
-		
+		String[] blocks = config.getString("nonstandard_spawn_blocks", "options", "",
+				"A semi-colon (;) delimited list of block IDs of non-stone blocks that you want to also have ores spawn \n" +
+						"in them (e.g. \"minecraft:gravel;minecraft:sandstone;minecraft:stained_hardened_clay\"").split(";");
+		for(String s : blocks){
+			if(!s.trim().isEmpty()){
+				additionalStoneBlocks.add(s);
+			}
+		}
+
 		oreSpawnFolder = Paths.get(event.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn");
 
 		Path oreVanillaSpawnFile = Paths.get(oreSpawnFolder.toString(),"minecraft.json");
