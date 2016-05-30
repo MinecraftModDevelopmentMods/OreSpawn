@@ -47,7 +47,7 @@ public class OreSpawn
 	public static final String NAME ="Ore Spawn";
 	/** Version number, in Major.Minor.Build format. The minor number is increased whenever a change 
 	 * is made that has the potential to break compatibility with other mods that depend on this one. */
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "1.0.1";
 
 	/** All ore-spawn files discovered in the ore-spawn folder */
 	public static final List<Path> oreSpawnConfigFiles = new LinkedList<>();
@@ -59,6 +59,8 @@ public class OreSpawn
 	public static boolean disableVanillaOreGen = false;
 	/** Ignores other mods telling this mod not to generate ore */
 	public static boolean forceOreGen = false;
+	/** Ignore non-existant blocks instead of erroring */
+	public static boolean ignoreNonExistant = false;
 	/** location of ore-spawn files */
 	public static Path oreSpawnFolder = null;
 	
@@ -78,6 +80,9 @@ public class OreSpawn
 
 		forceOreGen = config.getBoolean("force_ore_generation", "options", forceOreGen, 
 				"If true, then ore generation cannot be disabled by other mods.");
+
+		forceOreGen = config.getBoolean("ignore_nonexistant_blocks", "options", forceOreGen,
+				"If true, then references to non-existant blocks in the .json files will be ingored without causing an error.");
 
 
 		String[] blocks = config.getString("nonstandard_spawn_blocks", "options", "",
@@ -129,15 +134,6 @@ public class OreSpawn
 	{
 
 
-		try {
-			Files.walk(oreSpawnFolder) // doing it the Java8 way
-					.filter((Path p)->Files.isRegularFile(p))
-					.filter((Path p)->p.getFileName().toString().toLowerCase(Locale.US).endsWith(".json"))
-					.forEach(oreSpawnConfigFiles::add);
-		} catch (IOException ioe) {
-			FMLLog.log(Level.ERROR,ioe,"Error while searching for orespawn files");
-		}
-
 		
 		if(disableVanillaOreGen){
 			MinecraftForge.ORE_GEN_BUS.register(OreGenDisabler.getInstance());
@@ -164,6 +160,16 @@ public class OreSpawn
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event)
 	{
+
+		try {
+			Files.walk(oreSpawnFolder) // doing it the Java8 way
+					.filter((Path p)->Files.isRegularFile(p))
+					.filter((Path p)->p.getFileName().toString().toLowerCase(Locale.US).endsWith(".json"))
+					.forEach(oreSpawnConfigFiles::add);
+		} catch (IOException ioe) {
+			FMLLog.log(Level.ERROR,ioe,"Error while searching for orespawn files");
+		}
+
 		// parse orespawn data
 		for(Path oreSpawnFile : oreSpawnConfigFiles){
 			try {

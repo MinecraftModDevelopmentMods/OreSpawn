@@ -29,7 +29,7 @@ allprojects {
 }
 
 
-version = "1.0.0"
+version = "1.0.1"
 group= "cyano.orespawn"
 archivesBaseName = "OreSpawn_1.9.4"
 

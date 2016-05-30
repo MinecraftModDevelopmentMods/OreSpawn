@@ -2,6 +2,7 @@ package cyano.orespawn.worldgen;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import cyano.orespawn.OreSpawn;
 import net.minecraft.block.Block;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.FMLLog;
@@ -36,8 +37,21 @@ public class OreSpawnData {
 	}
 	
 	private static boolean doOnce = true; 
-	
-	public OreSpawnData(JsonObject jsonEntry){
+
+	public static OreSpawnData parseOreSpawnData(JsonObject jsonEntry){
+		String blockName = jsonEntry.get("blockID").getAsString();
+		if(Block.getBlockFromName(blockName) == null){
+			// block does not exist!
+			if(OreSpawn.ignoreNonExistant) {
+				FMLLog.warning("%s: ignoring orespawn data for %s because that block does not exist",OreSpawn.MODID,blockName);
+			}else{
+				throw new IllegalArgumentException(String.format("Ore block with ID %s does not exist!",blockName));
+			}
+		}
+		return new OreSpawnData(jsonEntry);
+	}
+
+	private OreSpawnData(JsonObject jsonEntry){
 		String blockName = jsonEntry.get("blockID").getAsString();
 		String modId;
 		String name;

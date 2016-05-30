@@ -74,7 +74,7 @@ public abstract class WorldGen {
 			}
 			JsonArray ores = dim.get("ores").getAsJsonArray();
 			for(int i = 0; i < ores.size(); i++){
-				OreSpawnData ore = new OreSpawnData(ores.get(i).getAsJsonObject());
+				OreSpawnData ore = OreSpawnData.parseOreSpawnData(ores.get(i).getAsJsonObject());
 				FMLLog.info("Parsed ore spawn setting for dimension "+dimIndex+": "+ore);
 				if(oreSpawnRegistry.containsKey(dimIndex) == false){
 					oreSpawnRegistry.put(dimIndex, new LinkedList<OreSpawnData>());
