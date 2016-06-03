@@ -40,7 +40,7 @@ public class OreSpawnData {
 
 	public static OreSpawnData parseOreSpawnData(JsonObject jsonEntry){
 		String blockName = jsonEntry.get("blockID").getAsString();
-		if(Block.getBlockFromName(blockName) == null){
+		if(blockName == null || Block.getBlockFromName(blockName) == null){
 			// block does not exist!
 			if(OreSpawn.ignoreNonExistant) {
 				FMLLog.warning("%s: ignoring orespawn data for %s because that block does not exist",OreSpawn.MODID,blockName);
