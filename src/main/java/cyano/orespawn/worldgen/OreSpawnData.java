@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import cyano.orespawn.OreSpawn;
 import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.registry.GameData;
@@ -21,6 +22,8 @@ public class OreSpawnData {
 
 	public final Block ore;
 	public final int metaData;
+
+	public static final OreSpawnData EMPTY_PLACEHOLDER = new OreSpawnData(Blocks.STONE,0,1,127,0,1,1,Collections.EMPTY_LIST);
 	
 	public OreSpawnData(Block oreBlock, int metaDataValue, int minHeight, int maxHeight, float spawnFrequency, int spawnQuantity, int spawnQuantityVariation, Collection<String> biomes){
 		this.spawnQuantity = spawnQuantity;
@@ -44,6 +47,7 @@ public class OreSpawnData {
 			// block does not exist!
 			if(OreSpawn.ignoreNonExistant) {
 				FMLLog.warning("%s: ignoring orespawn data for %s because that block does not exist",OreSpawn.MODID,blockName);
+				return EMPTY_PLACEHOLDER;
 			}else{
 				throw new IllegalArgumentException(String.format("Ore block with ID %s does not exist!",blockName));
 			}
