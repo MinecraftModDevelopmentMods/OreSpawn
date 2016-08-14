@@ -47,7 +47,7 @@ public class OreSpawn
 	public static final String NAME ="Ore Spawn";
 	/** Version number, in Major.Minor.Build format. The minor number is increased whenever a change 
 	 * is made that has the potential to break compatibility with other mods that depend on this one. */
-	public static final String VERSION = "1.0.3";
+	public static final String VERSION = "1.1.0";
 
 	/** All ore-spawn files discovered in the ore-spawn folder */
 	public static final List<Path> oreSpawnConfigFiles = new LinkedList<>();
@@ -95,6 +95,13 @@ public class OreSpawn
 		}
 
 		oreSpawnFolder = Paths.get(event.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn");
+		if(!Files.isDirectory(oreSpawnFolder)){
+			try{
+				Files.createDirectories(oreSpawnFolder);
+			} catch (IOException e) {
+				FMLLog.severe(MODID+": Error: Failed to make folder "+oreSpawnFolder);
+			}
+		}
 
 		Path oreVanillaSpawnFile = Paths.get(oreSpawnFolder.toString(),"minecraft.json");
 		if(disableVanillaOreGen && Files.exists(oreVanillaSpawnFile) == false){

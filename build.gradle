@@ -29,12 +29,12 @@ allprojects {
 }
 
 
-version = "1.0.3"
+version = "1.1.0"
 group= "cyano.orespawn"
-archivesBaseName = "OreSpawn_1.9.4"
+archivesBaseName = "OreSpawn_1.10.2"
 
 minecraft {
-    version = "1.9.4-12.17.0.1922-1.9.4"
+    version = "1.10.2-12.18.1.2011"
 	runDir = "run"
     mappings = "snapshot_20160518"
 }
