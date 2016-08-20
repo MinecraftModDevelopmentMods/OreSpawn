@@ -36,7 +36,7 @@ archivesBaseName = "OreSpawn_1.10.2"
 minecraft {
     version = "1.10.2-12.18.1.2011"
 	runDir = "run"
-    mappings = "snapshot_20160518"
+    mappings = "snapshot_20160820"
 }
 
 dependencies {
