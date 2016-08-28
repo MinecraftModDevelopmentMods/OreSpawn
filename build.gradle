@@ -35,7 +35,14 @@ class Secrets {
 }
 
 import groovy.json.JsonSlurper
-def secretFile = file "secret.json"
+
+def secretFile
+if (System.getenv().SECRET_FILE) {
+    secretFile = file System.getenv().SECRET_FILE
+} else {
+    secretFile = file "secret.json"
+}
+
 project.ext.secret = new Secrets()
 if (secretFile.exists()) {
 	secretFile.withReader {
