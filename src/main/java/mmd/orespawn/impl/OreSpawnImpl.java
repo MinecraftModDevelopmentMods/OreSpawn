@@ -1,5 +1,6 @@
 package mmd.orespawn.impl;
 
+import com.google.common.collect.ImmutableMap;
 import mmd.orespawn.OreSpawn;
 import mmd.orespawn.api.DimensionLogic;
 import mmd.orespawn.api.OreSpawnAPI;
@@ -23,6 +24,11 @@ public class OreSpawnImpl implements OreSpawnAPI {
     @Override
     public SpawnLogic getSpawnLogic(String id) {
         return this.spawnLogic.get(id);
+    }
+
+    @Override
+    public Map<String, SpawnLogic> getAllSpawnLogic() {
+        return ImmutableMap.copyOf(this.spawnLogic);
     }
 
     public void registerSpawnLogic(String id, SpawnLogic spawnLogic) {

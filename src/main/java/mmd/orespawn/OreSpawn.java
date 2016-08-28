@@ -26,6 +26,7 @@ public class OreSpawn {
     public void onPreInit(FMLPreInitializationEvent event) {
         MinecraftForge.ORE_GEN_BUS.register(EventHandler.INSTANCE);
         OreSpawnReader.INSTANCE.readSpawnEntries();
+        OreSpawnReader.INSTANCE.convertOldSpawnEntries();
 
         FMLInterModComms.sendFunctionMessage("orespawn", "api", "mmd.orespawn.VanillaOreSpawn");
     }

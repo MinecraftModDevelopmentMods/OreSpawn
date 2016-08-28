@@ -15,7 +15,7 @@ public class DimensionLogicImpl implements DimensionLogic {
     private final List<SpawnEntry> logic = new ArrayList<>();
     private final SpawnLogic parent;
 
-    DimensionLogicImpl(SpawnLogic parent) {
+    public DimensionLogicImpl(SpawnLogic parent) {
         this.parent = parent;
     }
 
@@ -34,5 +34,4 @@ public class DimensionLogicImpl implements DimensionLogic {
     public SpawnLogic end() {
         return this.parent;
     }
-
 }

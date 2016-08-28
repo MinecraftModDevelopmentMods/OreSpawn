@@ -31,11 +31,11 @@ archivesBaseName = "orespawn"
 sourceCompatibility = targetCompatibility = "1.8"
 
 class Secrets {
-	def data = null
+    def data = null
 
-	def getProperty(String key) {
-		return data ? data[key] : ""
-	}
+    def getProperty(String key) {
+        return data ? data[key] : ""
+    }
 }
 
 import groovy.json.JsonSlurper
@@ -49,9 +49,9 @@ if (System.getenv().SECRET_FILE) {
 
 project.ext.secret = new Secrets()
 if (secretFile.exists()) {
-	secretFile.withReader {
-		project.ext.secret.data = new JsonSlurper().parse it
-	}
+    secretFile.withReader {
+        project.ext.secret.data = new JsonSlurper().parse it
+    }
 }
 
 minecraft {
@@ -145,6 +145,9 @@ curseforge {
         releaseType = "alpha"
         addGameVersion("1.10.2")
         def displayVersion = getVersion("VERSION", mod_file)
+        if (System.getenv().BUILD_NUMBER) {
+            displayVersion += "." + System.getenv().BUILD_NUMBER
+        }
         mainArtifact(jar) {
             displayName = "OreSpawn $displayVersion"
         }
