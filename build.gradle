@@ -21,7 +21,11 @@ apply plugin: "com.matthewprenger.cursegradle"
 apply plugin: "maven-publish"
 
 def mod_file = getModFile()
-version = getVersion("VERSION", mod_file) + "-1.10.2"
+version = getVersion("VERSION", mod_file)
+if (System.getenv().BUILD_NUMBER) {
+    version += "." + System.getenv().BUILD_NUMBER
+}
+version += "-1.10.2"
 group = "mmd"
 archivesBaseName = "orespawn"
 sourceCompatibility = targetCompatibility = "1.8"
@@ -138,23 +142,23 @@ curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
         id = "245586"
-        releaseType = "release"
-        changelog = file("CHANGELOG.txt")
-        def versionPart = "OreSpawn $project.version"
+        releaseType = "alpha"
+        addGameVersion("1.10.2")
+        def displayVersion = getVersion("VERSION", mod_file)
         mainArtifact(jar) {
-            displayName = versionPart
+            displayName = "OreSpawn $displayVersion"
         }
         addArtifact(sourcesJar) {
-            displayName = "$versionPart Sources"
+            displayName = "OreSpawn $displayVersion Sources"
         }
         addArtifact(apiJar) {
-            displayName = "$versionPart API"
+            displayName = "OreSpawn $displayVersion API"
         }
         addArtifact(devJar) {
-            displayName = "$versionPart Development"
+            displayName = "OreSpawn $displayVersion Development"
         }
         addArtifact(javadocJar) {
-            displayName = "$versionPart Javadoc"
+            displayName = "OreSpawn $displayVersion Javadoc"
         }
     }
 }
