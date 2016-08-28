@@ -7,7 +7,7 @@ buildscript {
         }
         maven {
             name = "sonatype"
-            url = 'https://oss.sonatype.org/content/groups/public'
+            url = "https://oss.sonatype.org/content/groups/public"
         }
     }
     dependencies {
@@ -18,72 +18,144 @@ buildscript {
 
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "com.matthewprenger.cursegradle"
+apply plugin: "maven-publish"
 
 def mod_file = getModFile()
-version = getVersion("VERSION", mod_file)
-group= "cyano.orespawn"
-archivesBaseName = "OreSpawn_1.10.2"
+version = getVersion("VERSION", mod_file) + "-1.10.2"
+group = "mmd"
+archivesBaseName = "orespawn"
 sourceCompatibility = targetCompatibility = "1.8"
+
+class Secrets {
+	def data = null
+
+	def getProperty(String key) {
+		return data ? data[key] : ""
+	}
+}
+
+import groovy.json.JsonSlurper
+def secretFile = file "secret.json"
+project.ext.secret = new Secrets()
+if (secretFile.exists()) {
+	secretFile.withReader {
+		project.ext.secret.data = new JsonSlurper().parse it
+	}
+}
 
 minecraft {
     version = "1.10.2-12.18.1.2011"
     runDir = "run"
     mappings = "snapshot_20160820"
-}
-
-dependencies {
-    // none
+    makeObfSourceJar = false
 }
 
 processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version
 
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version': project.version, 'mcversion': project.minecraft.version
+    from (sourceSets.main.resources.srcDirs) {
+        include "mcmod.info"
+        expand "version": project.version
     }
 
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    from (sourceSets.main.resources.srcDirs) {
+        exclude "mcmod.info"
     }
 }
 
-task deobfJar(type: Jar) {
-    classifier = "deobf"
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = "sources"
+    from sourceSets.main.allSource
+}
+
+task apiJar(type: Jar, dependsOn: classes) {
+    classifier = "api"
+    from sourceSets.main.allSource
+    exclude("mmd/orespawn/impl/**")
+    exclude("mmd/orespawn/json/**")
+    exclude("mmd/orespawn/world/**")
+    exclude("mmd/orespawn/*.java")
+}
+
+task devJar(type: Jar) {
+    classifier = "dev"
     from sourceSets.main.output
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = "javadoc"
-    from javadoc.getDestinationDir()
+    from javadoc.destinationDir
 }
 
 artifacts {
-    archives deobfJar
-    archives sourceJar
+    archives sourcesJar
+    archives apiJar
+    archives devJar
     archives javadocJar
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId project.group
+            artifactId project.archivesBaseName
+            version project.version
+            from components.java
+            artifact sourcesJar {
+                classifier "sources"
+            }
+            artifact apiJar {
+                classifier "api"
+            }
+            artifact devJar {
+                classifier "dev"
+            }
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username secret.username
+                password secret.password
+            }
+            url secret.url
+        }
+    }
+}
+
 curseforge {
-    apiKey = ""
+    apiKey = secret.curseforgeAPIKey
     project {
         id = "245586"
-        changelog = file("CHANGELOG.txt")
         releaseType = "release"
+        changelog = file("CHANGELOG.txt")
+        def versionPart = "OreSpawn $project.version"
         mainArtifact(jar) {
-            displayName = "OreSpawn $project.version"
+            displayName = versionPart
         }
-        addArtifact sourceJar
-        addArtifact deobfJar
-        addArtifact javadocJar
+        addArtifact(sourcesJar) {
+            displayName = "$versionPart Sources"
+        }
+        addArtifact(apiJar) {
+            displayName = "$versionPart API"
+        }
+        addArtifact(devJar) {
+            displayName = "$versionPart Development"
+        }
+        addArtifact(javadocJar) {
+            displayName = "$versionPart Javadoc"
+        }
     }
 }
 
 String getModFile() {
     String path = "";
     FileTree tree = fileTree(dir: "src/main/java")
-    tree.include '**/*.java'
+    tree.include "**/*.java"
     tree.visit { element ->
         if (element.file.isFile()) {
             element.file.eachLine { String s ->

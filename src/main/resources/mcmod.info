@@ -1,16 +1,14 @@
 [
-{
-  "modid": "orespawn",
-  "name": "Ore Spawn",
-  "description": "A customizable ore-spawning system that uses JSON files to specify custom ore generation",
-  "version": "${version}",
-  "mcversion": "${mcversion}",
-  "url": "",
-  "updateUrl": "",
-  "authorList": ["DrCyano"],
-  "credits": "The Forge and FML guys, the authors of this mod, and prospectors everywhere",
-  "logoFile": "",
-  "screenshots": [],
-  "dependencies": []
-}
+  {
+    "modid": "orespawn",
+    "name": "OreSpawn",
+    "description": "A customizable ore-spawning system that uses JSON files to specify custom ore generation",
+    "version": "${version}",
+    "authorList": [
+      "iLexiconn",
+      "jriwanek",
+      "DrCyano"
+    ],
+    "credits": "The MMD community"
+  }
 ]
