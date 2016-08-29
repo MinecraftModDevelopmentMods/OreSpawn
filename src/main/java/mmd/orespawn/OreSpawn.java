@@ -8,6 +8,7 @@ import mmd.orespawn.impl.OreSpawnImpl;
 import mmd.orespawn.json.OreSpawnReader;
 import mmd.orespawn.json.OreSpawnWriter;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -22,17 +23,24 @@ public class OreSpawn {
     public static final Logger LOGGER = LogManager.getLogger("OreSpawn");
     public static final OreSpawnImpl API = new OreSpawnImpl();
 
+    public static boolean DO_RETRO_GENERATION = true;
+
     @Mod.EventHandler
     public void onPreInit(FMLPreInitializationEvent event) {
+        Configuration config = new Configuration(event.getSuggestedConfigurationFile());
+        OreSpawn.DO_RETRO_GENERATION = config.getBoolean("retrogen", Configuration.CATEGORY_GENERAL, true, "Generate ores in pre-existing chunks");
+        config.save();
+
+        MinecraftForge.EVENT_BUS.register(EventHandler.INSTANCE);
         MinecraftForge.ORE_GEN_BUS.register(EventHandler.INSTANCE);
         OreSpawnReader.INSTANCE.readSpawnEntries();
-        OreSpawnReader.INSTANCE.convertOldSpawnEntries();
 
         FMLInterModComms.sendFunctionMessage("orespawn", "api", "mmd.orespawn.VanillaOreSpawn");
     }
 
     @Mod.EventHandler
     public void onPostInit(FMLPostInitializationEvent event) {
+        OreSpawnReader.INSTANCE.convertOldSpawnEntries();
         OreSpawnWriter.INSTANCE.writeSpawnEntries();
     }
 

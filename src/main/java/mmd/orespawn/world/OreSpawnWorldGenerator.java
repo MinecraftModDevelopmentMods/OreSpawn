@@ -91,7 +91,16 @@ public class OreSpawnWorldGenerator implements IWorldGenerator {
 
         if (this.spawnEntry.getBiomes().length != 0) {
             Biome biome = world.getBiome(pos);
-            if (!Arrays.stream(this.spawnEntry.getBiomes()).map(Biome::getRegistryName).collect(Collectors.toList()).contains(biome.getRegistryName())) {
+            boolean flag = false;
+
+            for (Biome b : this.spawnEntry.getBiomes()) {
+                if (b == biome) {
+                    flag = true;
+                    break;
+                }
+            }
+
+            if (!flag) {
                 return;
             }
         }

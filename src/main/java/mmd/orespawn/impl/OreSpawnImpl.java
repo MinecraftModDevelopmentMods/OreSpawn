@@ -9,12 +9,11 @@ import mmd.orespawn.api.SpawnLogic;
 import mmd.orespawn.world.OreSpawnWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class OreSpawnImpl implements OreSpawnAPI {
     private final Map<String, SpawnLogic> spawnLogic = new HashMap<>();
+    private final Map<String, List<OreSpawnWorldGenerator>> worldGenerators = new HashMap<>();
 
     @Override
     public SpawnLogic createSpawnLogic() {
@@ -36,12 +35,22 @@ public class OreSpawnImpl implements OreSpawnAPI {
 
         Random random = new Random();
 
+        List<OreSpawnWorldGenerator> list = new ArrayList<>();
         for (Map.Entry<Integer, DimensionLogic> dimension : spawnLogic.getAllDimensions().entrySet()) {
             for (SpawnEntry entry : dimension.getValue().getEntries()) {
-                GameRegistry.registerWorldGenerator(new OreSpawnWorldGenerator(entry, dimension.getKey(), random.nextLong()), 100);
+                OreSpawnWorldGenerator generator = new OreSpawnWorldGenerator(entry, dimension.getKey(), random.nextLong());
+                list.add(generator);
+                if (!OreSpawn.DO_RETRO_GENERATION) {
+                    GameRegistry.registerWorldGenerator(generator, 100);
+                }
             }
         }
+        this.worldGenerators.put(id, list);
 
         OreSpawn.LOGGER.info("Registered spawn logic for mod " + id);
+    }
+
+    public Map<String, List<OreSpawnWorldGenerator>> getWorldGenerators() {
+        return ImmutableMap.copyOf(this.worldGenerators);
     }
 }
