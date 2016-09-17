@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import mmd.orespawn.api.OreSpawnAPI;
 import mmd.orespawn.api.SpawnLogic;
+import mmd.orespawn.command.ClearChunkCommand;
 import mmd.orespawn.impl.OreSpawnImpl;
 import mmd.orespawn.json.OreSpawnReader;
 import mmd.orespawn.json.OreSpawnWriter;
@@ -13,6 +14,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,6 +44,11 @@ public class OreSpawn {
     public void onPostInit(FMLPostInitializationEvent event) {
         OreSpawnReader.INSTANCE.convertOldSpawnEntries();
         OreSpawnWriter.INSTANCE.writeSpawnEntries();
+    }
+
+    @Mod.EventHandler
+    public void onServerStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new ClearChunkCommand());
     }
 
     @Mod.EventHandler

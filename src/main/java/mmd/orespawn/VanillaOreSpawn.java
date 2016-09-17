@@ -20,6 +20,7 @@ public class VanillaOreSpawn implements Function<OreSpawnAPI, SpawnLogic> {
                 .addOre(Blocks.IRON_ORE.getDefaultState(), 8, 4, 20, 0, 64)
                 .addOre(Blocks.GOLD_ORE.getDefaultState(), 8, 2, 2, 0, 32)
                 .addOre(Blocks.DIAMOND_ORE.getDefaultState(), 6, 3, 8, 0, 16)
+                .addOre(Blocks.REDSTONE_ORE.getDefaultState(), 6, 3, 8, 0, 16)
                 .addOre(Blocks.LAPIS_ORE.getDefaultState(), 5, 2, 1, 0, 32)
                 .addOre(Blocks.EMERALD_ORE.getDefaultState(), 1, 0, 8, 4, 32, Biomes.EXTREME_HILLS, Biomes.EXTREME_HILLS_EDGE)
                 .addOre(Blocks.DIRT.getDefaultState(), 112, 50, 10, 0, 255)
