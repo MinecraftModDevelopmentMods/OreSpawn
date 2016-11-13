@@ -47,7 +47,7 @@ public class OreSpawnWorldGenerator implements IWorldGenerator {
     private static final int MAX_CACHE_SIZE = 1024;
     private static final Map<Vec3i, Map<BlockPos, IBlockState>> OVERFLOW_CACHE = new HashMap<>(MAX_CACHE_SIZE);
     private static final Deque<Vec3i> CACHE_ORDER = new LinkedList<>();
-    private static final HashSet<Block> SPAWN_BLOCKS = new HashSet<>();
+    public static final HashSet<Block> SPAWN_BLOCKS = new HashSet<>();
     private static final Set<Integer> KNOWN_DIMENSIONS = new HashSet<>();
 
     private static final Predicate<IBlockState> STONE_PREDICATE = input -> {
