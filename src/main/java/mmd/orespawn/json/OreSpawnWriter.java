@@ -24,6 +24,12 @@ public enum OreSpawnWriter {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
         for (Map.Entry<String, SpawnLogic> entry : OreSpawn.API.getAllSpawnLogic().entrySet()) {
+            File file = new File("." + File.separator + "orespawn", entry.getKey() + ".json");
+            
+            if (file.exists()) {
+                continue;
+            }
+            
             Map<Integer, DimensionLogic> dimensions = entry.getValue().getAllDimensions();
 
             JsonArray array = new JsonArray();
@@ -76,7 +82,7 @@ public enum OreSpawnWriter {
             String json = gson.toJson(array);
 
             try {
-                FileUtils.writeStringToFile(new File("." + File.separator + "orespawn", entry.getKey() + ".json"), StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
+                FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
             } catch (IOException e) {
                 e.printStackTrace();
             }
