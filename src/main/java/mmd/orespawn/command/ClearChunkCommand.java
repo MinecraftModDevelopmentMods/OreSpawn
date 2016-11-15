@@ -1,11 +1,11 @@
 package mmd.orespawn.command;
 
+import mmd.orespawn.world.OreSpawnWorldGenerator;
 import net.minecraft.block.Block;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -38,7 +38,7 @@ public class ClearChunkCommand extends CommandBase {
                     BlockPos pos = new BlockPos(x, y, z);
                     Block block = player.worldObj.getBlockState(pos).getBlock();
 
-                    if (block == Blocks.STONE || block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.SAND || block == Blocks.SANDSTONE || block == Blocks.BEDROCK) {
+                    if (OreSpawnWorldGenerator.SPAWN_BLOCKS.contains(block)) {
                         player.worldObj.setBlockToAir(pos);
                     }
                 }
