@@ -22,7 +22,7 @@ import java.util.Random;
 public enum EventHandler {
     INSTANCE;
 
-    @SubscribeEvent
+    //@SubscribeEvent
     public void onChunkLoad(ChunkDataEvent.Load event) {
         if (OreSpawn.DO_RETRO_GENERATION) {
             WorldServer world = (WorldServer) event.getWorld();
@@ -32,7 +32,7 @@ public enum EventHandler {
         }
     }
 
-    @SubscribeEvent
+    //@SubscribeEvent
     public void onPopulateChunk(PopulateChunkEvent event) {
         if (OreSpawn.DO_RETRO_GENERATION) {
             WorldServer world = (WorldServer) event.getWorld();

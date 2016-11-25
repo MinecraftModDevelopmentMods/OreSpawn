@@ -25,7 +25,7 @@ version = getVersion("VERSION", mod_file)
 if (System.getenv().BUILD_NUMBER) {
     version += "." + System.getenv().BUILD_NUMBER
 }
-version += "-1.10.2"
+version += "-1.11"
 group = "mmd"
 archivesBaseName = "orespawn"
 sourceCompatibility = targetCompatibility = "1.8"
@@ -55,7 +55,7 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.10.2-12.18.2.2125"
+    version = "1.11-13.19.0.2157"
     runDir = "run"
     mappings = "snapshot_20161111"
     makeObfSourceJar = false
