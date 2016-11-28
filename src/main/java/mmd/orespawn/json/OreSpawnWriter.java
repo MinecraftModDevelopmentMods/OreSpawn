@@ -6,7 +6,7 @@ import mmd.orespawn.api.DimensionLogic;
 import mmd.orespawn.api.OreSpawnAPI;
 import mmd.orespawn.api.SpawnEntry;
 import mmd.orespawn.api.SpawnLogic;
-import net.minecraft.block.state.IBlockState;
+import mmd.orespawn.util.StateUtil;
 import net.minecraft.world.biome.Biome;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
@@ -50,7 +50,7 @@ public enum OreSpawnWriter {
                     ore.addProperty("block", spawnEntry.getState().getBlock().getRegistryName().toString());
 
                     if (spawnEntry.getState() != spawnEntry.getState().getBlock().getDefaultState()) {
-                        ore.addProperty("state", this.serializeBlockState(spawnEntry.getState()));
+                        ore.addProperty("state", StateUtil.serializeState(spawnEntry.getState()));
                     }
 
                     ore.addProperty("size", spawnEntry.getSize());
@@ -87,14 +87,5 @@ public enum OreSpawnWriter {
                 e.printStackTrace();
             }
         }
-    }
-
-    private String serializeBlockState(IBlockState state) {
-        String string = state.toString();
-        string = string.substring(string.indexOf("[") + 1, string.length() - (string.endsWith("]") ? 1 : 0));
-        if (string.equals(state.getBlock().getRegistryName().toString())) {
-            string = "normal";
-        }
-        return string;
     }
 }

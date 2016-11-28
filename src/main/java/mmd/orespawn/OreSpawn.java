@@ -4,7 +4,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import mmd.orespawn.api.OreSpawnAPI;
 import mmd.orespawn.api.SpawnLogic;
+import mmd.orespawn.command.AddOreCommand;
 import mmd.orespawn.command.ClearChunkCommand;
+import mmd.orespawn.command.DumpBiomesCommand;
 import mmd.orespawn.impl.OreSpawnImpl;
 import mmd.orespawn.json.OreSpawnReader;
 import mmd.orespawn.json.OreSpawnWriter;
@@ -42,13 +44,14 @@ public class OreSpawn {
 
     @Mod.EventHandler
     public void onPostInit(FMLPostInitializationEvent event) {
-        OreSpawnReader.INSTANCE.convertOldSpawnEntries();
         OreSpawnWriter.INSTANCE.writeSpawnEntries();
     }
 
     @Mod.EventHandler
     public void onServerStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new ClearChunkCommand());
+        event.registerServerCommand(new AddOreCommand());
+        event.registerServerCommand(new DumpBiomesCommand());
     }
 
     @Mod.EventHandler
