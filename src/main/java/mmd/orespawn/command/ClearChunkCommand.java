@@ -14,12 +14,12 @@ import net.minecraft.world.chunk.Chunk;
 
 public class ClearChunkCommand extends CommandBase {
     @Override
-    public String getCommandName() {
+    public String getName() {
         return "clearchunk";
     }
 
     @Override
-    public String getCommandUsage(ICommandSender sender) {
+    public String getUsage(ICommandSender sender) {
         return "/clearchunk";
     }
 
@@ -37,10 +37,10 @@ public class ClearChunkCommand extends CommandBase {
             for (int y = 0; y < 256; y++) {
                 for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
                     BlockPos pos = new BlockPos(x, y, z);
-                    Block block = player.worldObj.getBlockState(pos).getBlock();
+                    Block block = player.world.getBlockState(pos).getBlock();
 
                     if (OreSpawnWorldGenerator.SPAWN_BLOCKS.contains(block)) {
-                        player.worldObj.setBlockToAir(pos);
+                        player.world.setBlockToAir(pos);
                     }
                 }
             }
@@ -49,6 +49,6 @@ public class ClearChunkCommand extends CommandBase {
 
     @Override
     public int compareTo(ICommand command) {
-        return this.getCommandName().compareTo(command.getCommandName());
+        return this.getName().compareTo(command.getName());
     }
 }
