@@ -4,6 +4,7 @@ import mmd.orespawn.world.OreSpawnWorldGenerator;
 import net.minecraft.block.Block;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
+import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
@@ -44,5 +45,10 @@ public class ClearChunkCommand extends CommandBase {
                 }
             }
         }
+    }
+
+    @Override
+    public int compareTo(ICommand command) {
+        return this.getCommandName().compareTo(command.getCommandName());
     }
 }

@@ -20,14 +20,19 @@ apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "com.matthewprenger.cursegradle"
 apply plugin: "maven-publish"
 
+javadoc {
+    failOnError = false
+}
+
 def mod_file = getModFile()
-version = getVersion("VERSION", mod_file)
+def mc_version = "1.11"
+def short_version = getVersion("VERSION", mod_file)
+version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
     version += "." + System.getenv().BUILD_NUMBER
 }
-version += "-1.11"
 group = "mmd"
-archivesBaseName = "orespawn"
+archivesBaseName = "OreSpawn"
 sourceCompatibility = targetCompatibility = "1.8"
 
 class Secrets {
@@ -58,7 +63,39 @@ minecraft {
     version = "1.11-13.19.0.2157"
     runDir = "run"
     mappings = "snapshot_20161111"
+//    coreMod = ""
     makeObfSourceJar = false
+}
+
+repositories {
+    maven {
+        name "DVS1 Maven FS"
+        url "http://dvs1.progwml6.com/files/maven"
+    }
+    maven {
+        name "Chickenbones Repo"
+        url "http://chickenbones.net/maven/"
+    }
+    maven {
+        name "tterrag"
+        url "http://maven.tterrag.com/"
+    }
+    maven {
+        name "MMD"
+        url "https://maven.mcmoddev.com/"
+    }
+    maven {
+        name "amadornes"
+        url "http://maven.amadornes.com/"
+    }
+    maven {
+        name "epoxide"
+        url "http://maven.epoxide.xyz"
+    }
+}
+
+dependencies {
+    // None
 }
 
 processResources {
@@ -67,7 +104,7 @@ processResources {
 
     from (sourceSets.main.resources.srcDirs) {
         include "mcmod.info"
-        expand "version": project.version
+        expand "version": short_version
     }
 
     from (sourceSets.main.resources.srcDirs) {
@@ -75,9 +112,10 @@ processResources {
     }
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = "sources"
-    from sourceSets.main.allSource
+jar {
+    manifest {
+//        attributes("FMLCorePluginContainsFMLMod": "true", "FMLCorePlugin": "")
+    }
 }
 
 task apiJar(type: Jar, dependsOn: classes) {
@@ -94,15 +132,20 @@ task devJar(type: Jar) {
     from sourceSets.main.output
 }
 
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = "sources"
+    from sourceSets.main.allSource
+}
+
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = "javadoc"
     from javadoc.destinationDir
 }
 
 artifacts {
-    archives sourcesJar
     archives apiJar
     archives devJar
+    archives sourcesJar
     archives javadocJar
 }
 
@@ -142,26 +185,30 @@ curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
         id = "245586"
+        changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
-        addGameVersion("1.10.2")
+        addGameVersion("1.11")
+        def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
             displayVersion += "." + System.getenv().BUILD_NUMBER
         }
         mainArtifact(jar) {
-            displayName = "OreSpawn $displayVersion"
-        }
-        addArtifact(sourcesJar) {
-            displayName = "OreSpawn $displayVersion Sources"
+            displayName = "$projName $displayVersion"
+            relations {
+            }
         }
         addArtifact(apiJar) {
-            displayName = "OreSpawn $displayVersion API"
+            displayName = "$projName $displayVersion API"
+        }
+        addArtifact(sourcesJar) {
+            displayName = "$projName $displayVersion Sources"
         }
         addArtifact(devJar) {
-            displayName = "OreSpawn $displayVersion Development"
+            displayName = "$projName $displayVersion Development"
         }
         addArtifact(javadocJar) {
-            displayName = "OreSpawn $displayVersion Javadoc"
+            displayName = "$projName $displayVersion Javadoc"
         }
     }
 }
