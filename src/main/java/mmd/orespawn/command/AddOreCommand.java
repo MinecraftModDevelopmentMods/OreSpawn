@@ -23,12 +23,12 @@ import java.io.IOException;
 
 public class AddOreCommand extends CommandBase {
     @Override
-    public String getCommandName() {
+    public String getName() {
         return "addore";
     }
 
     @Override
-    public String getCommandUsage(ICommandSender sender) {
+    public String getUsage(ICommandSender sender) {
         return "/addore <file> <dimension|all>";
     }
 
@@ -46,7 +46,7 @@ public class AddOreCommand extends CommandBase {
         } else if (!(stack.getItem() instanceof ItemBlock)) {
             throw new CommandException("The item in your main hand isn't a block");
         } else if (args.length != 2) {
-            throw new CommandException(this.getCommandUsage(sender));
+            throw new CommandException(this.getUsage(sender));
         }
 
         File file = new File(".", "orespawn" + File.separator + args[0] + ".json");
@@ -105,7 +105,8 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException("Failed to read the json file");
         }
 
-        player.addChatComponentMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
+        // TODO: Fix this
+//        player.addChatComponentMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
     }
 
     private void saveFile(JsonArray array, File file) throws CommandException {
@@ -121,6 +122,6 @@ public class AddOreCommand extends CommandBase {
 
     @Override
     public int compareTo(ICommand command) {
-        return this.getCommandName().compareTo(command.getCommandName());
+        return this.getName().compareTo(command.getName());
     }
 }

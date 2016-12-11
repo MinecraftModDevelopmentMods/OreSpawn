@@ -21,12 +21,12 @@ import java.io.IOException;
 
 public class DumpBiomesCommand extends CommandBase {
     @Override
-    public String getCommandName() {
+    public String getName() {
         return "dumpbiomes";
     }
 
     @Override
-    public String getCommandUsage(ICommandSender sender) {
+    public String getUsage(ICommandSender sender) {
         return "/dumpbiomes";
     }
 
@@ -47,11 +47,11 @@ public class DumpBiomesCommand extends CommandBase {
             throw new CommandException("Failed to save the json file");
         }
 
-        sender.addChatMessage(new TextComponentString("Done"));
+        sender.sendMessage(new TextComponentString("Done"));
     }
 
     @Override
     public int compareTo(ICommand command) {
-        return this.getCommandName().compareTo(command.getCommandName());
+        return this.getName().compareTo(command.getName());
     }
 }

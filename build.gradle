@@ -60,9 +60,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.11-13.19.0.2157"
+    version = "1.11-13.19.1.2188"
     runDir = "run"
-    mappings = "snapshot_20161111"
+    mappings = "snapshot_20161211"
 //    coreMod = ""
     makeObfSourceJar = false
 }
