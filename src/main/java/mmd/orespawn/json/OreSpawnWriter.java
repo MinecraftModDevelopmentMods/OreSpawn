@@ -7,7 +7,8 @@ import mmd.orespawn.api.OreSpawnAPI;
 import mmd.orespawn.api.SpawnEntry;
 import mmd.orespawn.api.SpawnLogic;
 import mmd.orespawn.util.StateUtil;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
+
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -59,12 +60,12 @@ public enum OreSpawnWriter {
                     ore.addProperty("min_height", spawnEntry.getMinHeight());
                     ore.addProperty("max_height", spawnEntry.getMaxHeight());
 
-                    Biome[] biomeArray = spawnEntry.getBiomes();
+                    BiomeGenBase[] biomeArray = spawnEntry.getBiomes();
 
                     if (biomeArray != null && biomeArray.length != 0) {
                         JsonArray biomes = new JsonArray();
 
-                        for (Biome biome : biomeArray) {
+                        for (BiomeGenBase biome : biomeArray) {
                             biomes.add(new JsonPrimitive(biome.getRegistryName().toString()));
                         }
 

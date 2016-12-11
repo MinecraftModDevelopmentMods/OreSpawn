@@ -10,7 +10,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.apache.commons.io.FileUtils;
 
@@ -81,13 +81,13 @@ public enum OreSpawnReader {
                         int frequency = ore.get("frequency").getAsInt();
                         int minHeight = ore.get("min_height").getAsInt();
                         int maxHeight = ore.get("max_height").getAsInt();
-                        List<Biome> biomes = new ArrayList<>();
+                        List<BiomeGenBase> biomes = new ArrayList<>();
 
                         if (ore.has("biomes")) {
                             JsonArray biomesArray = ore.get("biomes").getAsJsonArray();
 
                             for (JsonElement biomeEntry : biomesArray) {
-                                Biome biome = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
+                                BiomeGenBase biome = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
 
                                 if (biome != null) {
                                     biomes.add(biome);
@@ -95,7 +95,7 @@ public enum OreSpawnReader {
                             }
                         }
 
-                        dimensionLogic.addOre(state, size, variation, frequency, minHeight, maxHeight, biomes.toArray(new Biome[biomes.size()]));
+                        dimensionLogic.addOre(state, size, variation, frequency, minHeight, maxHeight, biomes.toArray(new BiomeGenBase[biomes.size()]));
                     }
                 }
 

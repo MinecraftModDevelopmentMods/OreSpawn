@@ -5,7 +5,7 @@ import mmd.orespawn.api.DimensionLogic;
 import mmd.orespawn.api.SpawnEntry;
 import mmd.orespawn.api.SpawnLogic;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,7 +20,7 @@ public class DimensionLogicImpl implements DimensionLogic {
     }
 
     @Override
-    public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, Biome... biomes) {
+    public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, BiomeGenBase... biomes) {
         this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes));
         return this;
     }

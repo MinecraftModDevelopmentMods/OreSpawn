@@ -10,7 +10,7 @@ import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
@@ -34,7 +34,7 @@ public class DumpBiomesCommand extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         JsonArray array = new JsonArray();
 
-        for (Biome biome : ForgeRegistries.BIOMES) {
+        for (BiomeGenBase biome : ForgeRegistries.BIOMES) {
             array.add(new JsonPrimitive(biome.getRegistryName().toString()));
         }
 

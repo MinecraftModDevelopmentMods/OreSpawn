@@ -10,7 +10,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
@@ -90,10 +90,10 @@ public class OreSpawnWorldGenerator implements IWorldGenerator {
         BlockPos pos = new BlockPos((chunkX << 4) & 0x08, 64, (chunkZ << 4) & 0x08);
 
         if (this.spawnEntry.getBiomes().length != 0) {
-            Biome biome = world.getBiome(pos);
+            BiomeGenBase biome = world.getBiome(pos);
             boolean flag = false;
 
-            for (Biome b : this.spawnEntry.getBiomes()) {
+            for (BiomeGenBase b : this.spawnEntry.getBiomes()) {
                 if (b == biome) {
                     flag = true;
                     break;

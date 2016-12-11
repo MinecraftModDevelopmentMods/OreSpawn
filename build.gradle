@@ -25,7 +25,7 @@ javadoc {
 }
 
 def mod_file = getModFile()
-def mc_version = "1.9.4"
+def mc_version = "1.9"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
@@ -60,9 +60,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.9.4-12.17.0.1976"
+    version = "1.9-12.16.1.1938-1.9.0"
     runDir = "run"
-    mappings = "stable_26"
+    mappings = "stable_24"
 //    coreMod = ""
     makeObfSourceJar = false
 }
@@ -187,7 +187,7 @@ curseforge {
         id = "245586"
         changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
-        addGameVersion("1.10.2")
+        addGameVersion("1.9")
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {

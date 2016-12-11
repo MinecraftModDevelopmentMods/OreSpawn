@@ -1,1 +1,1 @@
-First Orespawn 2.x release for 1.9.4
+First Orespawn 2.x release for 1.9

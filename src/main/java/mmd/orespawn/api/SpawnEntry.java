@@ -1,7 +1,7 @@
 package mmd.orespawn.api;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 public interface SpawnEntry {
     IBlockState getState();
@@ -16,5 +16,5 @@ public interface SpawnEntry {
 
     int getMaxHeight();
 
-    Biome[] getBiomes();
+    BiomeGenBase[] getBiomes();
 }
