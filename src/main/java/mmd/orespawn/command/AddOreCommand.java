@@ -105,8 +105,7 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException("Failed to read the json file");
         }
 
-        // TODO: Fix this
-//        player.addChatComponentMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
+        player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), false);
     }
 
     private void saveFile(JsonArray array, File file) throws CommandException {
