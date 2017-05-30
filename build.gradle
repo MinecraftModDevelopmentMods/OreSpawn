@@ -25,7 +25,7 @@ javadoc {
 }
 
 def mod_file = getModFile()
-def mc_version = "1.11"
+def mc_version = "1.11.2"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
@@ -60,9 +60,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.11-13.19.1.2188"
+    version = "1.11.2-13.20.0.2228"
     runDir = "run"
-    mappings = "snapshot_20161211"
+    mappings = "snapshot_20161220"
 //    coreMod = ""
     makeObfSourceJar = false
 }
