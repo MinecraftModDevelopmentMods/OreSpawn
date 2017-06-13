@@ -44,7 +44,7 @@ public enum EventHandler {
 
     public void generateChunk(WorldServer world, Chunk chunk) {
         OreSpawnData data = OreSpawnData.getData(world);
-        NBTTagList dataList = data.chunkData.get(chunk.getPos());
+        NBTTagList dataList = data.chunkData.get(chunk.getChunkCoordIntPair());
         List<String> generatedIDs = new ArrayList<>();
 
         if (dataList == null) {
@@ -75,7 +75,7 @@ public enum EventHandler {
             }
         }
 
-        data.chunkData.put(chunk.getPos(), dataList);
+        data.chunkData.put(chunk.getChunkCoordIntPair(), dataList);
         data.markDirty();
     }
 

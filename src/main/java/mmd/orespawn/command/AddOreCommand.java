@@ -105,7 +105,7 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException("Failed to read the json file");
         }
 
-        player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), false);
+        player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
     }
 
     private void saveFile(JsonArray array, File file) throws CommandException {
