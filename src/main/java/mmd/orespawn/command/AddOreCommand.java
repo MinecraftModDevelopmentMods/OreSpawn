@@ -51,7 +51,8 @@ public class AddOreCommand extends CommandBase {
 
         File file = new File(".", "orespawn" + File.separator + args[0] + ".json");
         JsonParser parser = new JsonParser();
-        IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
+        @SuppressWarnings("deprecation")
+		IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
 
         if (!file.exists()) {
             throw new CommandException("That file doesn't exist" + (args[0].endsWith(".json") ? " (don't add .json)" : ""));
