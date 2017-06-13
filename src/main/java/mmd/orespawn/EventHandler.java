@@ -61,14 +61,14 @@ public enum EventHandler {
                 Random random = new Random(worldSeed);
                 long xSeed = random.nextLong() >> 2 + 1L;
                 long zSeed = random.nextLong() >> 2 + 1L;
-                long chunkSeed = (xSeed * chunk.xPosition + zSeed * chunk.zPosition) ^ worldSeed;
+                long chunkSeed = (xSeed * chunk.x + zSeed * chunk.z) ^ worldSeed;
 
                 ChunkProviderServer chunkProvider = world.getChunkProvider();
                 IChunkGenerator chunkGenerator = chunkProvider.chunkGenerator;
 
                 for (OreSpawnWorldGenerator generator : entry.getValue()) {
                     random.setSeed(chunkSeed);
-                    generator.generate(random, chunk.xPosition, chunk.zPosition, world, chunkGenerator, chunkProvider);
+                    generator.generate(random, chunk.x, chunk.z, world, chunkGenerator, chunkProvider);
                 }
 
                 dataList.appendTag(new NBTTagString(entry.getKey()));

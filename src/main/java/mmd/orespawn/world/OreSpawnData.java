@@ -42,8 +42,8 @@ public class OreSpawnData extends WorldSavedData {
         for (Map.Entry<ChunkPos, NBTTagList> entry : this.chunkData.entrySet()) {
             NBTTagCompound data = new NBTTagCompound();
 
-            data.setInteger("ChunkX", entry.getKey().chunkXPos);
-            data.setInteger("ChunkZ", entry.getKey().chunkZPos);
+            data.setInteger("ChunkX", entry.getKey().x);
+            data.setInteger("ChunkZ", entry.getKey().z);
             data.setTag("GeneratedIDs", entry.getValue());
 
             list.appendTag(data);
