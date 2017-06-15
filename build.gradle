@@ -62,7 +62,7 @@ if (secretFile.exists()) {
 minecraft {
     version = "1.11.2-13.20.0.2228"
     runDir = "run"
-    mappings = "snapshot_20170531"
+    mappings = "stable_32"
 //    coreMod = ""
     makeObfSourceJar = false
 }
