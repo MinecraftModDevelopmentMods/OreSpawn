@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT"
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
         classpath "com.matthewprenger:CurseGradle:1.0-SNAPSHOT"
     }
 }
@@ -25,7 +25,7 @@ javadoc {
 }
 
 def mod_file = getModFile()
-def mc_version = "1.11.2"
+def mc_version = "1.12"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
@@ -60,9 +60,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.11.2-13.20.0.2228"
+    version = "1.12-14.21.0.2327"
     runDir = "run"
-    mappings = "stable_32"
+    mappings = "snapshot_20170615"
 //    coreMod = ""
     makeObfSourceJar = false
 }
