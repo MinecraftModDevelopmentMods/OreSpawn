@@ -31,7 +31,7 @@ version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
     version += "." + System.getenv().BUILD_NUMBER
 }
-group = "mmd"
+group = "com.mcmoddev"
 archivesBaseName = "OreSpawn"
 sourceCompatibility = targetCompatibility = "1.8"
 
