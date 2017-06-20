@@ -38,7 +38,6 @@ public class DefaultFeatureGenerator implements IFeature {
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
 			IChunkProvider chunkProvider, DefaultOregenParameters p) {
-		int hash = ((chunkX * 0x43 + chunkZ) << 16) | random.nextInt();
 		
 		if(spawnBlocks.isEmpty()){
 			// initialize
@@ -60,15 +59,12 @@ public class DefaultFeatureGenerator implements IFeature {
 		}
 		// now to ore spawn
 
-		random.setSeed(random.nextLong() ^ hash);
-		random.nextInt(); // prng prime
-		
 		if(p.frequency >= 1){
 //			OreSpawn.LOGGER.fatal("Trying to spawn "+p.blockState.getBlock());
 			for(int i = 0; i < p.frequency; i++){
-				int x = (chunkX << 4) + random.nextInt(16);
+				int x = ((chunkX << 4) & 8) + random.nextInt(8);
 				int y = random.nextInt(p.maxHeight - p.minHeight) + p.minHeight;
-				int z = (chunkZ << 4) + random.nextInt(16);
+				int z = ((chunkZ << 4) & 8) + random.nextInt(8);
 				
 				final int r;
 				if(p.variation > 0){
@@ -80,9 +76,9 @@ public class DefaultFeatureGenerator implements IFeature {
 			}
 		} else if(random.nextFloat() < p.frequency){
 //			OreSpawn.LOGGER.fatal("Trying to spawn "+p.blockState.getBlock());
-			int x = (chunkX << 4) + random.nextInt(16);
+			int x = ((chunkX << 4) & 8 ) + random.nextInt(8);
 			int y = random.nextInt(p.maxHeight - p.minHeight) + p.minHeight;
-			int z = (chunkZ << 4) + random.nextInt(16);
+			int z = ((chunkZ << 4) & 8 ) + random.nextInt(8);
 			final int r;
 			if(p.variation > 0){
 				r = random.nextInt(2 * p.variation) - p.variation;
@@ -198,8 +194,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	private static void spawn(IBlockState b, World w, BlockPos coord, int dimension, boolean cacheOverflow){
 //		OreSpawn.LOGGER.fatal("Trying to spawn block at "+coord+" of type "+b.getBlock());
 		if(coord.getY() < 0 || coord.getY() >= w.getHeight()) return;
-		if(w.isAreaLoaded(coord, 0)){
-			if(w.isAirBlock(coord)) return;
+		if(w.isBlockLoaded(coord)){
 			IBlockState bs = w.getBlockState(coord);
 			if(bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep) || spawnBlocks.contains(bs.getBlock())){
 				w.setBlockState(coord, b, 2);

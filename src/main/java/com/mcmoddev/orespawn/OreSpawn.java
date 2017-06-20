@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
+import com.mcmoddev.orespawn.commands.ClearChunkCommand;
 import com.mcmoddev.orespawn.data.Config;
 
 import net.minecraftforge.common.MinecraftForge;
@@ -73,5 +74,6 @@ public class OreSpawn {
     @EventHandler
     public void onServerStarting(FMLServerStartingEvent ev) {
     	// TODO: Register Commands
+    	ev.registerServerCommand(new ClearChunkCommand());
     }
 }
