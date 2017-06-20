@@ -1,14 +1,16 @@
-package mmd.orespawn.impl;
+package com.mcmoddev.orespawn.impl;
 
-import com.google.common.collect.ImmutableList;
-import mmd.orespawn.api.DimensionLogic;
-import mmd.orespawn.api.SpawnEntry;
-import mmd.orespawn.api.SpawnLogic;
+
+import com.mcmoddev.orespawn.api.DimensionLogic;
+import com.mcmoddev.orespawn.api.SpawnEntry;
+import com.mcmoddev.orespawn.api.SpawnLogic;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class DimensionLogicImpl implements DimensionLogic {
@@ -20,14 +22,20 @@ public class DimensionLogicImpl implements DimensionLogic {
     }
 
     @Override
-    public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, Biome... biomes) {
+    public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight, Biome... biomes) {
         this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes));
         return this;
     }
 
     @Override
+    public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, Biome... biomes) {
+        this.logic.add(new SpawnEntryImpl(state, size, variation, (float)frequency, minHeight, maxHeight, biomes));
+        return this;
+    }
+    
+    @Override
     public Collection<SpawnEntry> getEntries() {
-        return ImmutableList.copyOf(this.logic);
+        return Collections.unmodifiableList(this.logic);
     }
 
     @Override

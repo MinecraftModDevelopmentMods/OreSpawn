@@ -1,4 +1,6 @@
-package mmd.orespawn.api;
+package com.mcmoddev.orespawn.api;
+
+import java.util.List;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
@@ -10,11 +12,13 @@ public interface SpawnEntry {
 
     int getVariation();
 
-    int getFrequency();
+    float getFrequency();
 
     int getMinHeight();
 
     int getMaxHeight();
 
-    Biome[] getBiomes();
+    List<Biome> getBiomes();
+    
+    IFeature getFeatureGen();
 }

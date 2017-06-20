@@ -25,13 +25,13 @@ javadoc {
 }
 
 def mod_file = getModFile()
-def mc_version = "1.10.2"
+def mc_version = "1.11.2"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
     version += "." + System.getenv().BUILD_NUMBER
 }
-group = "mmd"
+group = "com.mcmoddev"
 archivesBaseName = "OreSpawn"
 sourceCompatibility = targetCompatibility = "1.8"
 
@@ -60,9 +60,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.10.2-12.18.3.2185"
+    version = "1.11.2-13.20.0.2228"
     runDir = "run"
-    mappings = "stable_29"
+    mappings = "stable_32"
 //    coreMod = ""
     makeObfSourceJar = false
 }
@@ -187,7 +187,7 @@ curseforge {
         id = "245586"
         changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
-        addGameVersion("1.10.2")
+        addGameVersion("1.11")
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
@@ -195,8 +195,8 @@ curseforge {
         }
         mainArtifact(jar) {
             displayName = "$projName $displayVersion"
-//            relations {
-//            }
+            relations {
+            }
         }
         addArtifact(apiJar) {
             displayName = "$projName $displayVersion API"
