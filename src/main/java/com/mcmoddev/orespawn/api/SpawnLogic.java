@@ -1,4 +1,4 @@
-package mmd.orespawn.api;
+package com.mcmoddev.orespawn.api;
 
 import java.util.Map;
 

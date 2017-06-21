@@ -1,8 +1,8 @@
-package mmd.orespawn.impl;
+package com.mcmoddev.orespawn.impl;
 
 import com.google.common.collect.ImmutableMap;
-import mmd.orespawn.api.DimensionLogic;
-import mmd.orespawn.api.SpawnLogic;
+import com.mcmoddev.orespawn.api.DimensionLogic;
+import com.mcmoddev.orespawn.api.SpawnLogic;
 
 import java.util.HashMap;
 import java.util.Map;

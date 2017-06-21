@@ -1,6 +1,6 @@
-package mmd.orespawn.command;
+package com.mcmoddev.orespawn.commands;
 
-import mmd.orespawn.world.OreSpawnWorldGenerator;
+import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 import net.minecraft.block.Block;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -31,7 +31,7 @@ public class ClearChunkCommand extends CommandBase {
 
         EntityPlayer player = (EntityPlayer) sender;
         Chunk chunk = player.getEntityWorld().getChunkFromBlockCoords(player.getPosition());
-        ChunkPos chunkPos = chunk.getChunkCoordIntPair();
+        ChunkPos chunkPos = chunk.getPos();
 
         for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
             for (int y = 0; y < 256; y++) {
@@ -39,7 +39,7 @@ public class ClearChunkCommand extends CommandBase {
                     BlockPos pos = new BlockPos(x, y, z);
                     Block block = player.world.getBlockState(pos).getBlock();
 
-                    if (OreSpawnWorldGenerator.SPAWN_BLOCKS.contains(block)) {
+                    if (OreSpawnWorldGen.SPAWN_BLOCKS.contains(block)) {
                         player.world.setBlockToAir(pos);
                     }
                 }
