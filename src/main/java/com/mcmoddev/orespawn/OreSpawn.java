@@ -51,15 +51,10 @@ public class OreSpawn {
     public static final EventHandlers eventHandlers = new EventHandlers();
     
     // TODO: add some form of storage for JSON here
-    // TODO: add config loading -- partially done
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent ev) {
     	Config.loadConfig();
-    	
-    	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
-    		// TODO: setup stuff for retrogen
-    	}
     	
     	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
     		MinecraftForge.EVENT_BUS.register(eventHandlers);
@@ -67,7 +62,8 @@ public class OreSpawn {
     	
     	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
     	OS2Reader.loadEntries();
-    	// TODO: Bind stuff for standard gen regardless
+
+    	FMLInterModComms.sendFunctionMessage("orespawn", "api", "com.mcmoddev.orespawn.data.VanillaOrespawn");
     }
 
     @EventHandler
@@ -76,7 +72,6 @@ public class OreSpawn {
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent ev) {
-    	// TODO: OS2 does a data-write here, we should too
     	writer.writeSpawnEntries();
     	Config.saveConfig();
     }
@@ -93,7 +88,6 @@ public class OreSpawn {
     
     @EventHandler
     public void onServerStarting(FMLServerStartingEvent ev) {
-    	// TODO: Register Commands
     	ev.registerServerCommand(new ClearChunkCommand());
     	ev.registerServerCommand(new DumpBiomesCommand());
     	ev.registerServerCommand(new AddOreCommand());
