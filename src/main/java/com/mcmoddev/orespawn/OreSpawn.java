@@ -5,15 +5,21 @@ import com.mcmoddev.orespawn.impl.OreSpawnImpl;
 import com.mcmoddev.orespawn.json.OS1Reader;
 import com.mcmoddev.orespawn.json.OS2Reader;
 import com.mcmoddev.orespawn.json.OS2Writer;
+import com.mcmoddev.orespawn.api.OreSpawnAPI;
+import com.mcmoddev.orespawn.commands.AddOreCommand;
+import com.mcmoddev.orespawn.commands.ClearChunkCommand;
+import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
+import com.mcmoddev.orespawn.data.Config;
+import com.mcmoddev.orespawn.api.SpawnLogic;
 
 import java.nio.file.Paths;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
-import com.mcmoddev.orespawn.commands.ClearChunkCommand;
-import com.mcmoddev.orespawn.data.Config;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -42,21 +48,22 @@ public class OreSpawn {
     public static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public final static OreSpawnAPI API = new OreSpawnImpl();
     public static final OS2Writer writer = new OS2Writer();
+    public static final EventHandlers eventHandlers = new EventHandlers();
     
     // TODO: add some form of storage for JSON here
-    // TODO: add config loading -- partially done
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent ev) {
     	Config.loadConfig();
     	
     	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
-    		// TODO: setup stuff for retrogen
+    		MinecraftForge.EVENT_BUS.register(eventHandlers);
     	}
     	
     	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
     	OS2Reader.loadEntries();
-    	// TODO: Bind stuff for standard gen regardless
+
+    	FMLInterModComms.sendFunctionMessage("orespawn", "api", "com.mcmoddev.orespawn.data.VanillaOrespawn");
     }
 
     @EventHandler
@@ -65,19 +72,24 @@ public class OreSpawn {
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent ev) {
-    	// TODO: OS2 does a data-write here, we should too
     	writer.writeSpawnEntries();
     	Config.saveConfig();
     }
     
     @EventHandler
-    public void onIMC(FMLInterModComms.IMCEvent ev) {
-    	// TODO: Handle IMC
+    public void onIMC(FMLInterModComms.IMCEvent event) {
+        event.getMessages().stream().filter(message -> message.key.equalsIgnoreCase("api")).forEach(message -> {
+            Optional<Function<OreSpawnAPI, SpawnLogic>> value = message.getFunctionValue(OreSpawnAPI.class, SpawnLogic.class);
+            if (OreSpawn.API.getSpawnLogic(message.getSender()) == null && value.isPresent()) {
+                OreSpawn.API.registerSpawnLogic(message.getSender(), value.get().apply(OreSpawn.API));
+            }
+        });
     }
-
+    
     @EventHandler
     public void onServerStarting(FMLServerStartingEvent ev) {
-    	// TODO: Register Commands
     	ev.registerServerCommand(new ClearChunkCommand());
+    	ev.registerServerCommand(new DumpBiomesCommand());
+    	ev.registerServerCommand(new AddOreCommand());
     }
 }
