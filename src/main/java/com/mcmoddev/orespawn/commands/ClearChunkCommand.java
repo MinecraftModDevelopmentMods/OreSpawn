@@ -10,6 +10,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.chunk.Chunk;
 
 public class ClearChunkCommand extends CommandBase {
@@ -45,6 +46,7 @@ public class ClearChunkCommand extends CommandBase {
                 }
             }
         }
+        player.sendStatusMessage(new TextComponentString("chunk "+chunkPos.toString()+" cleared"), true);
     }
 
     @Override

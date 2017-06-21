@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.data;
 
+import com.mcmoddev.orespawn.api.SpawnEntry;
+
 import net.minecraft.block.state.IBlockState;
 
 public class DefaultOregenParameters {
@@ -17,5 +19,14 @@ public class DefaultOregenParameters {
 		this.frequency = frequency;
 		this.variation = variation;
 		this.size = size;
+	}
+
+	public DefaultOregenParameters(SpawnEntry s) {
+		this.blockState = s.getState();
+		this.minHeight = s.getMinHeight();
+		this.maxHeight = s.getMaxHeight();
+		this.frequency = s.getFrequency();
+		this.variation = s.getVariation();
+		this.size = s.getSize();
 	}
 }

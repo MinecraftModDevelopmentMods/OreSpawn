@@ -17,14 +17,17 @@ public class Config {
 		configuration = new Configuration(new File(Constants.CONFIG_FILE));
 		
 		// Load our Boolean Values
-		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, true, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
-		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, true, "Force all chunks to retrogen regardless of anything else"));
+		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
+		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Force all chunks to retrogen regardless of anything else"));
 		knownKeys.add(Constants.RETROGEN_KEY);
 		knownKeys.add(Constants.FORCE_RETROGEN_KEY);
 	}
 	
 	public static boolean getBoolean(String keyname) {
 		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
+			if(keyname.equals(Constants.RETROGEN_KEY) || keyname.equals(Constants.FORCE_RETROGEN_KEY)) {
+				return false;
+			}
 			return boolVals.get(keyname);
 		}
 		return false;
