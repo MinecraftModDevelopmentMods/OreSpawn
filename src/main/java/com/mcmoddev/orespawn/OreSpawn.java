@@ -2,8 +2,11 @@ package com.mcmoddev.orespawn;
 
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.impl.OreSpawnImpl;
+import com.mcmoddev.orespawn.json.OS1Reader;
 import com.mcmoddev.orespawn.json.OS2Reader;
 import com.mcmoddev.orespawn.json.OS2Writer;
+
+import java.nio.file.Paths;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,7 +41,6 @@ public class OreSpawn {
     public static OreSpawn INSTANCE = null;
     public static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public final static OreSpawnAPI API = new OreSpawnImpl();
-    public static final OS2Reader reader = new OS2Reader();
     public static final OS2Writer writer = new OS2Writer();
     
     // TODO: add some form of storage for JSON here
@@ -52,7 +54,8 @@ public class OreSpawn {
     		// TODO: setup stuff for retrogen
     	}
     	
-    	reader.loadEntries();
+    	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
+    	OS2Reader.loadEntries();
     	// TODO: Bind stuff for standard gen regardless
     }
 
@@ -64,6 +67,7 @@ public class OreSpawn {
     public void postInit(FMLPostInitializationEvent ev) {
     	// TODO: OS2 does a data-write here, we should too
     	writer.writeSpawnEntries();
+    	Config.saveConfig();
     }
     
     @EventHandler

@@ -41,10 +41,6 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			SPAWN_BLOCKS.add(Blocks.END_STONE);
 			SPAWN_BLOCKS.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).collect(Collectors.toList()));
 		}
-		
-		for( Block b : SPAWN_BLOCKS ) {
-			OreSpawn.LOGGER.fatal( "SPAWN_BLOCKS contains: "+b);
-		}
 	}
 
 	@Override
@@ -65,11 +61,12 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		for( SpawnEntry sE : dimensionLogic.getEntries() ) {
 			Biome biome = world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16));
 			//			OreSpawn.LOGGER.fatal("Trying to generate in biome "+biome+" for spawn entry with block of type "+sE.getState());
-			//			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
-			IFeature currentFeatureGen = sE.getFeatureGen();
-			// what follows is a stop-gap
-			DefaultOregenParameters p = new DefaultOregenParameters( sE.getState(), sE.getMinHeight(), sE.getMaxHeight(), sE.getFrequency(), sE.getVariation(), sE.getSize());
-			currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, p);
+			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
+				IFeature currentFeatureGen = sE.getFeatureGen();
+				// what follows is a stop-gap
+				DefaultOregenParameters p = new DefaultOregenParameters( sE.getState(), sE.getMinHeight(), sE.getMaxHeight(), sE.getFrequency(), sE.getVariation(), sE.getSize());
+				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, p);
+			}
 		}
 	}
 }

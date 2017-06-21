@@ -51,6 +51,10 @@ public class Config {
 		return 0.0f;
 	}
 	
+	public static void saveConfig() {
+		configuration.save();
+	}
+	
 	private static final HashMap<String,Boolean> boolVals = new HashMap<>();
 	private static final HashMap<String,String> stringVals = new HashMap<>();
 	private static final HashMap<String,Integer> intVals = new HashMap<>();

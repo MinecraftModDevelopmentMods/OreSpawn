@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.impl;
 
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.SpawnEntry;
 import com.mcmoddev.orespawn.api.SpawnLogic;
@@ -23,13 +24,21 @@ public class DimensionLogicImpl implements DimensionLogic {
 
     @Override
     public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight, Biome... biomes) {
-        this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes));
+    	if( state.getBlock() != null ) {
+    		this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes));
+    	} else {
+    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
+    	}
         return this;
     }
 
     @Override
     public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, Biome... biomes) {
-        this.logic.add(new SpawnEntryImpl(state, size, variation, (float)frequency, minHeight, maxHeight, biomes));
+    	if( state.getBlock() != null ) {
+    		this.logic.add(new SpawnEntryImpl(state, size, variation, (float)frequency, minHeight, maxHeight, biomes));
+    	} else {
+    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
+    	}
         return this;
     }
     
