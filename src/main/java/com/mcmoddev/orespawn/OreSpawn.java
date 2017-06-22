@@ -60,6 +60,10 @@ public class OreSpawn {
     		MinecraftForge.EVENT_BUS.register(eventHandlers);
     	}
     	
+    	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
+    		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
+    	}
+    	
     	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
     	OS2Reader.loadEntries();
 

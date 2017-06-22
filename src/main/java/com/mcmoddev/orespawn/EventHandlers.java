@@ -23,11 +23,18 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
 
 public class EventHandlers {
-
+	
+    @SubscribeEvent
+    public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
+        event.setResult(Event.Result.DENY);
+    }
+    
 	@SubscribeEvent
 	public void onChunkSave(ChunkDataEvent.Save ev) {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);

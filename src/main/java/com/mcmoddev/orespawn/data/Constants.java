@@ -10,4 +10,5 @@ public class Constants {
 	public static final String CHUNK_TAG_NAME = "MMD OreSpawn Data";
 	public static final String ORE_TAG = "ores";
 	public static final String FEATURES_TAG = "features";
+	public static final String REPLACE_VANILLA_OREGEN = "Replace Vanilla Oregen";
 }
