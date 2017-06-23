@@ -12,7 +12,6 @@ import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnEntry;
-import com.mcmoddev.orespawn.data.DefaultOregenParameters;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
@@ -76,8 +75,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
 				IFeature currentFeatureGen = sE.getFeatureGen();
 				// what follows is a stop-gap
-				DefaultOregenParameters p = new DefaultOregenParameters( sE.getState(), sE.getMinHeight(), sE.getMaxHeight(), sE.getFrequency(), sE.getVariation(), sE.getSize());
-				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, p);
+				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getParameters(), sE.getState());
 			}
 		}
 	}
