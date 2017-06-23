@@ -72,10 +72,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		for( SpawnEntry sE : entries ) {
 			Biome biome = world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16));
 			//			OreSpawn.LOGGER.fatal("Trying to generate in biome "+biome+" for spawn entry with block of type "+sE.getState());
-			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
+			if( sE.getBiomes().contains(biome) || sE.getBiomes().equals(Collections.<Biome>emptyList()) || sE.getBiomes().isEmpty() ) {
 				IFeature currentFeatureGen = sE.getFeatureGen();
 				// what follows is a stop-gap
-				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getParameters(), sE.getState());
+				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getParameters(), sE.getState(), sE.getReplacement());
 			}
 		}
 	}

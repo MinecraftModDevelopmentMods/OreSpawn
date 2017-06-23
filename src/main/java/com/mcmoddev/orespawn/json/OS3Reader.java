@@ -1,12 +1,8 @@
 package com.mcmoddev.orespawn.json;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +18,7 @@ import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnLogic;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
@@ -33,6 +30,9 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Reader {
 
+	private OS3Reader() {
+		
+	}
 	private static void loadFeatures(File file) {
 		OreSpawn.FEATURES.loadFeaturesFile(file);
 	}
@@ -60,9 +60,12 @@ public class OS3Reader {
 		
 		Arrays.stream(files).filter(file -> file.getName().endsWith(".json")).forEach(
 				file -> {
-					if( file.getName().equals("_features.json") ) {
+					if( "_features.json".equals(file.getName()) ) {
 						// this contains the map of features, don't bother with it
 						loadFeatures(file);
+						return;
+					} else if( "_replacements.json".equals(file.getName())) {
+						Replacements.load(file);
 						return;
 					}
 					
@@ -119,29 +122,10 @@ public class OS3Reader {
 								String replaceBase = ore.get("replace_block").getAsString();
 								IBlockState blockRep;
 								
-								if( replaceBase.equals("default") ) {
-									switch(dimension) {
-									case -1:
-										replaceBase = "minecraft:netherrack";
-										break;
-									case 0:
-										replaceBase = "minecraft:stone";
-										break;
-									case 1:
-										replaceBase = "minecraft:end_stone";
-										break;
-									default:
-										// this also covers the wildcard value
-										replaceBase = "minecraft:stone";
-									}
-								}
-
-								Block repBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(replaceBase));
-
-								if( ore.has("replace_block_state") ) {
-									blockRep = StateUtil.deserializeState(repBlock, ore.get("replace_block_state").getAsString());
+								if( "default".equals(replaceBase) ) {
+									blockRep = ReplacementsRegistry.getDimensionDefault(dimension);
 								} else {
-									blockRep = repBlock.getDefaultState();
+									blockRep = ReplacementsRegistry.getBlock(replaceBase);
 								}
 								
 								List<Biome> biomes = new ArrayList<>();
@@ -162,7 +146,7 @@ public class OS3Reader {
 							}
 						}
 
-						OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf(".")), spawnLogic);
+						OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf('.')), spawnLogic);
 					} catch (Exception e) {
 						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 						report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);

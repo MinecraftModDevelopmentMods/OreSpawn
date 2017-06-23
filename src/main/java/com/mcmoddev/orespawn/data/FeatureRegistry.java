@@ -27,13 +27,14 @@ import net.minecraft.crash.CrashReport;
 public class FeatureRegistry {
 	private Map<String, IFeature> features;
 	private Map<IFeature, String> featuresInverse;
-
+	private static final String def = "default";
+	
 	public FeatureRegistry() {
 		features = new HashMap<>();
 		featuresInverse = new HashMap<>();
 		IFeature defaultGen = new DefaultFeatureGenerator();
-		features.put("default", defaultGen);
-		featuresInverse.put(defaultGen, "default");
+		features.put(def, defaultGen);
+		featuresInverse.put(defaultGen, def);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
@@ -44,7 +45,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(feature) ) {
 			return this.featuresInverse.get(feature);
 		} else {
-			return "default";
+			return def;
 		}
 	}
 
@@ -52,7 +53,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(name) ) {
 			return this.features.get(name);
 		} else {
-			return this.features.get("default");
+			return this.features.get(def);
 		}
 	}
 	
@@ -114,7 +115,7 @@ public class FeatureRegistry {
 		
 		JsonArray root = new JsonArray();
 		       
-		if( features != Collections.EMPTY_LIST ) {
+		if( !features.equals(Collections.<String,IFeature>emptyMap()) ) {
             for( Entry<String, IFeature> feature : features.entrySet() ) {
             	JsonObject entry = new JsonObject();
             	entry.addProperty("name", feature.getKey());

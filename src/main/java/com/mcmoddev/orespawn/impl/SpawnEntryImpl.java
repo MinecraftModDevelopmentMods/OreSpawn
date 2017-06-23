@@ -18,19 +18,24 @@ public class SpawnEntryImpl implements SpawnEntry {
     private final List<Biome> biomes;
     private final IFeature generator;
     private final IBlockState blockRep;
+    private final static String sz = "size";
+    private final static String var = "variation";
+    private final static String freq = "frequency";
+    private final static String mny = "minHeight";
+    private final static String mxy = "maxHeight";
     
     public SpawnEntryImpl(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight, Biome[] biomes) {
     	this.paramStore = new JsonObject();
-    	this.paramStore.addProperty("size", size);
-    	this.paramStore.addProperty("variation", variation);
-    	this.paramStore.addProperty("frequency", frequency);
-    	this.paramStore.addProperty("minHeight", minHeight);
-    	this.paramStore.addProperty("maxHeight", maxHeight);
+    	this.paramStore.addProperty(sz, size);
+    	this.paramStore.addProperty(var, variation);
+    	this.paramStore.addProperty(freq, frequency);
+    	this.paramStore.addProperty(mny, minHeight);
+    	this.paramStore.addProperty(mxy, maxHeight);
         this.state = state;
         this.blockRep = null;
         
         if( biomes == null || biomes.length == 0 ) {
-        	this.biomes = Collections.EMPTY_LIST;
+        	this.biomes = Collections.<Biome>emptyList();;
         } else {
         	this.biomes = new ArrayList<>();
         	for( Biome b : biomes ) {
@@ -44,17 +49,17 @@ public class SpawnEntryImpl implements SpawnEntry {
     public SpawnEntryImpl(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight,
 			Biome[] biomes, IFeature featureGen, IBlockState blockRep) {
     	this.paramStore = new JsonObject();
-    	this.paramStore.addProperty("size", size);
-    	this.paramStore.addProperty("variation", variation);
-    	this.paramStore.addProperty("frequency", frequency);
-    	this.paramStore.addProperty("minHeight", minHeight);
-    	this.paramStore.addProperty("maxHeight", maxHeight);
+    	this.paramStore.addProperty(sz, size);
+    	this.paramStore.addProperty(var, variation);
+    	this.paramStore.addProperty(freq, frequency);
+    	this.paramStore.addProperty(mny, minHeight);
+    	this.paramStore.addProperty(mxy, maxHeight);
     	this.generator = featureGen;
     	this.blockRep = blockRep;
     	this.state = state;
     	
         if( biomes == null || biomes.length == 0 ) {
-        	this.biomes = Collections.EMPTY_LIST;
+        	this.biomes = Collections.<Biome>emptyList();
         } else {
         	this.biomes = new ArrayList<>();
         	for( Biome b : biomes ) {
@@ -71,7 +76,7 @@ public class SpawnEntryImpl implements SpawnEntry {
     	this.state = state;
     	
         if( biomes == null || biomes.length == 0 ) {
-        	this.biomes = Collections.EMPTY_LIST;
+        	this.biomes = Collections.<Biome>emptyList();
         } else {
         	this.biomes = new ArrayList<>();
         	for( Biome b : biomes ) {
@@ -87,27 +92,27 @@ public class SpawnEntryImpl implements SpawnEntry {
 
     @Override
     public int getSize() {
-        return this.paramStore.get("size").getAsInt();
+        return this.paramStore.get(sz).getAsInt();
     }
 
     @Override
     public int getVariation() {
-        return this.paramStore.get("variation").getAsInt();
+        return this.paramStore.get(var).getAsInt();
     }
 
     @Override
     public float getFrequency() {
-        return this.paramStore.get("frequency").getAsFloat();
+        return this.paramStore.get(freq).getAsFloat();
     }
 
     @Override
     public int getMinHeight() {
-        return this.paramStore.get("minHeight").getAsInt();
+        return this.paramStore.get(mny).getAsInt();
     }
 
     @Override
     public int getMaxHeight() {
-        return this.paramStore.get("maxHeight").getAsInt();
+        return this.paramStore.get(mxy).getAsInt();
     }
 
     @Override
@@ -123,5 +128,10 @@ public class SpawnEntryImpl implements SpawnEntry {
     @Override
     public JsonObject getParameters() {
     	return this.paramStore.getAsJsonObject();
+    }
+    
+    @Override
+    public IBlockState getReplacement() {
+    	return this.blockRep;
     }
 }

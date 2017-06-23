@@ -22,6 +22,9 @@ import java.io.File;
 import java.io.IOException;
 
 public class AddOreCommand extends CommandBase {
+	private static final String dim = "dimension";
+	private static final String all = "all";
+	
     @Override
     public String getName() {
         return "addore";
@@ -51,6 +54,7 @@ public class AddOreCommand extends CommandBase {
 
         File file = new File(".", "orespawn" + File.separator + args[0] + ".json");
         JsonParser parser = new JsonParser();
+        @SuppressWarnings("deprecation")
         IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
 
         if (!file.exists()) {
@@ -60,7 +64,7 @@ public class AddOreCommand extends CommandBase {
         int dimension = OreSpawnAPI.DIMENSION_WILDCARD;
 
         try {
-            if (!args[1].equals("all")) {
+            if (!args[1].equals(all)) {
                 dimension = Integer.parseInt(args[1]);
             }
         } catch (NumberFormatException e) {
@@ -82,7 +86,7 @@ public class AddOreCommand extends CommandBase {
             for (JsonElement element : json) {
                 JsonObject object = element.getAsJsonObject();
 
-                if (object.has("dimension") ? dimension == object.get("dimension").getAsInt() : dimension == OreSpawnAPI.DIMENSION_WILDCARD) {
+                if (object.has(dim) ? dimension == object.get(dim).getAsInt() : dimension == OreSpawnAPI.DIMENSION_WILDCARD) {
                     object.get("ores").getAsJsonArray().add(ore);
                     this.saveFile(json, file);
 
@@ -93,7 +97,7 @@ public class AddOreCommand extends CommandBase {
             JsonObject object = new JsonObject();
 
             if (dimension != OreSpawnAPI.DIMENSION_WILDCARD) {
-                object.addProperty("dimension", dimension);
+                object.addProperty(dim, dimension);
             }
 
             JsonArray array = new JsonArray();
@@ -102,7 +106,7 @@ public class AddOreCommand extends CommandBase {
 
             this.saveFile(json, file);
         } catch (IOException e) {
-            throw new CommandException("Failed to read the json file");
+            throw new CommandException("Something went wrong - "+e.getMessage());
         }
 
         player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
@@ -115,7 +119,7 @@ public class AddOreCommand extends CommandBase {
         try {
             FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
         } catch (IOException e) {
-            throw new CommandException("Failed to save the updated json file");
+            throw new CommandException("Something went wrong - "+e.getMessage());
         }
     }
 
