@@ -26,17 +26,24 @@ import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.world.biome.Biome;
 
 public class OS3Writer {
-	private void writeFeatures() {
-        File file = new File("." + File.separator + "orespawn" + File.separator + "os3", "_features.json");
+	private void writeFeatures(String base) {
+        File file = new File(base, "_features.json");
         OreSpawn.FEATURES.writeFeatures(file);
 	}
 	
+	private void writeReplacements(String base) {
+        File file = new File(base, "_replacments.json");
+        Replacements.save(file);
+	}
+	
     public void writeSpawnEntries() {
+    	String basePath = String.format(".%sorespawn%sos3", File.separator, File.separator);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    	writeFeatures();
+    	writeFeatures(basePath);
+    	writeReplacements(basePath);
 
-        for (Map.Entry<String, SpawnLogic> entry : OreSpawn.API.getAllSpawnLogic().entrySet()) {
-            File file = new File("." + File.separator + "orespawn" + File.separator + "os3", entry.getKey() + ".json");
+    	for (Map.Entry<String, SpawnLogic> entry : OreSpawn.API.getAllSpawnLogic().entrySet()) {
+            File file = new File(basePath, entry.getKey() + ".json");
             
             if (file.exists()) {
                 continue;
@@ -74,7 +81,7 @@ public class OS3Writer {
                     
                     List<Biome> biomeArray = spawnEntry.getBiomes();
 
-                    if (biomeArray != Collections.EMPTY_LIST) {
+                    if ( !biomeArray.equals(Collections.<Biome>emptyList())) {
                         JsonArray biomes = new JsonArray();
 
                         for (Biome biome : biomeArray) {
@@ -97,7 +104,7 @@ public class OS3Writer {
             try {
                 FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
             } catch (IOException e) {
-                e.printStackTrace();
+                OreSpawn.LOGGER.fatal("Exception writing OreSpawn config %s - %s", file.toString(), e.getLocalizedMessage());
             }
         }
     }

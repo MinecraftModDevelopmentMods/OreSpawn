@@ -25,4 +25,6 @@ public interface SpawnEntry {
     IFeature getFeatureGen();
     
     JsonObject getParameters();
+
+	IBlockState getReplacement();
 }

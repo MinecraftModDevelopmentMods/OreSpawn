@@ -5,7 +5,6 @@ import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.OreSpawnImpl;
 import com.mcmoddev.orespawn.json.OS1Reader;
 import com.mcmoddev.orespawn.json.OS2Reader;
-import com.mcmoddev.orespawn.json.OS2Writer;
 import com.mcmoddev.orespawn.json.OS3Reader;
 import com.mcmoddev.orespawn.json.OS3Writer;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
@@ -48,14 +47,12 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 public class OreSpawn {
     @Instance
     public static OreSpawn INSTANCE = null;
-    public static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
+    public final static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public final static OreSpawnAPI API = new OreSpawnImpl();
     public static final OS3Writer writer = new OS3Writer();
     public static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
     
-    // TODO: add some form of storage for JSON here
-
     @EventHandler
     public void preInit(FMLPreInitializationEvent ev) {
     	Config.loadConfig();
@@ -77,6 +74,7 @@ public class OreSpawn {
 
     @EventHandler
     public void init(FMLInitializationEvent ev) {
+    	// nothing to do here, yet
     }
 
     @EventHandler
@@ -87,7 +85,7 @@ public class OreSpawn {
     
     @EventHandler
     public void onIMC(FMLInterModComms.IMCEvent event) {
-        event.getMessages().stream().filter(message -> message.key.equalsIgnoreCase("api")).forEach(message -> {
+        event.getMessages().stream().filter(message -> "api".equalsIgnoreCase(message.key)).forEach(message -> {
             Optional<Function<OreSpawnAPI, SpawnLogic>> value = message.getFunctionValue(OreSpawnAPI.class, SpawnLogic.class);
             if (OreSpawn.API.getSpawnLogic(message.getSender()) == null && value.isPresent()) {
                 OreSpawn.API.registerSpawnLogic(message.getSender(), value.get().apply(OreSpawn.API));

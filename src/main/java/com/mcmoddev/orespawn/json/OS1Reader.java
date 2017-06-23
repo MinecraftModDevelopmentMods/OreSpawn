@@ -27,6 +27,9 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS1Reader {
+	private OS1Reader() {
+		
+	}
 	public static void loadEntries(Path confDir) {
 		File directory = new File(confDir.toString());
         JsonParser parser = new JsonParser();
@@ -58,7 +61,7 @@ public class OS1Reader {
 		                for (JsonElement elem : root.get("dimensions").getAsJsonArray() ) {
 		                	JsonObject dim = elem.getAsJsonObject();
 		                	int theDim;
-		                	if( dim.get("dimension").getAsString().equals("+") ) {
+		                	if( "+".equals(dim.get("dimension").getAsString()) ) {
 		                		theDim = OreSpawnAPI.DIMENSION_WILDCARD;
 		                	} else {
 		                		theDim = dim.get("dimension").getAsInt();
@@ -71,7 +74,7 @@ public class OS1Reader {
 		                		loadOre( oElem.getAsJsonObject(), dimensionLogic );
 		                	}
 		                }
-		                OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf(".")), spawnLogic);
+		                OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf('.')), spawnLogic);
 					} catch(Exception e) {
 		                CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 		                report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -83,10 +86,11 @@ public class OS1Reader {
 
 	private static void loadOre(JsonObject oElem, DimensionLogic dimensionLogic) {
 		String blockID = oElem.get("blockID").getAsString();
-		String modId = blockID.contains(":")?blockID.substring(0, blockID.indexOf(":")):"minecraft";
-		String name = blockID.contains(":")?blockID.substring(blockID.indexOf(":")+1):blockID;
+		String modId = blockID.contains(":")?blockID.substring(0, blockID.indexOf(':')):"minecraft";
+		String name = blockID.contains(":")?blockID.substring(blockID.indexOf(':')+1):blockID;
 		int meta = oElem.has("metaData")?oElem.get("metaData").getAsInt():0;
 		ResourceLocation blockKey = new ResourceLocation(blockID);
+		String biome = "biomes";
 		
 		if( !Block.REGISTRY.containsKey(blockKey) ) {
 			OreSpawn.LOGGER.warn("Asked to spawn block "+modId+":"+name+" that does not exist");
@@ -104,19 +108,19 @@ public class OS1Reader {
 		int variation = oElem.has("variation")?oElem.get("variation").getAsInt():(int)(0.5f * size);
 		List<Biome> biomes;
 		
-		if( oElem.has("biomes") && oElem.get("biomes").getAsJsonArray().size() > 0 ) {
-            JsonArray biomesArray = oElem.get("biomes").getAsJsonArray();
+		if( oElem.has(biome) && oElem.get(biome).getAsJsonArray().size() > 0 ) {
+            JsonArray biomesArray = oElem.get(biome).getAsJsonArray();
             biomes = new ArrayList<>();
             
             for (JsonElement biomeEntry : biomesArray) {
-                Biome biome = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
+                Biome bm = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
 
-                if (biome != null) {
-                    biomes.add(biome);
+                if (bm != null) {
+                    biomes.add(bm);
                 }
             }
 		} else {
-			biomes = Collections.EMPTY_LIST;
+			biomes = Collections.<Biome>emptyList();
 		}
 		
         dimensionLogic.addOre(bs, size, variation, frequency, minHeight, maxHeight, biomes.toArray(new Biome[biomes.size()]));

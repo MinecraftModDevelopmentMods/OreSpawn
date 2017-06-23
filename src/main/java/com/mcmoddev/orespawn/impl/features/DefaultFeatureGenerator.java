@@ -3,27 +3,22 @@ package com.mcmoddev.orespawn.impl.features;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 
-import com.google.common.base.Predicate;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Integer3D;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraftforge.oredict.OreDictionary;
 
 
 public class DefaultFeatureGenerator implements IFeature {
@@ -32,28 +27,15 @@ public class DefaultFeatureGenerator implements IFeature {
 	 * appear in the neighboring chunk without triggering a chunk-load */
 	private static final Map<Integer3D,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(maxCacheSize);
 	private static final Deque<Integer3D> cacheOrder = new LinkedList<>();
-	private static final HashSet<Block> spawnBlocks = new HashSet<>();
 	
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, IBlockState block ) {
-		
-		if(spawnBlocks.isEmpty()){
-			// initialize
-			spawnBlocks.add(Blocks.STONE);
-			spawnBlocks.add(Blocks.NETHERRACK);
-			spawnBlocks.add(Blocks.END_STONE);
-			for(ItemStack o : OreDictionary.getOres("stone")){
-				if(o.getItem() instanceof ItemBlock)
-				spawnBlocks.add(((ItemBlock)o.getItem()).getBlock());
-			}
-		}
-		
+			IChunkProvider chunkProvider, JsonObject parameters, IBlockState block, IBlockState replaceBlock ) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		Integer3D chunkCoord = new Integer3D(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
-		for(BlockPos pos : cache.keySet()){
-			spawn(cache.get(pos),world,pos,world.provider.getDimension(),false);
+		for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
+			spawn(cache.get(ent.getKey()),world,ent.getKey(),world.provider.getDimension(),false,replaceBlock);
 		}
 		// now to ore spawn
 
@@ -78,7 +60,7 @@ public class DefaultFeatureGenerator implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnOre( new BlockPos(x,y,z), block, size + r, world, random);
+				spawnOre( new BlockPos(x,y,z), block, size + r, world, random, replaceBlock);
 			}
 		} else if(random.nextFloat() < freq){
 			int x = blockX + random.nextInt(8);
@@ -90,7 +72,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			} else {
 				r = 0;
 			}
-			spawnOre( new BlockPos(x,y,z), block, size + r, world, random);
+			spawnOre( new BlockPos(x,y,z), block, size + r, world, random, replaceBlock);
 		}
 		
 	}
@@ -119,7 +101,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	private static final int[] offsetIndexRef = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 	private static final int[] offsetIndexRef_small = {0,1,2,3,4,5,6,7};
 
-	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng) {
+	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng, IBlockState replaceBlock) {
 		int count = quantity;
 //		OreSpawn.LOGGER.fatal("Spawning block of "+oreBlock+" at "+blockPos+" with quantity "+quantity);
 		if(quantity <= 8){
@@ -127,7 +109,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			System.arraycopy(offsetIndexRef_small, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
 			while(count > 0){
-				spawn(oreBlock,world,blockPos.add(offsets_small[scrambledLUT[--count]]),world.provider.getDimension(),true);
+				spawn(oreBlock,world,blockPos.add(offsets_small[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
 			}
 			return;
 		}
@@ -136,7 +118,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			System.arraycopy(offsetIndexRef, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
 			while(count > 0){
-				spawn(oreBlock,world,blockPos.add(offsets[scrambledLUT[--count]]),world.provider.getDimension(),true);
+				spawn(oreBlock,world,blockPos.add(offsets[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
 			}
 			return;
 		}
@@ -149,7 +131,7 @@ public class DefaultFeatureGenerator implements IFeature {
 					for(int dz = (int)(-1 * radius); dz < radius; dz++){
 						for(int dx = (int)(-1 * radius); dx < radius; dx++){
 							if((dx*dx + dy*dy + dz*dz) <= rSqr){
-								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true);
+								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
 								count--;
 							}
 							if(count <= 0) {
@@ -164,7 +146,7 @@ public class DefaultFeatureGenerator implements IFeature {
 					for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 						for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 							if((dx*dx + dy*dy + dz*dz) <= rSqr){
-								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true);
+								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
 								count--;
 							}
 							if(count <= 0) {
@@ -187,21 +169,12 @@ public class DefaultFeatureGenerator implements IFeature {
 		}
 	}
 
-	private static final Predicate<IBlockState> stonep = new Predicate<IBlockState>(){
-		@Override
-		public boolean apply(IBlockState input) {
-			Block b = input.getBlock();
-			if(b == Blocks.AIR) return false;
-			return spawnBlocks.contains(b);
-		}
-	};
-
-	private static void spawn(IBlockState b, World w, BlockPos coord, int dimension, boolean cacheOverflow){
+	private static void spawn(IBlockState b, World w, BlockPos coord, int dimension, boolean cacheOverflow, IBlockState replaceBlock){
 		//OreSpawn.LOGGER.fatal("!!!! Trying to spawn block at "+coord+" of type "+b.getBlock());
 		if(coord.getY() < 0 || coord.getY() >= w.getHeight()) return;
 		if(w.isBlockLoaded(coord)){
 			IBlockState bs = w.getBlockState(coord);
-			if(bs.getBlock().isReplaceableOreGen(bs, w, coord, stonep) || spawnBlocks.contains(bs.getBlock())){
+			if(!(bs.getBlock().equals(Blocks.AIR)) || (replaceBlock.equals(bs))) {
 				w.setBlockState(coord, b, 2);
 			}
 		} else if(cacheOverflow){
@@ -212,7 +185,7 @@ public class DefaultFeatureGenerator implements IFeature {
 
 	protected static void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension){
 		Integer3D chunkCoord = new Integer3D(coord.getX() >> 4, coord.getY() >> 4, dimension);
-		if(overflowCache.containsKey(chunkCoord) == false){
+		if(overflowCache.containsKey(chunkCoord)){
 			cacheOrder.addLast(chunkCoord);
 			if(cacheOrder.size() > maxCacheSize){
 				Integer3D drop = cacheOrder.removeFirst();
@@ -232,7 +205,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			overflowCache.remove(chunkCoord);
 			return cache;
 		} else {
-			return Collections.EMPTY_MAP;
+			return Collections.<BlockPos,IBlockState>emptyMap();
 		}
 	}
 
