@@ -39,9 +39,9 @@ public class OreSpawnImpl implements OreSpawnAPI {
         Random random = new Random();
 
         worldGenerator = new OreSpawnWorldGen(spawnLogic.getAllDimensions(), random.nextLong());
-        if (!Config.getBoolean(Constants.RETROGEN_KEY)) {
+        //if (!Config.getBoolean(Constants.RETROGEN_KEY)) {
         	GameRegistry.registerWorldGenerator(worldGenerator, 100);
-        }
+        //}
         
         OreSpawn.LOGGER.info("Registered spawn logic for mod " + id);
     }
