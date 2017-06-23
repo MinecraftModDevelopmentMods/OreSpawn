@@ -27,9 +27,9 @@ public class Config {
 	
 	public static boolean getBoolean(String keyname) {
 		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
-			if(keyname.equals(Constants.RETROGEN_KEY) || keyname.equals(Constants.FORCE_RETROGEN_KEY)) {
-				return false;
-			}
+//			if(keyname.equals(Constants.RETROGEN_KEY) || keyname.equals(Constants.FORCE_RETROGEN_KEY)) {
+//				return false;
+//			}
 			return boolVals.get(keyname);
 		}
 		return false;

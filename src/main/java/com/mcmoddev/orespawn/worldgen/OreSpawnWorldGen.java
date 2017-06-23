@@ -49,16 +49,28 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 
 		int thisDim = world.provider.getDimension();
 		DimensionLogic dimensionLogic = this.dimensions.get(thisDim);
-
+		List<SpawnEntry> entries = new ArrayList<>();
+		
 		if( dimensionLogic == null ) {
+			// no logic for this dimension, if this is nether or end, just exit
+			if( thisDim == -1 || thisDim == 1 ) {
+				return;
+			}
+
 			dimensionLogic = this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD);
 			if( dimensionLogic == null ) {
 				OreSpawn.LOGGER.fatal("no logic for dimension "+thisDim+" or for all dimensions");
 				return;
 			}
+			entries.addAll(dimensionLogic.getEntries());
+		} else if( thisDim != -1 && thisDim != 1 ) {
+			dimensionLogic = this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD);
+			if( dimensionLogic != null ) {
+				entries.addAll(dimensionLogic.getEntries());
+			}
 		}
 
-		for( SpawnEntry sE : dimensionLogic.getEntries() ) {
+		for( SpawnEntry sE : entries ) {
 			Biome biome = world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16));
 			//			OreSpawn.LOGGER.fatal("Trying to generate in biome "+biome+" for spawn entry with block of type "+sE.getState());
 			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
