@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.SpawnEntry;
 import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
