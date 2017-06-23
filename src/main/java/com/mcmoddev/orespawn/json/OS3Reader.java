@@ -124,6 +124,9 @@ public class OS3Reader {
 								
 								if( "default".equals(replaceBase) ) {
 									blockRep = ReplacementsRegistry.getDimensionDefault(dimension);
+								} else if( replaceBase == null ) {
+									// this shouldn't happen often
+									blockRep = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("minecraft:stone")).getDefaultState();
 								} else {
 									blockRep = ReplacementsRegistry.getBlock(replaceBase);
 								}

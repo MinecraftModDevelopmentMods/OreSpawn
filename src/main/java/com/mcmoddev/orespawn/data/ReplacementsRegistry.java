@@ -19,6 +19,9 @@ public class ReplacementsRegistry {
 	
 	public static IBlockState getDimensionDefault(int dimension) {
 		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
+		if( dimension < 0 || dimension > 1 ) {
+			return ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[1])).getDefaultState();			
+		}
 		return ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension+1])).getDefaultState();
 	}
 

@@ -32,7 +32,7 @@ public class OS3Writer {
 	}
 	
 	private void writeReplacements(String base) {
-        File file = new File(base, "_replacments.json");
+        File file = new File(base, "_replacements.json");
         Replacements.save(file);
 	}
 	
