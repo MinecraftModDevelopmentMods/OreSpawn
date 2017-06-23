@@ -12,7 +12,6 @@ import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnEntry;
-import com.mcmoddev.orespawn.data.DefaultOregenParameters;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;

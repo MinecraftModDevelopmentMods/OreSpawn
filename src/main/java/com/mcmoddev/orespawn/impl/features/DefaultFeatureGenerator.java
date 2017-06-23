@@ -10,9 +10,7 @@ import java.util.Random;
 
 import com.google.common.base.Predicate;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.data.DefaultOregenParameters;
 import com.mcmoddev.orespawn.data.Integer3D;
 
 import net.minecraft.block.Block;
