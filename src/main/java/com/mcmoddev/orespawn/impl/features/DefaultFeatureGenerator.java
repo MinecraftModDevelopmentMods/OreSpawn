@@ -9,8 +9,10 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Integer3D;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -169,12 +171,30 @@ public class DefaultFeatureGenerator implements IFeature {
 		}
 	}
 
+	private static boolean canReplace(IBlockState target, IBlockState toReplace) {
+		if( target.getBlock().equals(Blocks.AIR) ) {
+			return false;
+		}
+		if( toReplace.equals(target) ) {
+			return true;
+		}
+		return false;
+	}
+	
 	private static void spawn(IBlockState b, World w, BlockPos coord, int dimension, boolean cacheOverflow, IBlockState replaceBlock){
 		//OreSpawn.LOGGER.fatal("!!!! Trying to spawn block at "+coord+" of type "+b.getBlock());
+		IBlockState b2r = replaceBlock;
+		if(b2r == null) {
+			b2r = ReplacementsRegistry.getDimensionDefault(w.provider.getDimension());
+		}
+		if(b2r == null) {
+			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);;
+			return;
+		}
 		if(coord.getY() < 0 || coord.getY() >= w.getHeight()) return;
 		if(w.isBlockLoaded(coord)){
 			IBlockState bs = w.getBlockState(coord);
-			if(!(bs.getBlock().equals(Blocks.AIR)) || (replaceBlock.equals(bs))) {
+			if(canReplace(bs,b2r)) {
 				w.setBlockState(coord, b, 2);
 			}
 		} else if(cacheOverflow){
