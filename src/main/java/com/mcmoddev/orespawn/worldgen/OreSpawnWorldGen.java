@@ -76,8 +76,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			if( sE.getBiomes().contains(biome) || sE.getBiomes() == Collections.EMPTY_LIST || sE.getBiomes().size() == 0 ) {
 				IFeature currentFeatureGen = sE.getFeatureGen();
 				// what follows is a stop-gap
-				DefaultOregenParameters p = new DefaultOregenParameters( sE.getState(), sE.getMinHeight(), sE.getMaxHeight(), sE.getFrequency(), sE.getVariation(), sE.getSize());
-				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, p);
+				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getParameters(), sE.getState());
 			}
 		}
 	}

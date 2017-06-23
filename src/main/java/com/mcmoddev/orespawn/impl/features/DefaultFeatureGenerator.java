@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Predicate;
+import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.DefaultOregenParameters;
@@ -37,7 +38,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, DefaultOregenParameters p) {
+			IChunkProvider chunkProvider, JsonObject parameters, IBlockState block ) {
 		
 		if(spawnBlocks.isEmpty()){
 			// initialize
@@ -54,7 +55,6 @@ public class DefaultFeatureGenerator implements IFeature {
 		Integer3D chunkCoord = new Integer3D(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
 		for(BlockPos pos : cache.keySet()){
-//			OreSpawn.LOGGER.fatal("Continuing spawn from previous chunk");
 			spawn(cache.get(pos),world,pos,world.provider.getDimension(),false);
 		}
 		// now to ore spawn
@@ -62,33 +62,37 @@ public class DefaultFeatureGenerator implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 		
-		if(p.frequency >= 1){
-//			OreSpawn.LOGGER.fatal("Trying to spawn "+p.blockState.getBlock());
-			for(int i = 0; i < p.frequency; i++){
+		int minY = parameters.get("minHeight").getAsInt();
+		int maxY = parameters.get("maxHeight").getAsInt();
+		int vari = parameters.get("variation").getAsInt();
+		float freq = parameters.get("frequency").getAsFloat();
+		int size = parameters.get("size").getAsInt();
+		
+		if(freq >= 1){
+			for(int i = 0; i < freq; i++){
 				int x = blockX + random.nextInt(8);
-				int y = random.nextInt(p.maxHeight - p.minHeight) + p.minHeight;
+				int y = random.nextInt(maxY - minY) + minY;
 				int z = blockZ + random.nextInt(8);
 				
 				final int r;
-				if(p.variation > 0){
-					r = random.nextInt(2 * p.variation) - p.variation;
+				if(vari > 0){
+					r = random.nextInt(2 * vari) - vari;
 				} else {
 					r = 0;
 				}
-				spawnOre( new BlockPos(x,y,z), p.blockState, p.size + r, world, random);
+				spawnOre( new BlockPos(x,y,z), block, size + r, world, random);
 			}
-		} else if(random.nextFloat() < p.frequency){
-//			OreSpawn.LOGGER.fatal("Trying to spawn "+p.blockState.getBlock());
+		} else if(random.nextFloat() < freq){
 			int x = blockX + random.nextInt(8);
-			int y = random.nextInt(p.maxHeight - p.minHeight) + p.minHeight;
+			int y = random.nextInt(maxY - minY) + minY;
 			int z = blockZ + random.nextInt(8);
 			final int r;
-			if(p.variation > 0){
-				r = random.nextInt(2 * p.variation) - p.variation;
+			if(vari > 0){
+				r = random.nextInt(2 * vari) - vari;
 			} else {
 				r = 0;
 			}
-			spawnOre( new BlockPos(x,y,z), p.blockState, p.size + r, world, random);
+			spawnOre( new BlockPos(x,y,z), block, size + r, world, random);
 		}
 		
 	}

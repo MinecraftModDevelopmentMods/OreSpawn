@@ -1,8 +1,10 @@
 package com.mcmoddev.orespawn.impl;
 
 
+import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.DimensionLogic;
+import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.SpawnEntry;
 import com.mcmoddev.orespawn.api.SpawnLogic;
 
@@ -51,4 +53,26 @@ public class DimensionLogicImpl implements DimensionLogic {
     public SpawnLogic end() {
         return this.parent;
     }
+
+	@Override
+	public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight,
+			Biome[] biomes, IFeature featureGen, IBlockState blockRep) {
+    	if( state.getBlock() != null ) {
+    		this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes, featureGen, blockRep));
+    	} else {
+    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
+    	}
+        return this;
+	}
+
+	@Override
+	public DimensionLogic addOre(IBlockState state, JsonObject parameters, Biome[] biomes, IFeature featureGen,
+			IBlockState blockRep) {
+    	if( state.getBlock() != null ) {
+    		this.logic.add(new SpawnEntryImpl(state, parameters, biomes, featureGen, blockRep));
+    	} else {
+    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
+    	}
+        return this;
+	}
 }

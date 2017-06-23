@@ -1,10 +1,13 @@
 package com.mcmoddev.orespawn;
 
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.OreSpawnImpl;
 import com.mcmoddev.orespawn.json.OS1Reader;
 import com.mcmoddev.orespawn.json.OS2Reader;
 import com.mcmoddev.orespawn.json.OS2Writer;
+import com.mcmoddev.orespawn.json.OS3Reader;
+import com.mcmoddev.orespawn.json.OS3Writer;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
 import com.mcmoddev.orespawn.commands.ClearChunkCommand;
@@ -47,8 +50,9 @@ public class OreSpawn {
     public static OreSpawn INSTANCE = null;
     public static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public final static OreSpawnAPI API = new OreSpawnImpl();
-    public static final OS2Writer writer = new OS2Writer();
+    public static final OS3Writer writer = new OS3Writer();
     public static final EventHandlers eventHandlers = new EventHandlers();
+    public static final FeatureRegistry FEATURES = new FeatureRegistry();
     
     // TODO: add some form of storage for JSON here
 
@@ -66,7 +70,8 @@ public class OreSpawn {
     	
     	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
     	OS2Reader.loadEntries();
-
+    	OS3Reader.loadEntries();
+    	
     	FMLInterModComms.sendFunctionMessage("orespawn", "api", "com.mcmoddev.orespawn.data.VanillaOrespawn");
     }
 
