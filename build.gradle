@@ -174,7 +174,7 @@ publishing {
                 classifier "dev"
             }
             artifact deobfJar {
-                classifier "dev"
+                classifier "deobf"
             }
             artifact javadocJar {
                 classifier "javadoc"
