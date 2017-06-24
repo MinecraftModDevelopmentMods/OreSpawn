@@ -135,6 +135,11 @@ task devJar(type: Jar) {
     from sourceSets.main.output
 }
 
+task deobfJar(type: Jar) {
+    classifier = "deobf"
+    from sourceSets.main.output
+}
+
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = "sources"
     from sourceSets.main.allSource
@@ -166,6 +171,9 @@ publishing {
                 classifier "api"
             }
             artifact devJar {
+                classifier "dev"
+            }
+            artifact deobfJar {
                 classifier "dev"
             }
             artifact javadocJar {
@@ -207,7 +215,7 @@ curseforge {
         addArtifact(sourcesJar) {
             displayName = "$projName $displayVersion Sources"
         }
-        addArtifact(devJar) {
+        addArtifact(deobfJar) {
             displayName = "$projName $displayVersion Development"
         }
         addArtifact(javadocJar) {
