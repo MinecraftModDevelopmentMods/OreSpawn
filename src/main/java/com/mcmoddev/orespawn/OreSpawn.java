@@ -52,6 +52,7 @@ public class OreSpawn {
     public static final OS3Writer writer = new OS3Writer();
     public static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
+    public static String OS1ConfigPath;
     
     @EventHandler
     public void preInit(FMLPreInitializationEvent ev) {
@@ -65,16 +66,15 @@ public class OreSpawn {
     		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
     	}
     	
-    	OS1Reader.loadEntries(Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn"));
-    	OS2Reader.loadEntries();
-    	OS3Reader.loadEntries();
-    	
+    	OS1ConfigPath = Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn").toString();
     	FMLInterModComms.sendFunctionMessage("orespawn", "api", "com.mcmoddev.orespawn.data.VanillaOrespawn");
     }
 
     @EventHandler
     public void init(FMLInitializationEvent ev) {
-    	// nothing to do here, yet
+    	OS1Reader.loadEntries(Paths.get(OS1ConfigPath));
+    	OS2Reader.loadEntries();
+    	OS3Reader.loadEntries();
     }
 
     @EventHandler
