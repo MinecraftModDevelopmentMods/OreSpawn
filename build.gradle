@@ -1,3 +1,5 @@
+def corePlugin = ""
+
 buildscript {
     repositories {
         jcenter()
@@ -6,27 +8,38 @@ buildscript {
             url = "http://files.minecraftforge.net/maven"
         }
         maven {
+            name = "gradle"
+            url "https://plugins.gradle.org/m2/"
+        }
+        maven {
             name = "sonatype"
             url = "https://oss.sonatype.org/content/groups/public"
         }
     }
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT"
-        classpath "com.matthewprenger:CurseGradle:1.0-SNAPSHOT"
+        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.0.9"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "com.matthewprenger.cursegradle"
 apply plugin: "maven-publish"
+apply plugin: "org.sonarqube"
 
 javadoc {
     failOnError = false
 }
 
+description = "OreSpawn"
 def mod_file = getModFile()
 def mc_version = "1.11.2"
-def short_version = getVersion("VERSION", mod_file)
+
+ext {
+    short_version = getVersion("VERSION", mod_file)
+}
+
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
     version += "." + System.getenv().BUILD_NUMBER
@@ -63,11 +76,17 @@ minecraft {
     version = "1.11.2-13.20.0.2228"
     runDir = "run"
     mappings = "stable_32"
-//    coreMod = ""
+//  coreMod = corePlugin
+//  clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
+//  serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
     makeObfSourceJar = false
 }
 
 repositories {
+    maven {
+	    name "SpongePowered"
+        url "https://repo.spongepowered.org/maven/"
+    }
     maven {
         name "DVS1 Maven FS"
         url "http://dvs1.progwml6.com/files/maven"
@@ -222,6 +241,16 @@ curseforge {
         addArtifact(javadocJar) {
             displayName = "$projName $displayVersion Javadoc"
         }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.host.url", secret.sonarHost
+        property "sonar.organization", secret.sonarOrganization
+        property "sonar.login", secret.sonarToken
+        property "sonar.projectName", project.archivesBaseName
+        property "sonar.projectKey", "$project.group:$project.archivesBaseName"
     }
 }
 
