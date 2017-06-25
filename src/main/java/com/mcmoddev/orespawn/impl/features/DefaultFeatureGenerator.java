@@ -105,7 +105,6 @@ public class DefaultFeatureGenerator implements IFeature {
 
 	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng, IBlockState replaceBlock) {
 		int count = quantity;
-//		OreSpawn.LOGGER.fatal("Spawning block of "+oreBlock+" at "+blockPos+" with quantity "+quantity);
 		if(quantity <= 8){
 			int[] scrambledLUT = new int[offsetIndexRef_small.length];
 			System.arraycopy(offsetIndexRef_small, 0, scrambledLUT, 0, scrambledLUT.length);
@@ -182,7 +181,6 @@ public class DefaultFeatureGenerator implements IFeature {
 	}
 	
 	private static void spawn(IBlockState b, World w, BlockPos coord, int dimension, boolean cacheOverflow, IBlockState replaceBlock){
-		//OreSpawn.LOGGER.fatal("!!!! Trying to spawn block at "+coord+" of type "+b.getBlock());
 		IBlockState b2r = replaceBlock;
 		if(b2r == null) {
 			b2r = ReplacementsRegistry.getDimensionDefault(w.provider.getDimension());
