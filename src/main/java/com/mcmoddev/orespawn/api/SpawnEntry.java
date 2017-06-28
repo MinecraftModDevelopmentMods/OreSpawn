@@ -10,16 +10,6 @@ import net.minecraft.world.biome.Biome;
 public interface SpawnEntry {
     IBlockState getState();
 
-    int getSize();
-
-    int getVariation();
-
-    float getFrequency();
-
-    int getMinHeight();
-
-    int getMaxHeight();
-
     List<Biome> getBiomes();
     
     IFeature getFeatureGen();
