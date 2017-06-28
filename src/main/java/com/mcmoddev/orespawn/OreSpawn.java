@@ -11,6 +11,7 @@ import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnEntry;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
 import com.mcmoddev.orespawn.commands.ClearChunkCommand;
+import com.mcmoddev.orespawn.commands.WriteConfigsCommand;
 import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.api.SpawnLogic;
@@ -105,5 +106,6 @@ public class OreSpawn {
     	ev.registerServerCommand(new ClearChunkCommand());
     	ev.registerServerCommand(new DumpBiomesCommand());
     	ev.registerServerCommand(new AddOreCommand());
+    	ev.registerServerCommand(new WriteConfigsCommand());
     }
 }

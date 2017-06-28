@@ -26,22 +26,12 @@ public class DimensionLogicImpl implements DimensionLogic {
 
     @Override
     public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight, Biome... biomes) {
-    	if( state.getBlock() != null ) {
-    		this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes));
-    	} else {
-    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
-    	}
-        return this;
+    	return this.addOre(state, size, variation, frequency, minHeight, maxHeight, biomes, "default", null);
     }
 
     @Override
     public DimensionLogic addOre(IBlockState state, int size, int variation, int frequency, int minHeight, int maxHeight, Biome... biomes) {
-    	if( state.getBlock() != null ) {
-    		this.logic.add(new SpawnEntryImpl(state, size, variation, (float)frequency, minHeight, maxHeight, biomes));
-    	} else {
-    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
-    	}
-        return this;
+    	return this.addOre(state, size, variation, (float)frequency, minHeight, maxHeight, biomes);
     }
     
     @Override
@@ -57,12 +47,13 @@ public class DimensionLogicImpl implements DimensionLogic {
 	@Override
 	public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight, int maxHeight,
 			Biome[] biomes, IFeature featureGen, IBlockState blockRep) {
-    	if( state.getBlock() != null ) {
-    		this.logic.add(new SpawnEntryImpl(state, size, variation, frequency, minHeight, maxHeight, biomes, featureGen, blockRep));
-    	} else {
-    		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
-    	}
-        return this;
+		JsonObject p = new JsonObject();
+		p.addProperty("size", size);
+		p.addProperty("variation", variation);
+		p.addProperty("frequency", frequency);
+		p.addProperty("minHeight", minHeight);
+		p.addProperty("maxHeight", maxHeight);
+		return this.addOre(state, p, biomes, featureGen, blockRep);
 	}
 
 	@Override
@@ -74,5 +65,11 @@ public class DimensionLogicImpl implements DimensionLogic {
     		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
     	}
         return this;
+	}
+
+	@Override
+	public DimensionLogic addOre(IBlockState state, int size, int variation, float frequency, int minHeight,
+			int maxHeight, Biome[] biomes, String featureName, IBlockState blockRep) {
+		return this.addOre(state, size, variation, frequency, minHeight, maxHeight, biomes, OreSpawn.FEATURES.getFeature(featureName), blockRep);
 	}
 }

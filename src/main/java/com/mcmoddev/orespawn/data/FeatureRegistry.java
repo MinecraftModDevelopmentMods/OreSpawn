@@ -64,13 +64,21 @@ public class FeatureRegistry {
 	public boolean hasFeature(IFeature feature) {
 		return featuresInverse.containsKey(feature);
 	}
+
 	
 	public void addFeature(JsonObject entry) {
-		IFeature feature = getInstance(entry.get("class").getAsString());
+		this.addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
+	}
+	
+	public void addFeature(String name, String className) {
+		IFeature feature = getInstance(className);
 		if( feature != null ) {
-			features.put(entry.get("name").getAsString(), feature);
-			featuresInverse.put(feature, entry.get("name").getAsString());
-		}
+			// the feature might already be registered
+			if( !features.containsKey(name) ) {
+				features.put(name, feature);
+				featuresInverse.put(feature, name);
+			}
+		}		
 	}
 	
 	private IFeature getInstance(String className) {

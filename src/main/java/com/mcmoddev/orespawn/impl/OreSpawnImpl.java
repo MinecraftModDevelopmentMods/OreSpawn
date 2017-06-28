@@ -61,4 +61,9 @@ public class OreSpawnImpl implements OreSpawnAPI {
     public OreSpawnWorldGen getWorldGenerator() {
         return worldGenerator;
     }
+
+	@Override
+	public void addFeatureGenerator(String name, String className) {
+		OreSpawn.FEATURES.addFeature(name, className);
+	}
 }
