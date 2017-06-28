@@ -19,4 +19,6 @@ public interface OreSpawnAPI {
     OreSpawnWorldGen getWorldGenerator();
     
     void registerSpawns();
+    
+    void addFeatureGenerator(String name, String className);
 }

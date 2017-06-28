@@ -73,6 +73,14 @@ public class FeatureRegistry {
 		}
 	}
 	
+	public void addFeature(String name, String className) {
+		IFeature feature = getInstance(className);
+		if( feature != null ) {
+			features.put(name, feature);
+			featuresInverse.put(feature, name);
+		}		
+	}
+	
 	private IFeature getInstance(String className) {
 		Class<?> featureClazz;
 		Constructor<?> featureCons;
