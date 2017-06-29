@@ -1,1 +1,7 @@
-Updated for latest Forge RB
+Ported to 1.11.2
+Complete rewrite of internals for better stability
+Change of JSON config format (See Wiki for details!)
+Added ability to specify different types of ore generation
+Added ability to specify what block gets replaced
+Able to Import both OreSpawn 1 and OreSpawn 2 format config files
+Added an operator (permission level 4) command to force-dump current configuration
