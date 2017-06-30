@@ -79,9 +79,11 @@ public class OreSpawn {
 
     @EventHandler
     public void init(FMLInitializationEvent ev) {
-    	OS1Reader.loadEntries(Paths.get(OS1ConfigPath));
-    	OS2Reader.loadEntries();
+    	// we prefer the OS3 version of files
+    	// but will take OS2 and OS1 versions - in that order
     	OS3Reader.loadEntries();
+    	OS2Reader.loadEntries();
+    	OS1Reader.loadEntries(Paths.get(OS1ConfigPath));
     	API.registerSpawns();
     }
 

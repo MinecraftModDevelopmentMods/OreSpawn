@@ -52,7 +52,7 @@ public class OS3Writer {
             Map<Integer, DimensionLogic> dimensions = entry.getValue().getAllDimensions();
 
             JsonObject wrapper = new JsonObject();
-            wrapper.addProperty("version", 1);
+            wrapper.addProperty("version", "1");
             JsonArray array = new JsonArray();
             
 

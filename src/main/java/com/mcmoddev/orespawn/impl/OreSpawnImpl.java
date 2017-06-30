@@ -32,6 +32,7 @@ public class OreSpawnImpl implements OreSpawnAPI {
     }
 
     public void registerSpawnLogic(String id, SpawnLogic spawnLogic) {
+    	OreSpawn.LOGGER.info("Registered SpawnLogic for " + id);
         this.spawnLogic.put(id, spawnLogic);
     }
 
