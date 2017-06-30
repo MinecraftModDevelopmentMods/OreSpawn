@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,13 +32,13 @@ public enum PluginLoader {
 
 	INSTANCE;
 	
-	private class pluginData {
+	private class PluginData {
 		public final String modId;
 		public final String resourcePath;
 		public final File modLoc;
 		public final IOreSpawnPlugin plugin;
 		
-		public pluginData(String modId, String resourcePath, File modLoc, IOreSpawnPlugin plugin) {
+		public PluginData(String modId, String resourcePath, File modLoc, IOreSpawnPlugin plugin) {
 			this.modId = modId;
 			this.resourcePath = resourcePath;
 			this.modLoc = modLoc;
@@ -45,7 +46,7 @@ public enum PluginLoader {
 		}
 	}
 	
-	private List<pluginData> dataStore = new ArrayList<>();
+	private List<PluginData> dataStore = new ArrayList<>();
 	
 	private String getAnnotationItem(String item, final ASMData asmData) {
 		if (asmData.getAnnotationInfo().get(item) != null) {
@@ -65,7 +66,7 @@ public enum PluginLoader {
 				IOreSpawnPlugin integration;
 				try {
 					integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
-					pluginData pd = new pluginData( modId, resourceBase, asmDataItem.getCandidate().getModContainer(), integration);
+					PluginData pd = new PluginData( modId, resourceBase, asmDataItem.getCandidate().getModContainer(), integration);
 					dataStore.add(pd);
 				} catch (final Exception ex) {
 					OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
@@ -78,9 +79,8 @@ public enum PluginLoader {
 		dataStore.forEach( pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); } );
 	}
 
-	public void scanResources(pluginData pd) {
-		String filePath = "assets/" + pd.resourcePath + "/";
-		Path root = pd.modLoc.toPath().resolve("/"+filePath);
+	public void scanResources(PluginData pd) {
+		Path root = pd.modLoc.toPath().resolve(Paths.get("assets", pd.resourcePath));
 		Iterator<Path> pathIter = null;
 		
         if (root == null || !Files.exists(root))
@@ -100,13 +100,13 @@ public enum PluginLoader {
         		BufferedReader reader = null;
         		try {
         			reader = Files.newBufferedReader(currentFile);
+        			Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+        			JsonObject json = GSON.fromJson(reader, JsonObject.class);
+        			reader.close();
+        			OS3Reader.loadFromJson(pd.modId, json);
         		} catch (IOException e) {
         			OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
         					currentFile.toString(), pd.modId, e);
-        		} finally {
-        			Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        			JsonObject json = GSON.fromJson(reader, JsonObject.class);
-        			OS3Reader.loadFromJson(pd.modId, json);
         		}
         	}
         }
