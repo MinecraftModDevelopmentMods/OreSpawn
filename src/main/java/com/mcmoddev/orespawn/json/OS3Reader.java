@@ -83,4 +83,23 @@ public class OS3Reader {
 				});
 
 	}
+	
+	public static void loadFromJson(String modName, JsonObject json) {
+		String version = json.get("version").getAsString();
+		IOS3Reader reader = null;
+
+		switch( version ) {
+		case "1":
+			reader = new OS3V1Reader();
+			break;
+		case "1.1":
+			reader = new OS3V11Reader();
+			break;
+		default:
+			OreSpawn.LOGGER.error("Unknown version %s", version);
+			return;
+		}
+
+		reader.parseJson(json, modName);
+	}
 }
