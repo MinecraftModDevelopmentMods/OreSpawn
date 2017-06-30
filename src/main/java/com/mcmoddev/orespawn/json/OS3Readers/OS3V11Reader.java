@@ -1,4 +1,4 @@
-package com.mcmoddev.orespawn.json.OS3Readers;
+package com.mcmoddev.orespawn.json.os3Readers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,9 +117,9 @@ public class OS3V11Reader implements IOS3Reader {
 						});
 					}
 					
-					if( blacklisted.size() > 0 ) {
-						if( biomes.size() == 0 ) {
-							ForgeRegistries.BIOMES.getKeys().forEach(RL -> biomes.add(ForgeRegistries.BIOMES.getValue(RL)));
+					if( !blacklisted.isEmpty() ) {
+						if( biomes.isEmpty() ) {
+							ForgeRegistries.BIOMES.getKeys().forEach(resLoc -> biomes.add(ForgeRegistries.BIOMES.getValue(resLoc)));
 						}
 						blacklisted.forEach(biome -> { if( biomes.contains(biome) ) { biomes.remove(biome); } });
 					}
@@ -130,15 +130,5 @@ public class OS3V11Reader implements IOS3Reader {
 		}
 
 		OreSpawn.API.registerSpawnLogic(fileName, spawnLogic);
-/*
- * "biomes": {
-  "include": [ "minecraft:swamp", {
-       "inclusions": [ "HOT", "LUSH" ],
-       "exclusions": [ "SPARSE" ]
-   }],
-  "exclude": [ "biomesoplenty:marsh"]
-}
- */
 	}
-
 }

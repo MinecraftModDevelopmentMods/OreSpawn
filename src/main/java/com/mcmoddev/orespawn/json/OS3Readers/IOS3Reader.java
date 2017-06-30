@@ -1,4 +1,4 @@
-package com.mcmoddev.orespawn.json.OS3Readers;
+package com.mcmoddev.orespawn.json.os3Readers;
 
 import com.google.gson.JsonObject;
 

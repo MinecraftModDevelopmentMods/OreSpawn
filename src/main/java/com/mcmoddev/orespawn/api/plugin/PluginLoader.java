@@ -7,11 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -22,9 +19,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.discovery.ASMDataTable.ASMData;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
@@ -100,13 +94,21 @@ public enum PluginLoader {
         		BufferedReader reader = null;
         		try {
         			reader = Files.newBufferedReader(currentFile);
-        			Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        			JsonObject json = GSON.fromJson(reader, JsonObject.class);
-        			reader.close();
+        			Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+        			JsonObject json = gson.fromJson(reader, JsonObject.class);
         			OS3Reader.loadFromJson(pd.modId, json);
         		} catch (IOException e) {
         			OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
         					currentFile.toString(), pd.modId, e);
+        		} finally {
+        			if( reader != null) {
+        				try {
+							reader.close();
+						} catch (IOException e) {
+		        			OreSpawn.LOGGER.error("Error closing the Buffered Reader for {} ({})",
+		        					currentFile.toString(), pd.modId, e);
+						}
+        			}
         		}
         	}
         }

@@ -2,21 +2,16 @@ package com.mcmoddev.orespawn.worldgen;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnEntry;
-import com.mcmoddev.orespawn.api.SpawnLogic;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
-import com.mcmoddev.orespawn.impl.SpawnLogicImpl;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -65,10 +60,9 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 				OreSpawn.LOGGER.fatal("no spawn entries for dimension "+thisDim+" or for all dimensions");
 				return;
 			}
-		} else if( thisDim != -1 && thisDim != 1 ) {
-			if( this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD) != null ) {
-				entries.addAll(this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD));
-			}
+		} else if( thisDim != -1 && thisDim != 1 
+				&& this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD) != null ) {
+			entries.addAll(this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD));
 		}
 
 		for( SpawnEntry sE : entries ) {

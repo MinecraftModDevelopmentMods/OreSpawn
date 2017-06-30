@@ -20,7 +20,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -53,12 +52,12 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 public class OreSpawn {
     @Instance
     public static OreSpawn INSTANCE = null;
-    public final static Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
-    public final static OreSpawnAPI API = new OreSpawnImpl();
+    public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
+    public static final OreSpawnAPI API = new OreSpawnImpl();
     public static final OS3Writer writer = new OS3Writer();
     public static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
-    private String OS1ConfigPath;
+    private String os1ConfigPath;
     public static final Map<Integer, List<SpawnEntry>> spawns = new HashMap<>();
     
     @EventHandler
@@ -73,7 +72,7 @@ public class OreSpawn {
     		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
     	}
     	
-    	this.OS1ConfigPath = Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn").toString();
+    	this.os1ConfigPath = Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn").toString();
     	FMLInterModComms.sendFunctionMessage("orespawn", "api", "com.mcmoddev.orespawn.data.VanillaOrespawn");
     }
 
@@ -83,7 +82,7 @@ public class OreSpawn {
     	// but will take OS2 and OS1 versions - in that order
     	OS3Reader.loadEntries();
     	OS2Reader.loadEntries();
-    	OS1Reader.loadEntries(Paths.get(OS1ConfigPath));
+    	OS1Reader.loadEntries(Paths.get(os1ConfigPath));
     	API.registerSpawns();
     }
 

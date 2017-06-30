@@ -2,7 +2,6 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
@@ -10,9 +9,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.json.OS3Readers.*;
+import com.mcmoddev.orespawn.json.os3Readers.*;
 
 import net.minecraft.crash.CrashReport;
 

@@ -1,4 +1,4 @@
-package com.mcmoddev.orespawn.json.OS3Readers;
+package com.mcmoddev.orespawn.json.os3Readers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,13 +12,11 @@ import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.OreSpawnAPI;
 import com.mcmoddev.orespawn.api.SpawnLogic;
-import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.crash.CrashReport;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
