@@ -7,6 +7,9 @@ import com.mcmoddev.orespawn.api.DimensionLogic;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.SpawnEntry;
 import com.mcmoddev.orespawn.api.SpawnLogic;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
+import com.mcmoddev.orespawn.util.Collectors2;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
@@ -15,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class DimensionLogicImpl implements DimensionLogic {
     private final List<SpawnEntry> logic = new ArrayList<>();
@@ -60,7 +64,9 @@ public class DimensionLogicImpl implements DimensionLogic {
 	public DimensionLogic addOre(IBlockState state, JsonObject parameters, Biome[] biomes, IFeature featureGen,
 			IBlockState blockRep) {
     	if( state.getBlock() != null ) {
-    		this.logic.add(new SpawnEntryImpl(state, parameters, biomes, featureGen, blockRep));
+    		this.logic.add(new SpawnEntryImpl(state, parameters, new BiomeLocationList(
+				Stream.of(biomes).map(BiomeLocationSingle::new).collect(Collectors2.toImmutableSet())
+			), featureGen, blockRep));
     	} else {
     		OreSpawn.LOGGER.warn("Trying to register a non-existent block!");
     	}
