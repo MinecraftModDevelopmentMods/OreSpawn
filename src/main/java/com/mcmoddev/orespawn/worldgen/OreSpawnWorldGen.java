@@ -67,7 +67,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 
 		for( SpawnEntry sE : entries ) {
 			Biome biome = world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16));
-			if( sE.getBiomes().contains(biome) || sE.getBiomes().equals(Collections.<Biome>emptyList()) || sE.getBiomes().isEmpty() ) {
+			if( sE.getLocation().contains(biome) || sE.getLocation().equals(Collections.<Biome>emptyList()) || sE.getLocation().isEmpty() ) {
 				IFeature currentFeatureGen = sE.getFeatureGen();
 				IBlockState replacement = sE.getReplacement();
 				if( replacement == null ) {

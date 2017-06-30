@@ -79,7 +79,7 @@ public class OS3Writer {
                     ore.addProperty("feature", OreSpawn.FEATURES.getFeatureName(spawnEntry.getFeatureGen()));
                     ore.addProperty("replace_block", "default");
                     
-                    List<Biome> biomeArray = spawnEntry.getBiomes();
+                    List<Biome> biomeArray = spawnEntry.getLocation().getBiomes();
 
                     if ( !biomeArray.equals(Collections.<Biome>emptyList())) {
                         JsonArray biomes = new JsonArray();
