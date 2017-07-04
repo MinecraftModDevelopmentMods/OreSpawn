@@ -2,7 +2,7 @@ package com.mcmoddev.orespawn.api.os3;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public interface BuilderLogic {
 	// at this level all we track are the dimensions, really
@@ -15,5 +15,5 @@ public interface BuilderLogic {
 	
 	DimensionBuilder getDimension( @Nonnull String name );
 	DimensionBuilder getDimension( @Nonnull int id );
-	ImmutableList<DimensionBuilder> getAllDimensions();
+	ImmutableMap<Integer,DimensionBuilder> getAllDimensions();
 }

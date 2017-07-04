@@ -6,23 +6,20 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.SpawnLogic;
+import com.mcmoddev.orespawn.api.os3.*;
 import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.api.DimensionLogic;
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
-import com.mcmoddev.orespawn.util.StateUtil;
-import net.minecraft.block.Block;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.impl.os3.DimensionBuilderImpl;
+import com.mcmoddev.orespawn.impl.os3.SpawnBuilderImpl;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS2Reader {
 	public static void loadEntries() {
@@ -51,60 +48,60 @@ public class OS2Reader {
 						JsonElement full = parser.parse(FileUtils.readFileToString(file));
 						JsonArray elements = full.getAsJsonArray();
 						
-						SpawnLogic spawnLogic = OreSpawn.API.createSpawnLogic();
+						BuilderLogic logic = OreSpawn.API.getLogic(FilenameUtils.getBaseName(file.getName()));
+						List<DimensionBuilder> builders = new ArrayList<>();
 						
 		                for (JsonElement element : elements ) {
 		                    JsonObject object = element.getAsJsonObject();
 
-		                    int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawnAPI.DIMENSION_WILDCARD;
-		                    DimensionLogic dimensionLogic = spawnLogic.getDimension(dimension);
+		                    int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawn.API.dimensionWildcard();
+		                    DimensionBuilder builder = logic.DimensionBuilder(dimension);
 
 		                    JsonArray ores = object.get("ores").getAsJsonArray();
-
+		                    List<SpawnBuilder> spawns = new ArrayList<>();
 		                    for (JsonElement oresEntry : ores) {
+		                    	SpawnBuilder spawn = builder.SpawnBuilder(null);
 		                        JsonObject ore = oresEntry.getAsJsonObject();
 
-		                        Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(ore.get("block").getAsString()));
+		                        String blockName = ore.get("block").getAsString();
+		                        String blockState = ore.has("state")?ore.get("state").getAsString():"";
 
-		                        if (block == null) {
-		                            continue;
+		                        OreBuilder oreB = spawn.OreBuilder();
+		                        if("".equals(blockState)) {
+		                        	oreB.setOre(blockName);
+		                        } else {
+		                        	oreB.setOre(blockName,blockState);
 		                        }
-
-		                        IBlockState state = block.getDefaultState();
-
-		                        if (ore.has("state")) {
-		                            String stateString = ore.get("state").getAsString();
-		                            state = StateUtil.deserializeState(block, stateString);
-
-		                            if (state == null) {
-		                                throw new RuntimeException("Invalid state " + stateString + " for block " + block.getRegistryName());
-		                            }
-		                        }
-
-		                        int size = ore.get("size").getAsInt();
-		                        int variation = ore.get("variation").getAsInt();
-		                        float frequency = ore.get("frequency").getAsFloat();
-		                        int minHeight = ore.get("min_height").getAsInt();
-		                        int maxHeight = ore.get("max_height").getAsInt();
-		                        List<Biome> biomes = new ArrayList<>();
-
+		                        
+		                        FeatureBuilder feature = spawn.FeatureBuilder("default");
+		                        feature.addParameter("size", ore.get("size").getAsInt());
+		                        feature.addParameter("variation", ore.get("variation").getAsInt());
+		                        feature.addParameter("frequency", ore.get("frequency").getAsFloat());
+		                        feature.addParameter("minHeight", ore.get("min_height").getAsInt());
+		                        feature.addParameter("maxHeight", ore.get("max_height").getAsInt());
+		                        
+		                        BiomeBuilder biomes = spawn.BiomeBuilder();
+		                        
 		                        if (ore.has("biomes")) {
 		                            JsonArray biomesArray = ore.get("biomes").getAsJsonArray();
 
 		                            for (JsonElement biomeEntry : biomesArray) {
-		                                Biome biome = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
-
-		                                if (biome != null) {
-		                                    biomes.add(biome);
-		                                }
+		                            	biomes.whitelistBiomeByName(biomeEntry.getAsString());
 		                            }
 		                        }
-
-		                        dimensionLogic.addOre(state, size, variation, frequency, minHeight, maxHeight, biomes.toArray(new Biome[biomes.size()]));
+		                        
+		                        IBlockState replacement = ReplacementsRegistry.getDimensionDefault(dimension);
+		                        List<IBlockState> reps = new ArrayList<>();
+		                        reps.add(replacement);
+		                        spawn.create(biomes, feature, reps, oreB);
+		                        spawns.add(spawn);
 		                    }
+		                    builder.create(spawns.toArray(new SpawnBuilderImpl[spawns.size()]));
+		                    builders.add( builder );
 		                }
-
-		                OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf(".")), spawnLogic);
+		                logic.create(builders.toArray(new DimensionBuilderImpl[builders.size()]));
+		                
+		                OreSpawn.API.registerLogic(logic);
 		            } catch (Exception e) {
 		                CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 		                report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);

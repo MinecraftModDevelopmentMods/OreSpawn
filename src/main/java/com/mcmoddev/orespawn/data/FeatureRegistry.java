@@ -65,6 +65,9 @@ public class FeatureRegistry {
 		return featuresInverse.containsKey(feature);
 	}
 
+	public void addFeature(String name, IFeature feature ) {
+		this.addFeature(name, feature.getClass().getName());
+	}
 	
 	public void addFeature(JsonObject entry) {
 		this.addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());

@@ -37,4 +37,8 @@ public class ReplacementsRegistry {
 	public static Map<String,IBlockState> getBlocks() {
 		return Collections.unmodifiableMap(blocks);
 	}
+
+	public static void addBlock(String name, IBlockState state) {
+		blocks.put(name, state);
+	}
 }

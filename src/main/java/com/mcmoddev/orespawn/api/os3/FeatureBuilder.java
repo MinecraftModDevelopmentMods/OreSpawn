@@ -11,8 +11,10 @@ public interface FeatureBuilder {
 	FeatureBuilder addParameter(@Nonnull String name, @Nonnull int value);
 	FeatureBuilder addParameter(@Nonnull String name, @Nonnull float value);
 	FeatureBuilder addParameter(@Nonnull String name, @Nonnull String value);
+	FeatureBuilder setParameters(@Nonnull JsonObject parameters);
 	FeatureBuilder setDefaultParameters();
 	
 	IFeature getGenerator();
 	JsonObject getParameters();
+	String getFeatureName();
 }

@@ -18,5 +18,5 @@ public interface OreBuilder {
 	OreBuilder setChance( @Nonnull int chance );
 	
 	IBlockState getOre();
-	IBlockState getChance();
+	int getChance();
 }

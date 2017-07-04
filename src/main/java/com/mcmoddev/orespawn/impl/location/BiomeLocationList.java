@@ -28,4 +28,8 @@ public final class BiomeLocationList implements BiomeLocation {
     public boolean equals(Object obj) {
         return obj == this || obj instanceof BiomeLocationList && this.locations.equals(((BiomeLocationList) obj).locations);
     }
+
+	public ImmutableSet<BiomeLocation> getLocations() {
+		return this.locations;
+	}
 }

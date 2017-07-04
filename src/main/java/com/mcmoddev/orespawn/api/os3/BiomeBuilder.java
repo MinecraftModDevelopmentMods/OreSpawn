@@ -16,6 +16,7 @@ public interface BiomeBuilder {
 	BiomeBuilder blacklistBiome( @Nonnull Biome biome );
 	BiomeBuilder blacklistBiomeByName( @Nonnull String biomeName );
 	BiomeBuilder blacklistBiomeByDictionary( @Nonnull String biomeDictionaryName );
-
+	BiomeBuilder setFromBiomeLocation( @Nonnull BiomeLocation biomes );
+	
 	BiomeLocation getBiomes();
 }

@@ -10,7 +10,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.json.os3Readers.*;
+import com.mcmoddev.orespawn.json.os3.IOS3Reader;
+import com.mcmoddev.orespawn.json.os3.readers.*;
 
 import net.minecraft.crash.CrashReport;
 

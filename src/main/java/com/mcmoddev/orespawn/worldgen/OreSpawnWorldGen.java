@@ -9,8 +9,7 @@ import java.util.stream.Collectors;
 
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
-import com.mcmoddev.orespawn.api.SpawnEntry;
+import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.Block;
@@ -27,12 +26,12 @@ import net.minecraftforge.oredict.OreDictionary;
 
 public class OreSpawnWorldGen implements IWorldGenerator {
 
-	private final Map<Integer, List<SpawnEntry>> dimensions;
+	private final Map<Integer, List<SpawnBuilder>> dimensions;
 	public static final List<Block> SPAWN_BLOCKS = new ArrayList<>();
 
 	@SuppressWarnings("unused") private final long nextL;
 
-	public OreSpawnWorldGen(Map<Integer, List<SpawnEntry>> allDimensions, long nextLong) {
+	public OreSpawnWorldGen(Map<Integer, List<SpawnBuilder>> allDimensions, long nextLong) {
 		this.dimensions = Collections.unmodifiableMap(allDimensions);
 		this.nextL = nextLong;
 		if (SPAWN_BLOCKS.isEmpty()) {
@@ -48,32 +47,32 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			IChunkProvider chunkProvider) {
 		
 		int thisDim = world.provider.getDimension();
-		List<SpawnEntry> entries = this.dimensions.get(thisDim);
+		List<SpawnBuilder> entries = this.dimensions.get(thisDim);
 		if( entries == null ) {
 			// no logic for this dimension, if this is nether or end, just exit
 			if( thisDim == -1 || thisDim == 1 ) {
 				return;
 			}
 
-			entries = this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD);
+			entries = this.dimensions.get(OreSpawn.API.dimensionWildcard());
 			if( entries == null ) {
 				OreSpawn.LOGGER.fatal("no spawn entries for dimension "+thisDim+" or for all dimensions");
 				return;
 			}
 		} else if( thisDim != -1 && thisDim != 1 
-				&& this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD) != null ) {
-			entries.addAll(this.dimensions.get(OreSpawnAPI.DIMENSION_WILDCARD));
+				&& this.dimensions.get(OreSpawn.API.dimensionWildcard()) != null ) {
+			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
 		}
 
-		for( SpawnEntry sE : entries ) {
+		for( SpawnBuilder sE : entries ) {
 			Biome biome = world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16));
-			if( sE.getLocation().matches(biome) || sE.getLocation().getBiomes().isEmpty() ) {
-				IFeature currentFeatureGen = sE.getFeatureGen();
-				IBlockState replacement = sE.getReplacement();
+			if( sE.getBiomes().matches(biome)) {
+				IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
+				IBlockState replacement = sE.getReplacementBlocks().get(0);
 				if( replacement == null ) {
 					replacement = ReplacementsRegistry.getDimensionDefault(thisDim);
 				}
-				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getParameters(), sE.getState(), replacement);
+				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOres().get(0).getOre(), replacement);
 			}
 		}
 	}

@@ -8,9 +8,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
-import com.mcmoddev.orespawn.api.SpawnEntry;
-import com.mcmoddev.orespawn.api.SpawnLogic;
+import com.mcmoddev.orespawn.api.os3.BuilderLogic;
+import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
@@ -48,18 +47,18 @@ public class EventHandlers {
 		NBTTagList features = new NBTTagList();
 		features.appendTag( new NBTTagString("orespawn:default"));
 		
-		for( Entry<String, SpawnLogic> ent : OreSpawn.API.getAllSpawnLogic().entrySet() ) {
-			SpawnLogic log = ent.getValue();
+		for( Entry<String, BuilderLogic> ent : OreSpawn.API.getSpawns().entrySet() ) {
+			BuilderLogic log = ent.getValue();
 			if( log.getAllDimensions().containsKey(ev.getWorld().provider.getDimension()) ) {
-				Collection<SpawnEntry> vals = log.getDimension(ev.getWorld().provider.getDimension()).getEntries();
-				for( SpawnEntry s : vals ) {
-					ores.appendTag( new NBTTagString( s.getState().getBlock().getRegistryName().toString()) );
+				Collection<SpawnBuilder> vals = log.getDimension(ev.getWorld().provider.getDimension()).getAllSpawns();
+				for( SpawnBuilder s : vals ) {
+					ores.appendTag( new NBTTagString( s.getOres().get(0).getOre().getBlock().getRegistryName().toString() ) );
 				}
 			}
-			if( log.getAllDimensions().containsKey(OreSpawnAPI.DIMENSION_WILDCARD) ) {
-				Collection<SpawnEntry> vals = log.getDimension(OreSpawnAPI.DIMENSION_WILDCARD).getEntries();
-				for( SpawnEntry s : vals ) {
-					ores.appendTag( new NBTTagString( s.getState().getBlock().getRegistryName().toString()) );
+			if( log.getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard()) ) {
+				Collection<SpawnBuilder> vals = log.getDimension(OreSpawn.API.dimensionWildcard()).getAllSpawns();
+				for( SpawnBuilder s : vals ) {
+					ores.appendTag( new NBTTagString( s.getOres().get(0).getOre().getBlock().getRegistryName().toString() ) );
 				}				
 			}
 		}
@@ -108,12 +107,12 @@ public class EventHandlers {
 
 	private int countOres(int dim) {
 		int acc = 0;
-		for( Entry<String, SpawnLogic> sL : OreSpawn.API.getAllSpawnLogic().entrySet() ) {
+		for( Entry<String, BuilderLogic> sL : OreSpawn.API.getSpawns().entrySet() ) {
 			if( sL.getValue().getAllDimensions().containsKey(dim) ) {
-				acc += sL.getValue().getAllDimensions().get(dim).getEntries().size();
+				acc += sL.getValue().getAllDimensions().get(dim).getAllSpawns().size();
 			}
-			if( sL.getValue().getAllDimensions().containsKey(OreSpawnAPI.DIMENSION_WILDCARD) ) {
-				acc += sL.getValue().getAllDimensions().get(OreSpawnAPI.DIMENSION_WILDCARD).getEntries().size();
+			if( sL.getValue().getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard()) ) {
+				acc += sL.getValue().getAllDimensions().get(OreSpawn.API.dimensionWildcard()).getAllSpawns().size();
 			}
 		}
 		return acc;

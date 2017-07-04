@@ -227,4 +227,15 @@ public class DefaultFeatureGenerator implements IFeature {
 		}
 	}
 
+	@Override
+	public JsonObject getDefaultParameters() {
+		JsonObject defParams = new JsonObject();
+		defParams.addProperty("minHeight", 0);
+		defParams.addProperty("maxHeight", 256);
+		defParams.addProperty("variation", 16);
+		defParams.addProperty("frequency", 0.5);
+		defParams.addProperty("size", 8);
+		return defParams;
+	}
+
 }

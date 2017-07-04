@@ -50,4 +50,13 @@ public final class BiomeLocationComposition implements BiomeLocation {
         }
         return true;
     }
+
+	public ImmutableSet<BiomeLocation> getInclusions() {
+		return this.inclusions;
+	}
+	
+	public ImmutableSet<BiomeLocation> getExclusions() {
+		return this.exclusions;
+	}
+
 }

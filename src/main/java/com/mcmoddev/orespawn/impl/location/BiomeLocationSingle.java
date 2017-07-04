@@ -1,6 +1,9 @@
 package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
 
@@ -33,4 +36,8 @@ public final class BiomeLocationSingle implements BiomeLocation {
     public boolean equals(Object obj) {
         return obj == this || obj instanceof BiomeLocationSingle && this.biome == ((BiomeLocationSingle) obj).biome;
     }
+
+	public Biome getBiome() {
+		return this.biome;
+	}
 }

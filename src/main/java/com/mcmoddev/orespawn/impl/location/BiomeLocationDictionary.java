@@ -28,4 +28,9 @@ public final class BiomeLocationDictionary implements BiomeLocation {
     public boolean equals(Object obj) {
         return obj == this || obj instanceof BiomeLocationDictionary && this.type == ((BiomeLocationDictionary) obj).type;
     }
+
+	public BiomeDictionary.Type getType() {
+		return this.type;
+	}
+    
 }
