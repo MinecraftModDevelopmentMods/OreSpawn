@@ -1,7 +1,7 @@
 package com.mcmoddev.orespawn.commands;
 
 import com.google.gson.*;
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
@@ -61,7 +61,7 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException("That file doesn't exist" + (args[0].endsWith(".json") ? " (don't add .json)" : ""));
         }
 
-        int dimension = OreSpawnAPI.DIMENSION_WILDCARD;
+        int dimension = OreSpawn.API.dimensionWildcard();
 
         try {
             if (!args[1].equals(all)) {
@@ -86,7 +86,7 @@ public class AddOreCommand extends CommandBase {
             for (JsonElement element : json) {
                 JsonObject object = element.getAsJsonObject();
 
-                if (object.has(dim) ? dimension == object.get(dim).getAsInt() : dimension == OreSpawnAPI.DIMENSION_WILDCARD) {
+                if (object.has(dim) ? dimension == object.get(dim).getAsInt() : dimension == OreSpawn.API.dimensionWildcard()) {
                     object.get("ores").getAsJsonArray().add(ore);
                     this.saveFile(json, file);
 
@@ -96,7 +96,7 @@ public class AddOreCommand extends CommandBase {
 
             JsonObject object = new JsonObject();
 
-            if (dimension != OreSpawnAPI.DIMENSION_WILDCARD) {
+            if (dimension != OreSpawn.API.dimensionWildcard()) {
                 object.addProperty(dim, dimension);
             }
 
