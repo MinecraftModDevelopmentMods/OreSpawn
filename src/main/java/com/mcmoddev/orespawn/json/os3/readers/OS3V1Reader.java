@@ -5,12 +5,16 @@ import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.*;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import com.mcmoddev.orespawn.impl.os3.DimensionBuilderImpl;
 import com.mcmoddev.orespawn.impl.os3.SpawnBuilderImpl;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
@@ -24,7 +28,7 @@ public final class OS3V1Reader implements IOS3Reader {
 	@Override
 	public void parseJson(JsonObject entries, String fileName) {
 		JsonArray elements = entries.get("dimensions").getAsJsonArray();
-
+		
 		BuilderLogic logic = OreSpawn.API.getLogic(FilenameUtils.getBaseName(fileName));
 		List<DimensionBuilder> builders = new ArrayList<>();
 
@@ -32,6 +36,7 @@ public final class OS3V1Reader implements IOS3Reader {
 			JsonObject object = element.getAsJsonObject();
 
 			int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawn.API.dimensionWildcard();
+			
 			DimensionBuilder builder = logic.DimensionBuilder(dimension);
 			List<SpawnBuilder> spawns = new ArrayList<>();
 			
@@ -53,7 +58,8 @@ public final class OS3V1Reader implements IOS3Reader {
 					oreB.setOre(oreName);
 				}
 
-				FeatureBuilder feature = spawn.FeatureBuilder(ore.get("feature").getAsString());
+				FeatureBuilder feature = spawn.FeatureBuilder(null);
+				feature.setGenerator(ore.get("feature").getAsString());
 				feature.setParameters(ore.get("parameters").getAsJsonObject());
 
 				String replaceBase = ore.get("replace_block").getAsString();
@@ -72,8 +78,9 @@ public final class OS3V1Reader implements IOS3Reader {
 				if (ore.has("biomes")) {
 					JsonArray biomesArray = ore.get("biomes").getAsJsonArray();
 
-					for (JsonElement biomeEntry : biomesArray) {
-						biomes.whitelistBiomeByName(biomeEntry.getAsString());
+					if( biomesArray.size() > 0 ) {
+						BiomeLocationList bL = parseBiomeList(biomesArray);
+						biomes.setFromBiomeLocation(bL);
 					}
 				}
 				
@@ -89,5 +96,15 @@ public final class OS3V1Reader implements IOS3Reader {
 		logic.create(builders.toArray(new DimensionBuilderImpl[builders.size()]));
 
 		OreSpawn.API.registerLogic(logic);
+	}
+
+	private BiomeLocationList parseBiomeList(JsonArray biomesArray) {
+		List<BiomeLocation> biomes = new ArrayList<>();
+		
+		biomesArray.forEach( elem -> {
+			String p = elem.getAsString();
+			biomes.add(new BiomeLocationSingle(ForgeRegistries.BIOMES.getValue(new ResourceLocation(p))));
+		});
+		return new BiomeLocationList(ImmutableSet.<BiomeLocation>copyOf(biomes));
 	}
 }

@@ -2,11 +2,12 @@ package com.mcmoddev.orespawn.json.os3.readers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.io.FilenameUtils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -19,13 +20,17 @@ import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationDictionary;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import com.mcmoddev.orespawn.impl.os3.DimensionBuilderImpl;
 import com.mcmoddev.orespawn.impl.os3.SpawnBuilderImpl;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
-import com.mcmoddev.orespawn.json.os3.OS3TypeAdapter;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3V11Reader implements IOS3Reader {
@@ -57,7 +62,11 @@ public class OS3V11Reader implements IOS3Reader {
 				
 				if (ore.has("state")) {
 					String stateString = ore.get("state").getAsString();
-					oreB.setOre(oreName, stateString);
+					if( "normal".equals(stateString) ) {
+						oreB.setOre(oreName);
+					} else {
+						oreB.setOre(oreName, stateString);
+					}
 				} else {
 					oreB.setOre(oreName);
 				}
@@ -79,9 +88,7 @@ public class OS3V11Reader implements IOS3Reader {
 				BiomeBuilder biomes = spawn.BiomeBuilder();
 
 				if (ore.has("biomes")) {
-					Gson gson = new GsonBuilder().registerTypeAdapter(BiomeLocation.class, OS3TypeAdapter.class).create();
-					BiomeLocation b = gson.fromJson(ore.get("biomes"), BiomeLocation.class);
-					biomes.setFromBiomeLocation(b);
+					biomes.setFromBiomeLocation(deserializeBiomeLocationList(ore.get("biomes").getAsJsonArray()));
 				}
 				
 				List<IBlockState> repBlock = new ArrayList<>();
@@ -97,5 +104,36 @@ public class OS3V11Reader implements IOS3Reader {
 
 		OreSpawn.API.registerLogic(logic);
 	}
+	
+	private BiomeLocation deserializeSingleEntry(String in) {
+		if( in.contains(":") ) {
+			return new BiomeLocationSingle(ForgeRegistries.BIOMES.getValue(new ResourceLocation(in)));
+		} else {
+			return new BiomeLocationDictionary( BiomeDictionary.Type.getType(in) );
+		}
+	}
+	
+	private BiomeLocation deserializeBiomeLocationList(JsonArray in) {
+		List<BiomeLocation> myData = new ArrayList<>();
+		
+		in.forEach( elem -> {
+			if( elem.isJsonPrimitive() ) {
+				myData.add(deserializeSingleEntry(elem.getAsString()));
+			} else if( elem.isJsonObject() ) {
+				myData.add(deserializeBiomeLocationComposition(elem.getAsJsonObject()));
+			}
+		});
+		
+		return new BiomeLocationList(ImmutableSet.<BiomeLocation>copyOf(myData));
+	}
+
+	private BiomeLocation deserializeBiomeLocationComposition(JsonObject in) {
+		BiomeLocation includes = deserializeBiomeLocationList(in.get("inclusions").getAsJsonArray());
+		BiomeLocation excludes = deserializeBiomeLocationList(in.get("exclusions").getAsJsonArray());
+		
+		return new BiomeLocationComposition(ImmutableSet.<BiomeLocation>of(includes),
+				ImmutableSet.<BiomeLocation>of(excludes));
+	}
+
 }
 

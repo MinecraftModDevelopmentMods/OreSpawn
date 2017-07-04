@@ -3,6 +3,8 @@ package com.mcmoddev.orespawn.impl.os3;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
@@ -28,7 +30,7 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 	
 	@Override
-	public FeatureBuilder FeatureBuilder(String featureName) {
+	public FeatureBuilder FeatureBuilder(@Nullable String featureName) {
 		this.featureGen = new FeatureBuilderImpl();
 		if( OreSpawn.FEATURES.getFeature(featureName) != null ) {
 			this.featureGen.setGenerator(featureName);
@@ -70,22 +72,22 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 
 	@Override
 	public BiomeLocation getBiomes() {
-		return biomeLocs;
+		return this.biomeLocs;
 	}
 
 	@Override
 	public ImmutableList<OreBuilder> getOres() {
-		return ImmutableList.copyOf(myOres);
+		return ImmutableList.<OreBuilder>copyOf(this.myOres);
 	}
 
 	@Override
 	public ImmutableList<IBlockState> getReplacementBlocks() {
-		return ImmutableList.copyOf(replacementBlocks);
+		return ImmutableList.<IBlockState>copyOf(this.replacementBlocks);
 	}
 
 	@Override
 	public FeatureBuilder getFeatureGen() {
-		return featureGen;
+		return this.featureGen;
 	}
 
 }

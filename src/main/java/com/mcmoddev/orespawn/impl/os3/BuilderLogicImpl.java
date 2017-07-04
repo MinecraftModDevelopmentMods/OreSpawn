@@ -32,11 +32,11 @@ public class BuilderLogicImpl implements BuilderLogic {
 
 	@Override
 	public DimensionBuilder DimensionBuilder(int id) {
-		if( dimensions.containsKey(new Integer(id)) ) {
+		if( dimensions.containsKey(id) ) {
 			return this.getDimension( id );
 		}
 		DimensionBuilder db = new DimensionBuilderImpl();
-		dimensions.put(new Integer(id), db);
+		dimensions.put(id, db);
 		return db;
 	}
 

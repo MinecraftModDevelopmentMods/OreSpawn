@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 
 public interface DimensionBuilder {
-  SpawnBuilder SpawnBuilder( @Nullable Optional<String> name );
+  SpawnBuilder SpawnBuilder( @Nullable String name );
   DimensionBuilder create( @Nonnull SpawnBuilder... spawns);
   
   ImmutableList<SpawnBuilder> getSpawnByName( @Nonnull String name );

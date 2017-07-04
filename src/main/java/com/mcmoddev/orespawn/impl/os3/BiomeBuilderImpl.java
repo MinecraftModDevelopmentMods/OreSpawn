@@ -1,12 +1,9 @@
 package com.mcmoddev.orespawn.impl.os3;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
 import com.mcmoddev.orespawn.impl.location.*;
@@ -26,7 +23,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 		this.biomeBlacklist = new TreeSet<>();
 	}
 	
-	private Biome getBiome(String name) {
+	private Biome getBiomeByName(String name) {
 		return ForgeRegistries.BIOMES.getValue(new ResourceLocation(name));
 	}
 
@@ -42,7 +39,11 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 
 	@Override
 	public BiomeBuilder whitelistBiomeByName(String biomeName) {
-		this.biomeWhitelist.add(new BiomeLocationSingle(getBiome(biomeName)));
+		Biome b = getBiomeByName(biomeName);
+		BiomeLocation bL = new BiomeLocationSingle(b);
+		if( !this.biomeWhitelist.contains(bL) ) {
+			this.biomeWhitelist.add(bL);
+		}
 		return this;
 	}
 
@@ -60,7 +61,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 
 	@Override
 	public BiomeBuilder blacklistBiomeByName(String biomeName) {
-		this.biomeBlacklist.add(new BiomeLocationSingle(getBiome(biomeName)));
+		this.biomeBlacklist.add(new BiomeLocationSingle(getBiomeByName(biomeName)));
 		return this;
 	}
 

@@ -7,17 +7,22 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.impl.location.*;
 import com.mcmoddev.orespawn.util.StateUtil;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Writer {
@@ -37,27 +42,40 @@ public class OS3Writer {
 		writeFeatures(basePath);
 		writeReplacements(basePath);
 		
-		JsonObject wrapper = new JsonObject();
-
 		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {
 			File file = new File(basePath, ent.getKey() + ".json");
-
+			
+			JsonObject wrapper = new JsonObject();
 			wrapper.addProperty("version", "1.1");
-			JsonArray array = new JsonArray();
+			
+			JsonArray dimensions = new JsonArray();
 
 			ent.getValue().getAllDimensions().entrySet().forEach( dim -> {
-				JsonObject obj = new JsonObject();
+				JsonObject dimension = new JsonObject();
 				if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
-					obj.addProperty("dimension", String.format("%d", dim.getKey()));
-				} else {
-					obj.addProperty("dimension", "+");
+					dimension.addProperty("dimension", String.format("%d", dim.getKey()));
 				}
 
 				JsonArray spawns = new JsonArray();
+
 				dim.getValue().getAllSpawns().forEach( spawn -> {
+					if( spawn.getOres().size() == 0 ) {
+						return;
+					}
+
 					JsonObject ore = new JsonObject();
-					ore.addProperty("block", spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString());
-					ore.addProperty("state", StateUtil.serializeState(spawn.getOres().get(0).getOre()));
+					ImmutableList<OreBuilder> ob = spawn.getOres();
+					OreBuilder sob = ob.get(0);
+					IBlockState sobs = sob.getOre();
+					Block sobsb = sobs.getBlock();
+					ResourceLocation sobsbrl = ForgeRegistries.BLOCKS.getKey(sobsb);
+					String blockName = sobsbrl.toString();
+					
+					ore.addProperty("block", blockName);
+					String state = StateUtil.serializeState(sobs);
+					if( !"normal".equals(state) ) {
+						ore.addProperty("state", StateUtil.serializeState(sobs));
+					}
 					ore.add("parameters", spawn.getFeatureGen().getParameters());
 					ore.addProperty("feature", spawn.getFeatureGen().getFeatureName());
 					// future extension:
@@ -66,9 +84,10 @@ public class OS3Writer {
 					ore.add("biomes", biomeLocationToJsonObject(spawn.getBiomes()));
 					spawns.add(ore);
 				});
-				obj.add("ores", spawns);
-				wrapper.add("dimension", array);
+				dimension.add("ores", spawns);
+				dimensions.add(dimension);
 			});
+			wrapper.add("dimensions", dimensions);
 			String json = gson.toJson(wrapper);
 	        try {
 	            FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
@@ -86,8 +105,6 @@ public class OS3Writer {
 			return getList(value);
 		} else if( value instanceof BiomeLocationComposition ) {
 			return getComposition(value);
-		} else {
-			// error ?
 		}
 		
 		return null;
@@ -103,26 +120,22 @@ public class OS3Writer {
 	private JsonArray getList(BiomeLocation value) {
 		JsonArray rv = new JsonArray();
 		((BiomeLocationList)value).getLocations().forEach( loc -> {
-			if( (value instanceof BiomeLocationSingle) || (value instanceof BiomeLocationDictionary) ) {
-				rv.add(getString(value));
-			} else if( value instanceof BiomeLocationComposition ) {
-				rv.add(getComposition(value));
-			} else {
-				// error ?
+			if( (loc instanceof BiomeLocationSingle) || (loc instanceof BiomeLocationDictionary) ) {
+				rv.add(getString(loc));
+			} else if( loc instanceof BiomeLocationComposition ) {
+				rv.add(getComposition(loc));
 			}			
 		});
 		return rv;
 	}
 
 	private JsonElement getString(BiomeLocation value) {
-		JsonParser p = new JsonParser();
 		String val = null;
 		if( value instanceof BiomeLocationSingle ) {
 			val = ForgeRegistries.BIOMES.getKey(((BiomeLocationSingle)value).getBiome()).toString();
 		} else {
 			val = ((BiomeLocationDictionary)value).getType().toString();
 		}
-		
-		return p.parse(val);
+		return new JsonPrimitive(val);
 	}
 }
