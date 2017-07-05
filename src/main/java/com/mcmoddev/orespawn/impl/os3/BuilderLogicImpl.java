@@ -16,25 +16,25 @@ public class BuilderLogicImpl implements BuilderLogic {
 	}
 	
 	@Override
-	public DimensionBuilder DimensionBuilder(String name) {
+	public DimensionBuilder newDimensionBuilder(String name) {
 		switch(name.toLowerCase()) {
 		case "overworld":
-			return this.DimensionBuilder(0);
+			return this.newDimensionBuilder(0);
 		case "nether":
 		case "the nether":
-			return this.DimensionBuilder(-1);
+			return this.newDimensionBuilder(-1);
 		case "end":
 		case "the end":
-			return this.DimensionBuilder(1);
+			return this.newDimensionBuilder(1);
 		case "+":
 		default:
 			// assume that they want the wildcard
-			return this.DimensionBuilder();
+			return this.newDimensionBuilder();
 		}
 	}
 
 	@Override
-	public DimensionBuilder DimensionBuilder(int id) {
+	public DimensionBuilder newDimensionBuilder(int id) {
 		if( dimensions.containsKey(id) ) {
 			return this.getDimension( id );
 		}
@@ -44,8 +44,8 @@ public class BuilderLogicImpl implements BuilderLogic {
 	}
 
 	@Override
-	public DimensionBuilder DimensionBuilder() {
-		return this.DimensionBuilder(OreSpawn.API.dimensionWildcard());
+	public DimensionBuilder newDimensionBuilder() {
+		return this.newDimensionBuilder(OreSpawn.API.dimensionWildcard());
 	}
 
 	@Override

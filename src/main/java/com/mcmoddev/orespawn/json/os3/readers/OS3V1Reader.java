@@ -37,17 +37,17 @@ public final class OS3V1Reader implements IOS3Reader {
 
 			int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawn.API.dimensionWildcard();
 			
-			DimensionBuilder builder = logic.DimensionBuilder(dimension);
+			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
 			List<SpawnBuilder> spawns = new ArrayList<>();
 			
 			JsonArray ores = object.get("ores").getAsJsonArray();
 
 			for (JsonElement oresEntry : ores) {
-				SpawnBuilder spawn = builder.SpawnBuilder(null);
+				SpawnBuilder spawn = builder.newSpawnBuilder(null);
 				
 				JsonObject ore = oresEntry.getAsJsonObject();
 
-				OreBuilder oreB = spawn.OreBuilder();
+				OreBuilder oreB = spawn.newOreBuilder();
 				
 				String oreName = ore.get("block").getAsString();
 				
@@ -58,7 +58,7 @@ public final class OS3V1Reader implements IOS3Reader {
 					oreB.setOre(oreName);
 				}
 
-				FeatureBuilder feature = spawn.FeatureBuilder(null);
+				FeatureBuilder feature = spawn.newFeatureBuilder(null);
 				feature.setGenerator(ore.get("feature").getAsString());
 				feature.setParameters(ore.get("parameters").getAsJsonObject());
 
@@ -73,7 +73,7 @@ public final class OS3V1Reader implements IOS3Reader {
 					blockRep = ReplacementsRegistry.getBlock(replaceBase);
 				}
 
-				BiomeBuilder biomes = spawn.BiomeBuilder();
+				BiomeBuilder biomes = spawn.newBiomeBuilder();
 
 				if (ore.has("biomes")) {
 					JsonArray biomesArray = ore.get("biomes").getAsJsonArray();

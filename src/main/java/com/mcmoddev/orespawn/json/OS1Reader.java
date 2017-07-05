@@ -68,16 +68,23 @@ public class OS1Reader {
 		                	JsonObject dim = elem.getAsJsonObject();
 		                	DimensionBuilder builder;
 		                	
-		                	if( "+".equals(dim.get("dimension").getAsString()) ) {
-		                		builder = logic.DimensionBuilder();
-		                	} else if( dim.get("dimension").getAsString() == ""+dim.get("dimension").getAsInt() ) {
-		                		builder = logic.DimensionBuilder(dim.get("dimension").getAsInt());
-		                	} else {
-		                		builder = logic.DimensionBuilder(dim.get("dimension").getAsString());
+		                	JsonElement dimElem = dim.get("dimension");
+		                	if( dimElem.isJsonPrimitive() && !dimElem.isJsonNull()) {
+		                		if( dimElem.getAsJsonPrimitive().isNumber() ) {
+		                			builder = logic.newDimensionBuilder(dimElem.getAsInt());
+		                		} else {
+		                			String dimId = dimElem.getAsString();
+		                			switch(dimId) {
+		                			case "+":
+		                				builder = logic.newDimensionBuilder();
+		                				break;
+		                			default:
+		                				builder = logic.newDimensionBuilder(dim.get("dimension").getAsString());
+		                			}
+		                		}
+		                		loadOres( dim.get("ores").getAsJsonArray(), builder );
+		                		builders.add(builder);
 		                	}
-
-		                	loadOres( dim.get("ores").getAsJsonArray(), builder );
-		                	builders.add(builder);
 		                }
 		                logic.create(builders.toArray(new DimensionBuilderImpl[builders.size()]));
 		                
@@ -95,8 +102,8 @@ public class OS1Reader {
 		List<SpawnBuilder> spawns = new ArrayList<>();
 		for( JsonElement e : ores ) {
 			JsonObject ore = e.getAsJsonObject();
-			SpawnBuilder spawn = builder.SpawnBuilder(null);
-			OreBuilder tO = spawn.OreBuilder();
+			SpawnBuilder spawn = builder.newSpawnBuilder(null);
+			OreBuilder tO = spawn.newOreBuilder();
 			String blockID = ore.get("blockID").getAsString();
 			int meta = ore.has("metaData")?ore.get("metaData").getAsInt():0;
 			if( meta > 0 ) {
@@ -110,7 +117,7 @@ public class OS1Reader {
 			int minHeight = ore.has("minHeight")?ore.get("minHeight").getAsInt():0;
 			int variation = ore.has("variation")?ore.get("variation").getAsInt():(int)(0.5f * size);
 			List<IBlockState> replacements = new ArrayList<>();
-			FeatureBuilder feature = spawn.FeatureBuilder("default");
+			FeatureBuilder feature = spawn.newFeatureBuilder("default");
 			feature.addParameter("frequency",frequency).addParameter("size", size)
 			.addParameter("maxHeight", maxHeight).addParameter("minHeight", minHeight)
 			.addParameter("variation", variation);
@@ -120,7 +127,7 @@ public class OS1Reader {
 			replacements.add(ReplacementsRegistry.getDimensionDefault(1));
 			replacements.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).map( block -> block.getDefaultState() ).collect(Collectors.toList()));
 
-			BiomeBuilder biomes = spawn.BiomeBuilder();
+			BiomeBuilder biomes = spawn.newBiomeBuilder();
 			if( ore.has("biomes") ) {
 				for( JsonElement bm : ore.get("biomes").getAsJsonArray() ) {
 					String biome = bm.getAsString();

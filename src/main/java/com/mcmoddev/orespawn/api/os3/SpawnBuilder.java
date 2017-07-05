@@ -11,9 +11,9 @@ import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.block.state.IBlockState;
 
 public interface SpawnBuilder {
-	FeatureBuilder FeatureBuilder( @Nullable String featureName );
-	BiomeBuilder BiomeBuilder();
-	OreBuilder OreBuilder();
+	FeatureBuilder newFeatureBuilder( @Nullable String featureName );
+	BiomeBuilder newBiomeBuilder();
+	OreBuilder newOreBuilder();
 	SpawnBuilder create( @Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature, 
 			@Nonnull List<IBlockState> replacements, @Nonnull OreBuilder... ores );
 	

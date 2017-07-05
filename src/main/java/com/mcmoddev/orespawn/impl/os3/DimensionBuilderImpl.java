@@ -20,7 +20,7 @@ public class DimensionBuilderImpl implements DimensionBuilder {
 	}
 	
 	@Override
-	public SpawnBuilder SpawnBuilder( @Nullable String name) {
+	public SpawnBuilder newSpawnBuilder( @Nullable String name) {
 		String entName = (name == null)?UNNAMED:name;
 		spawns.computeIfAbsent(entName, tempName -> new ArrayList<SpawnBuilder>() );
 		SpawnBuilder sb = new SpawnBuilderImpl();

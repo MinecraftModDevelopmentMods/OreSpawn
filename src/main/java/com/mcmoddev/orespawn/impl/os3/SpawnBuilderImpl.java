@@ -30,7 +30,7 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 	
 	@Override
-	public FeatureBuilder FeatureBuilder(@Nullable String featureName) {
+	public FeatureBuilder newFeatureBuilder(@Nullable String featureName) {
 		this.featureGen = new FeatureBuilderImpl();
 		if( OreSpawn.FEATURES.getFeature(featureName) != null ) {
 			this.featureGen.setGenerator(featureName);
@@ -40,12 +40,12 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 
 	@Override
-	public BiomeBuilder BiomeBuilder() {
+	public BiomeBuilder newBiomeBuilder() {
 		return new BiomeBuilderImpl();
 	}
 
 	@Override
-	public OreBuilder OreBuilder() {
+	public OreBuilder newOreBuilder() {
 		return new OreBuilderImpl();
 	}
 	

@@ -46,17 +46,17 @@ public class OS3V11Reader implements IOS3Reader {
 			JsonObject object = element.getAsJsonObject();
 
 			int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawn.API.dimensionWildcard();
-			DimensionBuilder builder = logic.DimensionBuilder(dimension);
+			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
 			List<SpawnBuilder> spawns = new ArrayList<>();
 			
 			JsonArray ores = object.get("ores").getAsJsonArray();
 
 			for (JsonElement oresEntry : ores) {
-				SpawnBuilder spawn = builder.SpawnBuilder(null);
+				SpawnBuilder spawn = builder.newSpawnBuilder(null);
 				
 				JsonObject ore = oresEntry.getAsJsonObject();
 
-				OreBuilder oreB = spawn.OreBuilder();
+				OreBuilder oreB = spawn.newOreBuilder();
 				
 				String oreName = ore.get("block").getAsString();
 				
@@ -71,7 +71,7 @@ public class OS3V11Reader implements IOS3Reader {
 					oreB.setOre(oreName);
 				}
 
-				FeatureBuilder feature = spawn.FeatureBuilder(ore.get("feature").getAsString());
+				FeatureBuilder feature = spawn.newFeatureBuilder(ore.get("feature").getAsString());
 				feature.setParameters(ore.get("parameters").getAsJsonObject());
 
 				String replaceBase = ore.get("replace_block").getAsString();
@@ -85,7 +85,7 @@ public class OS3V11Reader implements IOS3Reader {
 					blockRep = ReplacementsRegistry.getBlock(replaceBase);
 				}
 
-				BiomeBuilder biomes = spawn.BiomeBuilder();
+				BiomeBuilder biomes = spawn.newBiomeBuilder();
 
 				if (ore.has("biomes")) {
 					biomes.setFromBiomeLocation(deserializeBiomeLocationList(ore.get("biomes").getAsJsonArray()));

@@ -55,32 +55,32 @@ public class OS2Reader {
 		                    JsonObject object = element.getAsJsonObject();
 
 		                    int dimension = object.has("dimension") ? object.get("dimension").getAsInt() : OreSpawn.API.dimensionWildcard();
-		                    DimensionBuilder builder = logic.DimensionBuilder(dimension);
+		                    DimensionBuilder builder = logic.newDimensionBuilder(dimension);
 
 		                    JsonArray ores = object.get("ores").getAsJsonArray();
 		                    List<SpawnBuilder> spawns = new ArrayList<>();
 		                    for (JsonElement oresEntry : ores) {
-		                    	SpawnBuilder spawn = builder.SpawnBuilder(null);
+		                    	SpawnBuilder spawn = builder.newSpawnBuilder(null);
 		                        JsonObject ore = oresEntry.getAsJsonObject();
 
 		                        String blockName = ore.get("block").getAsString();
 		                        String blockState = ore.has("state")?ore.get("state").getAsString():"";
 
-		                        OreBuilder oreB = spawn.OreBuilder();
+		                        OreBuilder oreB = spawn.newOreBuilder();
 		                        if("".equals(blockState)) {
 		                        	oreB.setOre(blockName);
 		                        } else {
 		                        	oreB.setOre(blockName,blockState);
 		                        }
 		                        
-		                        FeatureBuilder feature = spawn.FeatureBuilder("default");
+		                        FeatureBuilder feature = spawn.newFeatureBuilder("default");
 		                        feature.addParameter("size", ore.get("size").getAsInt());
 		                        feature.addParameter("variation", ore.get("variation").getAsInt());
 		                        feature.addParameter("frequency", ore.get("frequency").getAsFloat());
 		                        feature.addParameter("minHeight", ore.get("min_height").getAsInt());
 		                        feature.addParameter("maxHeight", ore.get("max_height").getAsInt());
 		                        
-		                        BiomeBuilder biomes = spawn.BiomeBuilder();
+		                        BiomeBuilder biomes = spawn.newBiomeBuilder();
 		                        
 		                        if (ore.has("biomes")) {
 		                            JsonArray biomesArray = ore.get("biomes").getAsJsonArray();
