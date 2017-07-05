@@ -5,6 +5,7 @@ New API for new plugin system
 Update JSON config format to version 1.1 to allow for new feature
 Implement BiomeDictionary support
 Implement Whitelisting and Blacklisting support for Biomes
+Ensure that resources stored in JAR's can be copied out to the config directory for loading and parsing
 
 #Version 3.0.0:
 Ported to 1.11.2
