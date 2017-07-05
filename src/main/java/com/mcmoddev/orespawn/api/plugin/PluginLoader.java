@@ -1,6 +1,5 @@
 package com.mcmoddev.orespawn.api.plugin;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -13,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -35,13 +33,11 @@ public enum PluginLoader {
 	private class PluginData {
 		public final String modId;
 		public final String resourcePath;
-		public final File modLoc;
 		public final IOreSpawnPlugin plugin;
 		
-		public PluginData(String modId, String resourcePath, File modLoc, IOreSpawnPlugin plugin) {
+		public PluginData(String modId, String resourcePath, IOreSpawnPlugin plugin) {
 			this.modId = modId;
 			this.resourcePath = resourcePath;
-			this.modLoc = modLoc;
 			this.plugin = plugin;
 		}
 	}
@@ -66,7 +62,7 @@ public enum PluginLoader {
 				IOreSpawnPlugin integration;
 				try {
 					integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
-					PluginData pd = new PluginData( modId, resourceBase, asmDataItem.getCandidate().getModContainer(), integration);
+					PluginData pd = new PluginData( modId, resourceBase, integration);
 					dataStore.add(pd);
 				} catch (final Exception ex) {
 					OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
