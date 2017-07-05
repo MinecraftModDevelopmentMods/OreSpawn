@@ -71,15 +71,21 @@ public enum PluginLoader {
 	}
 	
 	public void register() {
-		dataStore.forEach( pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); } );
+		dataStore.forEach( pd -> { 
+			/*
+			 * in 1.12 this can be done...
+			 * scanResources(pd);
+			 */
+			 pd.plugin.register(OreSpawn.API); } );
 	}
 
 	public void scanResources(PluginData pd) {
-		Path root = pd.modLoc.toPath().resolve(Paths.get("assets", pd.resourcePath));
+		Path root = pd.modLoc.toPath().resolve(Paths.get("assets", pd.modId, pd.resourcePath));
 		Iterator<Path> pathIter = null;
 		
-        if (root == null || !Files.exists(root))
-            return;
+        if (root == null || !Files.exists(root)) {
+        	return;
+        }
 
         try {
         	pathIter = Files.walk(root).iterator();
@@ -87,11 +93,11 @@ public enum PluginLoader {
         	OreSpawn.LOGGER.error("Error searching for configs for mod {}", pd.modId, e);
         }
 
-
         while( pathIter != null && pathIter.hasNext() ) {
         	Path currentFile = pathIter.next();
-
+        	
         	if( "json".equals( FilenameUtils.getExtension( currentFile.toString() ) ) ) {
+        		OreSpawn.LOGGER.fatal("found {} when resource scanning", currentFile.toString());
         		BufferedReader reader = null;
         		try {
         			reader = Files.newBufferedReader(currentFile);

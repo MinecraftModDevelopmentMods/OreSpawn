@@ -14,6 +14,7 @@ import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -60,6 +61,8 @@ public class OreSpawn {
     public void preInit(FMLPreInitializationEvent ev) {
     	Config.loadConfig();
     	
+    	PluginLoader.INSTANCE.load(ev);
+    	
     	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
     		MinecraftForge.EVENT_BUS.register(eventHandlers);
     	}
@@ -73,6 +76,7 @@ public class OreSpawn {
 
     @EventHandler
     public void init(FMLInitializationEvent ev) {
+    	PluginLoader.INSTANCE.register();
     	// we prefer the OS3 version of files
     	// but will take OS2 and OS1 versions - in that order
     	OS3Reader.loadEntries();

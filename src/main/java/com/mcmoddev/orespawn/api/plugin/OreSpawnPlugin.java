@@ -18,5 +18,5 @@ public @interface OreSpawnPlugin {
 	
 	// resource location segment to look in
 	// for registered config files
-	String resourcePath() default "";
+	String resourcePath() default "orespawn";
 }

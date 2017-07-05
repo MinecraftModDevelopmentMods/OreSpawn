@@ -7,9 +7,9 @@ import com.mcmoddev.orespawn.api.IFeature;
 
 public interface FeatureBuilder {
 	FeatureBuilder setGenerator(@Nonnull String name);
-	FeatureBuilder addParameter(@Nonnull String name, @Nonnull boolean value);
-	FeatureBuilder addParameter(@Nonnull String name, @Nonnull int value);
-	FeatureBuilder addParameter(@Nonnull String name, @Nonnull float value);
+	FeatureBuilder addParameter(@Nonnull String name, boolean value);
+	FeatureBuilder addParameter(@Nonnull String name, int value);
+	FeatureBuilder addParameter(@Nonnull String name, float value);
 	FeatureBuilder addParameter(@Nonnull String name, @Nonnull String value);
 	FeatureBuilder setParameters(@Nonnull JsonObject parameters);
 	FeatureBuilder setDefaultParameters();
