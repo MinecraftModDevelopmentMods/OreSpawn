@@ -11,11 +11,9 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.data.Integer3D;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -26,10 +24,10 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 
 public class DefaultFeatureGenerator implements IFeature {
-	private static final int maxCacheSize = 1024;
+	private static final int MAX_CACHE_SIZE = 1024;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
-	private static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(maxCacheSize);
+	private static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
 	private static final Deque<Vec3i> cacheOrder = new LinkedList<>();
 	private Random random;
 	
@@ -183,8 +181,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	private static boolean canReplace(IBlockState target, IBlockState toReplace) {
 		if( target.getBlock().equals(Blocks.AIR) ) {
 			return false;
-		}
-		if( toReplace.equals(target) ) {
+		} else if( toReplace.equals(target) ) {
 			return true;
 		}
 		return false;
@@ -196,7 +193,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			b2r = ReplacementsRegistry.getDimensionDefault(w.provider.getDimension());
 		}
 		if(b2r == null) {
-			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);;
+			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);
 			return;
 		}
 		if(coord.getY() < 0 || coord.getY() >= w.getHeight()) return;
@@ -215,7 +212,7 @@ public class DefaultFeatureGenerator implements IFeature {
 		Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
 		if(overflowCache.containsKey(chunkCoord)){
 			cacheOrder.addLast(chunkCoord);
-			if(cacheOrder.size() > maxCacheSize){
+			if(cacheOrder.size() > MAX_CACHE_SIZE){
 				Vec3i drop = cacheOrder.removeFirst();
 				overflowCache.get(drop).clear();
 				overflowCache.remove(drop);

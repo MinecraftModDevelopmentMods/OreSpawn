@@ -2,8 +2,6 @@ package com.mcmoddev.orespawn.json.os3.readers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.commons.io.FilenameUtils;
 

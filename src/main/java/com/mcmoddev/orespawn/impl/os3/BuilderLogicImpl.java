@@ -57,8 +57,6 @@ public class BuilderLogicImpl implements BuilderLogic {
 
 	@Override
 	public DimensionBuilder getDimension(String name) {
-		// I'd love for the following to be realistic...
-		// return this.DimensionBuilder(name);
 		Integer id = null;
 		switch(name.toLowerCase(Locale.ROOT)) {
 		case "overworld":

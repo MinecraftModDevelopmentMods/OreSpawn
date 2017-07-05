@@ -32,21 +32,21 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 public enum PluginLoader {
 
 	INSTANCE;
-	
+
 	private class PluginData {
 		public final String modId;
 		public final String resourcePath;
 		public final IOreSpawnPlugin plugin;
-		
+
 		public PluginData(String modId, String resourcePath, IOreSpawnPlugin plugin) {
 			this.modId = modId;
 			this.resourcePath = resourcePath;
 			this.plugin = plugin;
 		}
 	}
-	
+
 	private List<PluginData> dataStore = new ArrayList<>();
-	
+
 	private String getAnnotationItem(String item, final ASMData asmData) {
 		if (asmData.getAnnotationInfo().get(item) != null) {
 			return asmData.getAnnotationInfo().get(item).toString();
@@ -73,7 +73,7 @@ public enum PluginLoader {
 			}
 		}
 	}
-	
+
 	public void register() {
 		dataStore.forEach( pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); });
 	}
@@ -85,7 +85,7 @@ public enum PluginLoader {
 			// nothing to load!
 			return;
 		}
-		
+
 		URI uri;
 		try {
 			uri = resURL.toURI();
@@ -97,6 +97,7 @@ public enum PluginLoader {
 
 		Path myPath = null;
 		FileSystem fileSystem = null;
+		String tName = null;
 		try {
 			if (uri.getScheme().equals("jar")) {
 				fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
@@ -105,7 +106,7 @@ public enum PluginLoader {
 				myPath = Paths.get(uri);
 			}
 
-			if( Files.notExists(myPath) ) {
+			if( !myPath.toFile().exists() ) {
 				return;
 			}
 
@@ -115,25 +116,25 @@ public enum PluginLoader {
 				String name = p.getFileName().toString();
 				if( "json".equals(FilenameUtils.getExtension(name)) ) {
 					InputStream reader = null;
-					try {
-						Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
-						if( Files.exists(target) ) {
-							// the file we were going to copy out to already exists!
-							return;
-						}
-						reader = Files.newInputStream(p);
-						FileUtils.copyInputStreamToFile(reader, target.toFile());
-					} catch (IOException e) {
-						OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
-								p.toString(), pd.modId, e);
-					} finally {
-						IOUtils.closeQuietly(reader);
+					Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
+					tName = String.format("%s.json", pd.modId);
+					if( target.toFile().exists() ) {
+						// the file we were going to copy out to already exists!
+						walk.close();
+						return;
 					}
+					reader = Files.newInputStream(p);
+					FileUtils.copyInputStreamToFile(reader, target.toFile());
+					IOUtils.closeQuietly(reader);
 				}
 			}
 			walk.close();
 		} catch( IOException exc ) {
-			CrashReport report = CrashReport.makeCrashReport(exc, String.format("Failed in copying out config %s to %s", (new ResourceLocation(pd.modId,String.format("%s/%s", pd.resourcePath, FilenameUtils.getExtension(uri.getPath()))))).toString());
+			String resName = (new ResourceLocation(pd.modId,
+					String.format("%s/%s", pd.resourcePath, 
+							FilenameUtils.getBaseName(uri.getPath())))).toString();
+			CrashReport report = CrashReport.makeCrashReport(exc, 
+					String.format("Failed in copying out config %s to %s", resName, tName));
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());			
 		} finally {
