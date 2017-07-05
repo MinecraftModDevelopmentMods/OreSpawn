@@ -1,8 +1,8 @@
 package com.mcmoddev.orespawn.api.plugin;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -20,12 +20,9 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 
 import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
-import com.mcmoddev.orespawn.json.OS3Reader;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 
 import net.minecraftforge.fml.common.discovery.ASMDataTable.ASMData;
@@ -91,7 +88,12 @@ public enum PluginLoader {
 
 	public void scanResources(PluginData pd) throws IOException, URISyntaxException {
 		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
-		URI uri = getClass().getClassLoader().getResource(base).toURI();
+		URL resURL = getClass().getClassLoader().getResource(base);
+		if( resURL == null ) {
+			// nothing to load!
+			return;
+		}
+		URI uri = resURL.toURI();
         Path myPath;
         if (uri.getScheme().equals("jar")) {
             FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
@@ -109,12 +111,15 @@ public enum PluginLoader {
         	Path p = it.next();
         	String name = p.getFileName().toString();
         	if( "json".equals(FilenameUtils.getExtension(name)) ) {
-        		BufferedReader reader = null;
+        		InputStream reader = null;
         		try {
-        			reader = Files.newBufferedReader(p);
-        			Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-        			JsonObject json = gson.fromJson(reader, JsonObject.class);
-        			OS3Reader.loadFromJson(pd.modId, json);
+        			Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
+        			if( Files.exists(target) ) {
+        				// the file we were going to copy out to already exists!
+        				return;
+        			}
+        			reader = Files.newInputStream(p);
+        			FileUtils.copyInputStreamToFile(reader, target.toFile());
         		} catch (IOException e) {
         			OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
         					p.toString(), pd.modId, e);
