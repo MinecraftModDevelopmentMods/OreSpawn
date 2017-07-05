@@ -3,12 +3,20 @@ package com.mcmoddev.orespawn.api.plugin;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -72,47 +80,44 @@ public enum PluginLoader {
 	
 	public void register() {
 		dataStore.forEach( pd -> { 
-			/*
-			 * in 1.12 this can be done...
-			 * scanResources(pd);
-			 */
-			 pd.plugin.register(OreSpawn.API); } );
+			 try {
+				scanResources(pd);
+			} catch (IOException | URISyntaxException e) {
+				OreSpawn.LOGGER.error("Houston, we have a problem: mod {} apparently registered a path for files and there was an issue.", pd.modId, e);
+			}
+			 pd.plugin.register(OreSpawn.API); 
+		});
 	}
 
-	public void scanResources(PluginData pd) {
-		Path root = pd.modLoc.toPath().resolve(Paths.get("assets", pd.modId, pd.resourcePath));
-		Iterator<Path> pathIter = null;
-		
-        if (root == null || !Files.exists(root)) {
-        	return;
+	public void scanResources(PluginData pd) throws IOException, URISyntaxException {
+		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
+		URI uri = getClass().getClassLoader().getResource(base).toURI();
+        Path myPath;
+        if (uri.getScheme().equals("jar")) {
+            FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
+            myPath = fileSystem.getPath(base);
+        } else {
+            myPath = Paths.get(uri);
         }
-
-        try {
-        	pathIter = Files.walk(root).iterator();
-        } catch( IOException e ) {
-        	OreSpawn.LOGGER.error("Error searching for configs for mod {}", pd.modId, e);
-        }
-
-        while( pathIter != null && pathIter.hasNext() ) {
-        	Path currentFile = pathIter.next();
-        	
-        	if( "json".equals( FilenameUtils.getExtension( currentFile.toString() ) ) ) {
-        		OreSpawn.LOGGER.fatal("found {} when resource scanning", currentFile.toString());
+        Stream<Path> walk = Files.walk(myPath, 1);
+        for (Iterator<Path> it = walk.iterator(); it.hasNext();){
+        	Path p = it.next();
+        	String name = p.getFileName().toString();
+        	if( "json".equals(FilenameUtils.getExtension(name)) ) {
         		BufferedReader reader = null;
         		try {
-        			reader = Files.newBufferedReader(currentFile);
+        			reader = Files.newBufferedReader(p);
         			Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         			JsonObject json = gson.fromJson(reader, JsonObject.class);
         			OS3Reader.loadFromJson(pd.modId, json);
         		} catch (IOException e) {
         			OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
-        					currentFile.toString(), pd.modId, e);
+        					p.toString(), pd.modId, e);
         		} finally {
         			IOUtils.closeQuietly(reader);
         		}
         	}
         }
-        
-		return;
+        walk.close();
 	}
 }
