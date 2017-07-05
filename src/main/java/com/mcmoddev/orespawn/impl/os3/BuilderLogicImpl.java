@@ -60,7 +60,7 @@ public class BuilderLogicImpl implements BuilderLogic {
 		// I'd love for the following to be realistic...
 		// return this.DimensionBuilder(name);
 		Integer id = null;
-		switch(name.toLowerCase()) {
+		switch(name.toLowerCase(Locale.ROOT)) {
 		case "overworld":
 			id = 0;
 			break;
