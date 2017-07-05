@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -17,7 +18,7 @@ public class BuilderLogicImpl implements BuilderLogic {
 	
 	@Override
 	public DimensionBuilder newDimensionBuilder(String name) {
-		switch(name.toLowerCase()) {
+		switch(name.toLowerCase(Locale.ROOT)) {
 		case "overworld":
 			return this.newDimensionBuilder(0);
 		case "nether":

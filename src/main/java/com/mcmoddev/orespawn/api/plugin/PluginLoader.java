@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 
 import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
 import com.mcmoddev.orespawn.json.OS3Reader;
@@ -101,14 +102,7 @@ public enum PluginLoader {
         			OreSpawn.LOGGER.error("Error creating a Buffered Reader to load Json from {} for mod {}",
         					currentFile.toString(), pd.modId, e);
         		} finally {
-        			if( reader != null) {
-        				try {
-							reader.close();
-						} catch (IOException e) {
-		        			OreSpawn.LOGGER.error("Error closing the Buffered Reader for {} ({})",
-		        					currentFile.toString(), pd.modId, e);
-						}
-        			}
+        			IOUtils.closeQuietly(reader);
         		}
         	}
         }
