@@ -99,6 +99,11 @@ public enum PluginLoader {
         } else {
             myPath = Paths.get(uri);
         }
+        
+        if( Files.notExists(myPath) ) {
+        	return;
+        }
+
         Stream<Path> walk = Files.walk(myPath, 1);
         for (Iterator<Path> it = walk.iterator(); it.hasNext();){
         	Path p = it.next();
