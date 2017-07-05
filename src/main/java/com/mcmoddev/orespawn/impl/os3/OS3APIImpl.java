@@ -7,7 +7,6 @@ import java.util.Random;
 import java.util.Map.Entry;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
@@ -21,8 +20,12 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class OS3APIImpl implements OS3API {
-	private static final Map<String, BuilderLogic> logic = new HashMap<>();
-    private static OreSpawnWorldGen worldGenerator;
+	private final Map<String, BuilderLogic> logic;
+    private OreSpawnWorldGen worldGenerator;
+
+    public OS3APIImpl() {
+    	this.logic = new HashMap<>();
+    }
 
 	@Override
 	public void registerReplacementBlock(String name, Block itemBlock) {

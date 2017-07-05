@@ -2,12 +2,12 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -16,13 +16,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
-import com.mcmoddev.orespawn.api.os3.OreBuilder;
+import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.impl.location.*;
 import com.mcmoddev.orespawn.util.StateUtil;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Writer {
@@ -42,15 +41,13 @@ public class OS3Writer {
 		writeFeatures(basePath);
 		writeReplacements(basePath);
 		
-		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {
-			File file = new File(basePath, ent.getKey() + ".json");
-			
+		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {			
 			JsonObject wrapper = new JsonObject();
 			wrapper.addProperty("version", "1.1");
 			
 			JsonArray dimensions = new JsonArray();
 
-			ent.getValue().getAllDimensions().entrySet().forEach( dim -> {
+			for( Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet() ) {
 				JsonObject dimension = new JsonObject();
 				if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
 					dimension.addProperty("dimension", String.format("%d", dim.getKey()));
@@ -58,23 +55,22 @@ public class OS3Writer {
 
 				JsonArray spawns = new JsonArray();
 
-				dim.getValue().getAllSpawns().forEach( spawn -> {
+				for( SpawnBuilder spawn : dim.getValue().getAllSpawns() ) {
 					if( spawn.getOres().size() == 0 ) {
-						return;
+						continue;
 					}
 
 					JsonObject ore = new JsonObject();
-					ImmutableList<OreBuilder> ob = spawn.getOres();
-					OreBuilder sob = ob.get(0);
-					IBlockState sobs = sob.getOre();
-					Block sobsb = sobs.getBlock();
-					ResourceLocation sobsbrl = ForgeRegistries.BLOCKS.getKey(sobsb);
-					String blockName = sobsbrl.toString();
+					IBlockState bs = spawn.getOres().get(0).getOre();
+					if( (bs == null) || ("minecraft:air".equals(bs.getBlock().getRegistryName().toString()))) {
+						continue;
+					}
+					String blockName = bs.getBlock().getRegistryName().toString();
 					
 					ore.addProperty("block", blockName);
-					String state = StateUtil.serializeState(sobs);
+					String state = StateUtil.serializeState(bs);
 					if( !"normal".equals(state) ) {
-						ore.addProperty("state", StateUtil.serializeState(sobs));
+						ore.addProperty("state", StateUtil.serializeState(bs));
 					}
 					ore.add("parameters", spawn.getFeatureGen().getParameters());
 					ore.addProperty("feature", spawn.getFeatureGen().getFeatureName());
@@ -83,21 +79,35 @@ public class OS3Writer {
 					ore.addProperty("replace_block", "default");
 					ore.add("biomes", biomeLocationToJsonObject(spawn.getBiomes()));
 					spawns.add(ore);
-				});
-				dimension.add("ores", spawns);
-				dimensions.add(dimension);
-			});
-			wrapper.add("dimensions", dimensions);
-			String json = gson.toJson(wrapper);
-	        try {
-	            FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
-	        } catch (IOException e) {
-	            OreSpawn.LOGGER.fatal("Exception writing OreSpawn config %s - %s", file.toString(), e.getLocalizedMessage());
-	        }
+				}
+				
+				if( spawns.size() > 0 ) {
+					dimension.add("ores", spawns);
+					dimensions.add(dimension);
+				}
+			};
+			
+			if( countOres(dimensions) > 0 ) {
+				File file = new File(basePath, ent.getKey() + ".json");
+				wrapper.add("dimensions", dimensions);
+				String json = gson.toJson(wrapper);
+				try {
+					FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
+				} catch (IOException e) {
+					OreSpawn.LOGGER.fatal("Exception writing OreSpawn config %s - %s", file.toString(), e.getLocalizedMessage());
+				}
+			}
 		});
 	}
 	
-
+	private int countOres(JsonArray dims ) {
+		int count = 0;
+		for( JsonElement dim : dims ) {
+			count += dim.getAsJsonObject().get("ores").getAsJsonArray().size();
+		}
+		return count;
+	}
+	
 	private JsonElement biomeLocationToJsonObject(BiomeLocation value) {
 		if( (value instanceof BiomeLocationSingle) || (value instanceof BiomeLocationDictionary) ) {
 			return getString(value);

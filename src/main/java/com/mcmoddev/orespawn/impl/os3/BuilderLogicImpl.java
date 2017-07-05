@@ -3,14 +3,17 @@ package com.mcmoddev.orespawn.impl.os3;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
 
 public class BuilderLogicImpl implements BuilderLogic {
-	private static final Map<Integer, DimensionBuilder> dimensions = new HashMap<>();
+	private final Map<Integer, DimensionBuilder> dimensions;
+	
+	public BuilderLogicImpl() {
+		this.dimensions = new HashMap<>();
+	}
 	
 	@Override
 	public DimensionBuilder DimensionBuilder(String name) {
