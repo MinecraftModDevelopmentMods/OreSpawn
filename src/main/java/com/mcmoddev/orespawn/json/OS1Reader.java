@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.json;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +32,10 @@ public class OS1Reader {
 		
 	}
 	public static void loadEntries(Path confDir) {
+		if( !Files.exists(confDir) ) {
+			// No files to read, don't go farther as that would create the dir
+			return;
+		}
 		File directory = new File(confDir.toString());
         JsonParser parser = new JsonParser();
 
