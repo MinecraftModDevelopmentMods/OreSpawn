@@ -56,7 +56,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 
 			entries = this.dimensions.get(OreSpawn.API.dimensionWildcard());
 			if( entries == null ) {
-				OreSpawn.LOGGER.fatal("no spawn entries for dimension "+thisDim+" or for all dimensions");
+				// got complaints about this
+				// OreSpawn.LOGGER.fatal("no spawn entries for dimension "+thisDim+" or for all dimensions");
 				return;
 			}
 		} else if( thisDim != -1 && thisDim != 1 

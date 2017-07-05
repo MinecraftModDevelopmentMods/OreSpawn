@@ -1,7 +1,7 @@
 package com.mcmoddev.orespawn.impl.os3;
 
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.List;
+import java.util.ArrayList;
 
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
@@ -14,13 +14,13 @@ import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class BiomeBuilderImpl implements BiomeBuilder {
-	private Set<BiomeLocation> biomeWhitelist;
-	private Set<BiomeLocation> biomeBlacklist;
+	private List<BiomeLocation> biomeWhitelist;
+	private List<BiomeLocation> biomeBlacklist;
 	private BiomeLocation loc;
 	
 	public BiomeBuilderImpl() {
-		this.biomeWhitelist = new TreeSet<>();
-		this.biomeBlacklist = new TreeSet<>();
+		this.biomeWhitelist = new ArrayList<>();
+		this.biomeBlacklist = new ArrayList<>();
 	}
 	
 	private Biome getBiomeByName(String name) {
