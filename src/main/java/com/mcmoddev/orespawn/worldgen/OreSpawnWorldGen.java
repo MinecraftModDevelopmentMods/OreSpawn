@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
@@ -17,6 +18,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkGenerator;
@@ -27,7 +29,7 @@ import net.minecraftforge.oredict.OreDictionary;
 public class OreSpawnWorldGen implements IWorldGenerator {
 
 	private final Map<Integer, List<SpawnBuilder>> dimensions;
-	public static final List<Block> SPAWN_BLOCKS = new ArrayList<>();
+	protected static final List<Block> SPAWN_BLOCKS = new ArrayList<>();
 
 	@SuppressWarnings("unused") private final long nextL;
 
@@ -40,6 +42,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			SPAWN_BLOCKS.add(Blocks.END_STONE);
 			SPAWN_BLOCKS.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).collect(Collectors.toList()));
 		}
+	}
+	
+	public static ImmutableList<Block> getSpawnBlocks() {
+		return ImmutableList.<Block>copyOf(SPAWN_BLOCKS);
 	}
 	
 	@Override
@@ -56,8 +62,6 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 
 			entries = this.dimensions.get(OreSpawn.API.dimensionWildcard());
 			if( entries == null ) {
-				// got complaints about this
-				// OreSpawn.LOGGER.fatal("no spawn entries for dimension "+thisDim+" or for all dimensions");
 				return;
 			}
 		} else if( thisDim != -1 && thisDim != 1 
@@ -73,7 +77,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 				if( replacement == null ) {
 					replacement = ReplacementsRegistry.getDimensionDefault(thisDim);
 				}
-				currentFeatureGen.generate(random, chunkX, chunkZ, world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOres().get(0).getOre(), replacement);
+				currentFeatureGen.setRandom(random);
+				currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOres().get(0).getOre(), replacement);
 			}
 		}
 	}

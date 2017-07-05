@@ -30,7 +30,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -55,7 +54,11 @@ public class OreSpawn {
     public static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
     private String os1ConfigPath;
-    public static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
+    protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
+    
+    public static Map<Integer, List<SpawnBuilder>> getSpawns() {
+    	return spawns;
+    }
     
     @EventHandler
     public void preInit(FMLPreInitializationEvent ev) {

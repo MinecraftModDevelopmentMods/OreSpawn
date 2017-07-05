@@ -139,7 +139,10 @@ public class FeatureRegistry {
         try {
             FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
         } catch (IOException e) {
-            e.printStackTrace();
+			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
+			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());
+			return;
         }		
 	}
 }

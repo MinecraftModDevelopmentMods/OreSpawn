@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Map.Entry;
@@ -12,6 +13,7 @@ import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.OS3API;
+import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
@@ -21,7 +23,6 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class OS3APIImpl implements OS3API {
 	private final Map<String, BuilderLogic> logic;
-    private OreSpawnWorldGen worldGenerator;
 
     public OS3APIImpl() {
     	this.logic = new HashMap<>();
@@ -85,14 +86,15 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public void registerSpawns() {
+		Map<Integer,List<SpawnBuilder>> spawns = OreSpawn.getSpawns();
     	// build a proper tracking of data for the spawner
     	for( Entry<String, BuilderLogic> ent : logic.entrySet() ) {
     		for( Entry<Integer, DimensionBuilder> dL : ent.getValue().getAllDimensions().entrySet()) {
-				if( OreSpawn.spawns.containsKey(dL.getKey()) ) {
-					OreSpawn.spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
+				if( spawns.containsKey(dL.getKey()) ) {
+					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				} else {
-					OreSpawn.spawns.put(dL.getKey(), new ArrayList<>());
-					OreSpawn.spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
+					spawns.put(dL.getKey(), new ArrayList<>());
+					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				}
     		}
         	OreSpawn.LOGGER.info("Registered spawn logic for mod {}", ent.getKey());
@@ -100,10 +102,9 @@ public class OS3APIImpl implements OS3API {
     	
     	Random random = new Random();
    
-    	worldGenerator = new OreSpawnWorldGen(OreSpawn.spawns, random.nextLong());
-    	//if (!Config.getBoolean(Constants.RETROGEN_KEY)) {
+        OreSpawnWorldGen worldGenerator  = new OreSpawnWorldGen(spawns, random.nextLong());
+
     	GameRegistry.registerWorldGenerator(worldGenerator, 100);
-    	//}
             
 	}
 
