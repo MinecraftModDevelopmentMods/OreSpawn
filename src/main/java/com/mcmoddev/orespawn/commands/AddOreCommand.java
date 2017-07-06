@@ -24,6 +24,7 @@ import net.minecraft.util.text.TextComponentString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 
 public class AddOreCommand extends CommandBase {
 	private static final String ALL = "all";
@@ -35,7 +36,7 @@ public class AddOreCommand extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/addore <file> <dimension|all>";
+        return "/addore <file> <dimension|all> <options>";
     }
 
     @Override
@@ -46,13 +47,16 @@ public class AddOreCommand extends CommandBase {
 
         EntityPlayer player = (EntityPlayer) sender;
         ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-
+        String jsonArgs = null;
+        
         if (stack == null) {
             throw new CommandException("You have no item in your main hand");
         } else if (!(stack.getItem() instanceof ItemBlock)) {
             throw new CommandException("The item in your main hand isn't a block");
-        } else if (args.length != 2) {
+        } else if (args.length <= 2) {
             throw new CommandException(this.getUsage(sender));
+        } else {
+        	jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();        	
         }
         
         String file = args[0];
@@ -69,21 +73,50 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException(args[1] + " isn't a valid dimension");
         }
 
+        
         JsonObject ore = new JsonObject();
-        ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
-        ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
-        ore.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, 25);
-        ore.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, 12);
-        ore.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, 20);
-        ore.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, 0);
-        ore.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, 128);
+        JsonObject oreArgs = null;
+        int size = 25;
+        int variation = 12;
+        int frequency = 20;
+        int minHeight = 0;
+        int maxHeight = 128;
 
+    	oreArgs = new JsonObject();
+    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, size);
+    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, variation);
+    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, frequency);
+    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, minHeight);
+    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, maxHeight);
+    	ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
+    	ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
+
+        if( jsonArgs != null ) {
+        	JsonObject newOreArgs = (new JsonParser()).parse(jsonArgs).getAsJsonObject();
+        	setProperties(oreArgs,newOreArgs);
+        }
+        
+        setOre(ore,oreArgs);
+        
         this.putFile(file, ore, dimension);
 
         player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
     }
 
-    private void putFile(String file, JsonObject ore, int id) {
+    private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {
+		for( Entry<String, JsonElement> ent : newOreArgs.entrySet() ) {
+			oreArgs.remove(ent.getKey());
+			oreArgs.add(ent.getKey(), ent.getValue());
+		}
+	}
+
+	private void setOre(JsonObject ore, JsonObject oreArgs) {
+		for( Entry<String, JsonElement> ent : oreArgs.entrySet() ) {
+			ore.add(ent.getKey(), ent.getValue());
+		}		
+	}
+
+	private void putFile(String file, JsonObject ore, int id) {
     	DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
     	SpawnBuilder sb = db.newSpawnBuilder(null);
     	OreBuilder ob = sb.newOreBuilder();
