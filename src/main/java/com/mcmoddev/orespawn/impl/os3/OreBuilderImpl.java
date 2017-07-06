@@ -65,6 +65,7 @@ public class OreBuilderImpl implements OreBuilder {
 		return this;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public OreBuilder setOre(Item base, int metaData) {
 		this.ore = Block.getBlockFromItem(base).getStateFromMeta(metaData);
