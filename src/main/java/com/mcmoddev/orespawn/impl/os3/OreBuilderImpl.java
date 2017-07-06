@@ -50,7 +50,7 @@ public class OreBuilderImpl implements OreBuilder {
 			return this;
 
 		this.ore = this.ore.getBlock().getStateFromMeta(metaData);
-		return null;
+		return this;
 	}
 
 	@Override
@@ -69,7 +69,7 @@ public class OreBuilderImpl implements OreBuilder {
 	@Override
 	public OreBuilder setOre(Item base, int metaData) {
 		this.ore = Block.getBlockFromItem(base).getStateFromMeta(metaData);
-		return null;
+		return this;
 	}
 
 	@Override
@@ -78,10 +78,36 @@ public class OreBuilderImpl implements OreBuilder {
 	}
 
 	@Override
+	public OreBuilder setOre(String name, String serializedState, int chance) {
+		return this.setOre(name, serializedState).setChance(chance);
+	}
+	
+	@Override
+	public OreBuilder setOre(String name, int metaData, int chance) {
+		return this.setOre(name, metaData).setChance(chance);
+	}
+	
+	@Override
+	public OreBuilder setOre(Block base, String serializedState, int chance) {
+		return this.setOre(base, serializedState).setChance(chance);
+	}
+	
+	@Override
+	public OreBuilder setOre(Item base, int metaData, int chance) {
+		return this.setOre(base, metaData).setChance(chance);
+	}
+	
+	@Override
+	public OreBuilder setOre(ItemStack item, int chance) {
+		return this.setOre(item).setChance(chance);
+	}
+	
+	@Override
 	public OreBuilder setChance(int chance) {
 		this.chance = chance;
 		return this;
 	}
+
 
 	@Override
 	public IBlockState getOre() {

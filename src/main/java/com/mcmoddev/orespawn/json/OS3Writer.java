@@ -17,6 +17,7 @@ import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.impl.location.*;
 import com.mcmoddev.orespawn.util.StateUtil;
 
@@ -46,7 +47,7 @@ public class OS3Writer {
 				JsonObject dimension = new JsonObject();
 				
 				if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
-					dimension.addProperty("dimension", String.format("%d", dim.getKey()));
+					dimension.addProperty(ConfigNames.DIMENSION, String.format("%d", dim.getKey()));
 				}
 
 				JsonArray spawns = new JsonArray();
@@ -54,11 +55,11 @@ public class OS3Writer {
 				dim.getValue().getAllSpawns().stream().filter( spawn -> !spawn.getOres().isEmpty() )
 				.filter(spawn -> spawn.getOres().get(0).getOre() != null )
 				.filter(spawn -> "minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString()))
-				.map( spawn -> this.genSpawn(spawn))
-				.forEach( spawn -> spawns.add(spawn) );
+				.map( this::genSpawn )
+				.forEach( spawns::add );
 				
 				if( spawns.size() > 0 ) {
-					dimension.add("ores", spawns);
+					dimension.add(ConfigNames.ORES, spawns);
 					dimensions.add(dimension);
 				}
 			}
@@ -66,8 +67,8 @@ public class OS3Writer {
 			if( countOres(dimensions) > 0 ) {
 				File file = new File(basePath, String.format("%s.json", ent.getKey()));
 				JsonObject wrapper = new JsonObject();
-				wrapper.addProperty("version", "1.1");
-				wrapper.add("dimensions", dimensions);
+				wrapper.addProperty(ConfigNames.FILE_VERSION, "1.1");
+				wrapper.add(ConfigNames.DIMENSIONS, dimensions);
 				this.writeFile(file, wrapper);
 			}
 		});
@@ -88,22 +89,22 @@ public class OS3Writer {
 		JsonObject ore = new JsonObject();
 		String blockName = spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString();
 		
-		ore.addProperty("block", blockName);
+		ore.addProperty(ConfigNames.BLOCK, blockName);
 		String state = StateUtil.serializeState(spawn.getOres().get(0).getOre());
-		if( !"normal".equals(state) ) {
-			ore.addProperty("state", state);
+		if( !ConfigNames.STATE_NORMAL.equals(state) ) {
+			ore.addProperty(ConfigNames.STATE, state);
 		}
-		ore.add("parameters", spawn.getFeatureGen().getParameters());
-		ore.addProperty("feature", spawn.getFeatureGen().getFeatureName());
-		ore.addProperty("replace_block", "default");
-		ore.add("biomes", biomeLocationToJsonObject(spawn.getBiomes()));
+		ore.add(ConfigNames.PARAMETERS, spawn.getFeatureGen().getParameters());
+		ore.addProperty(ConfigNames.FEATURE, spawn.getFeatureGen().getFeatureName());
+		ore.addProperty(ConfigNames.REPLACEMENT, ConfigNames.DEFAULT);
+		ore.add(ConfigNames.BIOMES, biomeLocationToJsonObject(spawn.getBiomes()));
 		return ore;
 	}
 
 	private int countOres(JsonArray dims ) {
 		int count = 0;
 		for( JsonElement dim : dims ) {
-			count += dim.getAsJsonObject().get("ores").getAsJsonArray().size();
+			count += dim.getAsJsonObject().get(ConfigNames.ORES).getAsJsonArray().size();
 		}
 		return count;
 	}
@@ -122,8 +123,8 @@ public class OS3Writer {
 
 	private JsonElement getComposition(BiomeLocation value) {
 		JsonObject rv = new JsonObject();
-		rv.add("inclusions", getList(new BiomeLocationList(((BiomeLocationComposition)value).getInclusions())));
-		rv.add("exclusions", getList(new BiomeLocationList(((BiomeLocationComposition)value).getExclusions())));
+		rv.add(ConfigNames.BiomeStuff.WHITELIST, getList(new BiomeLocationList(((BiomeLocationComposition)value).getInclusions())));
+		rv.add(ConfigNames.BiomeStuff.BLACKLIST, getList(new BiomeLocationList(((BiomeLocationComposition)value).getExclusions())));
 		return rv;
 	}
 

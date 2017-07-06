@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
+import com.mcmoddev.orespawn.data.Constants;
 
 public class BuilderLogicImpl implements BuilderLogic {
 	private final Map<Integer, DimensionBuilder> dimensions;
@@ -18,20 +19,11 @@ public class BuilderLogicImpl implements BuilderLogic {
 	
 	@Override
 	public DimensionBuilder newDimensionBuilder(String name) {
-		switch(name.toLowerCase(Locale.ROOT)) {
-		case "overworld":
-			return this.newDimensionBuilder(0);
-		case "nether":
-		case "the nether":
-			return this.newDimensionBuilder(-1);
-		case "end":
-		case "the end":
-			return this.newDimensionBuilder(1);
-		case "+":
-		default:
-			// assume that they want the wildcard
+		int id = this.dimensionNameToId(name);
+		if( id == OreSpawn.API.dimensionWildcard() ) {
 			return this.newDimensionBuilder();
 		}
+		return this.newDimensionBuilder(id);
 	}
 
 	@Override
@@ -57,25 +49,7 @@ public class BuilderLogicImpl implements BuilderLogic {
 
 	@Override
 	public DimensionBuilder getDimension(String name) {
-		Integer id = null;
-		switch(name.toLowerCase(Locale.ROOT)) {
-		case "overworld":
-			id = 0;
-			break;
-		case "nether":
-		case "the nether":
-			id = -1;
-			break;
-		case "end":
-		case "the end":
-			id = 1;
-			break;
-		case "+":
-		default:
-			// assume that they want the wildcard
-			id = OreSpawn.API.dimensionWildcard();
-		}
-		
+		Integer id = this.dimensionNameToId(name);		
 		return this.getDimension(id);
 	}
 
@@ -91,6 +65,24 @@ public class BuilderLogicImpl implements BuilderLogic {
 	@Override
 	public ImmutableMap<Integer, DimensionBuilder> getAllDimensions() {
 		return ImmutableMap.<Integer, DimensionBuilder>copyOf(dimensions);
+	}
+
+
+	private int dimensionNameToId(String name) {
+		switch(name.toLowerCase(Locale.ROOT)) {
+		case Constants.OVERWORLD:
+		case Constants.THE_OVERWORLD:
+			return 0;
+		case Constants.NETHER:
+		case Constants.THE_NETHER:
+			return -1;
+		case Constants.END:
+		case Constants.THE_END:
+			return 1;
+		case "+":
+		default:
+			return OreSpawn.API.dimensionWildcard();
+		}
 	}
 
 }
