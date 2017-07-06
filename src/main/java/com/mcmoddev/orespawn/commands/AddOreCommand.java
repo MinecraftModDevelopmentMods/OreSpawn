@@ -8,6 +8,7 @@ import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
@@ -25,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AddOreCommand extends CommandBase {
-	private static final String BLOCK = "block";
-	private static final String STATE2 = "state";
 	private static final String ALL = "all";
 	
     @Override
@@ -71,13 +70,13 @@ public class AddOreCommand extends CommandBase {
         }
 
         JsonObject ore = new JsonObject();
-        ore.addProperty(BLOCK, state.getBlock().getRegistryName().toString());
-        ore.addProperty(STATE2, StateUtil.serializeState(state));
-        ore.addProperty("size", 25);
-        ore.addProperty("variation", 12);
-        ore.addProperty("frequency", 20);
-        ore.addProperty("min_height", 0);
-        ore.addProperty("max_height", 128);
+        ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
+        ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
+        ore.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, 25);
+        ore.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, 12);
+        ore.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, 20);
+        ore.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, 0);
+        ore.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, 128);
 
         this.putFile(file, ore, dimension);
 
@@ -88,17 +87,17 @@ public class AddOreCommand extends CommandBase {
     	DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
     	SpawnBuilder sb = db.newSpawnBuilder(null);
     	OreBuilder ob = sb.newOreBuilder();
-    	String b = ore.get(BLOCK).getAsString();
-    	ore.remove(BLOCK);
-    	String s = ore.get(STATE2).getAsString();
-    	ore.remove(STATE2);
-    	if( "normal".equals(s) ) {
+    	String b = ore.get(ConfigNames.BLOCK).getAsString();
+    	ore.remove(ConfigNames.BLOCK);
+    	String s = ore.get(ConfigNames.STATE).getAsString();
+    	ore.remove(ConfigNames.STATE);
+    	if( ConfigNames.STATE_NORMAL.equals(s) ) {
     		ob.setOre(b);
     	} else {
     		ob.setOre(b, s);
     	}
-    	FeatureBuilder fb = sb.newFeatureBuilder("default");
-    	fb.setGenerator("default").setDefaultParameters().setParameters(ore);
+    	FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
+    	fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
     	BiomeBuilder bb = sb.newBiomeBuilder();
     	IBlockState rep = ReplacementsRegistry.getDimensionDefault(id);
     	List<IBlockState> rl = new ArrayList<>();
