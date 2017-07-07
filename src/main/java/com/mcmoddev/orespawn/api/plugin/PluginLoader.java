@@ -45,7 +45,7 @@ public enum PluginLoader {
 		}
 	}
 
-	private List<PluginData> dataStore = new ArrayList<>();
+	private static List<PluginData> dataStore = new ArrayList<>();
 
 	private String getAnnotationItem(String item, final ASMData asmData) {
 		if (asmData.getAnnotationInfo().get(item) != null) {
@@ -60,16 +60,14 @@ public enum PluginLoader {
 			final String modId = getAnnotationItem("modid", asmDataItem);
 			final String resourceBase = getAnnotationItem("resourcePath", asmDataItem);
 			final String clazz = asmDataItem.getClassName();
-
-			if ( event.getModMetadata().modId.equals(modId) ) {
-				IOreSpawnPlugin integration;
-				try {
-					integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
-					PluginData pd = new PluginData( modId, resourceBase, integration);
-					dataStore.add(pd);
-				} catch (final Exception ex) {
-					OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
-				}
+			IOreSpawnPlugin integration;
+			try {
+				integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
+				PluginData pd = new PluginData( modId, resourceBase, integration);
+				dataStore.add(pd);
+				OreSpawn.LOGGER.fatal("Loaded plugin {} (modId: {}, resourcePath: {})", clazz, modId, resourceBase);
+			} catch (final Exception ex) {
+				OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
 			}
 		}
 	}
@@ -81,11 +79,8 @@ public enum PluginLoader {
 	public void scanResources(PluginData pd) {
 		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
 		URL resURL = getClass().getClassLoader().getResource(base);
-		if( resURL == null ) {
-			// nothing to load!
-			return;
-		}
-
+		OreSpawn.LOGGER.fatal("Got {} from getResource({})", resURL.toString(), base);
+		
 		URI uri;
 		try {
 			uri = resURL.toURI();
@@ -106,14 +101,11 @@ public enum PluginLoader {
 				myPath = Paths.get(uri);
 			}
 
-			if( !myPath.toFile().exists() ) {
-				return;
-			}
-
 			Stream<Path> walk = Files.walk(myPath, 1);
 			for (Iterator<Path> it = walk.iterator(); it.hasNext();){
 				Path p = it.next();
 				String name = p.getFileName().toString();
+				OreSpawn.LOGGER.fatal("path {} in walk", p.toString());
 				if( "json".equals(FilenameUtils.getExtension(name)) ) {
 					InputStream reader = null;
 					Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
@@ -123,6 +115,7 @@ public enum PluginLoader {
 						walk.close();
 						return;
 					}
+					OreSpawn.LOGGER.fatal("Extracting {} to {}", p.toString(), target.toString());
 					reader = Files.newInputStream(p);
 					FileUtils.copyInputStreamToFile(reader, target.toFile());
 					IOUtils.closeQuietly(reader);
