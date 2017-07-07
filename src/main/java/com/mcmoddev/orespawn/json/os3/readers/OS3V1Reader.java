@@ -43,7 +43,7 @@ public final class OS3V1Reader implements IOS3Reader {
 
 				OreBuilder oreB = spawn.newOreBuilder();
 				
-				String oreName = ore.get(ConfigNames.ORES).getAsString();
+				String oreName = ore.get(ConfigNames.BLOCK).getAsString();
 				
 				if (ore.has(ConfigNames.STATE)) {
 					String stateString = ore.get(ConfigNames.STATE).getAsString();

@@ -29,7 +29,7 @@ public class Constants {
 		public static final String METADATA = "metaData";
 		public static final String BIOMES = "biomes";
 		public static final String STATE = "state";
-		public static final String REPLACEMENT = "replacement_block";
+		public static final String REPLACEMENT = "replace_block";
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
