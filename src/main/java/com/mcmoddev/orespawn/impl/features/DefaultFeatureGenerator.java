@@ -11,12 +11,12 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.data.Integer3D;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkGenerator;
@@ -24,17 +24,25 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 
 public class DefaultFeatureGenerator implements IFeature {
-	private static final int maxCacheSize = 1024;
+	private static final int MAX_CACHE_SIZE = 1024;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
-	private static final Map<Integer3D,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(maxCacheSize);
-	private static final Deque<Integer3D> cacheOrder = new LinkedList<>();
+	private static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
+	private static final Deque<Vec3i> cacheOrder = new LinkedList<>();
+	private Random random;
+	
+	public DefaultFeatureGenerator() {
+		this.random = new Random();
+	}
+	
 	
 	@Override
-	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
+	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
 			IChunkProvider chunkProvider, JsonObject parameters, IBlockState block, IBlockState replaceBlock ) {
 		// First, load cached blocks for neighboring chunk ore spawns
-		Integer3D chunkCoord = new Integer3D(chunkX, chunkZ, world.provider.getDimension());
+		int chunkX = pos.x;
+		int chunkZ = pos.z;
+		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
 		for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
 			spawn(cache.get(ent.getKey()),world,ent.getKey(),world.provider.getDimension(),false,replaceBlock);
@@ -173,8 +181,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	private static boolean canReplace(IBlockState target, IBlockState toReplace) {
 		if( target.getBlock().equals(Blocks.AIR) ) {
 			return false;
-		}
-		if( toReplace.equals(target) ) {
+		} else if( toReplace.equals(target) ) {
 			return true;
 		}
 		return false;
@@ -186,7 +193,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			b2r = ReplacementsRegistry.getDimensionDefault(w.provider.getDimension());
 		}
 		if(b2r == null) {
-			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);;
+			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);
 			return;
 		}
 		if(coord.getY() < 0 || coord.getY() >= w.getHeight()) return;
@@ -202,11 +209,11 @@ public class DefaultFeatureGenerator implements IFeature {
 
 
 	protected static void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension){
-		Integer3D chunkCoord = new Integer3D(coord.getX() >> 4, coord.getY() >> 4, dimension);
+		Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
 		if(overflowCache.containsKey(chunkCoord)){
 			cacheOrder.addLast(chunkCoord);
-			if(cacheOrder.size() > maxCacheSize){
-				Integer3D drop = cacheOrder.removeFirst();
+			if(cacheOrder.size() > MAX_CACHE_SIZE){
+				Vec3i drop = cacheOrder.removeFirst();
 				overflowCache.get(drop).clear();
 				overflowCache.remove(drop);
 			}
@@ -216,7 +223,7 @@ public class DefaultFeatureGenerator implements IFeature {
 		cache.put(coord, bs);
 	}
 
-	protected static Map<BlockPos,IBlockState> retrieveCache(Integer3D chunkCoord ){
+	protected static Map<BlockPos,IBlockState> retrieveCache(Vec3i chunkCoord ){
 		if(overflowCache.containsKey(chunkCoord)){
 			Map<BlockPos,IBlockState> cache =overflowCache.get(chunkCoord);
 			cacheOrder.remove(chunkCoord);
@@ -225,6 +232,23 @@ public class DefaultFeatureGenerator implements IFeature {
 		} else {
 			return Collections.<BlockPos,IBlockState>emptyMap();
 		}
+	}
+
+	@Override
+	public JsonObject getDefaultParameters() {
+		JsonObject defParams = new JsonObject();
+		defParams.addProperty("minHeight", 0);
+		defParams.addProperty("maxHeight", 256);
+		defParams.addProperty("variation", 16);
+		defParams.addProperty("frequency", 0.5);
+		defParams.addProperty("size", 8);
+		return defParams;
+	}
+
+
+	@Override
+	public void setRandom(Random rand) {
+		this.random = rand;
 	}
 
 }

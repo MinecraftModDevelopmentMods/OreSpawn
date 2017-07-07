@@ -4,33 +4,39 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.DimensionLogic;
-import com.mcmoddev.orespawn.api.OreSpawnAPI;
-import com.mcmoddev.orespawn.api.SpawnLogic;
+import com.mcmoddev.orespawn.api.os3.*;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.impl.os3.DimensionBuilderImpl;
+import com.mcmoddev.orespawn.impl.os3.SpawnBuilderImpl;
+import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraft.item.ItemBlock;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class OS1Reader {
 	private OS1Reader() {
 		
 	}
 	public static void loadEntries(Path confDir) {
+		if( !confDir.toFile().exists() ) {
+			// No files to read, don't go farther as that would create the dir
+			return;
+		}
 		File directory = new File(confDir.toString());
         JsonParser parser = new JsonParser();
 
@@ -55,26 +61,25 @@ public class OS1Reader {
 					try {
 						JsonObject root = parser.parse(FileUtils.readFileToString(file)).getAsJsonObject();
 						
-						SpawnLogic spawnLogic = OreSpawn.API.createSpawnLogic();
+						BuilderLogic logic = OreSpawn.API.getLogic(FilenameUtils.getBaseName(file.getName()));
+						List<DimensionBuilder> builders = new ArrayList<>();
 						
 						// iterate over the dimensions
-		                for (JsonElement elem : root.get("dimensions").getAsJsonArray() ) {
+						JsonArray theDims = root.get(ConfigNames.DIMENSIONS).getAsJsonArray();
+		                for (JsonElement elem : theDims ) {
 		                	JsonObject dim = elem.getAsJsonObject();
-		                	int theDim;
-		                	if( "+".equals(dim.get("dimension").getAsString()) ) {
-		                		theDim = OreSpawnAPI.DIMENSION_WILDCARD;
-		                	} else {
-		                		theDim = dim.get("dimension").getAsInt();
-		                	}
+		                	DimensionBuilder builder;
 		                	
-		                	DimensionLogic dimensionLogic = spawnLogic.getDimension(theDim);
-		                	
-		                	// now iterate the ores
-		                	for( JsonElement oElem : dim.get("ores").getAsJsonArray() ) {
-		                		loadOre( oElem.getAsJsonObject(), dimensionLogic );
+		                	JsonElement dimElem = dim.get(ConfigNames.DIMENSION);
+		                	if( dimElem.isJsonPrimitive() && !dimElem.isJsonNull()) {
+		                		builder = getBuilder( dimElem, logic );
+		                		loadOres( dim.get(ConfigNames.ORES).getAsJsonArray(), builder );
+		                		builders.add(builder);
 		                	}
 		                }
-		                OreSpawn.API.registerSpawnLogic(file.getName().substring(0, file.getName().lastIndexOf('.')), spawnLogic);
+		                logic.create(builders.toArray(new DimensionBuilderImpl[builders.size()]));
+		                
+		                OreSpawn.API.registerLogic(logic);
 					} catch(Exception e) {
 		                CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 		                report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -84,45 +89,68 @@ public class OS1Reader {
 
 	}
 
-	private static void loadOre(JsonObject oElem, DimensionLogic dimensionLogic) {
-		String blockID = oElem.get("blockID").getAsString();
-		String modId = blockID.contains(":")?blockID.substring(0, blockID.indexOf(':')):"minecraft";
-		String name = blockID.contains(":")?blockID.substring(blockID.indexOf(':')+1):blockID;
-		int meta = oElem.has("metaData")?oElem.get("metaData").getAsInt():0;
-		ResourceLocation blockKey = new ResourceLocation(blockID);
-		String biome = "biomes";
-		
-		if( !Block.REGISTRY.containsKey(blockKey) ) {
-			OreSpawn.LOGGER.warn("Asked to spawn block "+modId+":"+name+" that does not exist");
-			return;
-		}
-		
-		Block b = Block.REGISTRY.getObject(blockKey);
-		@SuppressWarnings("deprecation")
-		IBlockState bs = meta==0?b.getDefaultState():b.getStateFromMeta(meta);
-		
-		float frequency = oElem.has("frequency")?oElem.get("frequency").getAsFloat():20.0f;
-		int size = oElem.has("size")?oElem.get("size").getAsInt():8;
-		int maxHeight = oElem.has("maxHeight")?oElem.get("maxHeight").getAsInt():255;
-		int minHeight = oElem.has("minHeight")?oElem.get("minHeight").getAsInt():0;
-		int variation = oElem.has("variation")?oElem.get("variation").getAsInt():(int)(0.5f * size);
-		List<Biome> biomes;
-		
-		if( oElem.has(biome) && oElem.get(biome).getAsJsonArray().size() > 0 ) {
-            JsonArray biomesArray = oElem.get(biome).getAsJsonArray();
-            biomes = new ArrayList<>();
-            
-            for (JsonElement biomeEntry : biomesArray) {
-                Biome bm = ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeEntry.getAsString()));
-
-                if (bm != null) {
-                    biomes.add(bm);
-                }
-            }
+	private static DimensionBuilder getBuilder(JsonElement dimElem, BuilderLogic logic ) {
+		if( dimElem.getAsJsonPrimitive().isNumber() ) {
+			return logic.newDimensionBuilder(dimElem.getAsInt());
 		} else {
-			biomes = Collections.<Biome>emptyList();
+			String dimId = dimElem.getAsString();
+			if( "+".equals(dimId) ) {
+				return logic.newDimensionBuilder();
+			} else {
+				return logic.newDimensionBuilder(dimElem.getAsString());
+			}
 		}
+	}
+	
+	private static void loadOres(JsonArray ores, DimensionBuilder builder) {
+		List<SpawnBuilder> spawns = new ArrayList<>();
 		
-        dimensionLogic.addOre(bs, size, variation, frequency, minHeight, maxHeight, biomes.toArray(new Biome[biomes.size()]));
+		ores.forEach( e -> {			
+			JsonObject ore = e.getAsJsonObject();
+			SpawnBuilder spawn = builder.newSpawnBuilder(null);
+			OreBuilder tO = spawn.newOreBuilder();
+			String blockID = ore.get(ConfigNames.BLOCKID).getAsString();
+			int meta = ore.has(ConfigNames.METADATA)?ore.get(ConfigNames.METADATA).getAsInt():0;
+			if( meta > 0 ) {
+				tO.setOre(blockID, meta);
+			} else {
+				tO.setOre(blockID);
+			}
+			FeatureBuilder feature = spawn.newFeatureBuilder(ConfigNames.DEFAULT);
+			setupFeature(feature,ore);
+			
+			List<IBlockState> replacements = new ArrayList<>();
+			replacements.add(ReplacementsRegistry.getDimensionDefault(-1));
+			replacements.add(ReplacementsRegistry.getDimensionDefault(0));
+			replacements.add(ReplacementsRegistry.getDimensionDefault(1));
+			replacements.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).map( OS1Reader::getDefaultBlockState ).collect(Collectors.toList()));
+
+			BiomeBuilder biomes = spawn.newBiomeBuilder();
+			if( ore.has(ConfigNames.BIOMES) ) {
+				for( JsonElement bm : ore.get(ConfigNames.BIOMES).getAsJsonArray() ) {
+					String biome = bm.getAsString();
+					biomes.whitelistBiomeByName(biome);
+				}
+			}
+			
+			spawn.create(biomes, feature, replacements, tO);
+			spawns.add(spawn);
+		});
+
+		builder.create(spawns.toArray(new SpawnBuilderImpl[spawns.size()]));
+	}
+	
+	private static IBlockState getDefaultBlockState( Block block ) {
+		return block.getDefaultState();
+	}
+	private static void setupFeature(FeatureBuilder feature, JsonObject ore) {
+		float frequency = ore.has(ConfigNames.DefaultFeatureProperties.FREQUENCY)?ore.get(ConfigNames.DefaultFeatureProperties.FREQUENCY).getAsFloat():20.0f;
+		int size = ore.has(ConfigNames.DefaultFeatureProperties.SIZE)?ore.get(ConfigNames.DefaultFeatureProperties.SIZE).getAsInt():8;
+		int maxHeight = ore.has(ConfigNames.DefaultFeatureProperties.MAXHEIGHT)?ore.get(ConfigNames.DefaultFeatureProperties.MAXHEIGHT).getAsInt():255;
+		int minHeight = ore.has(ConfigNames.DefaultFeatureProperties.MINHEIGHT)?ore.get(ConfigNames.DefaultFeatureProperties.MINHEIGHT).getAsInt():0;
+		int variation = ore.has(ConfigNames.DefaultFeatureProperties.VARIATION)?ore.get(ConfigNames.DefaultFeatureProperties.VARIATION).getAsInt():(int)(0.5f * size);
+		feature.addParameter(ConfigNames.DefaultFeatureProperties.FREQUENCY,frequency).addParameter(ConfigNames.DefaultFeatureProperties.SIZE, size)
+		.addParameter(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, maxHeight).addParameter(ConfigNames.DefaultFeatureProperties.MINHEIGHT, minHeight)
+		.addParameter(ConfigNames.DefaultFeatureProperties.VARIATION, variation);
 	}
 }

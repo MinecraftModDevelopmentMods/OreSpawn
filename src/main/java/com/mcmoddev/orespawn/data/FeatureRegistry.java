@@ -25,16 +25,17 @@ import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
 import net.minecraft.crash.CrashReport;
 
 public class FeatureRegistry {
+	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 	private Map<String, IFeature> features;
 	private Map<IFeature, String> featuresInverse;
-	private static final String def = "default";
+	private static final String DEF = "default";
 	
 	public FeatureRegistry() {
 		features = new HashMap<>();
 		featuresInverse = new HashMap<>();
 		IFeature defaultGen = new DefaultFeatureGenerator();
-		features.put(def, defaultGen);
-		featuresInverse.put(defaultGen, def);
+		features.put(DEF, defaultGen);
+		featuresInverse.put(defaultGen, DEF);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
@@ -45,7 +46,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(feature) ) {
 			return this.featuresInverse.get(feature);
 		} else {
-			return def;
+			return DEF;
 		}
 	}
 
@@ -53,7 +54,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(name) ) {
 			return this.features.get(name);
 		} else {
-			return this.features.get(def);
+			return this.features.get(DEF);
 		}
 	}
 	
@@ -65,6 +66,9 @@ public class FeatureRegistry {
 		return featuresInverse.containsKey(feature);
 	}
 
+	public void addFeature(String name, IFeature feature ) {
+		this.addFeature(name, feature.getClass().getName());
+	}
 	
 	public void addFeature(JsonObject entry) {
 		this.addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
@@ -72,12 +76,9 @@ public class FeatureRegistry {
 	
 	public void addFeature(String name, String className) {
 		IFeature feature = getInstance(className);
-		if( feature != null ) {
-			// the feature might already be registered
-			if( !features.containsKey(name) ) {
+		if( feature != null && !features.containsKey(name) ) {
 				features.put(name, feature);
 				featuresInverse.put(feature, name);
-			}
 		}		
 	}
 	
@@ -91,7 +92,7 @@ public class FeatureRegistry {
 			feature = (IFeature)featureCons.newInstance();
 		} catch(Exception e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed to load and instantiate an instance of the feature generator named "+className+" that was specified as a feature generator");
-			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return null;
 		}
@@ -106,7 +107,7 @@ public class FeatureRegistry {
 			rawJson = FileUtils.readFileToString(file);
 		} catch(IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
-			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return;
 		}
@@ -136,7 +137,10 @@ public class FeatureRegistry {
         try {
             FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
         } catch (IOException e) {
-            e.printStackTrace();
+			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());
+			return;
         }		
 	}
 }

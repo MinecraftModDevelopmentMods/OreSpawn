@@ -1,0 +1,190 @@
+{
+  "version": "1.1",
+  "dimensions": [
+    {
+      "dimension": "-1",
+      "ores": [
+        {
+          "block": "minecraft:quartz_ore",
+          "parameters": {
+            "size": 15,
+            "variation": 4,
+            "frequency": 7.0,
+            "minHeight": 0,
+            "maxHeight": 128
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        }
+      ]
+    },
+    {
+      "ores": [
+        {
+          "block": "minecraft:coal_ore",
+          "parameters": {
+            "size": 25,
+            "variation": 12,
+            "frequency": 20.0,
+            "minHeight": 0,
+            "maxHeight": 128
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:iron_ore",
+          "parameters": {
+            "size": 8,
+            "variation": 4,
+            "frequency": 20.0,
+            "minHeight": 0,
+            "maxHeight": 64
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:gold_ore",
+          "parameters": {
+            "size": 8,
+            "variation": 2,
+            "frequency": 2.0,
+            "minHeight": 0,
+            "maxHeight": 32
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:diamond_ore",
+          "parameters": {
+            "size": 6,
+            "variation": 3,
+            "frequency": 8.0,
+            "minHeight": 0,
+            "maxHeight": 16
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:redstone_ore",
+          "parameters": {
+            "size": 6,
+            "variation": 3,
+            "frequency": 8.0,
+            "minHeight": 0,
+            "maxHeight": 16
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:lapis_ore",
+          "parameters": {
+            "size": 5,
+            "variation": 2,
+            "frequency": 1.0,
+            "minHeight": 0,
+            "maxHeight": 32
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:emerald_ore",
+          "parameters": {
+            "size": 1,
+            "variation": 0,
+            "frequency": 8.0,
+            "minHeight": 4,
+            "maxHeight": 32
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": [
+            "minecraft:extreme_hills",
+            "minecraft:smaller_extreme_hills"
+          ]
+        },
+        {
+          "block": "minecraft:dirt",
+          "state": "snowy=false,variant=dirt",
+          "parameters": {
+            "size": 112,
+            "variation": 50,
+            "frequency": 10.0,
+            "minHeight": 0,
+            "maxHeight": 255
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:gravel",
+          "parameters": {
+            "size": 112,
+            "variation": 50,
+            "frequency": 8.0,
+            "minHeight": 0,
+            "maxHeight": 255
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:stone",
+          "state": "variant=granite",
+          "parameters": {
+            "size": 112,
+            "variation": 50,
+            "frequency": 10.0,
+            "minHeight": 0,
+            "maxHeight": 255
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:stone",
+          "state": "variant=diorite",
+          "parameters": {
+            "size": 112,
+            "variation": 50,
+            "frequency": 10.0,
+            "minHeight": 0,
+            "maxHeight": 255
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        },
+        {
+          "block": "minecraft:stone",
+          "state": "variant=andesite",
+          "parameters": {
+            "size": 112,
+            "variation": 50,
+            "frequency": 10.0,
+            "minHeight": 0,
+            "maxHeight": 255
+          },
+          "feature": "default",
+          "replace_block": "default",
+          "biomes": []
+        }
+      ]
+    }
+  ]
+}
