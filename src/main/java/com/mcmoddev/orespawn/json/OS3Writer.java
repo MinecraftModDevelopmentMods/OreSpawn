@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -50,13 +51,7 @@ public class OS3Writer {
 					dimension.addProperty(ConfigNames.DIMENSION, String.format("%d", dim.getKey()));
 				}
 
-				JsonArray spawns = new JsonArray();
-
-				dim.getValue().getAllSpawns().stream().filter( spawn -> !spawn.getOres().isEmpty() )
-				.filter(spawn -> spawn.getOres().get(0).getOre() != null )
-				.filter(spawn -> "minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString()))
-				.map( this::genSpawn )
-				.forEach( spawns::add );
+				JsonArray spawns = this.genSpawns(dim.getValue().getAllSpawns());
 				
 				if( spawns.size() > 0 ) {
 					dimension.add(ConfigNames.ORES, spawns);
@@ -74,6 +69,19 @@ public class OS3Writer {
 		});
 	}
 	
+	private JsonArray genSpawns(ImmutableList<SpawnBuilder> allSpawns) {
+		JsonArray rv = new JsonArray();
+		for( SpawnBuilder spawn : allSpawns ) {
+			if( spawn.getOres().isEmpty() ||
+				spawn.getOres().get(0).getOre() == null ||
+				"minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString()) ) {
+				continue;
+			}
+			rv.add( this.genSpawn(spawn) );
+		}
+		return rv;
+	}
+
 	private void writeFile(File file, JsonObject wrapper) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		try {
@@ -90,6 +98,7 @@ public class OS3Writer {
 		String blockName = spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString();
 		
 		ore.addProperty(ConfigNames.BLOCK, blockName);
+		
 		String state = StateUtil.serializeState(spawn.getOres().get(0).getOre());
 		if( !ConfigNames.STATE_NORMAL.equals(state) ) {
 			ore.addProperty(ConfigNames.STATE, state);
