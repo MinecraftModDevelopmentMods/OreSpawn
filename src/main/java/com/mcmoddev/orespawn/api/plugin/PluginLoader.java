@@ -108,15 +108,11 @@ public enum PluginLoader {
 					InputStream reader = null;
 					Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
 					tName = String.format("%s.json", pd.modId);
-					if( target.toFile().exists() ) {
-						// the file we were going to copy out to already exists!
-						walk.close();
-						return;
+					if( !target.toFile().exists() ) {
+						reader = Files.newInputStream(p);
+						FileUtils.copyInputStreamToFile(reader, target.toFile());
+						IOUtils.closeQuietly(reader);
 					}
-
-					reader = Files.newInputStream(p);
-					FileUtils.copyInputStreamToFile(reader, target.toFile());
-					IOUtils.closeQuietly(reader);
 				}
 			}
 			walk.close();

@@ -32,10 +32,12 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	@Override
 	public FeatureBuilder newFeatureBuilder(@Nullable String featureName) {
 		this.featureGen = new FeatureBuilderImpl();
-		if( OreSpawn.FEATURES.getFeature(featureName) != null ) {
-			this.featureGen.setGenerator(featureName);
+		if( OreSpawn.FEATURES.getFeature(featureName) == null ) {
+			this.featureGen.setGenerator("default");
+			return this.featureGen;
 		}
 		
+		this.featureGen.setGenerator(featureName);
 		return this.featureGen;
 	}
 
