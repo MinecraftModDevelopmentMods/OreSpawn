@@ -87,20 +87,6 @@ public class DefaultFeatureGenerator implements IFeature {
 		
 	}
 
-	private static final Vec3i[] offsets = {
-			new Vec3i(-1,-1,-1),new Vec3i( 0,-1,-1),new Vec3i( 1,-1,-1),
-			new Vec3i(-1, 0,-1),new Vec3i( 0, 0,-1),new Vec3i( 1, 0,-1),
-			new Vec3i(-1, 1,-1),new Vec3i( 0, 1,-1),new Vec3i( 1, 1,-1),
-
-			new Vec3i(-1,-1, 0),new Vec3i( 0,-1, 0),new Vec3i( 1,-1, 0),
-			new Vec3i(-1, 0, 0),new Vec3i( 0, 0, 0),new Vec3i( 1, 0, 0),
-			new Vec3i(-1, 1, 0),new Vec3i( 0, 1, 0),new Vec3i( 1, 1, 0),
-
-			new Vec3i(-1,-1, 1),new Vec3i( 0,-1, 1),new Vec3i( 1,-1, 1),
-			new Vec3i(-1, 0, 1),new Vec3i( 0, 0, 1),new Vec3i( 1, 0, 1),
-			new Vec3i(-1, 1, 1),new Vec3i( 0, 1, 1),new Vec3i( 1, 1, 1)
-	};
-
 	private static final Vec3i[] offsets_small = {
 			new Vec3i( 0, 0, 0),new Vec3i( 1, 0, 0),
 			new Vec3i( 0, 1, 0),new Vec3i( 1, 1, 0),
@@ -113,62 +99,72 @@ public class DefaultFeatureGenerator implements IFeature {
 
 	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng, IBlockState replaceBlock) {
 		int count = quantity;
-		if(quantity <= 8){
-			int[] scrambledLUT = new int[offsetIndexRef_small.length];
-			System.arraycopy(offsetIndexRef_small, 0, scrambledLUT, 0, scrambledLUT.length);
+		int lutType = quantity <= 8?offsetIndexRef_small.length:offsetIndexRef.length;
+		int[] lut = quantity <= 8?offsetIndexRef_small:offsetIndexRef;
+		
+		if( quantity < 27 ) {
+			int[] scrambledLUT = new int[lutType];
+			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
 			while(count > 0){
 				spawn(oreBlock,world,blockPos.add(offsets_small[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
 			}
 			return;
 		}
-		if(quantity < 27){
-			int[] scrambledLUT = new int[offsetIndexRef.length];
-			System.arraycopy(offsetIndexRef, 0, scrambledLUT, 0, scrambledLUT.length);
-			scramble(scrambledLUT,prng);
-			while(count > 0){
-				spawn(oreBlock,world,blockPos.add(offsets[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
-			}
-			return;
-		}
-		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int)(radius * radius);
-		fill:{
-			if(prng.nextBoolean()){ // switch-up the direction of fill to reduce predictability
-				// fill from north-east
-				for(int dy = (int)(-1 * radius); dy < radius; dy++){
-					for(int dz = (int)(-1 * radius); dz < radius; dz++){
-						for(int dx = (int)(-1 * radius); dx < radius; dx++){
-							if((dx*dx + dy*dy + dz*dz) <= rSqr){
-								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
-								count--;
-							}
-							if(count <= 0) {
-								break fill;
-							}
-						}
-					}
-				}
-			} else {
-				// fill from south-west
-				for(int dy = (int)(-1 * radius); dy < radius; dy++){
-					for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
-						for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
-							if((dx*dx + dy*dy + dz*dz) <= rSqr){
-								spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
-								count--;
-							}
-							if(count <= 0) {
-								break fill;
-							}
-						}
-					}
-				}
-			}
-		}
+		
+		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, oreBlock );
+		
 		return;
 	}
 
+	private static void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, IBlockState replaceBlock, IBlockState oreBlock ) {
+		int count = quantity;
+		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		int rSqr = (int)(radius * radius);
+		if( nextBoolean ) {
+			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, count, oreBlock );
+		} else {
+			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, count, oreBlock );
+		}
+	}
+
+
+	private static void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
+			IBlockState replaceBlock, int count, IBlockState oreBlock) {
+		int quantity = count;
+		for(int dy = (int)(-1 * radius); dy < radius; dy++){
+			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
+				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
+					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						quantity--;
+					}
+					if(quantity <= 0) {
+						return;
+					}
+				}
+			}
+		}
+	}
+
+
+	private static void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius, IBlockState replaceBlock, int count, IBlockState oreBlock) {
+		int quantity = count;
+		for(int dy = (int)(-1 * radius); dy < radius; dy++){
+			for(int dz = (int)(-1 * radius); dz < radius; dz++){
+				for(int dx = (int)(-1 * radius); dx < radius; dx++){
+					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						quantity--;
+					}
+					if(quantity <= 0) {
+						return;
+					}
+				}
+			}
+		}
+	}
+	
 	private static void scramble(int[] target, Random prng) {
 		for(int i = target.length - 1; i > 0; i--){
 			int n = prng.nextInt(i);
