@@ -30,11 +30,7 @@ public class DimensionBuilderImpl implements DimensionBuilder {
 
 	@Override
 	public DimensionBuilder create(SpawnBuilder... addedSpawns) {
-/*		if( !spawns.containsKey(UNNAMED) ) {
-			spawns.put(UNNAMED, new ArrayList<>() );
-		}
-		spawns.get(UNNAMED).addAll(Arrays.asList(addedSpawns).stream().collect(Collectors.<SpawnBuilder>toList()));
-*/		return this;
+		return this;
 	}
 
 	@Override

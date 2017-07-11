@@ -31,13 +31,15 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	
 	@Override
 	public FeatureBuilder newFeatureBuilder(@Nullable String featureName) {
+		String featName;
 		this.featureGen = new FeatureBuilderImpl();
-		if( OreSpawn.FEATURES.getFeature(featureName) == null ) {
-			this.featureGen.setGenerator("default");
-			return this.featureGen;
+		if( OreSpawn.FEATURES.getFeature(featureName) == null || featureName == null) {
+			featName = "default";
+		} else {
+			featName = featureName;
 		}
 		
-		this.featureGen.setGenerator(featureName);
+		this.featureGen.setGenerator(featName);
 		return this.featureGen;
 	}
 
