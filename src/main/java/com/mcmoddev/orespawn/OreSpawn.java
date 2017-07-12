@@ -47,7 +47,7 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 public class OreSpawn {
     @Instance
-    public static OreSpawn INSTANCE = null;
+    public static OreSpawn instance = null;
     public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public static final OS3API API = new OS3APIImpl();
     public static final OS3Writer writer = new OS3Writer();
