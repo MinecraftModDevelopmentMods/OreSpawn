@@ -1,62 +1,45 @@
-def corePlugin = ''
-
 buildscript {
     repositories {
         jcenter()
         maven {
-            name = 'forge'
-            url = 'http://files.minecraftforge.net/maven'
+            name = "forge"
+            url = "http://files.minecraftforge.net/maven"
         }
         maven {
-            name = 'gradle'
-            url 'https://plugins.gradle.org/m2/'
-        }
-        maven {
-            name = 'sonatype'
-            url = 'https://oss.sonatype.org/content/groups/public'
-        }
-        maven {
-            name = 'sponge'
-            url = 'http://repo.spongepowered.org/maven'
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/groups/public"
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
-        classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
-        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+        classpath "com.matthewprenger:CurseGradle:1.0-SNAPSHOT"
     }
 }
 
-apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'com.matthewprenger.cursegradle'
-apply plugin: 'maven-publish'
-apply plugin: 'org.sonarqube'
+apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: "com.matthewprenger.cursegradle"
+apply plugin: "maven-publish"
 
 javadoc {
     failOnError = false
 }
 
-description = 'OreSpawn'
 def mod_file = getModFile()
-def mc_version = '1.11.2'
-
-ext {
-    short_version = getVersion('VERSION', mod_file)
-}
-
-version = mc_version + '-' + short_version
+def mc_version = "1.12"
+def short_version = getVersion("VERSION", mod_file)
+version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
-    version += '.' + System.getenv().BUILD_NUMBER
+    version += "." + System.getenv().BUILD_NUMBER
 }
-group = 'com.mcmoddev'
-archivesBaseName = 'OreSpawn'
-sourceCompatibility = targetCompatibility = '1.8'
+group = "com.mcmoddev"
+archivesBaseName = "OreSpawn"
+sourceCompatibility = targetCompatibility = "1.8"
 
 class Secrets {
     def data = null
 
     def getProperty(String key) {
-        return data ? data[key] : ''
+        return data ? data[key] : ""
     }
 }
 
@@ -66,7 +49,7 @@ def secretFile
 if (System.getenv().SECRET_FILE) {
     secretFile = file System.getenv().SECRET_FILE
 } else {
-    secretFile = file 'secret.json'
+    secretFile = file "secret.json"
 }
 
 project.ext.secret = new Secrets()
@@ -77,71 +60,37 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = '1.11.2-13.20.0.2228'
-    runDir = 'run'
-    mappings = 'stable_32'
-//  coreMod = corePlugin
-//  clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
-//  serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
+    version = "1.12-14.21.1.2412"
+    runDir = "run"
+    mappings = "snapshot_20170713"
+//    coreMod = ""
     makeObfSourceJar = false
 }
 
 repositories {
     maven {
-        name 'SpongePowered'
-        url 'https://repo.spongepowered.org/maven/'
-    }
-    maven { // Mantle, TCon, JEI
-        name 'DVS1 Maven FS'
-        url 'http://dvs1.progwml6.com/files/maven'
-    }
-    maven { // CCL, CCC, NEI
-        name 'Chickenbones Repo'
-        url 'http://chickenbones.net/maven/'
-    }
-    maven { // The One Probe
-        name 'tterrag'
-        url 'http://maven.tterrag.com/'
+        name "DVS1 Maven FS"
+        url "http://dvs1.progwml6.com/files/maven"
     }
     maven {
-        name 'MMD'
-        url 'https://maven.mcmoddev.com/'
+        name "Chickenbones Repo"
+        url "http://chickenbones.net/maven/"
     }
-    maven { // MCMultipart
-        name 'amadornes'
-        url 'http://maven.amadornes.com/'
+    maven {
+        name "tterrag"
+        url "http://maven.tterrag.com/"
     }
-    maven { // Tesla
-        name 'epoxide'
-        url 'http://maven.epoxide.org'
+    maven {
+        name "MMD"
+        url "https://maven.mcmoddev.com/"
     }
-    maven { // CraftTweaker, ZenScript
-        name 'jared maven'
-        url 'http://blamejared.com/maven'
+    maven {
+        name "amadornes"
+        url "http://maven.amadornes.com/"
     }
-    maven { // IC2
-        name 'industrialcraft'
-        url 'http://maven.ic2.player.to'
-    }
-    maven { // WAILA/HWYLA
-    	name 'tehnut'
-    	url 'http://tehnut.info/maven'
-    }
-    maven { // CoFH
-    	name 'Covers Maven'
-    	url 'http://maven.covers1624.net'
-    }
-	maven {
-        name = 'CurseForge'
-        url = 'https://minecraft.curseforge.com/api/maven/'
-    }
-	maven {
-        name 'opencomputers'
-        url 'http://maven.cil.li/'
-    }
-    maven { // Mekanism, TAIGA
-        name 'jitpack'
-        url 'https://jitpack.io'
+    maven {
+        name "epoxide"
+        url "http://maven.epoxide.xyz"
     }
 }
 
@@ -150,59 +99,56 @@ dependencies {
 }
 
 processResources {
-    inputs.property 'version', project.version
-    inputs.property 'mcversion', project.minecraft.version
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
 
     from (sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version': short_version, 'mcversion': project.minecraft.version
+        include "mcmod.info"
+        expand "version": short_version
     }
 
     from (sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+        exclude "mcmod.info"
     }
 }
 
 jar {
     manifest {
-//      attributes 'FMLCorePluginContainsFMLMod': 'true'
-//      attributes 'FMLCorePlugin': corePlugin
-//      attributes 'FMLAT' : ''
+//        attributes("FMLCorePluginContainsFMLMod": "true", "FMLCorePlugin": "")
     }
 }
 
 task apiJar(type: Jar, dependsOn: classes) {
-    classifier = 'api'
+    classifier = "api"
     from sourceSets.main.allSource
-    exclude('com/mcmoddev/orespawn/impl/**')
-    exclude('com/mcmoddev/orespawn/impl/features/**')
-    exclude('com/mcmoddev/orespawn/json/**')
-    exclude('com/mcmoddev/orespawn/world/**')
-    exclude('com/mcmoddev/orespawn/commands/**')
-    exclude('com/mcmoddev/orespawn/data/**')
-    exclude('com/mcmoddev/orespawn/*.java')
+    exclude("com/mcmoddev/orespawn/impl/**")
+    exclude("com/mcmoddev/orespawn/impl/features/**")
+    exclude("com/mcmoddev/orespawn/json/**")
+    exclude("com/mcmoddev/orespawn/world/**")
+    exclude("com/mcmoddev/orespawn/commands/**")
+    exclude("com/mcmoddev/orespawn/data/**")
+    exclude("com/mcmoddev/orespawn/*.java")
 }
 
 task devJar(type: Jar) {
-    classifier = 'dev'
+    classifier = "dev"
     from sourceSets.main.output
 }
 
-task deobfJar(type: Jar) {
-    classifier = 'deobf'
-    from sourceSets.main.output
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = "sources"
+    from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.getDestinationDir()
+    classifier = "javadoc"
+    from javadoc.destinationDir
 }
 
 artifacts {
     archives apiJar
     archives devJar
-    archives deobfJar
-    archives sourceJar
+    archives sourcesJar
     archives javadocJar
 }
 
@@ -213,20 +159,17 @@ publishing {
             artifactId project.archivesBaseName
             version project.version
             from components.java
-            artifact sourceJar {
-                classifier 'sources'
+            artifact sourcesJar {
+                classifier "sources"
             }
             artifact apiJar {
-                classifier 'api'
+                classifier "api"
             }
             artifact devJar {
-                classifier 'dev'
-            }
-            artifact deobfJar {
-                classifier 'deobf'
+                classifier "dev"
             }
             artifact javadocJar {
-                classifier 'javadoc'
+                classifier "javadoc"
             }
         }
     }
@@ -244,66 +187,56 @@ publishing {
 curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
-        id = '245586'
-        changelog = file('CHANGELOG.txt')
-        releaseType = 'beta'
-        addGameVersion(project.mc_version)
-        def projName = 'OreSpawn'
-        def displayVersion = getVersion('VERSION', mod_file)
+        id = "245586"
+        changelog = file("CHANGELOG.txt")
+        releaseType = "alpha"
+        addGameVersion("1.11")
+        def projName = "OreSpawn"
+        def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
-            displayVersion += '.' + System.getenv().BUILD_NUMBER
+            displayVersion += "." + System.getenv().BUILD_NUMBER
         }
         mainArtifact(jar) {
-            displayName = "$project.description $displayVersion"
-//          relations {
-//          }
+            displayName = "$projName $displayVersion"
+            relations {
+            }
         }
         addArtifact(apiJar) {
-            displayName = "$project.description $displayVersion API"
+            displayName = "$projName $displayVersion API"
         }
-        addArtifact(sourceJar) {
-            displayName = "$project.description $displayVersion Sources"
+        addArtifact(sourcesJar) {
+            displayName = "$projName $displayVersion Sources"
         }
-        addArtifact(deobfJar) {
-            displayName = "$project.description $displayVersion Development"
+        addArtifact(devJar) {
+            displayName = "$projName $displayVersion Development"
         }
         addArtifact(javadocJar) {
-            displayName = "$project.description $displayVersion Javadoc"
+            displayName = "$projName $displayVersion Javadoc"
         }
-    }
-}
-
-sonarqube {
-    properties {
-        property 'sonar.host.url', secret.sonarHost
-        property 'sonar.organization', secret.sonarOrganization
-        property 'sonar.login', secret.sonarToken
-        property 'sonar.projectName', project.archivesBaseName
-        property 'sonar.projectKey', "$project.group:$project.archivesBaseName"
     }
 }
 
 String getModFile() {
-    String path = 'src/main/java/com/mcmoddev/orespawn/data/Constants.java'
-    return path
+    String path = "src/main/java/com/mcmoddev/orespawn/data/Constants.java";
+    return path;
 }
 
 String getVersion(String type, String mod_file) {
-    String major = '0'
-    String revision = '0'
-    String patch = '0'
-    String prefix = "public static final String $type = \""
+    String major = "0";
+    String revision = "0";
+    String patch = "0";
+    String prefix = "public static final String $type = \"";//"
     File file = file(mod_file)
     file.eachLine { String s ->
-        s = s.trim()
+        s = s.trim();
         if (s.startsWith(prefix)) {
-            s = s.substring(prefix.length(), s.length() - 2)
-            String[] pts = s.split("\\.")
+            s = s.substring(prefix.length(), s.length() - 2);
+            String[] pts = s.split("\\.");
 
-            major = pts[0]
-            revision = pts[1]
-            patch = pts[2]
+            major = pts[0];
+            revision = pts[1];
+            patch = pts[2];
         }
     }
-    return "$major.$revision.$patch"
+    return "$major.$revision.$patch";
 }
