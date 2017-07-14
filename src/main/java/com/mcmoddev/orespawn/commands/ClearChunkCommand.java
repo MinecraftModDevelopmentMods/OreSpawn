@@ -39,6 +39,7 @@ public class ClearChunkCommand extends CommandBase {
                 for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
                     BlockPos pos = new BlockPos(x, y, z);
                     Block block = player.world.getBlockState(pos).getBlock();
+
                     if (OreSpawnWorldGen.getSpawnBlocks().contains(block)) {
                         player.world.setBlockToAir(pos);
                     }

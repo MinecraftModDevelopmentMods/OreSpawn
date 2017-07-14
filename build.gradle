@@ -2,44 +2,55 @@ buildscript {
     repositories {
         jcenter()
         maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
+            name = 'forge'
+            url = 'http://files.minecraftforge.net/maven'
         }
         maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/groups/public"
+            name = 'gradle'
+            url 'https://plugins.gradle.org/m2/'
+		}
+        maven {
+            name = 'sonatype'
+            url = 'https://oss.sonatype.org/content/groups/public'
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
-        classpath "com.matthewprenger:CurseGradle:1.0-SNAPSHOT"
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
+        classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
+        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
     }
 }
 
-apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "com.matthewprenger.cursegradle"
-apply plugin: "maven-publish"
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'com.matthewprenger.cursegradle'
+apply plugin: 'maven-publish'
+apply plugin: 'org.sonarqube'
 
 javadoc {
     failOnError = false
 }
 
+description = 'OreSpawn'
 def mod_file = getModFile()
-def mc_version = "1.12"
-def short_version = getVersion("VERSION", mod_file)
-version = mc_version + "-" + short_version
-if (System.getenv().BUILD_NUMBER) {
-    version += "." + System.getenv().BUILD_NUMBER
+def mc_version = '1.12'
+
+ext {
+    short_version = getVersion('VERSION', mod_file)
 }
-group = "com.mcmoddev"
-archivesBaseName = "OreSpawn"
-sourceCompatibility = targetCompatibility = "1.8"
+
+version = mc_version + '-' + short_version
+if (System.getenv().BUILD_NUMBER) {
+    version += '.' + System.getenv().BUILD_NUMBER
+}
+group = 'com.mcmoddev'
+archivesBaseName = 'OreSpawn'
+sourceCompatibility = targetCompatibility = '1.8'
 
 class Secrets {
     def data = null
 
     def getProperty(String key) {
-        return data ? data[key] : ""
+        return data ? data[key] : ''
     }
 }
 
@@ -49,7 +60,7 @@ def secretFile
 if (System.getenv().SECRET_FILE) {
     secretFile = file System.getenv().SECRET_FILE
 } else {
-    secretFile = file "secret.json"
+    secretFile = file 'secret.json'
 }
 
 project.ext.secret = new Secrets()
@@ -60,37 +71,37 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12-14.21.1.2412"
-    runDir = "run"
-    mappings = "snapshot_20170713"
-//    coreMod = ""
+    version = '1.12-14.21.1.2412'
+    runDir = 'run'
+    mappings = 'snapshot_20170713'
+//    coreMod = ''
     makeObfSourceJar = false
 }
 
 repositories {
     maven {
-        name "DVS1 Maven FS"
-        url "http://dvs1.progwml6.com/files/maven"
+        name 'DVS1 Maven FS'
+        url 'http://dvs1.progwml6.com/files/maven'
     }
     maven {
-        name "Chickenbones Repo"
-        url "http://chickenbones.net/maven/"
+        name 'Chickenbones Repo'
+        url 'http://chickenbones.net/maven/'
     }
     maven {
-        name "tterrag"
-        url "http://maven.tterrag.com/"
+        name 'tterrag'
+        url 'http://maven.tterrag.com/'
     }
     maven {
-        name "MMD"
-        url "https://maven.mcmoddev.com/"
+        name 'MMD'
+        url 'https://maven.mcmoddev.com/'
     }
     maven {
-        name "amadornes"
-        url "http://maven.amadornes.com/"
+        name 'amadornes'
+        url 'http://maven.amadornes.com/'
     }
     maven {
-        name "epoxide"
-        url "http://maven.epoxide.xyz"
+        name 'epoxide'
+        url 'http://maven.epoxide.xyz'
     }
 }
 
@@ -99,49 +110,51 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', project.minecraft.version
 
     from (sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
-        expand "version": short_version
+        include 'mcmod.info'
+        expand 'version': short_version, 'mcversion': project.minecraft.version
     }
 
     from (sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
+        exclude 'mcmod.info'
     }
 }
 
 jar {
     manifest {
-//        attributes("FMLCorePluginContainsFMLMod": "true", "FMLCorePlugin": "")
+//      attributes 'FMLCorePluginContainsFMLMod': 'true'
+//      attributes 'FMLCorePlugin': corePlugin
+//      attributes 'FMLAT' : ''
     }
 }
 
 task apiJar(type: Jar, dependsOn: classes) {
-    classifier = "api"
+    classifier = 'api'
     from sourceSets.main.allSource
-    exclude("com/mcmoddev/orespawn/impl/**")
-    exclude("com/mcmoddev/orespawn/impl/features/**")
-    exclude("com/mcmoddev/orespawn/json/**")
-    exclude("com/mcmoddev/orespawn/world/**")
-    exclude("com/mcmoddev/orespawn/commands/**")
-    exclude("com/mcmoddev/orespawn/data/**")
-    exclude("com/mcmoddev/orespawn/*.java")
+    exclude('com/mcmoddev/orespawn/impl/**')
+    exclude('com/mcmoddev/orespawn/impl/features/**')
+    exclude('com/mcmoddev/orespawn/json/**')
+    exclude('com/mcmoddev/orespawn/world/**')
+    exclude('com/mcmoddev/orespawn/commands/**')
+    exclude('com/mcmoddev/orespawn/data/**')
+    exclude('com/mcmoddev/orespawn/*.java')
 }
 
 task devJar(type: Jar) {
-    classifier = "dev"
+    classifier = 'dev'
     from sourceSets.main.output
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = "sources"
+    classifier = 'sources'
     from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = "javadoc"
+    classifier = 'javadoc'
     from javadoc.destinationDir
 }
 
@@ -160,16 +173,16 @@ publishing {
             version project.version
             from components.java
             artifact sourcesJar {
-                classifier "sources"
+                classifier 'sources'
             }
             artifact apiJar {
-                classifier "api"
+                classifier 'api'
             }
             artifact devJar {
-                classifier "dev"
+                classifier 'dev'
             }
             artifact javadocJar {
-                classifier "javadoc"
+                classifier 'javadoc'
             }
         }
     }
@@ -187,14 +200,14 @@ publishing {
 curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
-        id = "245586"
-        changelog = file("CHANGELOG.txt")
-        releaseType = "alpha"
-        addGameVersion("1.11")
-        def projName = "OreSpawn"
-        def displayVersion = getVersion("VERSION", mod_file)
+        id = '245586'
+        changelog = file('CHANGELOG.txt')
+        releaseType = "release"
+        addGameVersion('1.12')
+        def projName = 'OreSpawn'
+        def displayVersion = getVersion('VERSION', mod_file)
         if (System.getenv().BUILD_NUMBER) {
-            displayVersion += "." + System.getenv().BUILD_NUMBER
+            displayVersion += '.' + System.getenv().BUILD_NUMBER
         }
         mainArtifact(jar) {
             displayName = "$projName $displayVersion"
@@ -216,27 +229,37 @@ curseforge {
     }
 }
 
+sonarqube {
+    properties {
+        property 'sonar.host.url', secret.sonarHost
+        property 'sonar.organization', secret.sonarOrganization
+        property 'sonar.login', secret.sonarToken
+        property 'sonar.projectName', project.archivesBaseName
+        property 'sonar.projectKey', "$project.group:$project.archivesBaseName"
+    }
+}
+
 String getModFile() {
-    String path = "src/main/java/com/mcmoddev/orespawn/data/Constants.java";
-    return path;
+    String path = 'src/main/java/com/mcmoddev/orespawn/data/Constants.java';
+    return path
 }
 
 String getVersion(String type, String mod_file) {
-    String major = "0";
-    String revision = "0";
-    String patch = "0";
-    String prefix = "public static final String $type = \"";//"
+    String major = '0'
+    String revision = '0'
+    String patch = '0'
+    String prefix = "public static final String $type = \""
     File file = file(mod_file)
     file.eachLine { String s ->
-        s = s.trim();
+        s = s.trim()
         if (s.startsWith(prefix)) {
-            s = s.substring(prefix.length(), s.length() - 2);
-            String[] pts = s.split("\\.");
+            s = s.substring(prefix.length(), s.length() - 2)
+            String[] pts = s.split("\\.")
 
-            major = pts[0];
-            revision = pts[1];
-            patch = pts[2];
+            major = pts[0]
+            revision = pts[1]
+            patch = pts[2]
         }
     }
-    return "$major.$revision.$patch";
+    return "$major.$revision.$patch"
 }
