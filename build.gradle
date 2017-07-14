@@ -180,7 +180,7 @@ task devJar(type: Jar) {
     from sourceSets.main.output
 }
 
-task deobfJar(type: Jar, dependsOn: classes) {
+task deobfJar(type: Jar) {
     classifier = 'deobf'
     from sourceSets.main.output
 }
@@ -239,7 +239,7 @@ curseforge {
         id = '245586'
         changelog = file('CHANGELOG.txt')
         releaseType = "release"
-        addGameVersion(project.mcversion)
+        addGameVersion(project.mc_version)
         def projName = 'OreSpawn'
         def displayVersion = getVersion('VERSION', mod_file)
         if (System.getenv().BUILD_NUMBER) {
@@ -247,8 +247,8 @@ curseforge {
         }
         mainArtifact(jar) {
             displayName = "$project.description $displayVersion"
-            relations {
-            }
+//          relations {
+//          }
         }
         addArtifact(apiJar) {
             displayName = "$project.description $displayVersion API"
