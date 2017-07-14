@@ -15,10 +15,6 @@ buildscript {
             name = 'sonatype'
             url = 'https://oss.sonatype.org/content/groups/public'
         }
-        maven {
-            name = 'sponge'
-            url = 'http://repo.spongepowered.org/maven'
-        }
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
@@ -87,10 +83,6 @@ minecraft {
 }
 
 repositories {
-    maven {
-        name 'SpongePowered'
-        url 'https://repo.spongepowered.org/maven/'
-    }
     maven { // Mantle, TCon, JEI
         name 'DVS1 Maven FS'
         url 'http://dvs1.progwml6.com/files/maven'
@@ -246,7 +238,7 @@ curseforge {
     project {
         id = '245586'
         changelog = file('CHANGELOG.txt')
-        releaseType = 'beta'
+        releaseType = 'release'
         addGameVersion(project.mc_version)
         def projName = 'OreSpawn'
         def displayVersion = getVersion('VERSION', mod_file)
