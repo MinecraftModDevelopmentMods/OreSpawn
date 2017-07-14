@@ -83,7 +83,7 @@ minecraft {
 }
 
 repositories {
-    maven {
+    maven {// Mantle, TCon, JEI
         name 'DVS1 Maven FS'
         url 'http://dvs1.progwml6.com/files/maven'
     }
