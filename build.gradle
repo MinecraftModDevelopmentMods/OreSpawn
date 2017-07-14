@@ -1,3 +1,5 @@
+def corePlugin = ''
+
 buildscript {
     repositories {
         jcenter()
@@ -8,7 +10,7 @@ buildscript {
         maven {
             name = 'gradle'
             url 'https://plugins.gradle.org/m2/'
-		}
+        }
         maven {
             name = 'sonatype'
             url = 'https://oss.sonatype.org/content/groups/public'
@@ -74,7 +76,9 @@ minecraft {
     version = '1.12-14.21.1.2412'
     runDir = 'run'
     mappings = 'snapshot_20170713'
-//    coreMod = ''
+//  coreMod = corePlugin
+//  clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
+//  serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
     makeObfSourceJar = false
 }
 
@@ -83,11 +87,11 @@ repositories {
         name 'DVS1 Maven FS'
         url 'http://dvs1.progwml6.com/files/maven'
     }
-    maven {
+    maven { // CCL, CCC, NEI
         name 'Chickenbones Repo'
         url 'http://chickenbones.net/maven/'
     }
-    maven {
+    maven { // The One Probe
         name 'tterrag'
         url 'http://maven.tterrag.com/'
     }
@@ -95,13 +99,41 @@ repositories {
         name 'MMD'
         url 'https://maven.mcmoddev.com/'
     }
-    maven {
+    maven { // MCMultipart
         name 'amadornes'
         url 'http://maven.amadornes.com/'
     }
-    maven {
+    maven { // Tesla
         name 'epoxide'
-        url 'http://maven.epoxide.xyz'
+        url 'http://maven.epoxide.org'
+    }
+    maven { // CraftTweaker, ZenScript
+        name 'jared maven'
+        url 'http://blamejared.com/maven'
+    }
+    maven { // IC2
+        name 'industrialcraft'
+        url 'http://maven.ic2.player.to'
+    }
+    maven { // WAILA/HWYLA
+    	name 'tehnut'
+    	url 'http://tehnut.info/maven'
+    }
+    maven { // CoFH
+    	name 'Covers Maven'
+    	url 'http://maven.covers1624.net'
+    }
+	maven {
+        name = 'CurseForge'
+        url = 'https://minecraft.curseforge.com/api/maven/'
+    }
+	maven {
+        name 'opencomputers'
+        url 'http://maven.cil.li/'
+    }
+    maven { // Mekanism, TAIGA
+        name 'jitpack'
+        url 'https://jitpack.io'
     }
 }
 
@@ -148,20 +180,21 @@ task devJar(type: Jar) {
     from sourceSets.main.output
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+task deobfJar(type: Jar, dependsOn: classes) {
+    classifier = 'deobf'
+    from sourceSets.main.output
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
-    from javadoc.destinationDir
+    from javadoc.getDestinationDir()
 }
 
 artifacts {
     archives apiJar
     archives devJar
-    archives sourcesJar
+    archives deobfJar
+    archives sourceJar
     archives javadocJar
 }
 
@@ -172,7 +205,7 @@ publishing {
             artifactId project.archivesBaseName
             version project.version
             from components.java
-            artifact sourcesJar {
+            artifact sourceJar {
                 classifier 'sources'
             }
             artifact apiJar {
@@ -180,6 +213,9 @@ publishing {
             }
             artifact devJar {
                 classifier 'dev'
+            }
+            artifact deobfJar {
+                classifier 'deobf'
             }
             artifact javadocJar {
                 classifier 'javadoc'
@@ -203,28 +239,28 @@ curseforge {
         id = '245586'
         changelog = file('CHANGELOG.txt')
         releaseType = "release"
-        addGameVersion('1.12')
+        addGameVersion(project.mcversion)
         def projName = 'OreSpawn'
         def displayVersion = getVersion('VERSION', mod_file)
         if (System.getenv().BUILD_NUMBER) {
             displayVersion += '.' + System.getenv().BUILD_NUMBER
         }
         mainArtifact(jar) {
-            displayName = "$projName $displayVersion"
+            displayName = "$project.description $displayVersion"
             relations {
             }
         }
         addArtifact(apiJar) {
-            displayName = "$projName $displayVersion API"
+            displayName = "$project.description $displayVersion API"
         }
-        addArtifact(sourcesJar) {
-            displayName = "$projName $displayVersion Sources"
+        addArtifact(sourceJar) {
+            displayName = "$project.description $displayVersion Sources"
         }
-        addArtifact(devJar) {
-            displayName = "$projName $displayVersion Development"
+        addArtifact(deobfJar) {
+            displayName = "$project.description $displayVersion Development"
         }
         addArtifact(javadocJar) {
-            displayName = "$projName $displayVersion Javadoc"
+            displayName = "$project.description $displayVersion Javadoc"
         }
     }
 }
@@ -240,7 +276,7 @@ sonarqube {
 }
 
 String getModFile() {
-    String path = 'src/main/java/com/mcmoddev/orespawn/data/Constants.java';
+    String path = 'src/main/java/com/mcmoddev/orespawn/data/Constants.java'
     return path
 }
 
