@@ -37,7 +37,9 @@ public class EventHandlers {
 
     @SubscribeEvent
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
-        event.setResult(Event.Result.DENY);
+    	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
+    		event.setResult(Event.Result.DENY);
+    	}
     }
     
 	@SubscribeEvent
