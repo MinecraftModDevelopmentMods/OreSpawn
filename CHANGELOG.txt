@@ -1,1 +1,18 @@
-Updated for latest Forge RB
+#Version 3.1.0:
+Minor Version number bumped because of major internal changes
+New Annotation-based plugin system
+New API for new plugin system
+Update JSON config format to version 1.1 to allow for new feature
+Implement BiomeDictionary support
+Implement Whitelisting and Blacklisting support for Biomes
+Ensure that resources stored in JAR's can be copied out to the config directory for loading and parsing
+Add the ability to specify parameters for the default feature generator to the addore command
+
+#Version 3.0.0:
+Ported to 1.11.2
+Complete rewrite of internals for better stability
+Change of JSON config format (See Wiki for details!)
+Added ability to specify different types of ore generation
+Added ability to specify what block gets replaced
+Able to Import both OreSpawn 1 and OreSpawn 2 format config files
+Added an operator (permission level 4) command to force-dump current configuration
