@@ -95,7 +95,11 @@ public class Helpers {
 				oreB.setOre(oreName, stateString);
 			}
 		} else {
-			oreB.setOre(oreName);
+			if(ore.has(ConfigNames.METADATA)) {
+				oreB.setOre(oreName, ore.get(ConfigNames.METADATA).getAsInt());
+			} else {
+				oreB.setOre(oreName);
+			}
 		}
 	}
 
