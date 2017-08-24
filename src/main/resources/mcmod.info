@@ -5,6 +5,7 @@
     "description": "A customizable ore-spawning system that uses JSON files to specify custom ore generation",
     "version": "${version}",
     "authorList": [
+      "dshadowwolf",
       "iLexiconn",
       "jriwanek",
       "DrCyano"
