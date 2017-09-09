@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 
 public interface IFeature {
