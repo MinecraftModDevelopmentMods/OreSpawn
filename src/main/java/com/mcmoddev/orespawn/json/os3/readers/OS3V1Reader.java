@@ -42,16 +42,9 @@ public final class OS3V1Reader implements IOS3Reader {
 				JsonObject ore = oresEntry.getAsJsonObject();
 
 				OreBuilder oreB = spawn.newOreBuilder();
-				
 				String oreName = ore.get(ConfigNames.BLOCK).getAsString();
+				Helpers.handleState(ore, oreB, oreName);
 				
-				if (ore.has(ConfigNames.STATE)) {
-					String stateString = ore.get(ConfigNames.STATE).getAsString();
-					oreB.setOre(oreName, stateString);
-				} else {
-					oreB.setOre(oreName);
-				}
-
 				FeatureBuilder feature = spawn.newFeatureBuilder(null);
 				feature.setGenerator(ore.get(ConfigNames.FEATURE).getAsString());
 				feature.setParameters(ore.get(ConfigNames.PARAMETERS).getAsJsonObject());

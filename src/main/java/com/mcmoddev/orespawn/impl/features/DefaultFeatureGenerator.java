@@ -44,9 +44,13 @@ public class DefaultFeatureGenerator implements IFeature {
 		int chunkZ = pos.z;
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
-		for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
-			spawn(cache.get(ent.getKey()),world,ent.getKey(),world.provider.getDimension(),false,replaceBlock);
+		
+		if( !cache.isEmpty() ) { // if there is something in the cache, try to spawn it
+			for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
+				spawn(cache.get(ent.getKey()),world,ent.getKey(),world.provider.getDimension(),false,replaceBlock);
+			}
 		}
+		
 		// now to ore spawn
 
 		int blockX = chunkX * 16 + 8;
@@ -94,20 +98,38 @@ public class DefaultFeatureGenerator implements IFeature {
 			new Vec3i( 0, 0, 1),new Vec3i( 1, 0, 1),
 			new Vec3i( 0, 1, 1),new Vec3i( 1, 1, 1)
 	};
+	
+	private static final Vec3i[] offsets = {
+			new Vec3i(-1,-1,-1),new Vec3i( 0,-1,-1),new Vec3i( 1,-1,-1),
+			new Vec3i(-1, 0,-1),new Vec3i( 0, 0,-1),new Vec3i( 1, 0,-1),
+			new Vec3i(-1, 1,-1),new Vec3i( 0, 1,-1),new Vec3i( 1, 1,-1),
+
+			new Vec3i(-1,-1, 0),new Vec3i( 0,-1, 0),new Vec3i( 1,-1, 0),
+			new Vec3i(-1, 0, 0),new Vec3i( 0, 0, 0),new Vec3i( 1, 0, 0),
+			new Vec3i(-1, 1, 0),new Vec3i( 0, 1, 0),new Vec3i( 1, 1, 0),
+
+			new Vec3i(-1,-1, 1),new Vec3i( 0,-1, 1),new Vec3i( 1,-1, 1),
+			new Vec3i(-1, 0, 1),new Vec3i( 0, 0, 1),new Vec3i( 1, 0, 1),
+			new Vec3i(-1, 1, 1),new Vec3i( 0, 1, 1),new Vec3i( 1, 1, 1)
+	};
+	
 	private static final int[] offsetIndexRef = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 	private static final int[] offsetIndexRef_small = {0,1,2,3,4,5,6,7};
 
 	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng, IBlockState replaceBlock) {
 		int count = quantity;
-		int lutType = quantity <= 8?offsetIndexRef_small.length:offsetIndexRef.length;
-		int[] lut = quantity <= 8?offsetIndexRef_small:offsetIndexRef;
+		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
+		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
+		Vec3i[] offs = new Vec3i[lutType];
+		
+		System.arraycopy((quantity < 8)?offsets_small:offsets, 0, offs, 0, lutType);
 		
 		if( quantity < 27 ) {
 			int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
 			while(count > 0){
-				spawn(oreBlock,world,blockPos.add(offsets_small[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
+				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
 			}
 			return;
 		}

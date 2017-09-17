@@ -17,7 +17,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
         classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
         classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
     }
@@ -34,19 +34,15 @@ javadoc {
 
 description = 'OreSpawn'
 def mod_file = getModFile()
-def mc_version = '1.12'
-
-ext {
-    short_version = getVersion('VERSION', mod_file)
-}
-
-version = mc_version + '-' + short_version
+def mc_version = "1.12"
+def short_version = getVersion("VERSION", mod_file)
+version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
     version += '.' + System.getenv().BUILD_NUMBER
 }
-group = 'com.mcmoddev'
-archivesBaseName = 'OreSpawn'
-sourceCompatibility = targetCompatibility = '1.8'
+group = "com.mcmoddev"
+archivesBaseName = "OreSpawn"
+sourceCompatibility = targetCompatibility = "1.8"
 
 class Secrets {
     def data = null
@@ -73,12 +69,19 @@ if (secretFile.exists()) {
 }
 
 minecraft {
+<<<<<<< HEAD
     version = '1.12-14.21.1.2412'
     runDir = 'run'
     mappings = 'snapshot_20170713'
 //  coreMod = corePlugin
 //  clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
 //  serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
+=======
+    version = "1.12-14.21.1.2443"
+    runDir = "run"
+    mappings = "snapshot_20170908"
+//    coreMod = ""
+>>>>>>> work-1.12
     makeObfSourceJar = false
 }
 
@@ -236,12 +239,21 @@ publishing {
 curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
+<<<<<<< HEAD
         id = '245586'
         changelog = file('CHANGELOG.txt')
         releaseType = "release"
         addGameVersion(project.mc_version)
         def projName = 'OreSpawn'
         def displayVersion = getVersion('VERSION', mod_file)
+=======
+        id = "245586"
+        changelog = file("CHANGELOG.txt")
+        releaseType = "alpha"
+        addGameVersion("1.11")
+        def projName = "OreSpawn"
+        def displayVersion = getVersion("VERSION", mod_file)
+>>>>>>> work-1.12
         if (System.getenv().BUILD_NUMBER) {
             displayVersion += '.' + System.getenv().BUILD_NUMBER
         }
