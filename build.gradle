@@ -69,19 +69,10 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-<<<<<<< HEAD
-    version = '1.12-14.21.1.2412'
-    runDir = 'run'
-    mappings = 'snapshot_20170713'
-//  coreMod = corePlugin
-//  clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
-//  serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
-=======
     version = "1.12-14.21.1.2443"
     runDir = "run"
     mappings = "snapshot_20170908"
 //    coreMod = ""
->>>>>>> work-1.12
     makeObfSourceJar = false
 }
 
@@ -239,21 +230,12 @@ publishing {
 curseforge {
     apiKey = secret.curseforgeAPIKey
     project {
-<<<<<<< HEAD
-        id = '245586'
-        changelog = file('CHANGELOG.txt')
-        releaseType = "release"
-        addGameVersion(project.mc_version)
-        def projName = 'OreSpawn'
-        def displayVersion = getVersion('VERSION', mod_file)
-=======
         id = "245586"
         changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
         addGameVersion("1.11")
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
->>>>>>> work-1.12
         if (System.getenv().BUILD_NUMBER) {
             displayVersion += '.' + System.getenv().BUILD_NUMBER
         }
