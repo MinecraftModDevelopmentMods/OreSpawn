@@ -233,7 +233,6 @@ curseforge {
         id = "245586"
         changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
-        addGameVersion("1.11")
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
