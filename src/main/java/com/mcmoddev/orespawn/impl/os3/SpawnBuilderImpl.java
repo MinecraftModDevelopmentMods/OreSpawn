@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.util.BinaryTree;
 
 import net.minecraft.block.state.IBlockState;
 
@@ -21,6 +22,7 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	private FeatureBuilder featureGen;
 	private List<IBlockState> replacementBlocks;
 	private List<OreBuilder> myOres;
+	private BinaryTree oreSpawns;
 
 	public SpawnBuilderImpl() {
 		this.biomeLocs = null;
@@ -59,14 +61,9 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 		this.biomeLocs = biomes.getBiomes();
 		this.featureGen = feature;
 		this.replacementBlocks.addAll(replacements);
-		int oc = (int)(100.0f / ((float)ores.length));
 		if( ores.length > 1 ) {
 			for(int i = 0; i < ores.length; i++) {
-				OreBuilder current = ores[i];
-				if( current.getChance() == 100 ) { 
-					current.setChance(oc);
-				}
-				this.myOres.add(current);
+				this.myOres.add(ores[i]);
 			}
 		} else {
 			this.myOres.add(ores[0]);
@@ -92,6 +89,30 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	@Override
 	public FeatureBuilder getFeatureGen() {
 		return this.featureGen;
+	}
+
+	@Override
+	public BinaryTree getOreSpawns() {
+		if( this.oreSpawns == null ) {
+			this.buildOreSpawnTree();
+		}
+		
+		return this.oreSpawns;
+	}
+
+	private void buildOreSpawnTree() {
+		int maxVal = 0;
+		for( OreBuilder os : this.myOres ) {
+			maxVal += os.getChance();
+		}
+		
+		int median = maxVal / 2;
+		int count = 0;
+		this.oreSpawns = new BinaryTree(median);
+		for( OreBuilder os : this.myOres ) {
+			count += os.getChance();
+			this.oreSpawns.addNode(os, count);
+		}
 	}
 
 }

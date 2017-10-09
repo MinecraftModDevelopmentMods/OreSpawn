@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
@@ -85,7 +86,7 @@ public class OS3Writer {
 	private void writeFile(File file, JsonObject wrapper) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		try {
-			FileUtils.writeStringToFile(file, gson.toJson(wrapper));
+			FileUtils.writeStringToFile(file, gson.toJson(wrapper), Charset.defaultCharset(), false);
 		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed in config %s", file.getName()));
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
