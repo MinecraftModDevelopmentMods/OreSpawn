@@ -75,7 +75,7 @@ public class OS3V12Reader implements IOS3Reader {
 	}
 
 	private void parseOres(JsonObject ore, SpawnBuilder spawn, List<SpawnBuilder> spawns, BiomeBuilder biomes, FeatureBuilder feature, List<IBlockState> repBlock, OreBuilder oreB) {
-		if(ore.has("block")) {
+		if(ore.has("block") && !ore.has("blocks")) {
 			String oreName = ore.get(ConfigNames.BLOCK).getAsString();
 			
 			Helpers.handleState(ore,oreB, oreName);
