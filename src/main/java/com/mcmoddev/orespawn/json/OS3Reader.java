@@ -26,7 +26,7 @@ public class OS3Reader {
 	}
 
 	public static void loadEntries() {
-		File directory = new File("." + File.separator + "orespawn", "os3");
+		File directory = new File("config" + File.separator + "orespawn3", "os3");
 		JsonParser parser = new JsonParser();
 
 		if( !directory.exists() ) {

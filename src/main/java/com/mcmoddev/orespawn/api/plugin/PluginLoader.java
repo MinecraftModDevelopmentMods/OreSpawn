@@ -106,7 +106,7 @@ public enum PluginLoader {
 
 				if( "json".equals(FilenameUtils.getExtension(name)) ) {
 					InputStream reader = null;
-					Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
+					Path target = Paths.get(".", "config","orespawn","os3",String.format("%s.json", pd.modId));
 					tName = String.format("%s.json", pd.modId);
 					if( !target.toFile().exists() ) {
 						reader = Files.newInputStream(p);
