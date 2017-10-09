@@ -32,21 +32,33 @@ public class TreeNode {
 		this.setNodeId(0);
 	}
 
-	public TreeNode findNode(int value) {
-		if( ( (value < this.nodeID) && (value > this.left.getNodeId()) ) ||
-			( (value > this.nodeID) && (value < this.right.getNodeId()) ) ||
-			(value == this.nodeID) ) {
-			return this;
-		} else if( (value < this.nodeID) ) {
-			return this.left.findNode(value);
-		}
-		return this.right.findNode(value);
-	}
-
-	private int getNodeId() {
+	public int getNodeId() {
 		return this.nodeID;
 	}
 
+	public TreeNode findNode(int value) {
+		if( value < this.nodeID ) {
+			return this.findLeft(value);
+		} else if( value > this.nodeID) {
+			return this.findRight(value);
+		}
+		return this;
+	}
+
+	private TreeNode findLeft(int value) {
+		if( this.left == null ) return this;
+		if( this.left.getNodeId() < value ) return this;
+		
+ 		return this.left.findNode(value);
+	}
+	
+	private TreeNode findRight(int value) {
+		if( this.right == null ) return this;
+		if( this.right.getNodeId() > value ) return this;
+		
+		return this.right.findNode(value);
+	}
+	
 	public OreBuilder getValue() {
 		return this.actualValue;
 	}
