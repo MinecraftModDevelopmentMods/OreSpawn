@@ -38,7 +38,7 @@ public class OS3Writer {
 	}
 
 	public void writeSpawnEntries() {
-		String basePath = String.format(".%1$sconfig%1$sorespawn3%1$sos3", File.separator);
+		String basePath = String.format(".%1$sconfig%1$sorespawn3", File.separator);
 		writeFeatures(basePath);
 		writeReplacements(basePath);
 		
