@@ -28,4 +28,9 @@ public class BinaryTree {
 	public void addNode(OreBuilder value, int nodeId) {
 		this.root.addNode(value, nodeId);
 	}
+
+	public void makeRoot(OreBuilder oreBuilder) {
+		this.root.setValue(oreBuilder);
+		this.root.setNodeId(50);
+	}
 }

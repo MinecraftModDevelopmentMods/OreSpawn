@@ -42,12 +42,12 @@ public class TreeNode {
 		} else if( value > this.nodeID) {
 			return this.findRight(value);
 		}
+		
 		return this;
 	}
 
 	private TreeNode findLeft(int value) {
 		if( this.left == null ) return this;
-		if( this.left.getNodeId() < value ) return this;
 		
  		return this.left.findNode(value);
 	}

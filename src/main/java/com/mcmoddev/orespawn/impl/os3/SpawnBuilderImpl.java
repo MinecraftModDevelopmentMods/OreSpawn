@@ -101,18 +101,22 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 
 	private void buildOreSpawnTree() {
-		int maxVal = 0;
-		for( OreBuilder os : this.myOres ) {
-			maxVal += os.getChance();
-		}
-		
-		int median = maxVal / 2;
-		int count = 0;
-		this.oreSpawns = new BinaryTree(median);
-		for( OreBuilder os : this.myOres ) {
-			count += os.getChance();
-			this.oreSpawns.addNode(os, count);
+		if( this.myOres.size() > 1 ) {
+			int maxVal = 0;
+			for( OreBuilder os : this.myOres ) {
+				maxVal += os.getChance();
+			}
+
+			int median = maxVal / 2;
+			int count = 0;
+			this.oreSpawns = new BinaryTree(median);
+			for( OreBuilder os : this.myOres ) {
+				count += os.getChance();
+				this.oreSpawns.addNode(os, count);
+			}
+		} else {
+			this.oreSpawns = new BinaryTree(50);
+			this.oreSpawns.makeRoot(this.myOres.get(0));
 		}
 	}
-
 }
