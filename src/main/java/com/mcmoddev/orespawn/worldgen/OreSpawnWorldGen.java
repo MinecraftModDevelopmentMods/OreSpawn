@@ -78,7 +78,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 					replacement = ReplacementsRegistry.getDimensionDefault(thisDim);
 				}
 				currentFeatureGen.setRandom(random);
-				currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOres().get(0).getOre(), replacement);
+				currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
 			}
 		}
 	}

@@ -2,10 +2,11 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.io.Charsets;
+import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
@@ -32,7 +33,7 @@ public class Replacements {
 		String rawJson = "[]";
 		JsonArray elements;
 		try {
-			rawJson = FileUtils.readFileToString(file);
+			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
 		} catch(IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -67,7 +68,7 @@ public class Replacements {
             }
     		String json = gson.toJson(root);
             try {
-                FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
+                FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
             } catch (IOException e) {
             	OreSpawn.LOGGER.fatal("Error writing "+file.toString()+" - "+e.getLocalizedMessage());
             }		

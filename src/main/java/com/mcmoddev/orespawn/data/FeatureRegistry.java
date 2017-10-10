@@ -3,14 +3,15 @@ package com.mcmoddev.orespawn.data;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.codec.CharEncoding;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -107,7 +108,7 @@ public class FeatureRegistry {
 		String rawJson = "[]";
 		JsonArray elements;
 		try {
-			rawJson = FileUtils.readFileToString(file);
+			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
 		} catch(IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -138,7 +139,7 @@ public class FeatureRegistry {
 
 		String json = gson.toJson(root);
         try {
-            FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
+            FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
         } catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
