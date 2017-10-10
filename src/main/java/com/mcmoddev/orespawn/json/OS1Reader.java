@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.json;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +60,7 @@ public class OS1Reader {
 		Arrays.stream(files).filter(file -> file.getName().endsWith(".json")).forEach(
 				file -> {
 					try {
-						JsonObject root = parser.parse(FileUtils.readFileToString(file)).getAsJsonObject();
+						JsonObject root = parser.parse(FileUtils.readFileToString(file, Charset.defaultCharset())).getAsJsonObject();
 						
 						BuilderLogic logic = OreSpawn.API.getLogic(FilenameUtils.getBaseName(file.getName()));
 						List<DimensionBuilder> builders = new ArrayList<>();

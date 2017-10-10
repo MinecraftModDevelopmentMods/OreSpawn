@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
+import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
@@ -101,6 +102,29 @@ public class Helpers {
 				oreB.setOre(oreName);
 			}
 		}
+	}
+
+	public static OreBuilder parseOreEntry(JsonObject oreSpawn, SpawnBuilder spawn) {
+		String oreName = oreSpawn.get("name").getAsString();
+		boolean hasMeta = oreSpawn.has("metadata");
+		String state = oreSpawn.has("state")?oreSpawn.get("state").getAsString():"";
+		int chance = oreSpawn.has("chance")?oreSpawn.get("chance").getAsInt():Integer.MIN_VALUE;
+		
+		OreBuilder thisOre = spawn.newOreBuilder();
+		
+		if( !"".equals(state) ) {
+			thisOre.setOre( oreName, state );
+		} else if( "".equals(state) && hasMeta ) {
+			thisOre.setOre( oreName, oreSpawn.get("meta").getAsInt() );
+		} else {
+			thisOre.setOre( oreName );
+		}
+		
+		if( chance != Integer.MIN_VALUE ) {
+			thisOre.setChance(chance);
+		}
+		
+		return thisOre;
 	}
 
 }

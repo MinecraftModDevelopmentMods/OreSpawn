@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.json;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
@@ -25,7 +26,7 @@ public class OS3Reader {
 	}
 
 	public static void loadEntries() {
-		File directory = new File("." + File.separator + "orespawn", "os3");
+		File directory = new File("config","orespawn3");
 		JsonParser parser = new JsonParser();
 
 		if( !directory.exists() ) {
@@ -56,7 +57,7 @@ public class OS3Reader {
 					}
 
 					try {
-						JsonElement full = parser.parse(FileUtils.readFileToString(file));
+						JsonElement full = parser.parse(FileUtils.readFileToString(file, Charset.defaultCharset()));
 						JsonObject parsed = full.getAsJsonObject();
 
 						IOS3Reader reader = null;
