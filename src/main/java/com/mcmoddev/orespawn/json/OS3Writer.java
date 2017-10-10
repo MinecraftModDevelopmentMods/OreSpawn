@@ -98,7 +98,7 @@ public class OS3Writer {
 	private JsonObject genSpawn(SpawnBuilder spawn) {
 		JsonObject ore = new JsonObject();
 		
-		ore.addProperty(ConfigNames.BLOCKS, genBlocks(spawn.getOres()));
+		ore.add(ConfigNames.BLOCKS, genBlocks(spawn.getOres()));
 		ore.add(ConfigNames.PARAMETERS, spawn.getFeatureGen().getParameters());
 		ore.addProperty(ConfigNames.FEATURE, spawn.getFeatureGen().getFeatureName());
 		ore.addProperty(ConfigNames.REPLACEMENT, ConfigNames.DEFAULT);
@@ -106,7 +106,7 @@ public class OS3Writer {
 		return ore;
 	}
 
-	private String genBlocks(ImmutableList<OreBuilder> ores) {
+	private JsonArray genBlocks(ImmutableList<OreBuilder> ores) {
 		JsonArray retval = new JsonArray();
 		
 		ores.forEach( ore -> {
@@ -116,7 +116,7 @@ public class OS3Writer {
 			obj.addProperty(ConfigNames.CHANCE, ore.getChance());
 			retval.add(obj);
 		});
-		return retval.toString();
+		return retval;
 	}
 
 	private int countOres(JsonArray dims ) {
