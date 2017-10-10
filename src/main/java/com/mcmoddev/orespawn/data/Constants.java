@@ -29,6 +29,8 @@ public class Constants {
 		public static final String DIMENSIONS = "dimensions";
 		public static final String BLOCKID = "blockID";
 		public static final String BLOCK = "block";
+		public static final String BLOCKS = "blocks";
+		public static final String CHANCE = "chance";
 		public static final String METADATA = "metaData";
 		public static final String BIOMES = "biomes";
 		public static final String STATE = "state";

@@ -17,6 +17,7 @@ import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
@@ -96,19 +97,26 @@ public class OS3Writer {
 
 	private JsonObject genSpawn(SpawnBuilder spawn) {
 		JsonObject ore = new JsonObject();
-		String blockName = spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString();
 		
-		ore.addProperty(ConfigNames.BLOCK, blockName);
-		
-		String state = StateUtil.serializeState(spawn.getOres().get(0).getOre());
-		if( !ConfigNames.STATE_NORMAL.equals(state) ) {
-			ore.addProperty(ConfigNames.STATE, state);
-		}
+		ore.add(ConfigNames.BLOCKS, genBlocks(spawn.getOres()));
 		ore.add(ConfigNames.PARAMETERS, spawn.getFeatureGen().getParameters());
 		ore.addProperty(ConfigNames.FEATURE, spawn.getFeatureGen().getFeatureName());
 		ore.addProperty(ConfigNames.REPLACEMENT, ConfigNames.DEFAULT);
 		ore.add(ConfigNames.BIOMES, biomeLocationToJsonObject(spawn.getBiomes()));
 		return ore;
+	}
+
+	private JsonArray genBlocks(ImmutableList<OreBuilder> ores) {
+		JsonArray retval = new JsonArray();
+		
+		ores.forEach( ore -> {
+			JsonObject obj = new JsonObject();
+			obj.addProperty(ConfigNames.BLOCK, ore.getOre().getBlock().getRegistryName().toString());
+			obj.addProperty(ConfigNames.STATE, StateUtil.serializeState(ore.getOre()));
+			obj.addProperty(ConfigNames.CHANCE, ore.getChance());
+			retval.add(obj);
+		});
+		return retval;
 	}
 
 	private int countOres(JsonArray dims ) {
