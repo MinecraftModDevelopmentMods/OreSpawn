@@ -37,6 +37,8 @@ public class TreeNode {
 	}
 
 	public TreeNode findNode(int value) {
+		if( this.left == null && this.right == null ) return this;
+		
 		if( value < this.nodeID ) {
 			return this.findLeft(value);
 		} else if( value > this.nodeID) {
