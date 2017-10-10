@@ -87,6 +87,9 @@ public class VeinGenerator implements IFeature {
 		}
 	}
 
+	// for proper use we need to map these in on the selections later
+	// probability of any given vertex-point of a face being selected, each
+	// row of this is a row on the face, each float is a point
 	private float[][] PointMap = new float[][] {
 			{ 0.5f, 0.75f, 0.5f },
 			{ 0.5f, 1.00f, 0.5f },
