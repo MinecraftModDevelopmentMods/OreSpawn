@@ -17,6 +17,9 @@ public class Constants {
 	public static final String THE_NETHER = "the nether";
 	public static final String END = "end";
 	public static final String THE_END = "the end";
+	public static final String DEFAULT_GEN = "default";
+	public static final String VEIN_GEN = "vein";
+	
 	public final class ConfigNames {
 		private ConfigNames() {}
 		public static final String DEFAULT = "default";

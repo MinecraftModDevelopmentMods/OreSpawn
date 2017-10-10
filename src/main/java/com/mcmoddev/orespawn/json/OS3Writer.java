@@ -63,7 +63,7 @@ public class OS3Writer {
 			if( countOres(dimensions) > 0 ) {
 				File file = new File(basePath, String.format("%s.json", ent.getKey()));
 				JsonObject wrapper = new JsonObject();
-				wrapper.addProperty(ConfigNames.FILE_VERSION, "1.1");
+				wrapper.addProperty(ConfigNames.FILE_VERSION, "1.2");
 				wrapper.add(ConfigNames.DIMENSIONS, dimensions);
 				this.writeFile(file, wrapper);
 			}

@@ -22,6 +22,7 @@ import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
+import com.mcmoddev.orespawn.impl.features.VeinGenerator;
 
 import net.minecraft.crash.CrashReport;
 
@@ -29,14 +30,16 @@ public class FeatureRegistry {
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 	private Map<String, IFeature> features;
 	private Map<IFeature, String> featuresInverse;
-	private static final String DEF = "default";
 	
 	public FeatureRegistry() {
 		features = new HashMap<>();
 		featuresInverse = new HashMap<>();
 		IFeature defaultGen = new DefaultFeatureGenerator();
-		features.put(DEF, defaultGen);
-		featuresInverse.put(defaultGen, DEF);
+		features.put(Constants.DEFAULT_GEN, defaultGen);
+		featuresInverse.put(defaultGen, Constants.DEFAULT_GEN);
+		IFeature veinGen = new VeinGenerator();
+		features.put(Constants.VEIN_GEN, veinGen);
+		featuresInverse.put(veinGen, Constants.VEIN_GEN);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
@@ -47,7 +50,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(feature) ) {
 			return this.featuresInverse.get(feature);
 		} else {
-			return DEF;
+			return Constants.DEFAULT_GEN;
 		}
 	}
 
@@ -55,7 +58,7 @@ public class FeatureRegistry {
 		if( this.hasFeature(name) ) {
 			return this.features.get(name);
 		} else {
-			return this.features.get(DEF);
+			return this.features.get(Constants.DEFAULT_GEN);
 		}
 	}
 	

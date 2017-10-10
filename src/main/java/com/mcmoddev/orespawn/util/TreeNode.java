@@ -49,14 +49,21 @@ public class TreeNode {
 	}
 
 	private TreeNode findLeft(int value) {
-		if( this.left == null ) return this;
+		if( this.left == null ) {
+			return this;
+		}
 		
  		return this.left.findNode(value);
 	}
 	
 	private TreeNode findRight(int value) {
-		if( this.right == null ) return this;
-		if( this.right.getNodeId() > value ) return this;
+		if( this.right == null ) {
+			return this;
+		}
+		
+		if( this.right.getNodeId() > value ) {
+			return this;
+		}
 		
 		return this.right.findNode(value);
 	}
