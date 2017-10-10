@@ -12,9 +12,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.codec.CharEncoding;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class DumpBiomesCommand extends CommandBase {
         String json = gson.toJson(array);
 
         try {
-            FileUtils.writeStringToFile(new File(".", "biome_dump.json"), StringEscapeUtils.unescapeJson(json), Charsets.UTF_8);
+            FileUtils.writeStringToFile(new File(".", "biome_dump.json"), StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
         } catch (IOException e) {
             throw new CommandException("Failed to save the json file");
         }

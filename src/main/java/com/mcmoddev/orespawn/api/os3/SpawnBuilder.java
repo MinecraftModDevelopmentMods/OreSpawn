@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.util.BinaryTree;
 
 import net.minecraft.block.state.IBlockState;
 
@@ -21,4 +22,7 @@ public interface SpawnBuilder {
 	ImmutableList<OreBuilder> getOres();
 	ImmutableList<IBlockState> getReplacementBlocks();
 	FeatureBuilder getFeatureGen();
+	
+	// added for OreSpawn 3.2 and version 1.2 of the config
+	BinaryTree getOreSpawns();
 }

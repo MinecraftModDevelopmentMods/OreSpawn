@@ -12,6 +12,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.util.BinaryTree;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -38,7 +39,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, IBlockState block, IBlockState replaceBlock ) {
+			IChunkProvider chunkProvider, JsonObject parameters, BinaryTree ores, IBlockState replaceBlock ) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -74,7 +75,7 @@ public class DefaultFeatureGenerator implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnOre( new BlockPos(x,y,z), block, size + r, world, random, replaceBlock);
+				spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock);
 			}
 		} else if(random.nextFloat() < freq){
 			int x = blockX + random.nextInt(8);
@@ -86,7 +87,7 @@ public class DefaultFeatureGenerator implements IFeature {
 			} else {
 				r = 0;
 			}
-			spawnOre( new BlockPos(x,y,z), block, size + r, world, random, replaceBlock);
+			spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock);
 		}
 		
 	}
@@ -116,7 +117,7 @@ public class DefaultFeatureGenerator implements IFeature {
 	private static final int[] offsetIndexRef = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 	private static final int[] offsetIndexRef_small = {0,1,2,3,4,5,6,7};
 
-	public static void spawnOre( BlockPos blockPos, IBlockState oreBlock, int quantity, World world, Random prng, IBlockState replaceBlock) {
+	public static void spawnOre( BlockPos blockPos, BinaryTree possibleOres, int quantity, World world, Random prng, IBlockState replaceBlock) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -129,35 +130,37 @@ public class DefaultFeatureGenerator implements IFeature {
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
 			while(count > 0){
+				IBlockState oreBlock = possibleOres.findMatchingNode(prng.nextInt(possibleOres.getMax())).getOre();
 				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
 			}
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, oreBlock );
+		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, possibleOres, prng );
 		
 		return;
 	}
 
-	private static void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, IBlockState replaceBlock, IBlockState oreBlock ) {
+	private static void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, IBlockState replaceBlock, BinaryTree possibleOres, Random prng) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, count, oreBlock );
+			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres, prng );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, count, oreBlock );
+			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres, prng );
 		}
 	}
 
 
 	private static void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			IBlockState replaceBlock, int count, IBlockState oreBlock) {
+			IBlockState replaceBlock, int count, BinaryTree possibleOres, Random prng) {
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						IBlockState oreBlock = possibleOres.findMatchingNode(prng.nextInt(possibleOres.getMax())).getOre();
 						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
 						quantity--;
 					}
@@ -170,12 +173,14 @@ public class DefaultFeatureGenerator implements IFeature {
 	}
 
 
-	private static void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius, IBlockState replaceBlock, int count, IBlockState oreBlock) {
+	private static void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
+			IBlockState replaceBlock, int count, BinaryTree possibleOres, Random prng) {
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						IBlockState oreBlock = possibleOres.findMatchingNode(prng.nextInt(possibleOres.getMax())).getOre();
 						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
 						quantity--;
 					}
