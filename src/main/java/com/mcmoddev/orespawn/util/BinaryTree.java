@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.util;
 
+import java.util.Random;
+
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 
 public class BinaryTree {
@@ -32,5 +34,9 @@ public class BinaryTree {
 	public void makeRoot(OreBuilder oreBuilder) {
 		this.root.setValue(oreBuilder);
 		this.root.setNodeId(50);
+	}
+	
+	public OreBuilder getRandomOre(Random rand) {
+		return this.findMatchingNode(rand.nextInt(this.maxVal));
 	}
 }
