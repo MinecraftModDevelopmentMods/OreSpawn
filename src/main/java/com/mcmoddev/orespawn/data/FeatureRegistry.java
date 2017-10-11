@@ -22,6 +22,7 @@ import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
+import com.mcmoddev.orespawn.impl.features.NormalCloudGenerator;
 import com.mcmoddev.orespawn.impl.features.VeinGenerator;
 
 import net.minecraft.crash.CrashReport;
@@ -40,6 +41,9 @@ public class FeatureRegistry {
 		IFeature veinGen = new VeinGenerator();
 		features.put(Constants.VEIN_GEN, veinGen);
 		featuresInverse.put(veinGen, Constants.VEIN_GEN);
+		IFeature normalCloudGen = new NormalCloudGenerator();
+		features.put(Constants.NORMAL_CLOUD, normalCloudGen);
+		featuresInverse.put(normalCloudGen, Constants.NORMAL_CLOUD);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
