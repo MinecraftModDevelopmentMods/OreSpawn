@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.impl.features.ClusterGenerator;
 import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
 import com.mcmoddev.orespawn.impl.features.NormalCloudGenerator;
 import com.mcmoddev.orespawn.impl.features.VeinGenerator;
@@ -44,6 +45,9 @@ public class FeatureRegistry {
 		IFeature normalCloudGen = new NormalCloudGenerator();
 		features.put(Constants.NORMAL_CLOUD, normalCloudGen);
 		featuresInverse.put(normalCloudGen, Constants.NORMAL_CLOUD);
+		IFeature clusterGen = new ClusterGenerator();
+		features.put(Constants.CLUSTERS, clusterGen);
+		featuresInverse.put(clusterGen, Constants.CLUSTERS);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
