@@ -20,6 +20,7 @@ public class Constants {
 	public static final String DEFAULT_GEN = "default";
 	public static final String VEIN_GEN = "vein";
 	public static final String NORMAL_CLOUD = "normal-cloud";
+	public static final String CLUSTERS = "clusters";
 	
 	public final class ConfigNames {
 		private ConfigNames() {}
