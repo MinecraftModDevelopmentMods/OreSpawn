@@ -69,11 +69,25 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	// for proper use we need to map these in on the selections later
 	// probability of any given vertex-point of a face being selected, each
 	// row of this is a row on the face, each float is a point
-	private float[][] PointMap = new float[][] {
+	private float[][] RowMap = new float[][] {
 			{ 0.5f, 0.75f, 0.5f },
 			{ 0.5f, 1.00f, 0.5f },
 			{ 0.5f, 0.75f, 0.5f }
 	};
+	
+	private float[] ColMap = new float[] {
+			0.75f, 1.00f, 0.75f
+	};
+	
+	private int triangularDistributionNoRandom( double current ) {
+		double F = 1f/2f;
+		
+		if( current < F ) {
+			return (int) Math.sqrt( current * 2  );
+		} else {
+			return (int) (2 - Math.sqrt((1 - current) * 2 ));
+		}
+	}
 	
 	private enum EnumFace {
 		UP,
@@ -143,8 +157,10 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		// generate a node here
 		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace );
 		// select a direction, decrement length, repeat
-		int colAdj = random.nextInt(3);
-		int rowAdj = random.nextInt(3);
+		float curRow = 1.00f;
+		float curCol = 1.00f;
+		int colAdj = 2;
+		int rowAdj = 2;
 		EnumFace faceToUse = EnumFace.getRandomFace(random);
 		int l = length;
 		while ( l > 0 ) {
@@ -153,8 +169,18 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			l--;
 			// allow for the "wandering vein" parameter
 			if( random.nextInt(100) <= wander ) {
-				colAdj = random.nextInt(3);
-				rowAdj = random.nextInt(3);
+				colAdj = triangularDistributionNoRandom(curCol);
+				curCol += ColMap[colAdj];
+				while( curCol > 1 ) {
+					curCol /= 10;
+				}
+				
+				rowAdj = triangularDistributionNoRandom(curCol);
+				curRow += RowMap[colAdj][rowAdj];
+				while( curRow > 1 ) {
+					curRow /= 10;
+				}
+
 				faceToUse = EnumFace.getRandomFace(random);
 			}
 		}
