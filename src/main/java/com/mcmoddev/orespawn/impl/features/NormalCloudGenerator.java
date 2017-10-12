@@ -46,19 +46,20 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int frequency  = parameters.get("frequency").getAsInt();
 		int tries      = parameters.get("tries-per-chunk").getAsInt();
 		
-		if( frequency <= this.random.nextInt(100) ) {
-			while( tries > 0 ) {
+		while( tries > 0 ) {
+			if( frequency <= this.random.nextInt(100) ) {
 				int x = blockX + random.nextInt(16) - (maxSpread / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				int z = blockZ + random.nextInt(16) - (maxSpread / 2);
-				
+
 				int r = medianSize - variance;
 				if(variance > 0){
 					r += random.nextInt(2 * variance) - variance;
 				}
-				
+
 				spawnCloud(ores, new BlockPos(x,y,z), r, maxSpread, minHeight, maxHeight, random, world, blockReplace);
 			}
+			tries--;
 		}
 	}
 

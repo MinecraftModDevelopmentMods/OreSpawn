@@ -17,10 +17,14 @@ import com.mcmoddev.orespawn.impl.location.BiomeLocationDictionary;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class Helpers {
 
@@ -125,6 +129,22 @@ public class Helpers {
 		}
 		
 		return thisOre;
+	}
+
+	public static List<OreBuilder> loadOreDict( JsonObject oreObj, SpawnBuilder spawn) {
+		String oreName = oreObj.get("name").getAsString().split(":")[1];
+		int chance = oreObj.has("chance")?oreObj.get("chance").getAsInt():Integer.MIN_VALUE;
+		List<OreBuilder> retval = new ArrayList<>();
+		
+		NonNullList<ItemStack> ores = OreDictionary.getOres(oreName);
+		for( ItemStack ore : ores ) {
+			OreBuilder thisOre = spawn.newOreBuilder();
+			thisOre.setOre(ore.getItem(), ore.getMetadata());
+			thisOre.setChance(chance);
+			retval.add(thisOre);
+		}
+		
+		return retval;
 	}
 
 }

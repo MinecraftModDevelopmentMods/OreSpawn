@@ -85,7 +85,11 @@ public class OS3V12Reader implements IOS3Reader {
 			List<OreBuilder> oreSpawns = new ArrayList<>();
 			for( JsonElement oreSpawn : ore.getAsJsonArray(ConfigNames.BLOCKS) ) {
 				JsonObject oreObj = oreSpawn.getAsJsonObject();
-				oreSpawns.add( Helpers.parseOreEntry( oreObj, spawn) );
+				if( oreObj.get("name").getAsString().toLowerCase().startsWith("ore:") ) {
+					oreSpawns.addAll( Helpers.loadOreDict( oreObj, spawn ) );
+				} else {
+					oreSpawns.add( Helpers.parseOreEntry( oreObj, spawn) );
+				}
 			}
 			spawn.create(biomes, feature, repBlock, oreSpawns.toArray(new OreBuilder[1]));
 			spawns.add(spawn);
