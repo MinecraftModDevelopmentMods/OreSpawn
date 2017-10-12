@@ -49,12 +49,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int nodeSize = parameters.get("node-size").getAsInt();
 		
 		// we have an offset into the chunk but actually need something more
-		if( freq <= this.random.nextInt(100) ) {
-			while( tries > 0 ) {
+		while( tries > 0 ) {
+			if( freq <= this.random.nextInt(100) ) {
 				int x = blockX + random.nextInt(8);
 				int y = random.nextInt(maxY - minY) + minY;
 				int z = blockZ + random.nextInt(8);
-				
+
 				final int r;
 				if(vari > 0){
 					r = random.nextInt(2 * vari) - vari;
@@ -63,6 +63,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				spawnVein( new BlockPos(x,y,z), ores, length + r, nodeSize, wander, world, random, blockReplace);
 			}
+			tries--;
 		}
 	}
 
