@@ -110,22 +110,20 @@ public class Helpers {
 
 	public static OreBuilder parseOreEntry(JsonObject oreSpawn, SpawnBuilder spawn) {
 		String oreName = oreSpawn.get(ConfigNames.BLOCK).getAsString();
-		int chance = oreSpawn.has(ConfigNames.CHANCE)?oreSpawn.get(ConfigNames.CHANCE).getAsInt():Integer.MIN_VALUE;
+		int chance = oreSpawn.has(ConfigNames.CHANCE)?oreSpawn.get(ConfigNames.CHANCE).getAsInt():100;
 		
 		OreBuilder thisOre = spawn.newOreBuilder();
 		
 		handleState(oreSpawn, thisOre, oreName);
 		
-		if( chance != Integer.MIN_VALUE ) {
-			thisOre.setChance(chance);
-		}
+		thisOre.setChance(chance);
 		
 		return thisOre;
 	}
 
 	public static List<OreBuilder> loadOreDict( JsonObject oreObj, SpawnBuilder spawn) {
-		String oreName = oreObj.get("name").getAsString().split(":")[1];
-		int chance = oreObj.has("chance")?oreObj.get("chance").getAsInt():Integer.MIN_VALUE;
+		String oreName = oreObj.get(ConfigNames.BLOCK).getAsString().split(":")[1];
+		int chance = oreObj.has(ConfigNames.CHANCE)?oreObj.get(ConfigNames.CHANCE).getAsInt():100;
 		List<OreBuilder> retval = new ArrayList<>();
 		
 		NonNullList<ItemStack> ores = OreDictionary.getOres(oreName);
