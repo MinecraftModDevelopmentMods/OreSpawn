@@ -110,19 +110,11 @@ public class Helpers {
 
 	public static OreBuilder parseOreEntry(JsonObject oreSpawn, SpawnBuilder spawn) {
 		String oreName = oreSpawn.get(ConfigNames.BLOCK).getAsString();
-		boolean hasMeta = oreSpawn.has("metadata");
-		String state = oreSpawn.has("state")?oreSpawn.get("state").getAsString():"";
-		int chance = oreSpawn.has("chance")?oreSpawn.get("chance").getAsInt():Integer.MIN_VALUE;
+		int chance = oreSpawn.has(ConfigNames.CHANCE)?oreSpawn.get(ConfigNames.CHANCE).getAsInt():Integer.MIN_VALUE;
 		
 		OreBuilder thisOre = spawn.newOreBuilder();
 		
-		if( !"".equals(state) ) {
-			thisOre.setOre( oreName, state );
-		} else if( "".equals(state) && hasMeta ) {
-			thisOre.setOre( oreName, oreSpawn.get("meta").getAsInt() );
-		} else {
-			thisOre.setOre( oreName );
-		}
+		handleState(oreSpawn, thisOre, oreName);
 		
 		if( chance != Integer.MIN_VALUE ) {
 			thisOre.setChance(chance);
