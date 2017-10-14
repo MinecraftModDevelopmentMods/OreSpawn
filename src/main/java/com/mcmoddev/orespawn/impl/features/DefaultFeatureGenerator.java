@@ -29,6 +29,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 		
+		mergeDefaults(parameters, getDefaultParameters());
+
 		runCache(chunkX, chunkZ, world, replaceBlock);
 		
 		// now to ore spawn

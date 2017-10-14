@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Map.Entry;
 
+import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
@@ -134,4 +135,11 @@ public abstract class FeatureBase {
 	
 	protected static final int[] offsetIndexRef = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 	protected static final int[] offsetIndexRef_small = {0,1,2,3,4,5,6,7};
+	
+	protected static void mergeDefaults(JsonObject parameters, JsonObject defaultParameters ) {
+		defaultParameters.entrySet().forEach( entry -> {
+			if( !parameters.has(entry.getKey()) ) 
+				parameters.add(entry.getKey(), entry.getValue());
+		});
+	}	
 }

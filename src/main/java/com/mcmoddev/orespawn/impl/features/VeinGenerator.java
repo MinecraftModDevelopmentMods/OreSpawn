@@ -33,6 +33,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int chunkZ = pos.z;
 		
 		runCache(chunkX, chunkZ, world, blockReplace);
+		mergeDefaults(parameters, getDefaultParameters());
 		
 		// now to ore spawn
 

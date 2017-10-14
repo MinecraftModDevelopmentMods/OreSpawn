@@ -31,6 +31,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 		
+		mergeDefaults(parameters, getDefaultParameters());
+
 		runCache(chunkX, chunkZ, world, blockReplace);
 		
 		// now to ore spawn

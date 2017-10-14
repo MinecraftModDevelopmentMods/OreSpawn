@@ -45,7 +45,7 @@ public class OS3Writer {
 		
 		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {			
 			JsonArray dimensions = new JsonArray();
-
+			
 			for( Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet() ) {
 				JsonObject dimension = new JsonObject();
 				

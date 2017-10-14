@@ -31,7 +31,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
-		
+
+		mergeDefaults(parameters, getDefaultParameters());
+
 		runCache(chunkX, chunkZ, world, blockReplace);
 		
 		// now to ore spawn
