@@ -49,7 +49,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int tries        = parameters.get("tries-per-chunk").getAsInt();
 		
 		while( tries > 0 ) {
-			if( frequency <= this.random.nextInt(100) ) {
+			if( this.random.nextInt(100) <= frequency ) {
 				int x = blockX + random.nextInt(16) - (maxSpread / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				int z = blockZ + random.nextInt(16) - (maxSpread / 2);
