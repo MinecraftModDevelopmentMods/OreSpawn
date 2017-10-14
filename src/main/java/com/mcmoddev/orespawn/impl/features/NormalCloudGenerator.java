@@ -64,9 +64,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 
 	private double triangularDistribution(double a, double b, double c) {
-	    double F = (c - a) / (b - a);
+	    double base = (c - a) / (b - a);
 	    double rand = this.random.nextDouble();
-	    if (rand < F) {
+	    if (rand < base) {
 	        return a + Math.sqrt(rand * (b - a) * (c - a));
 	    } else {
 	        return b - Math.sqrt((1 - rand) * (b - a) * (b - c));
@@ -85,9 +85,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int count = size - 1;
 		while( count >= 0 ) {
 			BlockPos p = new BlockPos(blockPos);
-			p.add( getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2), 
-					getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2), 
-					getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2) );
+			p.add( getPoint(minHeight, maxHeight, maxSpread/2), 
+					getPoint(minHeight, maxHeight, maxSpread/2), 
+					getPoint(minHeight, maxHeight, maxSpread/2) );
 			spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace);
 			count--;
 		}

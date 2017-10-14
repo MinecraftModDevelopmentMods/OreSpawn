@@ -29,12 +29,10 @@ public class OS2Reader {
 		File directory = new File(".", "orespawn");
 		JsonParser parser = new JsonParser();
 
-		if( makeDirIfNonExistent(directory) ) {
-			return;
-		}
-		
-		if( !directory.isDirectory() ) {
+		if( directory.exists() && !directory.isDirectory() ) {
 			OreSpawn.LOGGER.fatal("OreSpawn data directory inaccessible - "+directory+" is not a directory!");
+			return;
+		} else if( !directory.exists() ) {
 			return;
 		}
 
@@ -111,15 +109,6 @@ public class OS2Reader {
 			spawn.create(biomes, feature, reps, oreB);
 			spawns.add(spawn);
 		}
-	}
-	
-	private static boolean makeDirIfNonExistent(File directory) {
-		if( !directory.exists() ) {
-			directory.mkdirs();
-			return true;
-		}
-
-		return false;
 	}
 	
 	private static void setupFeature(FeatureBuilder feature, JsonObject ore) {

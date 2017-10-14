@@ -12,6 +12,7 @@ import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -91,6 +92,8 @@ public class EventHandlers {
                 for (Iterator<IWorldGenerator> iterator = worldGens.iterator(); iterator.hasNext();)
                 {
                     IWorldGenerator wg = iterator.next();
+                    if( !(wg instanceof OreSpawnWorldGen) ) break;
+                    OreSpawnWorldGen owg = (OreSpawnWorldGen) wg;
                     long worldSeed = world.getSeed();
                     Random fmlRandom = new Random(worldSeed);
                     long xSeed = fmlRandom.nextLong() >> 2 + 1L;
@@ -100,7 +103,7 @@ public class EventHandlers {
                     fmlRandom.setSeed(chunkSeed);
                     ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
                     IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-                    wg.generate(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
+                    owg.retrogen(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
                 }
 			}
 		}

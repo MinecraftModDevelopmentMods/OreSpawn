@@ -61,9 +61,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	private double triangularDistribution(double a, double b, double c) {
-	    double F = (c - a) / (b - a);
+	    double base = (c - a) / (b - a);
 	    double rand = this.random.nextDouble();
-	    if (rand < F) {
+	    if (rand < base) {
 	        return a + Math.sqrt(rand * (b - a) * (c - a));
 	    } else {
 	        return b - Math.sqrt((1 - rand) * (b - a) * (b - c));
@@ -83,7 +83,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			r += random.nextInt(2 * variance) - variance;
 		}
 		
-		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), true, blockReplace, random);
+		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), blockReplace, random);
 		int count = random.nextInt(clusterCount - 1); // always at least the first, but vary inside that
 		if( variance > 0) {
 			count += random.nextInt(2 * variance) - variance;
@@ -96,16 +96,16 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			}
 			
 			BlockPos p = new BlockPos(blockPos);
-			p.add( getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2), 
-					getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2), 
-					getPoint(minHeight, maxHeight, (maxHeight-minHeight)/2) );
-			spawnChunk(ores, world, p, r, world.provider.getDimension(), true, blockReplace, random);
+			p.add( getPoint(minHeight, maxHeight, maxSpread/2), 
+					getPoint(minHeight, maxHeight, maxSpread/2), 
+					getPoint(minHeight, maxHeight, maxSpread/2) );
+			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random);
 			count -= r;
 		}
 	}
 
-	private void spawnChunk(BinaryTree ores, World world, BlockPos blockPos, int quantity, int dimension, boolean b,
-			IBlockState blockReplace, Random prng) {
+	private void spawnChunk(BinaryTree ores, World world, BlockPos blockPos, int quantity, int dimension, IBlockState blockReplace,
+			Random prng) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -119,7 +119,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			scramble(scrambledLUT,prng);
 			while(count > 0){
 				IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,blockReplace);
+				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 			}
 			return;
 		}

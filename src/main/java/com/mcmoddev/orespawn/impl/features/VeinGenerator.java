@@ -196,7 +196,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 		scramble(scrambledLUT,this.random);
 		while(count > 0){
-			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,blockReplace);
+			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 		}
 		return;
 	}
