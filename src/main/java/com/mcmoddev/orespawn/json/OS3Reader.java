@@ -57,7 +57,9 @@ public class OS3Reader {
 					}
 
 					try {
-						JsonElement full = parser.parse(FileUtils.readFileToString(file, Charset.defaultCharset()));
+						String rawData = FileUtils.readFileToString(file, Charset.defaultCharset());
+						if( rawData.isEmpty() ) return;
+						JsonElement full = parser.parse(rawData);
 						JsonObject parsed = full.getAsJsonObject();
 
 						IOS3Reader reader = null;

@@ -50,7 +50,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
-			if( freq <= this.random.nextInt(100) ) {
+			if( this.random.nextInt(100) <= freq ) {
 				int x = blockX + random.nextInt(8);
 				int y = random.nextInt(maxY - minY) + minY;
 				int z = blockZ + random.nextInt(8);
@@ -142,7 +142,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	};
 	
 	private void adjustPos(BlockPos pos, int row, int col, EnumFace face) {
-		int faceOrd = face.ordinal() - 1;
+		int faceOrd = face.ordinal();
 		int[] adjust = facePosMap[faceOrd][row][col];
 		pos.add(adjust[0],adjust[1],adjust[2]);
 	}
