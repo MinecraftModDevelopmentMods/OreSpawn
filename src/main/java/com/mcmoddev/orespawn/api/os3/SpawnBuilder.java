@@ -25,4 +25,8 @@ public interface SpawnBuilder {
 	
 	// added for OreSpawn 3.2 and version 1.2 of the config
 	BinaryTree getOreSpawns();
+	boolean enabled();
+	void enabled(boolean enabled);
+	boolean retrogen();
+	void retrogen(boolean enabled);
 }

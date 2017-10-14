@@ -18,7 +18,7 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 
 public abstract class FeatureBase {
-	protected final int MAX_CACHE_SIZE = 1024;
+	protected static final int MAX_CACHE_SIZE = 1024;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
 	protected final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);

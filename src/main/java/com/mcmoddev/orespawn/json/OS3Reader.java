@@ -72,9 +72,9 @@ public class OS3Reader {
 						case "1.2":
 							reader = new OS3V12Reader();
 							break;
-//						case "2.0":
-//							reader = new OS3V20Reader();
-//							break;
+						case "2.0":
+							reader = new OS3V2Reader();
+							break;
 						default:
 							OreSpawn.LOGGER.error("Unknown version %s", version);
 							return;
@@ -104,9 +104,9 @@ public class OS3Reader {
 		case "1.2":
 			reader = new OS3V12Reader();
 			break;
-//		case "2.0":
-//			reader = new OS3V20Reader();
-//			break;
+		case "2.0":
+			reader = new OS3V2Reader();
+			break;
 		default:
 			OreSpawn.LOGGER.error("Unknown version %s", version);
 			return;

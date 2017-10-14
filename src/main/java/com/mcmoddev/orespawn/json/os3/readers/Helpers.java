@@ -17,7 +17,6 @@ import com.mcmoddev.orespawn.impl.location.BiomeLocationDictionary;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;

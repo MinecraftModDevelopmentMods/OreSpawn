@@ -40,6 +40,14 @@ public class Constants {
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
+		public final class V2 {
+			private V2() {}
+			public static final String ENABLED = "enabled";
+			public static final String RETROGEN = "retrogen";
+			public static final String REPLACES = "replaces";
+			public static final String GENERATOR = "generator";
+			public static final String VAR_MARK = "$ref";
+		}
 		public final class BiomeStuff {
 			private BiomeStuff() {}
 			public static final String WHITELIST = "inclusions";

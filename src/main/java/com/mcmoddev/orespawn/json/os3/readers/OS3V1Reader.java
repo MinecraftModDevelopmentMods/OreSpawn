@@ -57,6 +57,12 @@ public final class OS3V1Reader implements IOS3Reader {
 				
 				List<IBlockState> repBlock = new ArrayList<>();
 				repBlock.add(blockRep);
+				
+				// configs pre-2.0 don't have this, so to duplicate classic
+				// action...
+				spawn.retrogen(true);
+				spawn.enabled(true);
+				
 				spawn.create(biomes, feature, repBlock, oreB);
 				spawns.add(spawn);
 			}
