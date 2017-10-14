@@ -40,24 +40,29 @@ public abstract class FeatureBase {
 		}
 	}
 	
-	protected void spawn(IBlockState b, World world, BlockPos coord, int dimension, boolean cacheOverflow,
+	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
 			IBlockState blockReplace) {
-		IBlockState b2r = blockReplace;
-		if(b2r == null) {
-			b2r = ReplacementsRegistry.getDimensionDefault(world.provider.getDimension());
+		if( oreBlock == null ) {
+			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
+			return;
 		}
-		if(b2r == null) {
-			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", b);
+		
+		IBlockState blockToReplace = blockReplace;
+		if(blockToReplace == null) {
+			blockToReplace = ReplacementsRegistry.getDimensionDefault(world.provider.getDimension());
+		}
+		if(blockToReplace == null) {
+			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", oreBlock);
 			return;
 		}
 		if(coord.getY() < 0 || coord.getY() >= world.getHeight()) return;
 		if(world.isBlockLoaded(coord)){
-			IBlockState bs = world.getBlockState(coord);
-			if(canReplace(bs,b2r)) {
-				world.setBlockState(coord, b, 2);
+			IBlockState targetBlock = world.getBlockState(coord);
+			if(canReplace(targetBlock,blockToReplace)) {
+				world.setBlockState(coord, oreBlock, 2);
 			}
 		} else if(cacheOverflow){
-			cacheOverflowBlock(b,coord,dimension);
+			cacheOverflowBlock(oreBlock,coord,dimension);
 		}
 	}
 
