@@ -43,9 +43,7 @@ public class DimensionBuilderImpl implements DimensionBuilder {
 
 	@Override
 	public ImmutableList<SpawnBuilder> getAllSpawns() {
-		List<SpawnBuilder> temp = new ArrayList<>();
-		spawns.values().forEach(spawn -> temp.addAll(spawn) );
-		return ImmutableList.<SpawnBuilder>copyOf(temp);
+		return ImmutableList.<SpawnBuilder>copyOf(spawns.values().stream().toArray(SpawnBuilder[]::new));
 	}
 
 }

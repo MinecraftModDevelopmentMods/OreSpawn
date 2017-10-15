@@ -62,7 +62,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		}
 
 		entries.stream()
-		.filter( ent -> ent.enabled() )
+		.filter( SpawnBuilder::enabled )
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
@@ -84,7 +84,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		}
 
 		entries.stream()
-		.filter( ent -> ent.enabled() )
+		.filter( SpawnBuilder::enabled )
 		.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
