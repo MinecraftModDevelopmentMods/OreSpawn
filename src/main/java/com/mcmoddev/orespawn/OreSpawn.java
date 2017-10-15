@@ -90,7 +90,6 @@ public class OreSpawn {
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent ev) {
-    	writer.writeSpawnEntries();
     	Config.saveConfig();
     }
         

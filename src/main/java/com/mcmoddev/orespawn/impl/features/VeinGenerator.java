@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
@@ -27,12 +28,13 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, IBlockState blockReplace) {
+			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 		
 		runCache(chunkX, chunkZ, world, blockReplace);
+		mergeDefaults(parameters, getDefaultParameters());
 		
 		// now to ore spawn
 
@@ -61,7 +63,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnVein( new BlockPos(x,y,z), ores, length + r, nodeSize, wander, world, random, blockReplace);
+				spawnVein( new BlockPos(x,y,z), ores, new int[] { length + r, nodeSize, wander }, world, random, blockReplace);
 			}
 			tries--;
 		}
@@ -147,11 +149,19 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		pos.add(adjust[0],adjust[1],adjust[2]);
 	}
 	
-	private void spawnVein(BlockPos blockPos, BinaryTree ores, int length, int nodeSize, int wander, World world, Random random,
-			IBlockState blockReplace) {		
+	private enum parms {
+		LENGTH, NODESIZE, WANDER;
+	}
+	
+	private void spawnVein(BlockPos blockPos, BinaryTree ores, int[] params, World world, Random random,
+			List<IBlockState> blockReplace) {		
 		// passed in POS is our start - we start with a weighting favoring straight directions
 		// and three-quarters that to the edges
 		// and one-half to the corners
+		
+		int length = params[parms.LENGTH.ordinal()];
+		int nodeSize = params[parms.NODESIZE.ordinal()];
+		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
 		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace );
@@ -185,7 +195,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnOre(IBlockState oreBlock, World world, BlockPos key, int dimension, IBlockState blockReplace, int nodeSize) {
+	private void spawnOre(IBlockState oreBlock, World world, BlockPos key, int dimension, List<IBlockState> blockReplace, int nodeSize) {
 		int count = nodeSize;
 		int lutType = offsetIndexRef_small.length;
 		int[] lut = offsetIndexRef_small;
@@ -196,7 +206,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 		scramble(scrambledLUT,this.random);
 		while(count > 0){
-			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,blockReplace);
+			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 		}
 		return;
 	}

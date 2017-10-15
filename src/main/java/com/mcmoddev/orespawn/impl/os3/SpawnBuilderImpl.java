@@ -23,7 +23,9 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	private List<IBlockState> replacementBlocks;
 	private List<OreBuilder> myOres;
 	private BinaryTree oreSpawns;
-
+	private boolean enabled = true;
+	private boolean retrogen = false;
+	
 	public SpawnBuilderImpl() {
 		this.biomeLocs = null;
 		this.featureGen = null;
@@ -118,5 +120,25 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 			this.oreSpawns = new BinaryTree(50);
 			this.oreSpawns.makeRoot(this.myOres.get(0));
 		}
+	}
+
+	@Override
+	public boolean enabled() {
+		return this.enabled;
+	}
+
+	@Override
+	public void enabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	@Override
+	public boolean retrogen() {
+		return this.retrogen;
+	}
+
+	@Override
+	public void retrogen(boolean enabled) {
+		this.retrogen = enabled;
 	}
 }

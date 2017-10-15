@@ -21,6 +21,8 @@ public class Constants {
 	public static final String VEIN_GEN = "vein";
 	public static final String NORMAL_CLOUD = "normal-cloud";
 	public static final String CLUSTERS = "clusters";
+	public static final String CRASH_SECTION = "OreSpawn Version";
+	public static final String KNOWN_MODS = "already-extracted";
 	
 	public final class ConfigNames {
 		private ConfigNames() {}
@@ -40,6 +42,14 @@ public class Constants {
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
+		public final class V2 {
+			private V2() {}
+			public static final String ENABLED = "enabled";
+			public static final String RETROGEN = "retrogen";
+			public static final String REPLACES = "replaces";
+			public static final String GENERATOR = "generator";
+			public static final String VAR_MARK = "$ref";
+		}
 		public final class BiomeStuff {
 			private BiomeStuff() {}
 			public static final String WHITELIST = "inclusions";

@@ -132,7 +132,7 @@ public class AddOreCommand extends CommandBase {
     	FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
     	fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
     	BiomeBuilder bb = sb.newBiomeBuilder();
-    	IBlockState rep = ReplacementsRegistry.getDimensionDefault(id);
+    	IBlockState rep = ReplacementsRegistry.getDimensionDefault(id).get(0);
     	List<IBlockState> rl = new ArrayList<>();
     	rl.add(rep);
     	sb.create(bb, fb, rl, ob);

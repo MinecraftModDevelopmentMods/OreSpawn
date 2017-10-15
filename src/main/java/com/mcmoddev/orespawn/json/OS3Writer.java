@@ -39,13 +39,13 @@ public class OS3Writer {
 	}
 
 	public void writeSpawnEntries() {
-		String basePath = String.format(".%1$sconfig%1$sorespawn3", File.separator);
+		String basePath = String.format(".%1$sconfig%1$sorespawn3%1$force-written", File.separator);
 		writeFeatures(basePath);
 		writeReplacements(basePath);
 		
 		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {			
 			JsonArray dimensions = new JsonArray();
-
+			
 			for( Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet() ) {
 				JsonObject dimension = new JsonObject();
 				

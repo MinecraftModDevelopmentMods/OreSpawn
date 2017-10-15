@@ -50,7 +50,7 @@ public class OS3V12Reader implements IOS3Reader {
 				feature.setParameters(ore.get(ConfigNames.PARAMETERS).getAsJsonObject());
 
 				String replaceBase = ore.get(ConfigNames.REPLACEMENT).getAsString();
-				IBlockState blockRep = Helpers.getReplacement(replaceBase, dimension);
+				IBlockState blockRep = Helpers.getReplacement(replaceBase, dimension).get(0);
 
 				BiomeBuilder biomes = spawn.newBiomeBuilder();
 
@@ -91,6 +91,12 @@ public class OS3V12Reader implements IOS3Reader {
 					oreSpawns.add( Helpers.parseOreEntry( oreObj, spawn) );
 				}
 			}
+			
+			// configs pre-2.0 don't have this, so to duplicate classic
+			// action...
+			spawn.retrogen(true);
+			spawn.enabled(true);
+			
 			spawn.create(biomes, feature, repBlock, oreSpawns.toArray(new OreBuilder[1]));
 			spawns.add(spawn);
 		}

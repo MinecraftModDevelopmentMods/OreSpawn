@@ -121,9 +121,9 @@ public class OS1Reader {
 			setupFeature(feature,ore);
 			
 			List<IBlockState> replacements = new ArrayList<>();
-			replacements.add(ReplacementsRegistry.getDimensionDefault(-1));
-			replacements.add(ReplacementsRegistry.getDimensionDefault(0));
-			replacements.add(ReplacementsRegistry.getDimensionDefault(1));
+			replacements.addAll(ReplacementsRegistry.getDimensionDefault(-1));
+			replacements.addAll(ReplacementsRegistry.getDimensionDefault(0));
+			replacements.addAll(ReplacementsRegistry.getDimensionDefault(1));
 			replacements.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).map( OS1Reader::getDefaultBlockState ).collect(Collectors.toList()));
 
 			BiomeBuilder biomes = spawn.newBiomeBuilder();
