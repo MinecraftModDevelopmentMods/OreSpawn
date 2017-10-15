@@ -52,7 +52,7 @@ public class OS3V11Reader implements IOS3Reader {
 				feature.setParameters(ore.get(ConfigNames.PARAMETERS).getAsJsonObject());
 
 				String replaceBase = ore.get(ConfigNames.REPLACEMENT).getAsString();
-				IBlockState blockRep = Helpers.getReplacement(replaceBase, dimension);
+				IBlockState blockRep = Helpers.getReplacement(replaceBase, dimension).get(0);
 
 				BiomeBuilder biomes = spawn.newBiomeBuilder();
 

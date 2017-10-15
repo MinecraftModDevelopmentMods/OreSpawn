@@ -4,13 +4,13 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Map.Entry;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -30,7 +30,7 @@ public abstract class FeatureBase {
 		this.random = rand;
 	}
 	
-	protected void runCache(int chunkX, int chunkZ, World world, IBlockState blockReplace) {
+	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
 		
@@ -42,20 +42,14 @@ public abstract class FeatureBase {
 	}
 	
 	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
-			IBlockState blockReplace) {
+			List<IBlockState> blockReplace) {
 		if( oreBlock == null ) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return;
 		}
 		
-		IBlockState blockToReplace = blockReplace;
-		if(blockToReplace == null) {
-			blockToReplace = ReplacementsRegistry.getDimensionDefault(world.provider.getDimension());
-		}
-		if(blockToReplace == null) {
-			OreSpawn.LOGGER.fatal("called to spawn %s, replaceBlock is null and the registry says there is no default", oreBlock);
-			return;
-		}
+		List<IBlockState> blockToReplace = blockReplace;
+		
 		if(coord.getY() < 0 || coord.getY() >= world.getHeight()) return;
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
@@ -102,11 +96,14 @@ public abstract class FeatureBase {
 		}
 	}
 
-	protected boolean canReplace(IBlockState target, IBlockState toReplace) {
+	protected boolean canReplace(IBlockState target, List<IBlockState> blockToReplace) {
 		if( target.getBlock().equals(Blocks.AIR) ) {
 			return false;
-		} else if( toReplace.equals(target) ) {
-			return true;
+		} else {
+			for( IBlockState rep : blockToReplace ) {
+				if( target.equals(rep) ) 
+					return true;
+			}
 		}
 		return false;
 	}

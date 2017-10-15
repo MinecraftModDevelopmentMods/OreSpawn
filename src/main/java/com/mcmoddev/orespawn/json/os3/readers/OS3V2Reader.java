@@ -92,7 +92,7 @@ public class OS3V2Reader implements IOS3Reader {
 		String work = configField.toLowerCase();
 		
 		if( work.equals(ConfigNames.DEFAULT)) {
-			return Arrays.asList( ReplacementsRegistry.getDimensionDefault(dimension) );
+			return ReplacementsRegistry.getDimensionDefault(dimension);
 		} else if( work.startsWith("ore:") ) {
 			NonNullList<ItemStack> ores = OreDictionary.getOres(work.substring(4));
 			List<IBlockState> reps = new ArrayList<>();

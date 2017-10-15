@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.api;
 
 import java.util.Random;
+import java.util.List;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -13,7 +14,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 public interface IFeature {
 	void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, BinaryTree ores, IBlockState blockReplace );
+			IChunkProvider chunkProvider, JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace );
 	
 	void setRandom(Random rand);
 	

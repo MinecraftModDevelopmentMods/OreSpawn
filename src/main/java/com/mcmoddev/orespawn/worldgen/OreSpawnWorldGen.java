@@ -1,8 +1,8 @@
 package com.mcmoddev.orespawn.worldgen;
 
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -66,8 +66,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
-			IBlockState replacement = sE.getReplacementBlocks().get(0);
-			replacement = replacement==null?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
+			List<IBlockState> replacement = sE.getReplacementBlocks();
+			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
 
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
@@ -89,8 +89,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
-			IBlockState replacement = sE.getReplacementBlocks().get(0);
-			replacement = replacement==null?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
+			List<IBlockState> replacement = sE.getReplacementBlocks();
+			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
 
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);

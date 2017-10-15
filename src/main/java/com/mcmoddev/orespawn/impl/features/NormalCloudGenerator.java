@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
@@ -26,7 +27,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, IBlockState blockReplace) {
+			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -59,7 +60,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 					r += random.nextInt(2 * variance) - variance;
 				}
 
-				spawnCloud(ores, new BlockPos(x,y,z), r, maxSpread, minHeight, maxHeight, random, world, blockReplace);
+				spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace);
 			}
 			tries--;
 		}
@@ -80,9 +81,17 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		return t - median;
 	}
 	
-	private void spawnCloud(BinaryTree ores, BlockPos blockPos, int size, int maxSpread, int minHeight, int maxHeight, 
-			Random random, World world, IBlockState blockReplace) {
+	private enum parms {
+		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
+	}
+	
+	private void spawnCloud(BinaryTree ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
 		// spawn one right at the center here, then generate for the cloud and do the math
+		int size = params[parms.SIZE.ordinal()];
+		int maxSpread = params[parms.MAXSPREAD.ordinal()];
+		int minHeight = params[parms.MINHEIGHT.ordinal()];
+		int maxHeight = params[parms.MAXHEIGHT.ordinal()];
+		
 		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
 		int count = size - 1;
 		while( count >= 0 ) {

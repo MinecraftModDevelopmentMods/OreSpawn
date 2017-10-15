@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.json.os3.readers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.ImmutableSet;
@@ -40,13 +41,13 @@ public class Helpers {
 		}
 	}
 
-	public static IBlockState getReplacement(String replaceBase, int dimension) {
+	public static List<IBlockState> getReplacement(String replaceBase, int dimension) {
 		if( ConfigNames.DEFAULT.equals(replaceBase) ) {
 			return ReplacementsRegistry.getDimensionDefault(dimension);
 		} else if( replaceBase == null ) {
-			return ForgeRegistries.BLOCKS.getValue(new ResourceLocation("minecraft:stone")).getDefaultState();
+			return ReplacementsRegistry.getDimensionDefault(0);
 		} else {
-			return ReplacementsRegistry.getBlock(replaceBase);
+			return Arrays.asList(ReplacementsRegistry.getBlock(replaceBase));
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
@@ -27,7 +28,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, IBlockState blockReplace) {
+			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -55,8 +56,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				int x = blockX + random.nextInt(16) - (maxSpread / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				int z = blockZ + random.nextInt(16) - (maxSpread / 2);
+				int[] params = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
 
-				spawnCluster(ores, new BlockPos(x,y,z), clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight, random, world, blockReplace);
+				spawnCluster(ores, new BlockPos(x,y,z), params, random, world, blockReplace);
 			}
 			tries--;
 		}
@@ -77,8 +79,17 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		return t - median;
 	}
 	
-	private void spawnCluster(BinaryTree ores, BlockPos blockPos, int size, int variance, int clusterCount, int maxSpread, 
-			int minHeight, int maxHeight, Random random, World world, IBlockState blockReplace) {
+	private enum parms {
+		SIZE, VARIANCE, CCOUNT, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
+	}
+	
+	private void spawnCluster(BinaryTree ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+		int size = params[parms.SIZE.ordinal()];
+		int variance = params[parms.VARIANCE.ordinal()];
+		int clusterCount = params[parms.CCOUNT.ordinal()];
+		int maxSpread = params[parms.MAXSPREAD.ordinal()];
+		int minHeight = params[parms.MINHEIGHT.ordinal()];
+		int maxHeight = params[parms.MAXHEIGHT.ordinal()];
 		// spawn a cluster at the center, then a bunch around the outside...
 		int r = size - variance;
 		if(variance > 0){
@@ -106,7 +117,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnChunk(BinaryTree ores, World world, BlockPos blockPos, int quantity, int dimension, IBlockState blockReplace,
+	private void spawnChunk(BinaryTree ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
 			Random prng) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
@@ -126,32 +137,33 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores, prng );
+		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores );
 		
 		return;		
 	}
 
-	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, IBlockState replaceBlock, BinaryTree possibleOres, Random prng) {
+	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, BinaryTree possibleOres ) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres, prng );
+			spawnMungeNE( world, blockPos, rSqr, radius, blockReplace, count, possibleOres );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres, prng );
+			spawnMungeSW( world, blockPos, rSqr, radius, blockReplace, count, possibleOres );
 		}
 	}
 
 
 	private void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			IBlockState replaceBlock, int count, BinaryTree possibleOres, Random prng) {
+			List<IBlockState> blockReplace, int count, BinaryTree possibleOres ) {
+		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -164,14 +176,15 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 
 	private void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			IBlockState replaceBlock, int count, BinaryTree possibleOres, Random prng) {
+			List<IBlockState> blockReplace, int count, BinaryTree possibleOres) {
+		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
 						quantity--;
 					}
 					if(quantity <= 0) {

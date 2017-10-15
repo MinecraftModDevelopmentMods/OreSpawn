@@ -103,9 +103,7 @@ public class OS2Reader {
 				}
 			}
 
-			IBlockState replacement = ReplacementsRegistry.getDimensionDefault(dimension);
-			List<IBlockState> reps = new ArrayList<>();
-			reps.add(replacement);
+			List<IBlockState> reps = ReplacementsRegistry.getDimensionDefault(dimension);
 			spawn.create(biomes, feature, reps, oreB);
 			spawns.add(spawn);
 		}
