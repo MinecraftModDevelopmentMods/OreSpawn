@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -43,7 +44,7 @@ public class DimensionBuilderImpl implements DimensionBuilder {
 
 	@Override
 	public ImmutableList<SpawnBuilder> getAllSpawns() {
-		return ImmutableList.<SpawnBuilder>copyOf(spawns.values().stream().toArray(SpawnBuilder[]::new));
+		return ImmutableList.<SpawnBuilder>copyOf(spawns.values().stream().collect(Collectors.toList()).get(0));
 	}
 
 }
