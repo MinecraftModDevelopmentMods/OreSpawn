@@ -22,6 +22,7 @@ public class Constants {
 	public static final String NORMAL_CLOUD = "normal-cloud";
 	public static final String CLUSTERS = "clusters";
 	public static final String CRASH_SECTION = "OreSpawn Version";
+	public static final String KNOWN_MODS = "already-extracted";
 	
 	public final class ConfigNames {
 		private ConfigNames() {}

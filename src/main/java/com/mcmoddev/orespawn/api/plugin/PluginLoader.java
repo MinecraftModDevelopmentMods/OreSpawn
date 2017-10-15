@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 
 import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
+import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.OreSpawn;
 
@@ -100,6 +101,7 @@ public enum PluginLoader {
 		} else {
 			copyout(Paths.get(uri), pd.modId);
 		}
+		Config.addKnownMod(pd.modId);
 	}
 	
 	private void copyout( Path myPath, String modId ) {
