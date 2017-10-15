@@ -77,6 +77,7 @@ public enum PluginLoader {
 	}
 
 	public void scanResources(PluginData pd) {
+		if( Config.getKnownMods().contains(pd.modId) ) return;
 		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
 		URL resURL = getClass().getClassLoader().getResource(base);
 		
