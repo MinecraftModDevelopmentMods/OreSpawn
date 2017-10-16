@@ -2,9 +2,12 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -45,19 +48,21 @@ public class OS3Reader {
 			return;
 		}
 
+		if( Files.exists(Paths.get("config","orespawn3","sysconf")) && Files.isDirectory(Paths.get("config","orespawn3","sysconf")) ) {
+			Arrays.stream( Paths.get("config","orespawn3","sysconf").toFile().listFiles() )
+			.filter( file -> "json".equals(FilenameUtils.getExtension(file.getName())))
+			.forEach( file -> {
+				String filename = file.getName();
+				if( FilenameUtils.getBaseName(filename).matches("features-.+") ) {
+					loadFeatures( file );
+				} else if(FilenameUtils.getBaseName(filename).matches("replacements-.+") ) {
+					Replacements.load(file);
+				}
+			});
+		}
+		
 		Arrays.stream(files).filter(file -> file.getName().endsWith(".json")).forEach(
 				file -> {
-					if( "_features.json".equals(file.getName()) ) {
-						// this contains the map of features, don't bother with it
-						loadFeatures(file);
-						return;
-					} else if( "_replacements.json".equals(file.getName())) {
-						Replacements.load(file);
-						return;
-					} else if( file.getName().startsWith("_") ) {
-						return;
-					}
-
 					try {
 						String rawData = FileUtils.readFileToString(file, Charset.defaultCharset());
 						if( rawData.isEmpty() ) return;
