@@ -82,7 +82,7 @@ public class OS3V2Reader implements IOS3Reader {
 			thisGenerator.setParameters(parameters);
 			thisSpawn.enabled(enabled);
 			thisSpawn.retrogen(retrogen);
-			thisSpawn.create(spawnBiomes, thisGenerator, replacements, spawnedOres.toArray(new OreBuilder[0]));
+			thisSpawn.create(spawnBiomes, thisGenerator, replacements, spawnedOres.stream().toArray(OreBuilder[]::new));
 			thisDim.create(thisSpawn);
 			fileLogic.create(thisDim);
 		}
