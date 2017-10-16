@@ -48,7 +48,7 @@ public class Config {
 	}
 
 	private static void loadExtractedConfigs() {
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "_known-configs.json");
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
 		if( !Files.exists(p) ) return;
 		
 		File in = p.toFile();
@@ -111,7 +111,7 @@ public class Config {
 	
 	private static void saveKnownConfigs() {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "_known-configs.json");
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
 		
 		File in = p.toFile();
 		

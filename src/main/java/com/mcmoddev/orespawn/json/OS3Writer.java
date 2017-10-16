@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn.json;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
@@ -29,12 +30,12 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Writer {
 	private void writeFeatures(String base) {
-		File file = new File(base, "_features.json");
+		File file = new File(Paths.get(base, "sysconf").toString(), "features.json");
 		OreSpawn.FEATURES.writeFeatures(file);
 	}
 
 	private void writeReplacements(String base) {
-		File file = new File(base, "_replacements.json");
+		File file = new File(Paths.get(base, "sysconf").toString(), "replacements.json");
 		Replacements.save(file);
 	}
 
