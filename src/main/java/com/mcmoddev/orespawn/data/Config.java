@@ -1,14 +1,28 @@
 package com.mcmoddev.orespawn.data;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import com.mcmoddev.orespawn.OreSpawn;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import net.minecraft.crash.CrashReport;
 import net.minecraftforge.common.config.Configuration;
 
 public class Config {
@@ -25,11 +39,31 @@ public class Config {
 		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
 		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Force all chunks to retrogen regardless of anything else"));
 		boolVals.put(Constants.REPLACE_VANILLA_OREGEN,  configuration.getBoolean(Constants.REPLACE_VANILLA_OREGEN, Configuration.CATEGORY_GENERAL, false, "Replace vanilla ore-generation entirely"));
-		extractedConfigs.addAll(Arrays.asList(configuration.get(Configuration.CATEGORY_GENERAL, Constants.KNOWN_MODS, new String[0]).getStringList()));
 		knownKeys.add(Constants.RETROGEN_KEY);
 		knownKeys.add(Constants.FORCE_RETROGEN_KEY);
 		knownKeys.add(Constants.REPLACE_VANILLA_OREGEN);
 		knownKeys.add(Constants.KNOWN_MODS);
+		
+		loadExtractedConfigs();
+	}
+
+	private static void loadExtractedConfigs() {
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "_known-configs.json");
+		if( !Files.exists(p) ) return;
+		
+		File in = p.toFile();
+		String rawData = "";
+		
+		try {
+			rawData = FileUtils.readFileToString(in, Charset.defaultCharset());
+		} catch (IOException e) {
+			return;
+		}
+		
+		if( rawData.isEmpty() ) return;
+		
+		JsonArray data = new JsonParser().parse(rawData).getAsJsonArray();
+		data.forEach( item -> addKnownMod(item.getAsString()) );
 	}
 
 	public static List<String> getKnownMods() {
@@ -69,9 +103,29 @@ public class Config {
 	}
 	
 	public static void saveConfig() {
+		if( extractedConfigs.size() > 0 ) {
+			saveKnownConfigs();
+		}
 		configuration.save();
 	}
 	
+	private static void saveKnownConfigs() {
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "_known-configs.json");
+		
+		File in = p.toFile();
+		
+		JsonArray data = new JsonArray();
+		extractedConfigs.forEach( item -> data.add(item) );
+		try {
+			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset() );
+		} catch (IOException e) {
+			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed saving list of already extracted mod configs"));
+			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());			
+		}
+	}
+
 	private static final HashMap<String,Boolean> boolVals = new HashMap<>();
 	private static final HashMap<String,String> stringVals = new HashMap<>();
 	private static final HashMap<String,Integer> intVals = new HashMap<>();

@@ -54,6 +54,8 @@ public class OS3Reader {
 					} else if( "_replacements.json".equals(file.getName())) {
 						Replacements.load(file);
 						return;
+					} else if( file.getName().startsWith("_") ) {
+						return;
 					}
 
 					try {
