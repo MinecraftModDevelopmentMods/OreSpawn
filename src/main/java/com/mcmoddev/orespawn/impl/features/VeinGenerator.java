@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -196,6 +197,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	private void spawnOre(IBlockState oreBlock, World world, BlockPos key, int dimension, List<IBlockState> blockReplace, int nodeSize) {
+		OreSpawn.LOGGER.fatal("Spawning node of %s and size %d at %s in dimension %d", oreBlock, nodeSize, key, dimension);
 		int count = nodeSize;
 		int lutType = offsetIndexRef_small.length;
 		int[] lut = offsetIndexRef_small;

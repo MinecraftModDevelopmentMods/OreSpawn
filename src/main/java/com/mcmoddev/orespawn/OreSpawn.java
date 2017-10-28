@@ -3,8 +3,6 @@ package com.mcmoddev.orespawn;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
-import com.mcmoddev.orespawn.json.OS1Reader;
-import com.mcmoddev.orespawn.json.OS2Reader;
 import com.mcmoddev.orespawn.json.OS3Reader;
 import com.mcmoddev.orespawn.json.OS3Writer;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
@@ -16,7 +14,6 @@ import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +50,6 @@ public class OreSpawn {
     public static final OS3Writer writer = new OS3Writer();
     public static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
-    private String os1ConfigPath;
     protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
     
     public static Map<Integer, List<SpawnBuilder>> getSpawns() {
@@ -66,15 +62,9 @@ public class OreSpawn {
     	
     	PluginLoader.INSTANCE.load(ev);
     	
-    	if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
+    	if( Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
     		MinecraftForge.EVENT_BUS.register(eventHandlers);
-    	}
-    	
-    	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
-    	}
-    	
-    	this.os1ConfigPath = Paths.get(ev.getSuggestedConfigurationFile().toPath().getParent().toString(),"orespawn").toString();
+    	}    	
     }
 
     @EventHandler
@@ -83,8 +73,6 @@ public class OreSpawn {
     	// we prefer the OS3 version of files
     	// but will take OS2 and OS1 versions - in that order
     	OS3Reader.loadEntries();
-    	OS2Reader.loadEntries();
-    	OS1Reader.loadEntries(Paths.get(os1ConfigPath));
     	API.registerSpawns();
     }
 

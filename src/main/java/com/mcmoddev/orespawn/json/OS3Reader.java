@@ -4,7 +4,9 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -13,11 +15,21 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.os3.*;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.data.Constants.ConfigNames;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
 import com.mcmoddev.orespawn.json.os3.readers.*;
 
 import net.minecraft.crash.CrashReport;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 
 public class OS3Reader {
 
@@ -89,7 +101,7 @@ public class OS3Reader {
 							return;
 						}
 
-						reader.parseJson(parsed, file.getName().substring(0, file.getName().lastIndexOf('.')));
+						base_load(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
 					} catch (Exception e) {
 						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 						report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -99,6 +111,59 @@ public class OS3Reader {
 
 	}
 	
+	/**
+	 * Actually parse the normalized data
+	 * @param parseJson normalized data returned by the file loader/normalizer
+	 */
+	private static void base_load(JsonObject parseJson, String filename) {
+		JsonObject work = parseJson.getAsJsonObject("dimensions");
+		BuilderLogic logic = OreSpawn.API.getLogic(filename);
+		
+		OreSpawn.LOGGER.fatal("parseJson: %s\nfilename: %s", parseJson, filename);
+		// at the top-most level we have the dimension sets
+		work.entrySet().forEach( entry -> {
+			int dimension = Integer.parseInt(entry.getKey());
+			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
+			
+			entry.getValue().getAsJsonArray().forEach( ore -> {
+				JsonObject nw = ore.getAsJsonObject();
+				SpawnBuilder spawn = builder.newSpawnBuilder(null);
+				// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
+				List<OreBuilder> blocks = Helpers.loadOres( nw.getAsJsonArray(ConfigNames.BLOCKS), spawn);
+				List<IBlockState> replacements = getReplacements(ConfigNames.V2.REPLACES, dimension);
+				BiomeBuilder biomes = spawn.newBiomeBuilder();
+				
+				if( nw.getAsJsonObject(ConfigNames.BIOMES).size() < 1 ) {
+					biomes.setFromBiomeLocation(Helpers.deserializeBiomeLocationComposition(nw.getAsJsonObject(ConfigNames.BIOMES)));
+				}
+				
+				FeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
+				gen.setDefaultParameters();
+				gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));
+				spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
+				spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
+				spawn.create(biomes, gen, replacements, blocks.stream().toArray(OreBuilder[]::new));
+				builder.create(spawn);
+			});
+			logic.create(builder);
+		});
+	}
+	
+	private static List<IBlockState> getReplacements(String configField, int dimension) {
+		String work = configField.toLowerCase();
+		
+		if( work.equals(ConfigNames.DEFAULT)) {
+			return ReplacementsRegistry.getDimensionDefault(dimension);
+		} else if( work.startsWith("ore:") ) {
+			NonNullList<ItemStack> ores = OreDictionary.getOres(work.substring(4));
+			List<IBlockState> reps = new ArrayList<>();
+			ores.forEach( ore -> reps.add(Block.getBlockFromItem(ore.getItem()).getDefaultState()));
+			return reps;
+		} else {
+			return Arrays.asList( ForgeRegistries.BLOCKS.getValue(new ResourceLocation(configField)).getDefaultState());
+		}
+	}
+
 	public static void loadFromJson(String modName, JsonObject json) {
 		String version = json.get("version").getAsString();
 		IOS3Reader reader = null;

@@ -22,8 +22,8 @@ public abstract class FeatureBase {
 	private static final int MAX_CACHE_SIZE = 1024;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
-	protected final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
-	protected final Deque<Vec3i> cacheOrder = new LinkedList<>();
+	protected static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
+	protected static final Deque<Vec3i> cacheOrder = new LinkedList<>();
 	protected Random random;
 	
 	public FeatureBase( Random rand ) {

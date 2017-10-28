@@ -35,7 +35,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	@SuppressWarnings("unused") private final long nextL;
 
 	public OreSpawnWorldGen(Map<Integer, List<SpawnBuilder>> allDimensions, long nextLong) {
-		this.dimensions = Collections.unmodifiableMap(allDimensions);
+		this.dimensions = Collections.<Integer, List<SpawnBuilder>>unmodifiableMap(allDimensions);
+
 		this.nextL = nextLong;
 		if (SPAWN_BLOCKS.isEmpty()) {
 			SPAWN_BLOCKS.add(Blocks.STONE);
@@ -56,7 +57,6 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		int thisDim = world.provider.getDimension();
 		List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
 		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
-		if( this.dimensions == null ) OreSpawn.LOGGER.fatal("DIMENSIONS IS NULL!"); 
 
 		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
 			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
@@ -75,29 +75,30 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		});
 	}
 	
-	public void retrogen(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {		
-		int thisDim = world.provider.getDimension();
-		List<SpawnBuilder> entries = this.dimensions.get(thisDim);
-		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
+	public void retrogen(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+		if( false ) {
+			int thisDim = world.provider.getDimension();
+			List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
+			if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
 
-		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
-			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
+			if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
+				entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
+			}
+
+			entries.stream()
+			.filter( SpawnBuilder::enabled )
+			.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
+			.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
+			.forEach( sE -> {
+				IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
+				List<IBlockState> replacement = sE.getReplacementBlocks();
+				replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
+
+				currentFeatureGen.setRandom(random);
+				currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
+			});
 		}
-
-		entries.stream()
-		.filter( SpawnBuilder::enabled )
-		.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
-		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
-		.forEach( sE -> {
-			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
-			List<IBlockState> replacement = sE.getReplacementBlocks();
-			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
-
-			currentFeatureGen.setRandom(random);
-			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
-		});
 	}
-
 }
 
 

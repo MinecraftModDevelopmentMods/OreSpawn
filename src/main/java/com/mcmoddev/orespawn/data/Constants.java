@@ -39,9 +39,11 @@ public class Constants {
 		public static final String BIOMES = "biomes";
 		public static final String STATE = "state";
 		public static final String REPLACEMENT = "replace_block";
+		public static final String REPLACEMENT_V2 = "replaces";
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
+		public static final String BLOCK_V2 = "name";
 		public final class V2 {
 			private V2() {}
 			public static final String ENABLED = "enabled";

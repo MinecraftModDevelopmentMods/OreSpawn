@@ -37,6 +37,10 @@ public class BinaryTree {
 	}
 	
 	public OreBuilder getRandomOre(Random rand) {
-		return this.findMatchingNode(rand.nextInt(this.maxVal));
+		OreBuilder mn = this.findMatchingNode(rand.nextInt(this.maxVal));
+		if( mn == null )
+			return this.getRandomOre(rand);
+		else
+			return mn;
 	}
 }

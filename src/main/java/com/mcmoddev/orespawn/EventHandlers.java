@@ -22,12 +22,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.gen.ChunkProviderServer;
 import net.minecraftforge.event.terraingen.OreGenEvent;
+import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
 	private List<ChunkPos> chunks;
@@ -36,10 +38,13 @@ public class EventHandlers {
     	chunks = new ArrayList<>();
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		event.setResult(Event.Result.DENY);
+    		if( event.getType() == EventType.CUSTOM )
+    			event.setResult(Event.Result.ALLOW);
+    		else
+    			event.setResult(Event.Result.DENY);
     	}
     }
     
@@ -82,7 +87,7 @@ public class EventHandlers {
 			return;
 		}
 		
-		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
+		if( Config.getBoolean(Constants.RETROGEN_KEY) && false ) {
             chunks.add(chunkCoords);
 	        Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
