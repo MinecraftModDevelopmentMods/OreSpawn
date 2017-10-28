@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -55,9 +56,16 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
-				int x = blockX + random.nextInt(16) - (maxSpread / 2);
+				int xRand = random.nextInt(16);
+				int zRand = random.nextInt(16);
+				int xzMod = Math.max(xRand, zRand);
+				int mSp = 16 - xzMod;
+				if( maxSpread > 8 )
+					maxSpread = mSp;
+				
+				int x = blockX + random.nextInt(16) - (mSp / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
-				int z = blockZ + random.nextInt(16) - (maxSpread / 2);
+				int z = blockZ + random.nextInt(16) - (mSp / 2);
 
 				int r = medianSize - variance;
 				if(variance > 0){
