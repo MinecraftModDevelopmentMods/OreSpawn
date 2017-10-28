@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
 
@@ -45,6 +46,14 @@ public class OS3V2Reader implements IOS3Reader {
 		
 		work.entrySet().forEach( entry -> {
 			JsonObject lw = entry.getValue().getAsJsonObject();
+			
+			if( lw.getAsJsonArray(ConfigNames.DIMENSIONS).size() <1 ) {
+				JsonArray temp = lw.getAsJsonArray(ConfigNames.DIMENSIONS);
+				temp.add(OreSpawn.API.dimensionWildcard());
+				lw.remove(ConfigNames.DIMENSIONS);
+				lw.add(ConfigNames.DIMENSIONS, temp);
+			}
+			
 			lw.getAsJsonArray(ConfigNames.DIMENSIONS).getAsJsonArray().forEach(
 					dim -> {
 						JsonObject nw = new JsonObject();
@@ -53,15 +62,15 @@ public class OS3V2Reader implements IOS3Reader {
 						.forEach( ent -> nw.add( ent.getKey(), ent.getValue()));
 						JsonArray thisDim = getDimensionData(retVal, dim.getAsInt());
 						thisDim.add(nw);
+						
+						JsonObject dimStore;
 						if( retVal.has(ConfigNames.DIMENSIONS) ) {
-							JsonObject temp = retVal.getAsJsonObject(ConfigNames.DIMENSIONS);
-							temp.add(dim.getAsString(), thisDim);
-							retVal.add(ConfigNames.DIMENSIONS, temp);
+							dimStore = retVal.getAsJsonObject(ConfigNames.DIMENSIONS);
 						} else {
-							JsonObject temp = new JsonObject();
-							temp.add(dim.getAsString(), thisDim);
-							retVal.add(ConfigNames.DIMENSIONS, temp);
+							dimStore= new JsonObject();
 						}
+						dimStore.add(dim.getAsString(), thisDim);
+						retVal.add(ConfigNames.DIMENSIONS, dimStore);
 					});
 			});
 		

@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.api;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -18,8 +19,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 
-public abstract class FeatureBase {
-	private static final int MAX_CACHE_SIZE = 1024;
+public class FeatureBase {
+	private static final int MAX_CACHE_SIZE = 2048;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
 	protected static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
@@ -72,7 +73,7 @@ public abstract class FeatureBase {
 			}
 			overflowCache.put(chunkCoord, new HashMap<BlockPos,IBlockState>());
 		}
-		Map<BlockPos,IBlockState> cache = overflowCache.get(chunkCoord);
+		Map<BlockPos,IBlockState> cache = overflowCache.getOrDefault(chunkCoord, new HashMap<>());
 		cache.put(coord, bs);
 	}
 
@@ -100,12 +101,8 @@ public abstract class FeatureBase {
 		if( target.getBlock().equals(Blocks.AIR) ) {
 			return false;
 		} else {
-			for( IBlockState rep : blockToReplace ) {
-				if( target.equals(rep) ) 
-					return true;
-			}
+			return blockToReplace.contains(target);
 		}
-		return false;
 	}
 
 	protected static final Vec3i[] offsets_small = {

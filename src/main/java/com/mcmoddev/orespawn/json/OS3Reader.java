@@ -119,7 +119,6 @@ public class OS3Reader {
 		JsonObject work = parseJson.getAsJsonObject("dimensions");
 		BuilderLogic logic = OreSpawn.API.getLogic(filename);
 		
-		OreSpawn.LOGGER.fatal("parseJson: %s\nfilename: %s", parseJson, filename);
 		// at the top-most level we have the dimension sets
 		work.entrySet().forEach( entry -> {
 			int dimension = Integer.parseInt(entry.getKey());
@@ -130,7 +129,7 @@ public class OS3Reader {
 				SpawnBuilder spawn = builder.newSpawnBuilder(null);
 				// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
 				List<OreBuilder> blocks = Helpers.loadOres( nw.getAsJsonArray(ConfigNames.BLOCKS), spawn);
-				List<IBlockState> replacements = getReplacements(ConfigNames.V2.REPLACES, dimension);
+				List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
 				BiomeBuilder biomes = spawn.newBiomeBuilder();
 				
 				if( nw.getAsJsonObject(ConfigNames.BIOMES).size() < 1 ) {
@@ -159,6 +158,8 @@ public class OS3Reader {
 			List<IBlockState> reps = new ArrayList<>();
 			ores.forEach( ore -> reps.add(Block.getBlockFromItem(ore.getItem()).getDefaultState()));
 			return reps;
+		} else if( !work.matches(":") ) { // probably a "replacements registry" entry
+			return Arrays.asList(ReplacementsRegistry.getBlock(work));
 		} else {
 			return Arrays.asList( ForgeRegistries.BLOCKS.getValue(new ResourceLocation(configField)).getDefaultState());
 		}

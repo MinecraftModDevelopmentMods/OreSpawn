@@ -63,6 +63,8 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 		this.biomeLocs = biomes.getBiomes();
 		this.featureGen = feature;
 		this.replacementBlocks.addAll(replacements);
+		OreSpawn.LOGGER.fatal("Replacements: %s", this.replacementBlocks);
+		this.replacementBlocks.forEach(bs -> OreSpawn.LOGGER.fatal("replacement>> %s", bs));
 		if( ores.length > 1 ) {
 			for(int i = 0; i < ores.length; i++) {
 				this.myOres.add(ores[i]);

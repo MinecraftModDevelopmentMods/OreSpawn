@@ -70,9 +70,9 @@ public class OreSpawn {
     @EventHandler
     public void init(FMLInitializationEvent ev) {
     	PluginLoader.INSTANCE.register();
-    	// we prefer the OS3 version of files
-    	// but will take OS2 and OS1 versions - in that order
+    	
     	OS3Reader.loadEntries();
+    	writer.writeSysconfIfNonexistent();
     	API.registerSpawns();
     }
 

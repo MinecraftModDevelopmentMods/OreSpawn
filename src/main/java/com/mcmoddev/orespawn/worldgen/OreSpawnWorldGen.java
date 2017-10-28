@@ -61,7 +61,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
 			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
 		}
-
+		
 		entries.stream()
 		.filter( SpawnBuilder::enabled )
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
