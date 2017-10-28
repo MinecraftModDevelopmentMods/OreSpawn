@@ -24,6 +24,14 @@ public class Constants {
 	public static final String CRASH_SECTION = "OreSpawn Version";
 	public static final String KNOWN_MODS = "already-extracted";
 	
+	public final class FileBits {
+		private FileBits() {}
+		
+		public static final String CONFIG_DIR = "config";
+		public static final String OS3 = "orespawn3";
+		public static final String SYSCONF = "sysconf";
+	}
+	
 	public final class ConfigNames {
 		private ConfigNames() {}
 		public static final String DEFAULT = "default";
@@ -39,9 +47,11 @@ public class Constants {
 		public static final String BIOMES = "biomes";
 		public static final String STATE = "state";
 		public static final String REPLACEMENT = "replace_block";
+		public static final String REPLACEMENT_V2 = "replaces";
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
+		public static final String BLOCK_V2 = "name";
 		public final class V2 {
 			private V2() {}
 			public static final String ENABLED = "enabled";

@@ -15,7 +15,9 @@ public class OS3V2PresetStorage {
 	}
 	
 	public void setSymbolSection( String sectionName, String itemName, JsonElement value ) {
-		storage.getOrDefault(sectionName, new HashMap<String, JsonElement>()).put(itemName, value);
+		Map<String, JsonElement> temp = storage.getOrDefault(sectionName, new HashMap<String, JsonElement>());
+		temp.put(itemName, value);
+		storage.put(sectionName, temp);
 	}
 	
 	public JsonElement getSymbolSection( String sectionName, String itemName ) {

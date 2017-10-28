@@ -63,6 +63,7 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 		this.biomeLocs = biomes.getBiomes();
 		this.featureGen = feature;
 		this.replacementBlocks.addAll(replacements);
+		
 		if( ores.length > 1 ) {
 			for(int i = 0; i < ores.length; i++) {
 				this.myOres.add(ores[i]);

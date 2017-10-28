@@ -97,7 +97,7 @@ public class OS3APIImpl implements OS3API {
 					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				}
     		}
-        	OreSpawn.LOGGER.info("Registered spawn logic for mod {}", ent.getKey());
+        	OreSpawn.LOGGER.info("Registered spawn logic from data-file (maybe mod) %s", ent.getKey());
     	}
     	
     	Random random = new Random();

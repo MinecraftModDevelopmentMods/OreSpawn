@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -17,6 +18,8 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 
 public class VeinGenerator extends FeatureBase implements IFeature {
+	private BlockPos minPos;
+	private BlockPos maxPos;
 
 	public VeinGenerator(Random rand) {
 		super( rand );
@@ -40,7 +43,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
-		
+		minPos = new BlockPos(chunkX*16, 0, chunkZ*16);
+		maxPos = new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16);
+
 		int minY = parameters.get("minHeight").getAsInt();
 		int maxY = parameters.get("maxHeight").getAsInt();
 		int vari = parameters.get("variation").getAsInt();
@@ -164,7 +169,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace );
+		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace, minPos, maxPos );
 		// select a direction, decrement length, repeat
 		float curRow = 1.00f;
 		float curCol = 1.00f;
@@ -197,16 +202,18 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 	private void spawnOre(IBlockState oreBlock, World world, BlockPos key, int dimension, List<IBlockState> blockReplace, int nodeSize) {
 		int count = nodeSize;
-		int lutType = offsetIndexRef_small.length;
-		int[] lut = offsetIndexRef_small;
+		int lutType = (count < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
+		int[] lut = (count < 8)?offsetIndexRef_small:offsetIndexRef;
 		Vec3i[] offs = new Vec3i[lutType];
 		
-		System.arraycopy(offsets_small, 0, offs, 0, lutType);
+		System.arraycopy((count < 8)?offsets_small:offsets, 0, offs, 0, lutType);
+		
 		int[] scrambledLUT = new int[lutType];
 		System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 		scramble(scrambledLUT,this.random);
+		
 		while(count > 0){
-			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
+			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace,minPos,maxPos);
 		}
 		return;
 	}

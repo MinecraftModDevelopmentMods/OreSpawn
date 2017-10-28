@@ -52,6 +52,10 @@ public class TreeNode {
 		if( this.left == null ) {
 			return this;
 		}
+
+		if( this.left.getNodeId() > value ) {
+			return this;
+		}
 		
  		return this.left.findNode(value);
 	}

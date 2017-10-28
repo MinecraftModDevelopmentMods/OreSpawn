@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.json.os3.readers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.google.common.collect.ImmutableSet;
@@ -84,8 +85,8 @@ public class Helpers {
 	}
 
 	public static BiomeLocation deserializeBiomeLocationComposition(JsonObject in) {
-		BiomeLocation includes = deserializeBiomeLocationList(in.get(ConfigNames.BiomeStuff.WHITELIST).getAsJsonArray());
-		BiomeLocation excludes = deserializeBiomeLocationList(in.get(ConfigNames.BiomeStuff.BLACKLIST).getAsJsonArray());
+		BiomeLocation includes = in.has(ConfigNames.BiomeStuff.WHITELIST)?deserializeBiomeLocationList(in.get(ConfigNames.BiomeStuff.WHITELIST).getAsJsonArray()):deserializeBiomeLocationList(new JsonArray());
+		BiomeLocation excludes = in.has(ConfigNames.BiomeStuff.BLACKLIST)?deserializeBiomeLocationList(in.get(ConfigNames.BiomeStuff.BLACKLIST).getAsJsonArray()):deserializeBiomeLocationList(new JsonArray());
 		
 		return new BiomeLocationComposition(ImmutableSet.<BiomeLocation>of(includes),
 				ImmutableSet.<BiomeLocation>of(excludes));
@@ -109,7 +110,8 @@ public class Helpers {
 	}
 
 	public static OreBuilder parseOreEntry(JsonObject oreSpawn, SpawnBuilder spawn) {
-		String oreName = oreSpawn.get(ConfigNames.BLOCK).getAsString();
+		String blockName = oreSpawn.has(ConfigNames.BLOCK)?ConfigNames.BLOCK:ConfigNames.BLOCK_V2;
+		String oreName = oreSpawn.get(blockName).getAsString();
 		int chance = oreSpawn.has(ConfigNames.CHANCE)?oreSpawn.get(ConfigNames.CHANCE).getAsInt():100;
 		
 		OreBuilder thisOre = spawn.newOreBuilder();
@@ -135,6 +137,28 @@ public class Helpers {
 		}
 		
 		return retval;
+	}
+
+	public static List<OreBuilder> loadOres(JsonArray oresArray, SpawnBuilder spawn) {
+		List<OreBuilder> rV = new LinkedList<>();
+
+		oresArray.forEach( oreEntry -> {
+			JsonObject work = oreEntry.getAsJsonObject();
+			String oreName = work.get(ConfigNames.BLOCK_V2).getAsString();
+			OreBuilder ores = spawn.newOreBuilder();
+			if ( work.has(ConfigNames.STATE) ||	work.has(ConfigNames.METADATA) ) {
+				Helpers.handleState(work, ores, oreName);
+				rV.add(ores);
+			} else {
+				if( oreName.toLowerCase().startsWith("ore:") ) {
+					rV.addAll( Helpers.loadOreDict( work, spawn ) );
+				} else {
+					rV.add( Helpers.parseOreEntry( work, spawn ) );
+				}
+			}
+		});
+		
+		return rV;
 	}
 
 }

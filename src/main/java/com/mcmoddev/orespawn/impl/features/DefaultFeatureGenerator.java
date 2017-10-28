@@ -18,6 +18,9 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 
 public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
+	private BlockPos minPos;
+	private BlockPos maxPos;
+	
 	public DefaultFeatureGenerator() {
 		super( new Random() );
 	}
@@ -29,7 +32,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
-		
+	
 		mergeDefaults(parameters, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, replaceBlock);
@@ -38,6 +41,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
+		minPos = new BlockPos(chunkX*16, 0, chunkZ*16);
+		maxPos = new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16);
 		
 		int minY = parameters.get("minHeight").getAsInt();
 		int maxY = parameters.get("maxHeight").getAsInt();
@@ -69,6 +74,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			} else {
 				r = 0;
 			}
+			
 			spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock);
 		}
 		
@@ -88,7 +94,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			scramble(scrambledLUT,prng);
 			while(count > 0){
 				IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
+				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock,minPos,maxPos);
 			}
 			return;
 		}

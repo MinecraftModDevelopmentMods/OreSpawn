@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -22,12 +23,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.gen.ChunkProviderServer;
 import net.minecraftforge.event.terraingen.OreGenEvent;
+import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
 	private List<ChunkPos> chunks;
@@ -36,10 +39,17 @@ public class EventHandlers {
     	chunks = new ArrayList<>();
     }
 
-    @SubscribeEvent
+    List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
+    		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
+    		EventType.QUARTZ);
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		event.setResult(Event.Result.DENY);
+    		if( vanillaEvents.contains(event.getType()))
+    			event.setResult(Event.Result.DENY);
+    		else
+    			event.setResult(Event.Result.ALLOW);
     	}
     }
     
