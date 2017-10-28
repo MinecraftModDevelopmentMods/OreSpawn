@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -58,9 +57,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= freq ) {
-				int x = blockX + random.nextInt(8);
+				int x = blockX + random.nextInt(16);
 				int y = random.nextInt(maxY - minY) + minY;
-				int z = blockZ + random.nextInt(8);
+				int z = blockZ + random.nextInt(16);
 
 				final int r;
 				if(vari > 0){

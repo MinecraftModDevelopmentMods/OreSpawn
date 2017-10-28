@@ -52,9 +52,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
-				int x = blockX + random.nextInt(8);
+				int x = blockX + random.nextInt(16);
 				int y = random.nextInt(maxY - minY) + minY;
-				int z = blockZ + random.nextInt(8);
+				int z = blockZ + random.nextInt(16);
 				
 				final int r;
 				if(vari > 0){

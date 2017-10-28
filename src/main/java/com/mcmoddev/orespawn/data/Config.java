@@ -100,7 +100,7 @@ public class Config {
 	}
 	
 	public static void saveConfig() {
-		if( extractedConfigs.isEmpty() ) {
+		if( !extractedConfigs.isEmpty() ) {
 			saveKnownConfigs();
 		}
 		configuration.save();
@@ -109,6 +109,9 @@ public class Config {
 	private static void saveKnownConfigs() {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
+		
+		if( !p.toFile().getParentFile().exists() )
+			p.toFile().mkdirs();
 		
 		File in = p.toFile();
 		
