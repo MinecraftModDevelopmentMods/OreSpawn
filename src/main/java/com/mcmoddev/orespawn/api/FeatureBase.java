@@ -42,6 +42,18 @@ public class FeatureBase {
 	}
 	
 	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
+			List<IBlockState> blockReplace, BlockPos min, BlockPos max) {
+		if( coord.getX() < min.getX() ||
+			coord.getX() > max.getX() ||
+			coord.getZ() < min.getZ() ||
+			coord.getZ() > max.getZ() ) {
+			cacheOverflowBlock(oreBlock,coord,dimension);
+		} else {	
+			spawn(oreBlock, world, coord, dimension, cacheOverflow, blockReplace);
+		}
+	}
+	
+	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
 			List<IBlockState> blockReplace) {
 		if( oreBlock == null ) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");

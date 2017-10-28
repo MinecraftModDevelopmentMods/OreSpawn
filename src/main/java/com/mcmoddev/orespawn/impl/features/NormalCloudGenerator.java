@@ -16,6 +16,8 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 
 public class NormalCloudGenerator extends FeatureBase implements IFeature {
+	private BlockPos minPos;
+	private BlockPos maxPos;
 
 	public NormalCloudGenerator(Random rand) {
 		super(rand);
@@ -40,7 +42,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
-		
+		minPos = new BlockPos(chunkX*16, 0, chunkZ*16);
+		maxPos = new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16);
+
 		int maxSpread  = parameters.get("max-spread").getAsInt();
 		int medianSize = parameters.get("median-size").getAsInt();
 		int minHeight  = parameters.get("min-height").getAsInt();
@@ -92,14 +96,14 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int minHeight = params[parms.MINHEIGHT.ordinal()];
 		int maxHeight = params[parms.MAXHEIGHT.ordinal()];
 		
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
+		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace, minPos, maxPos);
 		int count = size - 1;
 		while( count >= 0 ) {
 			BlockPos p = new BlockPos(blockPos);
 			p.add( getPoint(minHeight, maxHeight, maxSpread/2), 
 					getPoint(minHeight, maxHeight, maxSpread/2), 
 					getPoint(minHeight, maxHeight, maxSpread/2) );
-			spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace);
+			spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace,minPos,maxPos);
 			count--;
 		}
 	}

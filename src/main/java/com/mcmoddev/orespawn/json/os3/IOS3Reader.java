@@ -31,6 +31,9 @@ public interface IOS3Reader {
 			case ConfigNames.CHANCE:
 				blockEntry.addProperty(ConfigNames.CHANCE, prop.getValue().getAsNumber());
 				break;
+			case ConfigNames.REPLACEMENT:
+				oreOut.addProperty(ConfigNames.REPLACEMENT_V2, prop.getValue().getAsString());
+				break;
 			default:
 				if( !oreOut.has(prop.getKey()) ) 
 					oreOut.add(prop.getKey(), prop.getValue());	
