@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -38,13 +39,17 @@ public class EventHandlers {
     	chunks = new ArrayList<>();
     }
 
+    List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
+    		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
+    		EventType.QUARTZ);
+
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		if( event.getType() == EventType.CUSTOM )
-    			event.setResult(Event.Result.ALLOW);
-    		else
+    		if( vanillaEvents.contains(event.getType()))
     			event.setResult(Event.Result.DENY);
+    		else
+    			event.setResult(Event.Result.ALLOW);
     	}
     }
     
@@ -87,7 +92,7 @@ public class EventHandlers {
 			return;
 		}
 		
-		if( Config.getBoolean(Constants.RETROGEN_KEY) && false ) {
+		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
             chunks.add(chunkCoords);
 	        Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);

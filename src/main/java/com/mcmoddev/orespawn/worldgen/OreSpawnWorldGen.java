@@ -76,28 +76,26 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	}
 	
 	public void retrogen(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
-		if( false ) {
-			int thisDim = world.provider.getDimension();
-			List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
-			if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
+		int thisDim = world.provider.getDimension();
+		List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
+		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
 
-			if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
-				entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
-			}
-
-			entries.stream()
-			.filter( SpawnBuilder::enabled )
-			.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
-			.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
-			.forEach( sE -> {
-				IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
-				List<IBlockState> replacement = sE.getReplacementBlocks();
-				replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
-
-				currentFeatureGen.setRandom(random);
-				currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
-			});
+		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
+			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
 		}
+
+		entries.stream()
+		.filter( SpawnBuilder::enabled )
+		.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
+		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
+		.forEach( sE -> {
+			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
+			List<IBlockState> replacement = sE.getReplacementBlocks();
+			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
+
+			currentFeatureGen.setRandom(random);
+			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
+		});
 	}
 }
 

@@ -24,6 +24,14 @@ public class Constants {
 	public static final String CRASH_SECTION = "OreSpawn Version";
 	public static final String KNOWN_MODS = "already-extracted";
 	
+	public final class FileBits {
+		private FileBits() {}
+		
+		public static final String CONFIG_DIR = "config";
+		public static final String OS3 = "orespawn3";
+		public static final String SYSCONF = "sysconf";
+	}
+	
 	public final class ConfigNames {
 		private ConfigNames() {}
 		public static final String DEFAULT = "default";

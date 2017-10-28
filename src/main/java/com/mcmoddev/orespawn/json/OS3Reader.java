@@ -2,7 +2,6 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,7 +40,7 @@ public class OS3Reader {
 	}
 
 	public static void loadEntries() {
-		File directory = new File("config","orespawn3");
+		File directory = new File(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3);
 		JsonParser parser = new JsonParser();
 
 		if( !directory.exists() ) {
@@ -60,8 +59,8 @@ public class OS3Reader {
 			return;
 		}
 
-		if( Files.exists(Paths.get("config","orespawn3","sysconf")) && Files.isDirectory(Paths.get("config","orespawn3","sysconf")) ) {
-			Arrays.stream( Paths.get("config","orespawn3","sysconf").toFile().listFiles() )
+		if( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().exists() && Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().isDirectory() ) {
+			Arrays.stream( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().listFiles() )
 			.filter( file -> "json".equals(FilenameUtils.getExtension(file.getName())))
 			.forEach( file -> {
 				String filename = file.getName();
@@ -101,7 +100,7 @@ public class OS3Reader {
 							return;
 						}
 
-						base_load(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
+						finallyParse(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
 					} catch (Exception e) {
 						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 						report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -115,7 +114,7 @@ public class OS3Reader {
 	 * Actually parse the normalized data
 	 * @param parseJson normalized data returned by the file loader/normalizer
 	 */
-	private static void base_load(JsonObject parseJson, String filename) {
+	private static void finallyParse(JsonObject parseJson, String filename) {
 		JsonObject work = parseJson.getAsJsonObject("dimensions");
 		BuilderLogic logic = OreSpawn.API.getLogic(filename);
 		

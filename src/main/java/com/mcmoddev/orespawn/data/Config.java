@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -19,7 +17,6 @@ import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import net.minecraft.crash.CrashReport;
@@ -49,7 +46,7 @@ public class Config {
 
 	private static void loadExtractedConfigs() {
 		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
-		if( !Files.exists(p) ) return;
+		if( !p.toFile().exists() ) return;
 		
 		File in = p.toFile();
 		String rawData = "";
@@ -103,7 +100,7 @@ public class Config {
 	}
 	
 	public static void saveConfig() {
-		if( extractedConfigs.size() > 0 ) {
+		if( extractedConfigs.isEmpty() ) {
 			saveKnownConfigs();
 		}
 		configuration.save();
@@ -120,7 +117,7 @@ public class Config {
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset() );
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed saving list of already extracted mod configs"));
+			CrashReport report = CrashReport.makeCrashReport(e, "Failed saving list of already extracted mod configs");
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());			
 		}

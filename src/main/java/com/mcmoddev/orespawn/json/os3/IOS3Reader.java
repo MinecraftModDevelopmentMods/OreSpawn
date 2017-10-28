@@ -5,12 +5,11 @@ import java.util.Map.Entry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 
 public interface IOS3Reader {
-	public static final OS3V2PresetStorage storage = new OS3V2PresetStorage();
+	OS3V2PresetStorage storage = new OS3V2PresetStorage();
 	
 	JsonObject parseJson(JsonObject entries, String fileName);
 	

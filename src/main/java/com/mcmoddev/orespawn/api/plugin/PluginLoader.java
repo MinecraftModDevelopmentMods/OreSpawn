@@ -115,11 +115,11 @@ public enum PluginLoader {
 					InputStream reader = null;
 					Path target;
 					if( "_features".equals(FilenameUtils.getBaseName(name)) ) {
-						target = Paths.get("config","orespaw3","sysconf",String.format("features-%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF,String.format("features-%s.json", modId));
 					} else if("_replacements".equals(FilenameUtils.getBaseName(name))) {
-						target = Paths.get("config","orespaw3","sysconf", String.format("replacements-%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF, String.format("replacements-%s.json", modId));
 					} else {
-						target = Paths.get("config","orespawn3",String.format("%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,String.format("%s.json", modId));
 					}
 					
 					if( !target.toFile().exists() ) {

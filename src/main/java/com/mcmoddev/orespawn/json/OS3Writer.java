@@ -30,12 +30,12 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Writer {
 	private void writeFeatures(String base) {
-		File file = new File(Paths.get(base, "sysconf").toString(), "features-default.json");
+		File file = new File(Paths.get(base, Constants.FileBits.SYSCONF).toString(), "features-default.json");
 		OreSpawn.FEATURES.writeFeatures(file);
 	}
 
 	private void writeReplacements(String base) {
-		File file = new File(Paths.get(base, "sysconf").toString(), "replacements-default.json");
+		File file = new File(Paths.get(base, Constants.FileBits.SYSCONF).toString(), "replacements-default.json");
 		Replacements.save(file);
 	}
 
@@ -171,11 +171,11 @@ public class OS3Writer {
 
 	public void writeSysconfIfNonexistent() {
 		String base = String.format(".%1$sconfig%1$sorespawn3", File.separator);
-		if( !Paths.get(base, "sysconf", "features-default.json").toFile().exists() ) {
+		if( !Paths.get(base, Constants.FileBits.SYSCONF, "features-default.json").toFile().exists() ) {
 			writeFeatures(base);
 		}
 		
-		if( !Paths.get(base, "sysconf", "replacements-default.json").toFile().exists() ) {
+		if( !Paths.get(base, Constants.FileBits.SYSCONF, "replacements-default.json").toFile().exists() ) {
 			writeReplacements(base);
 		}
 	}

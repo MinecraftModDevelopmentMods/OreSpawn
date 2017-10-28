@@ -36,7 +36,7 @@ public final class OS3V1Reader implements IOS3Reader {
 				oreOut.add("biomes", new JsonObject());
 				dimData.add(oreOut);
 			}
-			retVal.getAsJsonObject("dimensions").add(""+dimension, dimData);
+			retVal.getAsJsonObject("dimensions").add(Integer.toString(dimension), dimData);
 		}
 		
 		return retVal;

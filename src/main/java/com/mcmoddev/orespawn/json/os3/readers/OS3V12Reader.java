@@ -33,7 +33,7 @@ public class OS3V12Reader implements IOS3Reader {
 				
 				dimData.add(oreOut);
 			}
-			retVal.getAsJsonObject("dimensions").add(""+dimension, dimData);
+			retVal.getAsJsonObject("dimensions").add(Integer.toString(dimension), dimData);
 		}
 		
 		return retVal;

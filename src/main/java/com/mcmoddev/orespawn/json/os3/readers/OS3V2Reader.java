@@ -34,16 +34,6 @@ public class OS3V2Reader implements IOS3Reader {
 		JsonObject work = new JsonObject();
 		spawns.entrySet().forEach( entry -> work.add( entry.getKey(), replaceVariables(entry.getValue().getAsJsonObject())));
 		
-		// normalized data looks like the v1.2 format in a lot of ways
-		// {
-		//   "dimensions": {
-		//     "dimension_id_as_string":
-		//       [
-		//         ... entry set ...
-		//       ]
-		//    }
-		// }
-		
 		work.entrySet().forEach( entry -> {
 			JsonObject lw = entry.getValue().getAsJsonObject();
 			

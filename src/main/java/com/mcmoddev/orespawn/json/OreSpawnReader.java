@@ -2,7 +2,6 @@ package com.mcmoddev.orespawn.json;
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -38,7 +37,7 @@ public class OreSpawnReader {
 	}
 
 	private void parseSpawnsV3() {
-		File directory = new File("config","orespawn3");
+		File directory = new File(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3);
 		File[] files;
 
 		if( !directory.exists() ) {
@@ -100,8 +99,8 @@ public class OreSpawnReader {
 	}
 
 	private void loadFeaturesAndReplacements() {
-		if( Files.exists(Paths.get("config","orespawn3","sysconf")) && Files.isDirectory(Paths.get("config","orespawn3","sysconf")) ) {
-			Arrays.stream( Paths.get("config","orespawn3","sysconf").toFile().listFiles() )
+		if( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().exists() && Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().isDirectory() ) {
+			Arrays.stream( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().listFiles() )
 			.filter( file -> "json".equals(FilenameUtils.getExtension(file.getName())))
 			.forEach( file -> {
 				String filename = file.getName();
