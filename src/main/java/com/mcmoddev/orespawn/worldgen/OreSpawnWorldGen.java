@@ -65,9 +65,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		
 		entries.stream()
 		.filter( SpawnBuilder::enabled )
-		.filter( sb -> (Config.getBoolean(Constants.RETROGEN_KEY) && sb.retrogen()) || 
-				(Config.getBoolean(Constants.RETROGEN_KEY) && Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) )
-		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
+		.filter( sb -> (Config.getBoolean(Constants.RETROGEN_KEY) && (sb.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY))) ||
+						  !Config.getBoolean(Constants.RETROGEN_KEY))
+		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || 
+				ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
 			List<IBlockState> replacement = sE.getReplacementBlocks();
