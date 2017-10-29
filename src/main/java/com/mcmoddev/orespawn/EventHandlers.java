@@ -2,9 +2,11 @@ package com.mcmoddev.orespawn;
 
 import java.util.LinkedList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
@@ -34,12 +36,12 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
-	private List<ChunkPos> chunks;
-	private List<ChunkPos> retroChunks;
+	private Deque<ChunkPos> chunks;
+	private Deque<ChunkPos> retroChunks;
 	
     public EventHandlers() {
-    	chunks = new LinkedList<>();
-    	retroChunks = new LinkedList<>();
+    	chunks = new ConcurrentLinkedDeque<>();
+    	retroChunks = new ConcurrentLinkedDeque<>();
     }
 
     List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
@@ -117,18 +119,15 @@ public class EventHandlers {
 		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {			
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 			if( featuresAreDifferent( chunkTag, world.provider.getDimension() ) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) ) {
-				chunks.add(chunkCoords);
+				chunks.addLast(chunkCoords);
 			}
 		}
 	}
 
 
 	private boolean featuresAreDifferent(NBTTagCompound chunkTag, int dim) {
-		boolean rV = ((countOres(dim) != chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount()) ||
+		return ((countOres(dim) != chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount()) ||
 				compFeatures(chunkTag.getTagList(Constants.FEATURES_TAG, 8), dim));
-		OreSpawn.LOGGER.fatal("featuresAreDifferent: %s", rV);
-		
-		return rV;
 	}
 
 	private boolean compFeatures(NBTTagList tagList, int dim) {
@@ -157,12 +156,9 @@ public class EventHandlers {
 
 	private void doBedrockRetrogen(ChunkPos chunkCoords, NBTTagCompound eventData) {
 		if( retroChunks.contains(chunkCoords) ) return;
+		
 		if( Config.getBoolean(Constants.RETRO_BEDROCK) ) {
-			NBTTagCompound chunkTag = eventData.getCompoundTag(Constants.CHUNK_TAG_NAME);
-			if( chunkTag != null && (!chunkTag.hasKey( Constants.RETRO_BEDROCK_TAG ) || !chunkTag.getBoolean(Constants.RETRO_BEDROCK_TAG))) {
-				// make sure we record that we've hit this chunk already
-				retroChunks.add(chunkCoords);
-			}
+			retroChunks.addLast(chunkCoords);
 		}
 	}
 
@@ -186,20 +182,19 @@ public class EventHandlers {
 		World world = ev.world;
 		
 		if( ev.phase == Phase.END ) {
-			for( int c = 0; c < 5 && chunks.size() > 0; c++ ) {
-				ChunkPos p = chunks.get(0);
+			for( int c = 0; c < 5 && !chunks.isEmpty(); c++ ) {
+				ChunkPos p = chunks.pop();
 				Random random = new Random(world.getSeed());
 				// re-seed with something totally new :P
 				random.setSeed( (((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z)) ^ world.getSeed() );
 				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
 				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
 				OreSpawn.API.getGenerator().generate(random, p.x, p.z, world, chunkGenerator, chunkProvider);
-				chunks.remove(0);
 			}
 			
-			for( int c = 0; c < 5 && retroChunks.size() > 0; c++ ) {
-				OreSpawn.flatBedrock.retrogen(world, retroChunks.get(0).x, retroChunks.get(0).z);
-				retroChunks.remove(0);
+			for( int c = 0; c < 5 && !retroChunks.isEmpty(); c++ ) {
+				ChunkPos p = retroChunks.pop();
+				OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
 			}
 		}
 	}
