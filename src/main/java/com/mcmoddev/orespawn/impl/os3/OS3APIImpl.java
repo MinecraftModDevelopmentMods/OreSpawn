@@ -23,7 +23,8 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class OS3APIImpl implements OS3API {
 	private final Map<String, BuilderLogic> logic;
-
+	private OreSpawnWorldGen generator;
+	
     public OS3APIImpl() {
     	this.logic = new HashMap<>();
     }
@@ -102,10 +103,14 @@ public class OS3APIImpl implements OS3API {
     	
     	Random random = new Random();
    
-        OreSpawnWorldGen worldGenerator  = new OreSpawnWorldGen(spawns, random.nextLong());
+        this.generator = new OreSpawnWorldGen(spawns, random.nextLong());
 
-    	GameRegistry.registerWorldGenerator(worldGenerator, 100);
+    	GameRegistry.registerWorldGenerator(generator, 100);
             
 	}
 
+	@Override
+	public OreSpawnWorldGen getGenerator() {
+		return this.generator;
+	}
 }

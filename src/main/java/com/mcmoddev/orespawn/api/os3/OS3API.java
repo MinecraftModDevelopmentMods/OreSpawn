@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -25,4 +26,6 @@ public interface OS3API {
 	void registerLogic( @Nonnull BuilderLogic logic );
 	ImmutableMap<String, BuilderLogic> getSpawns();
 	void registerSpawns();
+	
+	OreSpawnWorldGen getGenerator();
 }

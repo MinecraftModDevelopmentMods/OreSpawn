@@ -17,8 +17,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 
 public class VeinGenerator extends FeatureBase implements IFeature {
-	private BlockPos minPos;
-	private BlockPos maxPos;
 
 	public VeinGenerator(Random rand) {
 		super( rand );
@@ -42,8 +40,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
-		minPos = new BlockPos(chunkX*16, 0, chunkZ*16);
-		maxPos = new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16);
 
 		int minY = parameters.get("minHeight").getAsInt();
 		int maxY = parameters.get("maxHeight").getAsInt();
@@ -168,7 +164,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace, minPos, maxPos );
+		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
 		// select a direction, decrement length, repeat
 		float curRow = 1.00f;
 		float curCol = 1.00f;
@@ -212,7 +208,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		scramble(scrambledLUT,this.random);
 		
 		while(count > 0){
-			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace,minPos,maxPos);
+			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 		}
 		return;
 	}

@@ -3,12 +3,9 @@ package com.mcmoddev.orespawn;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
-
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
@@ -26,8 +23,6 @@ import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -45,9 +40,7 @@ public class EventHandlers {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
-    	OreSpawn.LOGGER.fatal("onGenerateMinable(%s)", event);
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-			OreSpawn.LOGGER.fatal("Generate Event (%s)", event.getType());
     		if( vanillaEvents.contains(event.getType())) {
     			event.setResult(Event.Result.DENY);
     		}
@@ -94,28 +87,22 @@ public class EventHandlers {
 		}
 		
 		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
-            chunks.add(chunkCoords);
-	        Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
+			chunks.add(chunkCoords);
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 			int count = chunkTag==null?0:chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount();
 			if( count != countOres(ev.getWorld().provider.getDimension()) ||
 					Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
-                for (Iterator<IWorldGenerator> iterator = worldGens.iterator(); iterator.hasNext();)
-                {
-                    IWorldGenerator wg = iterator.next();
-                    if( !(wg instanceof OreSpawnWorldGen) ) break;
-                    OreSpawnWorldGen owg = (OreSpawnWorldGen) wg;
-                    long worldSeed = world.getSeed();
-                    Random fmlRandom = new Random(worldSeed);
-                    long xSeed = fmlRandom.nextLong() >> 2 + 1L;
-                    long zSeed = fmlRandom.nextLong() >> 2 + 1L;
-                    long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
+				OreSpawnWorldGen owg = OreSpawn.API.getGenerator();
+				long worldSeed = world.getSeed();
+				Random fmlRandom = new Random(worldSeed);
+				long xSeed = fmlRandom.nextLong() >> 2 + 1L;
+				long zSeed = fmlRandom.nextLong() >> 2 + 1L;
+				long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
 
-                    fmlRandom.setSeed(chunkSeed);
-                    ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
-                    IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-                    owg.retrogen(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
-                }
+				fmlRandom.setSeed(chunkSeed);
+				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
+				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
+				owg.generate(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
 			}
 		}
 	}

@@ -73,7 +73,6 @@ public class Config {
 	
 	public static boolean getBoolean(String keyname) {
 		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
-			OreSpawn.LOGGER.fatal("boolean key: %s, value: %s", keyname, boolVals.get(keyname));
 			return boolVals.get(keyname);
 		}
 		return false;
@@ -117,7 +116,7 @@ public class Config {
 		File in = p.toFile();
 		
 		JsonArray data = new JsonArray();
-		extractedConfigs.forEach( item -> data.add(item) );
+		extractedConfigs.forEach( data::add );
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset() );
 		} catch (IOException e) {
