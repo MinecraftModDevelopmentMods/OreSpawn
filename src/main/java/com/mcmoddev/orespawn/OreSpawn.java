@@ -64,6 +64,7 @@ public class OreSpawn {
     	
     	if( Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
     		MinecraftForge.EVENT_BUS.register(eventHandlers);
+    		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
     	}    	
     }
 

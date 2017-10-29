@@ -41,15 +41,16 @@ public class EventHandlers {
 
     List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
     		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
-    		EventType.QUARTZ);
+    		EventType.QUARTZ, EventType.SILVERFISH);
 
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
+    	OreSpawn.LOGGER.fatal("onGenerateMinable(%s)", event);
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		if( vanillaEvents.contains(event.getType()))
+			OreSpawn.LOGGER.fatal("Generate Event (%s)", event.getType());
+    		if( vanillaEvents.contains(event.getType())) {
     			event.setResult(Event.Result.DENY);
-    		else
-    			event.setResult(Event.Result.ALLOW);
+    		}
     	}
     }
     

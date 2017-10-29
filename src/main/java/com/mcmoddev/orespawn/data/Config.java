@@ -73,6 +73,7 @@ public class Config {
 	
 	public static boolean getBoolean(String keyname) {
 		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
+			OreSpawn.LOGGER.fatal("boolean key: %s, value: %s", keyname, boolVals.get(keyname));
 			return boolVals.get(keyname);
 		}
 		return false;
