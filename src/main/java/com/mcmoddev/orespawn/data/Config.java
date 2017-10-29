@@ -36,10 +36,16 @@ public class Config {
 		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
 		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Force all chunks to retrogen regardless of anything else"));
 		boolVals.put(Constants.REPLACE_VANILLA_OREGEN,  configuration.getBoolean(Constants.REPLACE_VANILLA_OREGEN, Configuration.CATEGORY_GENERAL, false, "Replace vanilla ore-generation entirely"));
+		boolVals.put(Constants.FLAT_BEDROCK,  configuration.getBoolean(Constants.FLAT_BEDROCK, Configuration.CATEGORY_GENERAL, false, "Flatten the bedrock during world generation"));
+		boolVals.put(Constants.RETRO_BEDROCK,  configuration.getBoolean(Constants.RETRO_BEDROCK, Configuration.CATEGORY_GENERAL, false, "Retroactively flatten bedrock (currently disabled due to bugs)"));
+		intVals.put(Constants.BEDROCK_LAYERS, configuration.getInt(Constants.BEDROCK_LAYERS, Configuration.CATEGORY_GENERAL, 1, 1, 4, "How thick should the shell of bedrock be?"));
 		knownKeys.add(Constants.RETROGEN_KEY);
 		knownKeys.add(Constants.FORCE_RETROGEN_KEY);
 		knownKeys.add(Constants.REPLACE_VANILLA_OREGEN);
 		knownKeys.add(Constants.KNOWN_MODS);
+		knownKeys.add(Constants.FLAT_BEDROCK);
+		knownKeys.add(Constants.RETRO_BEDROCK);
+		knownKeys.add(Constants.BEDROCK_LAYERS);
 		
 		loadExtractedConfigs();
 	}
@@ -72,6 +78,8 @@ public class Config {
 	}
 	
 	public static boolean getBoolean(String keyname) {
+		//if( keyname.equals(Constants.RETRO_BEDROCK) ) return false;
+		
 		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
 			return boolVals.get(keyname);
 		}

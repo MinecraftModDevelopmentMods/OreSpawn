@@ -53,14 +53,11 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			if( this.random.nextInt(100) <= frequency ) {
 				int xRand = random.nextInt(16);
 				int zRand = random.nextInt(16);
-				int xzMod = Math.max(xRand, zRand);
-				int mSp = 16 - xzMod;
-				if( maxSpread > 8 )
-					maxSpread = mSp;
+				int mSp = maxSpread;
 				
-				int x = blockX + random.nextInt(16) - (mSp / 2);
+				int x = blockX + xRand - (mSp / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
-				int z = blockZ + random.nextInt(16) - (mSp / 2);
+				int z = blockZ + zRand - (mSp / 2);
 
 				int r = medianSize - variance;
 				if(variance > 0){

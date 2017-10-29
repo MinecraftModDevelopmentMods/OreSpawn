@@ -23,6 +23,10 @@ public class Constants {
 	public static final String CLUSTERS = "clusters";
 	public static final String CRASH_SECTION = "OreSpawn Version";
 	public static final String KNOWN_MODS = "already-extracted";
+	public static final String RETRO_BEDROCK = "Retrogen Flat Bedrock";
+	public static final String FLAT_BEDROCK = "Flatten Bedrock";
+	public static final String RETRO_BEDROCK_TAG = "retro-bedrock";
+	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	
 	public final class FileBits {
 		private FileBits() {}

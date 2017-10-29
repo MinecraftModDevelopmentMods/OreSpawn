@@ -54,7 +54,7 @@ public class FeatureBase {
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
 			if(canReplace(targetBlock,blockToReplace)) {
-				world.setBlockState(coord, oreBlock, 2);
+				world.setBlockState(coord, oreBlock, 22);
 			}
 		} else if(cacheOverflow){
 			cacheOverflowBlock(oreBlock,coord,dimension);

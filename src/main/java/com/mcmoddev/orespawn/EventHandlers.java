@@ -1,6 +1,6 @@
 package com.mcmoddev.orespawn;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +12,7 @@ import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
+import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
@@ -29,9 +30,11 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
 	private List<ChunkPos> chunks;
+	private List<ChunkPos> retroChunks;
 	
     public EventHandlers() {
-    	chunks = new ArrayList<>();
+    	chunks = new LinkedList<>();
+    	retroChunks = new LinkedList<>();
     }
 
     List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
@@ -52,6 +55,8 @@ public class EventHandlers {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 		NBTTagList ores = new NBTTagList();
 		NBTTagList features = new NBTTagList();
+		boolean retro = retroChunks.contains( new ChunkPos(ev.getChunk().x, ev.getChunk().z) );
+		
 		features.appendTag( new NBTTagString("orespawn:default"));
 		
 		for( Entry<String, BuilderLogic> ent : OreSpawn.API.getSpawns().entrySet() ) {
@@ -72,6 +77,7 @@ public class EventHandlers {
 		
 		dataTag.setTag(Constants.ORE_TAG, ores);
 		dataTag.setTag(Constants.FEATURES_TAG, features);
+		dataTag.setBoolean(Constants.RETRO_BEDROCK_TAG, retro);
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 	
@@ -81,6 +87,9 @@ public class EventHandlers {
 		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
 		int chunkX = ev.getChunk().x;
 		int chunkZ = ev.getChunk().z;
+
+		
+		doBlockRetrogen(world, chunkCoords, ev.getData());
 		
 		if( chunks.contains(chunkCoords) ) {
 			return;
@@ -88,6 +97,7 @@ public class EventHandlers {
 		
 		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
 			chunks.add(chunkCoords);
+			
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 			int count = chunkTag==null?0:chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount();
 			if( count != countOres(ev.getWorld().provider.getDimension()) ||
@@ -107,6 +117,18 @@ public class EventHandlers {
 		}
 	}
 
+
+	private void doBlockRetrogen(World world, ChunkPos chunkCoords, NBTTagCompound eventData) {
+		if( retroChunks.contains(chunkCoords) ) return;
+		if( Config.getBoolean(Constants.RETRO_BEDROCK) ) {
+			NBTTagCompound chunkTag = eventData.getCompoundTag(Constants.CHUNK_TAG_NAME);
+			if( chunkTag != null && (!chunkTag.hasKey( Constants.RETRO_BEDROCK_TAG ) || !chunkTag.getBoolean(Constants.RETRO_BEDROCK_TAG))) {
+				// make sure we record that we've hit this chunk already
+				retroChunks.add(chunkCoords);
+				OreSpawn.flatBedrock.retrogen(world, chunkCoords.x, chunkCoords.z);
+			}
+		}
+	}
 
 	private int countOres(int dim) {
 		int acc = 0;
