@@ -1,20 +1,18 @@
 package com.mcmoddev.orespawn;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
-
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
+import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
@@ -26,30 +24,29 @@ import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
 	private List<ChunkPos> chunks;
+	private List<ChunkPos> retroChunks;
 	
     public EventHandlers() {
-    	chunks = new ArrayList<>();
+    	chunks = new LinkedList<>();
+    	retroChunks = new LinkedList<>();
     }
 
     List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
     		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
-    		EventType.QUARTZ);
+    		EventType.QUARTZ, EventType.SILVERFISH);
 
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
     	if( Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) ) {
-    		if( vanillaEvents.contains(event.getType()))
+    		if( vanillaEvents.contains(event.getType())) {
     			event.setResult(Event.Result.DENY);
-    		else
-    			event.setResult(Event.Result.ALLOW);
+    		}
     	}
     }
     
@@ -58,6 +55,8 @@ public class EventHandlers {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 		NBTTagList ores = new NBTTagList();
 		NBTTagList features = new NBTTagList();
+		boolean retro = retroChunks.contains( new ChunkPos(ev.getChunk().x, ev.getChunk().z) );
+		
 		features.appendTag( new NBTTagString("orespawn:default"));
 		
 		for( Entry<String, BuilderLogic> ent : OreSpawn.API.getSpawns().entrySet() ) {
@@ -78,6 +77,7 @@ public class EventHandlers {
 		
 		dataTag.setTag(Constants.ORE_TAG, ores);
 		dataTag.setTag(Constants.FEATURES_TAG, features);
+		dataTag.setBoolean(Constants.RETRO_BEDROCK_TAG, retro);
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 	
@@ -87,38 +87,48 @@ public class EventHandlers {
 		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
 		int chunkX = ev.getChunk().x;
 		int chunkZ = ev.getChunk().z;
+
+		
+		doBlockRetrogen(world, chunkCoords, ev.getData());
 		
 		if( chunks.contains(chunkCoords) ) {
 			return;
 		}
 		
 		if( Config.getBoolean(Constants.RETROGEN_KEY) ) {
-            chunks.add(chunkCoords);
-	        Set<IWorldGenerator> worldGens = ObfuscationReflectionHelper.getPrivateValue(GameRegistry.class, null, "worldGenerators");
+			chunks.add(chunkCoords);
+			
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 			int count = chunkTag==null?0:chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount();
 			if( count != countOres(ev.getWorld().provider.getDimension()) ||
 					Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
-                for (Iterator<IWorldGenerator> iterator = worldGens.iterator(); iterator.hasNext();)
-                {
-                    IWorldGenerator wg = iterator.next();
-                    if( !(wg instanceof OreSpawnWorldGen) ) break;
-                    OreSpawnWorldGen owg = (OreSpawnWorldGen) wg;
-                    long worldSeed = world.getSeed();
-                    Random fmlRandom = new Random(worldSeed);
-                    long xSeed = fmlRandom.nextLong() >> 2 + 1L;
-                    long zSeed = fmlRandom.nextLong() >> 2 + 1L;
-                    long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
+				OreSpawnWorldGen owg = OreSpawn.API.getGenerator();
+				long worldSeed = world.getSeed();
+				Random fmlRandom = new Random(worldSeed);
+				long xSeed = fmlRandom.nextLong() >> 2 + 1L;
+				long zSeed = fmlRandom.nextLong() >> 2 + 1L;
+				long chunkSeed = (xSeed * chunkCoords.x + zSeed * chunkCoords.z) ^ worldSeed;
 
-                    fmlRandom.setSeed(chunkSeed);
-                    ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
-                    IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-                    owg.retrogen(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
-                }
+				fmlRandom.setSeed(chunkSeed);
+				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
+				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
+				owg.generate(fmlRandom, chunkX, chunkZ, world, chunkGenerator, chunkProvider);
 			}
 		}
 	}
 
+
+	private void doBlockRetrogen(World world, ChunkPos chunkCoords, NBTTagCompound eventData) {
+		if( retroChunks.contains(chunkCoords) ) return;
+		if( Config.getBoolean(Constants.RETRO_BEDROCK) ) {
+			NBTTagCompound chunkTag = eventData.getCompoundTag(Constants.CHUNK_TAG_NAME);
+			if( chunkTag != null && (!chunkTag.hasKey( Constants.RETRO_BEDROCK_TAG ) || !chunkTag.getBoolean(Constants.RETRO_BEDROCK_TAG))) {
+				// make sure we record that we've hit this chunk already
+				retroChunks.add(chunkCoords);
+				OreSpawn.flatBedrock.retrogen(world, chunkCoords.x, chunkCoords.z);
+			}
+		}
+	}
 
 	private int countOres(int dim) {
 		int acc = 0;

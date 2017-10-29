@@ -36,21 +36,8 @@ public class FeatureBase {
 		
 		if( !cache.isEmpty() ) { // if there is something in the cache, try to spawn it
 			for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
-				spawn( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), false,
-						blockReplace, new BlockPos(chunkX*16,0,chunkZ*16), new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16));
+				spawn( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), false, blockReplace);
 			}
-		}
-	}
-	
-	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
-			List<IBlockState> blockReplace, BlockPos min, BlockPos max) {
-		if( coord.getX() < min.getX() ||
-			coord.getX() > max.getX() ||
-			coord.getZ() < min.getZ() ||
-			coord.getZ() > max.getZ() ) {
-			cacheOverflowBlock(oreBlock,coord,dimension);
-		} else {	
-			spawn(oreBlock, world, coord, dimension, cacheOverflow, blockReplace);
 		}
 	}
 	
@@ -67,7 +54,7 @@ public class FeatureBase {
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
 			if(canReplace(targetBlock,blockToReplace)) {
-				world.setBlockState(coord, oreBlock, 2);
+				world.setBlockState(coord, oreBlock, 22);
 			}
 		} else if(cacheOverflow){
 			cacheOverflowBlock(oreBlock,coord,dimension);

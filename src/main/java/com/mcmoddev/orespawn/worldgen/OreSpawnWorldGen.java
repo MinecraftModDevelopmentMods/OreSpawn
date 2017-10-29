@@ -55,7 +55,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			IChunkProvider chunkProvider) {
 		
 		int thisDim = world.provider.getDimension();
-		List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
+		List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>()).stream().collect(Collectors.toList());
+		
 		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
 
 		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.getOrDefault(OreSpawn.API.dimensionWildcard(), new ArrayList<>()).isEmpty()) ) {
@@ -64,6 +65,8 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		
 		entries.stream()
 		.filter( SpawnBuilder::enabled )
+		.filter( sb -> (Config.getBoolean(Constants.RETROGEN_KEY) && sb.retrogen()) || 
+				(Config.getBoolean(Constants.RETROGEN_KEY) && Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) )
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
@@ -73,30 +76,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
 		});
-	}
-	
-	public void retrogen(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
-		int thisDim = world.provider.getDimension();
-		List<SpawnBuilder> entries = this.dimensions.getOrDefault(thisDim, new ArrayList<>());
-		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
-
-		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.get(OreSpawn.API.dimensionWildcard()).isEmpty()) ) {
-			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
-		}
-
-		entries.stream()
-		.filter( SpawnBuilder::enabled )
-		.filter( ent -> ent.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY) )
-		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || ent.getBiomes().getBiomes().isEmpty() )
-		.forEach( sE -> {
-			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
-			List<IBlockState> replacement = sE.getReplacementBlocks();
-			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
-
-			currentFeatureGen.setRandom(random);
-			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement);
-		});
-	}
+	}	
 }
 
 

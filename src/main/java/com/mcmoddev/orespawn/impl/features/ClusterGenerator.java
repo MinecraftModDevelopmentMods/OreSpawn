@@ -17,8 +17,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 
 public class ClusterGenerator extends FeatureBase implements IFeature {
-	private BlockPos minPos;
-	private BlockPos maxPos;
 
 	public ClusterGenerator(Random rand) {
 		super(rand);
@@ -43,8 +41,6 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
-		minPos = new BlockPos(chunkX*16, 0, chunkZ*16);
-		maxPos = new BlockPos((chunkX+1)*16,256,(chunkZ+1)*16);
 
 		int maxSpread    = parameters.get("max-spread").getAsInt();
 		int clusterSize  = parameters.get("cluster-size").getAsInt();
@@ -59,14 +55,11 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			if( this.random.nextInt(100) <= frequency ) {
 				int xRand = random.nextInt(16);
 				int zRand = random.nextInt(16);
-				int xzMod = Math.max(xRand, zRand);
-				int mSp = 16 - xzMod;
-				if( maxSpread > 8 )
-					maxSpread = mSp;
+				int mSp = maxSpread;
 				
-				int x = blockX + random.nextInt(16) - (mSp / 2);
+				int x = blockX + xRand - (mSp / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
-				int z = blockZ + random.nextInt(16) - (mSp / 2);
+				int z = blockZ + zRand - (mSp / 2);
 				int[] params = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
 
 				spawnCluster(ores, new BlockPos(x,y,z), params, random, world, blockReplace);
@@ -143,7 +136,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			scramble(scrambledLUT,prng);
 			while(count > 0){
 				IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace,minPos,maxPos);
+				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 			}
 			return;
 		}
