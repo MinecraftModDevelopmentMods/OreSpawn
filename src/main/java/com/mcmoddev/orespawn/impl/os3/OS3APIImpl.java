@@ -15,6 +15,7 @@ import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
+import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import net.minecraft.block.Block;
@@ -24,9 +25,11 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 public class OS3APIImpl implements OS3API {
 	private final Map<String, BuilderLogic> logic;
 	private OreSpawnWorldGen generator;
+	private OS3V2PresetStorage presets;
 	
     public OS3APIImpl() {
     	this.logic = new HashMap<>();
+    	this.presets = new OS3V2PresetStorage();
     }
 
 	@Override
@@ -112,5 +115,10 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public OreSpawnWorldGen getGenerator() {
 		return this.generator;
+	}
+	
+	@Override
+	public OS3V2PresetStorage getPresets() {
+		return this.presets;
 	}
 }

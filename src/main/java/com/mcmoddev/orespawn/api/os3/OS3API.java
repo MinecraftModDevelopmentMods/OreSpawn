@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import net.minecraft.block.Block;
@@ -28,4 +29,5 @@ public interface OS3API {
 	void registerSpawns();
 	
 	OreSpawnWorldGen getGenerator();
+	OS3V2PresetStorage getPresets();
 }

@@ -27,4 +27,16 @@ public class OS3V2PresetStorage {
 			return new JsonPrimitive(itemName);
 		}
 	}
+	
+	public void copy(OS3V2PresetStorage dest) {
+		storage.entrySet().stream()
+		.forEach( ensm -> {
+			String section = ensm.getKey();
+			ensm.getValue().entrySet().forEach( ensje -> dest.setSymbolSection( section, ensje.getKey(), ensje.getValue()));
+		});
+	}
+	
+	public void clear() {
+		this.storage.clear();
+	}
 }
