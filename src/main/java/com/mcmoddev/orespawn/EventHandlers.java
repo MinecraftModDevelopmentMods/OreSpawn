@@ -60,7 +60,6 @@ public class EventHandlers {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 		NBTTagList ores = new NBTTagList();
 		NBTTagList features = new NBTTagList();
-		boolean retro = retroChunks.contains( new ChunkPos(ev.getChunk().x, ev.getChunk().z) );
 		
 		features.appendTag( new NBTTagString("orespawn:default"));
 		
@@ -99,9 +98,7 @@ public class EventHandlers {
 			dataTag.setTag(Constants.ORE_TAG, ores);
 			dataTag.setTag(Constants.FEATURES_TAG, features);
 		} 
-		
-		
-		dataTag.setBoolean(Constants.RETRO_BEDROCK_TAG, retro);
+				
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 	
@@ -110,7 +107,7 @@ public class EventHandlers {
 		World world = ev.getWorld();
 		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
 		
-		doBedrockRetrogen(chunkCoords, ev.getData());
+		doBedrockRetrogen(chunkCoords);
 		
 		if( chunks.contains(chunkCoords) ) {
 			return;
@@ -154,7 +151,7 @@ public class EventHandlers {
 		return featureList.size() == tagList.tagCount();
 	}
 
-	private void doBedrockRetrogen(ChunkPos chunkCoords, NBTTagCompound eventData) {
+	private void doBedrockRetrogen(ChunkPos chunkCoords) {
 		if( retroChunks.contains(chunkCoords) ) return;
 		
 		if( Config.getBoolean(Constants.RETRO_BEDROCK) ) {
