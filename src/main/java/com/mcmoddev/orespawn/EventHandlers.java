@@ -86,8 +86,8 @@ public class EventHandlers {
 		
 		List<FeatureBuilder> featureList = new LinkedList<>();
 		
-		spawns.stream()
-		.map( sp -> featureList.addAll(sp.getAllSpawns().stream().map( SpawnBuilder::getFeatureGen ).collect(Collectors.toList())) );
+		spawns.forEach( sp -> featureList.addAll(sp.getAllSpawns().stream().map( SpawnBuilder::getFeatureGen ).collect(Collectors.toList())));
+		
 		featureList.stream()
 		.map( feat -> new NBTTagString( feat.getFeatureName() ) )
 		.forEach( features::appendTag );
@@ -145,8 +145,7 @@ public class EventHandlers {
 		
 		List<FeatureBuilder> featureList = new LinkedList<>();
 		
-		spawns.stream()
-		.map( sp -> featureList.addAll(sp.getAllSpawns().stream().map( SpawnBuilder::getFeatureGen ).collect(Collectors.toList())) );
+		spawns.forEach( sp -> featureList.addAll(sp.getAllSpawns().stream().map( SpawnBuilder::getFeatureGen ).collect(Collectors.toList())));
 		
 		return featureList.size() == tagList.tagCount();
 	}
