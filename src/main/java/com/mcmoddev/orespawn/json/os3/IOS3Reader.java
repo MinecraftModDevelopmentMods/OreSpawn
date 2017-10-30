@@ -129,7 +129,6 @@ public interface IOS3Reader {
 		String section = bits[0];
 		String item = bits[1];
 		JsonElement rV = getStorage().getSymbolSection(section, item);
-		OreSpawn.LOGGER.fatal("Section: %s, Item: %s, value returned: %s", section, item, rV);
 		return rV;
 	}
 

@@ -127,10 +127,7 @@ public class OS3Reader {
 				.forEach( entry -> {
 					String section = entry.getKey();
 					entry.getValue().getAsJsonObject().entrySet().stream()
-					.forEach( pres -> {
-						OreSpawn.LOGGER.fatal("Loading preset, section %s, item %s (%s)", section, pres.getKey(), pres.getValue());
-						OreSpawn.API.getPresets().setSymbolSection(section, pres.getKey(), pres.getValue());
-					});
+					.forEach( pres -> OreSpawn.API.getPresets().setSymbolSection(section, pres.getKey(), pres.getValue()) );
 				});
 			} catch( IOException exc ) {
 				CrashReport report = CrashReport.makeCrashReport(exc, "Failed reading presets " + presets.toFile().getName());
