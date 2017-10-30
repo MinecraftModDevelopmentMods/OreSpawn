@@ -1,7 +1,9 @@
 package com.mcmoddev.orespawn.json;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,8 +12,10 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import com.google.common.base.Charsets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.*;
@@ -59,6 +63,9 @@ public class OS3Reader {
 			return;
 		}
 
+		Path presets = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF, Constants.FileBits.PRESETS);
+		loadPresets( presets );
+		
 		if( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().exists() && Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().isDirectory() ) {
 			Arrays.stream( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().listFiles() )
 			.filter( file -> "json".equals(FilenameUtils.getExtension(file.getName())))
@@ -103,11 +110,35 @@ public class OS3Reader {
 						finallyParse(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
 					} catch (Exception e) {
 						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
-						report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+						report.getCategory().addCrashSection(Constants.ORESPAWN_VERSION_CRASH_MESSAGE, Constants.VERSION);
 						OreSpawn.LOGGER.info(report.getCompleteReport());
 					}
 				});
 
+	}
+	
+	private static void loadPresets(Path presets) {
+		if( presets.toFile().exists() ) {
+			try {
+				JsonParser parser = new JsonParser();
+				String rawJson = FileUtils.readFileToString(presets.toFile(), Charsets.UTF_8);
+				JsonObject top = parser.parse(rawJson).getAsJsonObject();
+				top.entrySet().stream()
+				.forEach( entry -> {
+					String section = entry.getKey();
+					entry.getValue().getAsJsonObject().entrySet().stream()
+					.forEach( pres -> OreSpawn.API.getPresets().setSymbolSection(section, pres.getKey(), pres.getValue()) );
+				});
+			} catch( IOException exc ) {
+				CrashReport report = CrashReport.makeCrashReport(exc, "Failed reading presets " + presets.toFile().getName());
+				report.getCategory().addCrashSection(Constants.ORESPAWN_VERSION_CRASH_MESSAGE, Constants.VERSION);
+				OreSpawn.LOGGER.info(report.getCompleteReport());
+			} catch( JsonParseException ex ) {
+				CrashReport report = CrashReport.makeCrashReport(ex, "Failed loading or parsing " + presets.toFile().getName());
+				report.getCategory().addCrashSection(Constants.ORESPAWN_VERSION_CRASH_MESSAGE, Constants.VERSION);
+				OreSpawn.LOGGER.info(report.getCompleteReport());
+			}
+		}
 	}
 	
 	/**

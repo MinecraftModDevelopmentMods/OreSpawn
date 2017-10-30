@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn.json;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map.Entry;
 
@@ -17,6 +18,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.api.os3.BuilderLogic;
 import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
@@ -177,6 +179,36 @@ public class OS3Writer {
 		
 		if( !Paths.get(base, Constants.FileBits.SYSCONF, "replacements-default.json").toFile().exists() ) {
 			writeReplacements(base);
+		}
+	}
+
+	public void writeAddOreEntry(String fileName) {
+		BuilderLogic ent = OreSpawn.API.getLogic(fileName);
+		
+		JsonArray dimensions = new JsonArray();
+		for( Entry<Integer, DimensionBuilder> dim : ent.getAllDimensions().entrySet() ) {
+			JsonObject dimension = new JsonObject();
+			
+			if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
+				dimension.addProperty(ConfigNames.DIMENSION, String.format("%d", dim.getKey()));
+			}
+
+			JsonArray spawns = this.genSpawns(dim.getValue().getAllSpawns());
+			
+			if( spawns.size() > 0 ) {
+				dimension.add(ConfigNames.ORES, spawns);
+				dimensions.add(dimension);
+			}
+		}
+		
+		if( countOres(dimensions) > 0 ) {
+			Path p = Paths.get("config", "orespawn3", "force-written");
+			if( !p.toFile().exists() ) p.toFile().mkdirs();
+			File file = Paths.get(p.toString(), String.format("%s-addOre.json", fileName)).toFile();
+			JsonObject wrapper = new JsonObject();
+			wrapper.addProperty(ConfigNames.FILE_VERSION, "1.2");
+			wrapper.add(ConfigNames.DIMENSIONS, dimensions);
+			this.writeFile(file, wrapper);
 		}
 	}
 }

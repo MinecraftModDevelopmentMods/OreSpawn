@@ -27,6 +27,7 @@ public class Constants {
 	public static final String FLAT_BEDROCK = "Flatten Bedrock";
 	public static final String RETRO_BEDROCK_TAG = "retro-bedrock";
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
+	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
 	
 	public final class FileBits {
 		private FileBits() {}
@@ -34,6 +35,7 @@ public class Constants {
 		public static final String CONFIG_DIR = "config";
 		public static final String OS3 = "orespawn3";
 		public static final String SYSCONF = "sysconf";
+		public static final String PRESETS = "presets.json";
 	}
 	
 	public final class ConfigNames {

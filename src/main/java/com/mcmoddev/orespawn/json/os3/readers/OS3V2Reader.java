@@ -8,8 +8,16 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
+import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 
 public class OS3V2Reader implements IOS3Reader {
+	private OS3V2PresetStorage storage = new OS3V2PresetStorage();
+
+	@Override
+	public OS3V2PresetStorage getStorage() {
+		return this.storage;
+	}
+	
 	@Override
 	public JsonObject parseJson(JsonObject entries, String fileName) {
 		// do we have any presets ?
@@ -17,6 +25,9 @@ public class OS3V2Reader implements IOS3Reader {
 		JsonObject spawns = entries.getAsJsonObject("spawns");
 		JsonObject retVal = new JsonObject();
 
+		storage.clear();
+		OreSpawn.API.getPresets().copy(storage);
+		
 		if( hasPresets ) {
 			for( Entry<String, JsonElement> preset : entries.get("presets").getAsJsonObject().entrySet() ) {
 				String sectionName = preset.getKey();

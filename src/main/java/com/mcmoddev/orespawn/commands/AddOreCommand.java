@@ -53,9 +53,9 @@ public class AddOreCommand extends CommandBase {
             throw new CommandException("You have no item in your main hand");
         } else if (!(stack.getItem() instanceof ItemBlock)) {
             throw new CommandException("The item in your main hand isn't a block");
-        } else if (args.length <= 2) {
+        } else if (args.length < 2 ) {
             throw new CommandException(this.getUsage(sender));
-        } else {
+        } else if( args.length > 2 ){
         	jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();        	
         }
         
@@ -66,7 +66,7 @@ public class AddOreCommand extends CommandBase {
         int dimension = OreSpawn.API.dimensionWildcard();
 
         try {
-            if (!args[1].equals(ALL)) {
+            if (!args[1].equalsIgnoreCase(ALL)) {
                 dimension = Integer.parseInt(args[1]);
             }
         } catch (NumberFormatException e) {
@@ -139,6 +139,7 @@ public class AddOreCommand extends CommandBase {
     	db.create(sb);
     	OreSpawn.API.getLogic(file).create(db);
     	OreSpawn.API.registerLogic(OreSpawn.API.getLogic(file));
+    	OreSpawn.writer.writeAddOreEntry(file);
 	}
 
     @Override
