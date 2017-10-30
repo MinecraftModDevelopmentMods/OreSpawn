@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 
@@ -128,8 +127,7 @@ public interface IOS3Reader {
 		String[] bits = rawVal.split("\\.");
 		String section = bits[0];
 		String item = bits[1];
-		JsonElement rV = getStorage().getSymbolSection(section, item);
-		return rV;
+		return getStorage().getSymbolSection(section, item);
 	}
 
 }

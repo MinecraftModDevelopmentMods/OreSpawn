@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -173,8 +172,10 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int rowAdj = 2;
 		EnumFace faceToUse = EnumFace.getRandomFace(random);
 		int l = length;
+		BlockPos workPos = new BlockPos(blockPos);
+		
 		while ( l > 0 ) {
-			blockPos = adjustPos(blockPos, colAdj, rowAdj, faceToUse);
+			workPos = adjustPos(workPos, colAdj, rowAdj, faceToUse);
 			
 			l--;
 			// allow for the "wandering vein" parameter
@@ -191,7 +192,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					curRow /= 10;
 				}
 
-				spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize);
+				spawnOre(ores.getRandomOre(random).getOre(), world, workPos, world.provider.getDimension(), blockReplace, nodeSize);
 
 				// when nodes are small, the veins get badly broken if we do face wandering
 				if( nodeSize > 2 ) {

@@ -112,10 +112,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				r += random.nextInt(2 * variance) - variance;
 			}
 			
-			BlockPos p = new BlockPos(blockPos);
-			p.add( getPoint(minHeight, maxHeight, maxSpread/2), 
-					getPoint(minHeight, maxHeight, maxSpread/2), 
-					getPoint(minHeight, maxHeight, maxSpread/2) );
+			BlockPos p = blockPos.add( getPoint(minHeight, maxHeight, maxSpread/2), 
+									   getPoint(minHeight, maxHeight, maxSpread/2), 
+									   getPoint(minHeight, maxHeight, maxSpread/2) );
 			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random);
 			count -= r;
 		}
