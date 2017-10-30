@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.util.BinaryTree;
@@ -143,10 +144,10 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	};
 	
-	private void adjustPos(BlockPos pos, int row, int col, EnumFace face) {
+	private BlockPos adjustPos(BlockPos pos, int row, int col, EnumFace face) {
 		int faceOrd = face.ordinal();
 		int[] adjust = facePosMap[faceOrd][row][col];
-		pos.add(adjust[0],adjust[1],adjust[2]);
+		return pos.add(adjust[0],adjust[1],adjust[2]);
 	}
 	
 	private enum parms {
@@ -164,7 +165,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
+		spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize);
 		// select a direction, decrement length, repeat
 		float curRow = 1.00f;
 		float curCol = 1.00f;
@@ -173,8 +174,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		EnumFace faceToUse = EnumFace.getRandomFace(random);
 		int l = length;
 		while ( l > 0 ) {
-			adjustPos(blockPos, colAdj, rowAdj, faceToUse);
-			spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize );		
+			blockPos = adjustPos(blockPos, colAdj, rowAdj, faceToUse);
+			
 			l--;
 			// allow for the "wandering vein" parameter
 			if( random.nextInt(100) <= wander ) {
@@ -190,7 +191,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					curRow /= 10;
 				}
 
-				faceToUse = EnumFace.getRandomFace(random);
+				spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize);
+
+				// when nodes are small, the veins get badly broken if we do face wandering
+				if( nodeSize > 2 ) {
+					faceToUse = EnumFace.getRandomFace(random);
+				}
 			}
 		}
 	}
