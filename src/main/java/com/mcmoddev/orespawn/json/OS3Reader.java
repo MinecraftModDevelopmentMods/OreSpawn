@@ -188,10 +188,10 @@ public class OS3Reader {
 			List<IBlockState> reps = new ArrayList<>();
 			ores.forEach( ore -> reps.add(Block.getBlockFromItem(ore.getItem()).getDefaultState()));
 			return reps;
-		} else if( !work.matches(":") ) { // probably a "replacements registry" entry
+		} else if( !work.contains(":") ) { // probably a "replacements registry" entry
 			return Arrays.asList(ReplacementsRegistry.getBlock(work));
 		} else {
-			return Arrays.asList( ForgeRegistries.BLOCKS.getValue(new ResourceLocation(configField)).getDefaultState());
+			return Arrays.asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(configField)).getDefaultState());
 		}
 	}
 
