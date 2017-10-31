@@ -6,7 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -27,7 +27,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -89,7 +89,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
 	}
 	
-	private void spawnCloud(BinaryTree ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+	private void spawnCloud(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 		int size = params[parms.SIZE.ordinal()];
 		int maxSpread = params[parms.MAXSPREAD.ordinal()];

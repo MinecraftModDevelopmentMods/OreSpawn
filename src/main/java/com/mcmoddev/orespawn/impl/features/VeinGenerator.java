@@ -6,7 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -28,7 +28,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -153,7 +153,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		LENGTH, NODESIZE, WANDER;
 	}
 	
-	private void spawnVein(BlockPos blockPos, BinaryTree ores, int[] params, World world, Random random,
+	private void spawnVein(BlockPos blockPos, OreList ores, int[] params, World world, Random random,
 			List<IBlockState> blockReplace) {		
 		// passed in POS is our start - we start with a weighting favoring straight directions
 		// and three-quarters that to the edges

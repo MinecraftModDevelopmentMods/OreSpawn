@@ -6,7 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -28,7 +28,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -87,7 +87,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		SIZE, VARIANCE, CCOUNT, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
 	}
 	
-	private void spawnCluster(BinaryTree ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+	private void spawnCluster(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
 		int size = params[parms.SIZE.ordinal()];
 		int variance = params[parms.VARIANCE.ordinal()];
 		int clusterCount = params[parms.CCOUNT.ordinal()];
@@ -120,7 +120,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnChunk(BinaryTree ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
+	private void spawnChunk(OreList ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
 			Random prng) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
@@ -145,7 +145,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		return;		
 	}
 
-	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, BinaryTree possibleOres ) {
+	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres ) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
@@ -158,7 +158,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 
 	private void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> blockReplace, int count, BinaryTree possibleOres ) {
+			List<IBlockState> blockReplace, int count, OreList possibleOres ) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -179,7 +179,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 
 	private void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> blockReplace, int count, BinaryTree possibleOres) {
+			List<IBlockState> blockReplace, int count, OreList possibleOres) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
