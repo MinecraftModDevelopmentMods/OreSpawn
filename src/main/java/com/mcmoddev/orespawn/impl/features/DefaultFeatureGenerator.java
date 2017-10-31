@@ -6,7 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -26,7 +26,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, BinaryTree ores, List<IBlockState> replaceBlock ) {
+			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> replaceBlock ) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -76,7 +76,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		
 	}
 
-	public void spawnOre( BlockPos blockPos, BinaryTree possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock) {
+	public void spawnOre( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -100,7 +100,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		return;
 	}
 
-	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, BinaryTree possibleOres ) {
+	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres ) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
@@ -113,7 +113,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 
 	private void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, BinaryTree possibleOres) {
+			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -134,7 +134,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 
 	private void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, BinaryTree possibleOres) {
+			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){

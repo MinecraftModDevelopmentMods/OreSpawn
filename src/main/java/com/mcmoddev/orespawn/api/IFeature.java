@@ -4,7 +4,7 @@ import java.util.Random;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.ChunkPos;
@@ -14,7 +14,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 public interface IFeature {
 	void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace );
+			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> blockReplace );
 	
 	void setRandom(Random rand);
 	

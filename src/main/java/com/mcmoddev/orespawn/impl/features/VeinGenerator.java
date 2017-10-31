@@ -6,7 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -28,7 +28,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, BinaryTree ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -143,17 +143,17 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	};
 	
-	private void adjustPos(BlockPos pos, int row, int col, EnumFace face) {
+	private BlockPos adjustPos(BlockPos pos, int row, int col, EnumFace face) {
 		int faceOrd = face.ordinal();
 		int[] adjust = facePosMap[faceOrd][row][col];
-		pos.add(adjust[0],adjust[1],adjust[2]);
+		return pos.add(adjust[0],adjust[1],adjust[2]);
 	}
 	
 	private enum parms {
 		LENGTH, NODESIZE, WANDER;
 	}
 	
-	private void spawnVein(BlockPos blockPos, BinaryTree ores, int[] params, World world, Random random,
+	private void spawnVein(BlockPos blockPos, OreList ores, int[] params, World world, Random random,
 			List<IBlockState> blockReplace) {		
 		// passed in POS is our start - we start with a weighting favoring straight directions
 		// and three-quarters that to the edges
@@ -164,7 +164,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
+		spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize);
 		// select a direction, decrement length, repeat
 		float curRow = 1.00f;
 		float curCol = 1.00f;
@@ -172,9 +172,11 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int rowAdj = 2;
 		EnumFace faceToUse = EnumFace.getRandomFace(random);
 		int l = length;
+		BlockPos workPos = new BlockPos(blockPos);
+		
 		while ( l > 0 ) {
-			adjustPos(blockPos, colAdj, rowAdj, faceToUse);
-			spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize );		
+			workPos = adjustPos(workPos, colAdj, rowAdj, faceToUse);
+			
 			l--;
 			// allow for the "wandering vein" parameter
 			if( random.nextInt(100) <= wander ) {
@@ -190,7 +192,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					curRow /= 10;
 				}
 
-				faceToUse = EnumFace.getRandomFace(random);
+				spawnOre(ores.getRandomOre(random).getOre(), world, workPos, world.provider.getDimension(), blockReplace, nodeSize);
+
+				// when nodes are small, the veins get badly broken if we do face wandering
+				if( nodeSize > 2 ) {
+					faceToUse = EnumFace.getRandomFace(random);
+				}
 			}
 		}
 	}

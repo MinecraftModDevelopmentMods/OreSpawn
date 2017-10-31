@@ -1,7 +1,11 @@
 package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -9,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
-import com.mcmoddev.orespawn.util.BinaryTree;
+import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 
@@ -22,7 +26,7 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	private FeatureBuilder featureGen;
 	private List<IBlockState> replacementBlocks;
 	private List<OreBuilder> myOres;
-	private BinaryTree oreSpawns;
+	private OreList oreList;
 	private boolean enabled = true;
 	private boolean retrogen = false;
 	
@@ -94,33 +98,12 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 		return this.featureGen;
 	}
 
-	@Override
-	public BinaryTree getOreSpawns() {
-		if( this.oreSpawns == null ) {
-			this.buildOreSpawnTree();
-		}
+	private void buildSpawnList() {
+		if( this.oreList != null ) return;
+
+		this.oreList = new OreList();
 		
-		return this.oreSpawns;
-	}
-
-	private void buildOreSpawnTree() {
-		if( this.myOres.size() > 1 ) {
-			int maxVal = 0;
-			for( OreBuilder os : this.myOres ) {
-				maxVal += os.getChance();
-			}
-
-			int median = maxVal / 2;
-			int count = 0;
-			this.oreSpawns = new BinaryTree(median);
-			for( OreBuilder os : this.myOres ) {
-				count += os.getChance();
-				this.oreSpawns.addNode(os, count);
-			}
-		} else {
-			this.oreSpawns = new BinaryTree(50);
-			this.oreSpawns.makeRoot(this.myOres.get(0));
-		}
+		this.oreList.build(Collections.unmodifiableList(this.myOres));
 	}
 
 	@Override
@@ -141,5 +124,21 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	@Override
 	public void retrogen(boolean enabled) {
 		this.retrogen = enabled;
+	}
+
+	@Override
+	public OreBuilder getRandomOre(Random rand) {
+		if( this.oreList == null )
+			this.buildSpawnList();
+		
+		return this.oreList.getRandomOre(rand);
+	}
+
+	@Override
+	public OreList getOreSpawns() {
+		if( this.oreList == null )
+			this.buildSpawnList();
+		
+		return this.oreList;
 	}
 }
