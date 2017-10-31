@@ -37,6 +37,7 @@ public class OS3V11Reader implements IOS3Reader {
 				oreOut.add("biomes", biomeObj);
 				
 				copyOverSingleBlock(ore,oreOut);
+				oreOut.addProperty("name", getBlockName(ore));
 				
 				dimData.add(oreOut);
 			}

@@ -155,24 +155,30 @@ public class OS3Reader {
 			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
 			
 			entry.getValue().getAsJsonArray().forEach( ore -> {
-				JsonObject nw = ore.getAsJsonObject();
-				SpawnBuilder spawn = builder.newSpawnBuilder(null);
-				// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
-				List<OreBuilder> blocks = Helpers.loadOres( nw.getAsJsonArray(ConfigNames.BLOCKS), spawn);
-				List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
-				BiomeBuilder biomes = spawn.newBiomeBuilder();
-				
-				if( nw.getAsJsonObject(ConfigNames.BIOMES).size() < 1 ) {
-					biomes.setFromBiomeLocation(Helpers.deserializeBiomeLocationComposition(nw.getAsJsonObject(ConfigNames.BIOMES)));
+				try {
+					JsonObject nw = ore.getAsJsonObject();
+					SpawnBuilder spawn = builder.newSpawnBuilder(null);
+					// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
+					List<OreBuilder> blocks = Helpers.loadOres( nw.getAsJsonArray(ConfigNames.BLOCKS), spawn);
+					List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
+					BiomeBuilder biomes = spawn.newBiomeBuilder();
+
+					if( nw.getAsJsonObject(ConfigNames.BIOMES).size() < 1 ) {
+						biomes.setFromBiomeLocation(Helpers.deserializeBiomeLocationComposition(nw.getAsJsonObject(ConfigNames.BIOMES)));
+					}
+
+					FeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
+					gen.setDefaultParameters();
+					gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));
+					spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
+					spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
+					spawn.create(biomes, gen, replacements, blocks.stream().toArray(OreBuilder[]::new));
+					builder.create(spawn);
+				} catch( JsonParseException ex ) {
+					OreSpawn.LOGGER.error("Error parsing entry %s : %s", ore.getAsJsonObject().get("name").getAsString(), ex);
+				} catch( NullPointerException npe ) {
+					OreSpawn.LOGGER.error("Exception parsing entry %s : possibly mis-named or missing item ?", ore.getAsJsonObject().get("name").getAsString());
 				}
-				
-				FeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
-				gen.setDefaultParameters();
-				gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));
-				spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
-				spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
-				spawn.create(biomes, gen, replacements, blocks.stream().toArray(OreBuilder[]::new));
-				builder.create(spawn);
 			});
 			logic.create(builder);
 		});

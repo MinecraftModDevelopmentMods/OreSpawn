@@ -32,6 +32,7 @@ public class OS3V12Reader implements IOS3Reader {
 				ore.entrySet().forEach( prop -> oreOut.add(prop.getKey(), prop.getValue()));
 				
 				dimData.add(oreOut);
+				oreOut.addProperty("name", getBlockNameMulti(ore));
 			}
 			retVal.getAsJsonObject("dimensions").add(Integer.toString(dimension), dimData);
 		}

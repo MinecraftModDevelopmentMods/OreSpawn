@@ -6,6 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
@@ -40,11 +41,11 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 		
-		int minY = parameters.get("minHeight").getAsInt();
-		int maxY = parameters.get("maxHeight").getAsInt();
-		int vari = parameters.get("variation").getAsInt();
-		float freq = parameters.get("frequency").getAsFloat();
-		int size = parameters.get("size").getAsInt();
+		int minY = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxY = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int vari = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
+		float freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsFloat();
+		int size = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 		
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
@@ -156,11 +157,11 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	@Override
 	public JsonObject getDefaultParameters() {
 		JsonObject defParams = new JsonObject();
-		defParams.addProperty("minHeight", 0);
-		defParams.addProperty("maxHeight", 256);
-		defParams.addProperty("variation", 16);
-		defParams.addProperty("frequency", 0.5);
-		defParams.addProperty("size", 8);
+		defParams.addProperty(Constants.FormatBits.MIN_HEIGHT, 0);
+		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 256);
+		defParams.addProperty(Constants.FormatBits.VARIATION, 16);
+		defParams.addProperty(Constants.FormatBits.FREQUENCY, 0.5);
+		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 8);
 		return defParams;
 	}
 

@@ -6,6 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
@@ -42,14 +43,14 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 
-		int maxSpread    = parameters.get("max-spread").getAsInt();
-		int clusterSize  = parameters.get("cluster-size").getAsInt();
-		int clusterCount = parameters.get("cluster-count").getAsInt();
-		int minHeight    = parameters.get("min-height").getAsInt();
-		int maxHeight    = parameters.get("max-height").getAsInt();
-		int variance     = parameters.get("variance").getAsInt();
-		int frequency    = parameters.get("frequency").getAsInt();
-		int tries        = parameters.get("tries-per-chunk").getAsInt();
+		int maxSpread  = parameters.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		int minHeight  = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxHeight  = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int variance   = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
+		int frequency  = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int clusterSize  = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		int clusterCount = parameters.get(Constants.FormatBits.NODE_COUNT).getAsInt();
 		
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
@@ -206,14 +207,14 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	@Override
 	public JsonObject getDefaultParameters() {
 		JsonObject defParams = new JsonObject();
-		defParams.addProperty("max-spread", 16);
-		defParams.addProperty("cluster-size", 8);
-		defParams.addProperty("cluster-count", 8);
-		defParams.addProperty("min-height", 8);
-		defParams.addProperty("max-height", 24);
-		defParams.addProperty("variance", 4);
-		defParams.addProperty("frequency", 25);
-		defParams.addProperty("tries-per-chunk", 8);
+		defParams.addProperty(Constants.FormatBits.MAX_SPREAD, 16);
+		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 8);
+		defParams.addProperty(Constants.FormatBits.NODE_COUNT, 8);
+		defParams.addProperty(Constants.FormatBits.MIN_HEIGHT, 8);
+		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 24);
+		defParams.addProperty(Constants.FormatBits.VARIATION, 4);
+		defParams.addProperty(Constants.FormatBits.FREQUENCY, 25);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS, 8);
 		return defParams;
 	}
 

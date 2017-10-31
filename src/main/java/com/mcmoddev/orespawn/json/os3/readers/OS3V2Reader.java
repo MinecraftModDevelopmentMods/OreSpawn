@@ -58,6 +58,7 @@ public class OS3V2Reader implements IOS3Reader {
 			lw.getAsJsonArray(ConfigNames.DIMENSIONS).getAsJsonArray().forEach(
 					dim -> {
 						JsonObject nw = new JsonObject();
+						nw.addProperty("name", entry.getKey());
 						entry.getValue().getAsJsonObject().entrySet().stream()
 						.filter( e -> !e.getKey().equals(ConfigNames.DIMENSIONS) )
 						.forEach( ent -> nw.add( ent.getKey(), ent.getValue()));
