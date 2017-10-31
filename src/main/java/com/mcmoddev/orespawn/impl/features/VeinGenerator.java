@@ -6,6 +6,7 @@ import java.util.Random;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
@@ -41,14 +42,14 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 
-		int minY = parameters.get("minHeight").getAsInt();
-		int maxY = parameters.get("maxHeight").getAsInt();
-		int vari = parameters.get("variation").getAsInt();
-		int freq = parameters.get("frequency").getAsInt();
-		int tries = parameters.get("attempts").getAsInt();
-		int length = parameters.get("length").getAsInt();
-		int wander = parameters.get("wander").getAsInt();
-		int nodeSize = parameters.get("node-size").getAsInt();
+		int minY = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxY = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int vari = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
+		int freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int tries = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int length = parameters.get(Constants.FormatBits.LENGTH).getAsInt();
+		int wander = parameters.get(Constants.FormatBits.WANDER).getAsInt();
+		int nodeSize = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 		
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
@@ -223,14 +224,14 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	@Override
 	public JsonObject getDefaultParameters() {
 		JsonObject defParams = new JsonObject();
-		defParams.addProperty("minHeight", 0);
-		defParams.addProperty("maxHeight", 256);
-		defParams.addProperty("variation", 16);
-		defParams.addProperty("frequency", 50); // in this, frequency is an int
-		defParams.addProperty("length", 16);
-		defParams.addProperty("node-size", 3);
-		defParams.addProperty("wander", 75); // how much this can wander
-		defParams.addProperty("attempts", 8); // how often to attempt to make a vein
+		defParams.addProperty(Constants.FormatBits.MIN_HEIGHT, 0);
+		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 256);
+		defParams.addProperty(Constants.FormatBits.VARIATION, 16);
+		defParams.addProperty(Constants.FormatBits.FREQUENCY, 50);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS, 8);
+		defParams.addProperty(Constants.FormatBits.LENGTH, 16);
+		defParams.addProperty(Constants.FormatBits.WANDER, 75);
+		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 3);
 		return defParams;
 	}
 

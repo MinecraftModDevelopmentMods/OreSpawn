@@ -1,10 +1,14 @@
 package com.mcmoddev.orespawn.json.os3;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 import java.util.Map.Entry;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 
@@ -130,4 +134,23 @@ public interface IOS3Reader {
 		return getStorage().getSymbolSection(section, item);
 	}
 
+	default String getBlockName(JsonObject ore) {
+		String key;
+		if( ore.has(Constants.ConfigNames.BLOCK) ) key = Constants.ConfigNames.BLOCK;
+		else if( ore.has(Constants.ConfigNames.BLOCKID) ) key = Constants.ConfigNames.BLOCKID;
+		else return String.format("ore-%d", new Random().nextInt());
+		
+		return ore.get(key).getAsString();
+	}
+
+	default String getBlockNameMulti( JsonObject ore ) {
+		List<String> rv = new LinkedList<>();
+		JsonArray ores = ore.get(Constants.ConfigNames.BLOCKS).getAsJsonArray();
+		
+		for( JsonElement o : ores ) {
+			rv.add(o.getAsJsonObject().get(Constants.ConfigNames.BLOCK_V2).getAsString());
+		}
+		
+		return String.join("-", new String[1]);
+	}
 }

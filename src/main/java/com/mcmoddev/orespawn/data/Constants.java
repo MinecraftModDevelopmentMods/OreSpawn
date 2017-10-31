@@ -29,6 +29,22 @@ public class Constants {
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
 	
+	public final class FormatBits {
+		private FormatBits() {}
+		
+		public static final String MAX_SPREAD  = "maxSpread";
+		public static final String MEDIAN_SIZE = "medianSize";
+		public static final String MIN_HEIGHT  = "minHeight";
+		public static final String MAX_HEIGHT  = "maxHeight";
+		public static final String VARIATION   = "variation";
+		public static final String FREQUENCY   = "frequency";
+		public static final String NODE_SIZE   = "size";
+		public static final String ATTEMPTS    = "attempts";
+		public static final String LENGTH      = "length";
+		public static final String WANDER      = "wander";
+		public static final String NODE_COUNT  = "numObjects";
+	}
+	
 	public final class FileBits {
 		private FileBits() {}
 		
@@ -58,13 +74,13 @@ public class Constants {
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
 		public static final String BLOCK_V2 = "name";
+		
 		public final class V2 {
 			private V2() {}
 			public static final String ENABLED = "enabled";
 			public static final String RETROGEN = "retrogen";
 			public static final String REPLACES = "replaces";
 			public static final String GENERATOR = "generator";
-			public static final String VAR_MARK = "$ref";
 		}
 		public final class BiomeStuff {
 			private BiomeStuff() {}
