@@ -93,8 +93,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int variance = params[parms.VARIANCE.ordinal()];
 		int clusterCount = params[parms.CCOUNT.ordinal()];
 		int maxSpread = params[parms.MAXSPREAD.ordinal()];
-		int minHeight = params[parms.MINHEIGHT.ordinal()];
-		int maxHeight = params[parms.MAXHEIGHT.ordinal()];
+		
 		// spawn a cluster at the center, then a bunch around the outside...
 		int r = size - variance;
 		if(variance > 0){
@@ -112,10 +111,15 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			if(variance > 0){
 				r += random.nextInt(2 * variance) - variance;
 			}
+						
+			int radius = maxSpread/2;
 			
-			BlockPos p = blockPos.add( getPoint(minHeight, maxHeight, maxSpread/2), 
-									   getPoint(minHeight, maxHeight, maxSpread/2), 
-									   getPoint(minHeight, maxHeight, maxSpread/2) );
+			int xp = getPoint(-radius, radius, 0);
+			int yp = getPoint(-radius, radius, 0);
+			int zp = getPoint(-radius, radius, 0);
+				
+			BlockPos p = blockPos.add( xp, yp, zp );
+			
 			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random);
 			count -= r;
 		}

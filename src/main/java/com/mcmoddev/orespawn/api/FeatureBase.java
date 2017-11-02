@@ -50,11 +50,15 @@ public class FeatureBase {
 		
 		List<IBlockState> blockToReplace = blockReplace;
 		
-		if(coord.getY() < 0 || coord.getY() >= world.getHeight()) return;
+		if(coord.getY() < 0 || coord.getY() >= world.getHeight()) {
+			OreSpawn.LOGGER.warn("Asked to spawn a block outside the permissable Y range - position: %s", coord);
+			return;
+		}
+		
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
 			if(canReplace(targetBlock,blockToReplace)) {
-				world.setBlockState(coord, oreBlock, 22);
+				world.setBlockState(coord, oreBlock, 0);
 			}
 		} else if(cacheOverflow){
 			cacheOverflowBlock(oreBlock,coord,dimension);
