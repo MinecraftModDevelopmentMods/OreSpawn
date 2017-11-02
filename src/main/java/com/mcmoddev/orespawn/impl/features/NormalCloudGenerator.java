@@ -94,15 +94,20 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		// spawn one right at the center here, then generate for the cloud and do the math
 		int size = params[parms.SIZE.ordinal()];
 		int maxSpread = params[parms.MAXSPREAD.ordinal()];
-		int minHeight = params[parms.MINHEIGHT.ordinal()];
-		int maxHeight = params[parms.MAXHEIGHT.ordinal()];
 		
 		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
-		int count = size - 1;
-		while( count >= 0 ) {
-			BlockPos p = blockPos.add( getPoint(minHeight, maxHeight, maxSpread/2), 
-									   getPoint(minHeight, maxHeight, maxSpread/2), 
-									   getPoint(minHeight, maxHeight, maxSpread/2) );
+		
+		int count = size;
+		
+		int radius = maxSpread/2;
+		
+		while( count > 0 ) {
+			int xp = getPoint(-radius, radius, 0);
+			int yp = getPoint(-radius, radius, 0);
+			int zp = getPoint(-radius, radius, 0);
+			
+			BlockPos p = blockPos.add( xp, yp, zp );
+			
 			spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace);
 			count--;
 		}
