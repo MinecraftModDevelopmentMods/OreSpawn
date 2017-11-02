@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
@@ -51,7 +52,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
 		int clusterSize  = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 		int clusterCount = parameters.get(Constants.FormatBits.NODE_COUNT).getAsInt();
-		
+
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
 				int xRand = random.nextInt(16);
@@ -101,6 +102,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 		
 		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), blockReplace, random);
+		
 		int count = random.nextInt(clusterCount - 1); // always at least the first, but vary inside that
 		if( variance > 0) {
 			count += random.nextInt(2 * variance) - variance;
@@ -121,6 +123,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			BlockPos p = blockPos.add( xp, yp, zp );
 			
 			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random);
+
 			count -= r;
 		}
 	}
@@ -138,16 +141,25 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT,prng);
+			int z = 0;
 			while(count > 0){
 				IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
+				if( !spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace) ) {
+					count++;
+					z++;
+				} else {
+					z = 0;
+				}
+				if( z > 5 ) {
+					count--;
+					z = 0;
+					OreSpawn.LOGGER.warn("Unable to place block for chunk after 5 tries");
+				}
 			}
 			return;
 		}
 		
 		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores );
-		
-		return;		
 	}
 
 	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres ) {

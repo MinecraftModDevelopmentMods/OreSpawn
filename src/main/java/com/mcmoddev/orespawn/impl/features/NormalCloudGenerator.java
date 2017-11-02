@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
@@ -49,7 +50,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int variance   = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
 		int frequency  = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
 		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
-		
+
+		int fSave = frequency;
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
 				int xRand = random.nextInt(16);
@@ -65,8 +67,14 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 					r += random.nextInt(2 * variance) - variance;
 				}
 
-				spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace);
+				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace) ) {
+					// make another try!
+					tries++;
+					frequency = 100;
+				}
 			}
+			
+			frequency = fSave;
 			tries--;
 		}
 	}
@@ -90,12 +98,14 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
 	}
 	
-	private void spawnCloud(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+	private boolean spawnCloud(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 		int size = params[parms.SIZE.ordinal()];
 		int maxSpread = params[parms.MAXSPREAD.ordinal()];
 		
-		spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace);
+		if( !spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace) ) {
+			return false;
+		}
 		
 		int count = size;
 		
@@ -108,9 +118,23 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			
 			BlockPos p = blockPos.add( xp, yp, zp );
 			
-			spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace);
+			int z = 0;
+			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace) ) {
+				xp = getPoint(-radius, radius, 0);
+				yp = getPoint(-radius, radius, 0);
+				zp = getPoint(-radius, radius, 0);
+				
+				p = blockPos.add( xp, yp, zp );
+				
+				z++;
+			}
+			
+			if ( z >= 5 ) {
+				OreSpawn.LOGGER.warn("Unable to place block after 5 attempts, cloud will not have selected density");
+			}
 			count--;
 		}
+		return true;
 	}
 
 	@Override

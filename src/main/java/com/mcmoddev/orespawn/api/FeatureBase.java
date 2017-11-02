@@ -41,28 +41,35 @@ public class FeatureBase {
 		}
 	}
 	
-	protected void spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
+	protected boolean spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
 			List<IBlockState> blockReplace) {
 		if( oreBlock == null ) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
-			return;
+			return false;
 		}
 		
 		List<IBlockState> blockToReplace = blockReplace;
 		
 		if(coord.getY() < 0 || coord.getY() >= world.getHeight()) {
 			OreSpawn.LOGGER.warn("Asked to spawn a block outside the permissable Y range - position: %s", coord);
-			return;
+			return false;
 		}
 		
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
 			if(canReplace(targetBlock,blockToReplace)) {
 				world.setBlockState(coord, oreBlock, 0);
+				return true;
+			} else {
+				return false;
 			}
 		} else if(cacheOverflow){
 			cacheOverflowBlock(oreBlock,coord,dimension);
+			return true;
 		}
+		
+		//if it gets here by some strange twist...
+		return false;
 	}
 
 	protected void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension){
