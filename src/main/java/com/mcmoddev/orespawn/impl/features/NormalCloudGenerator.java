@@ -128,23 +128,22 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			return false;
 		}
 		
-		int count = size;
-		
 		int radius = maxSpread/2;
 		boolean alreadySpewed = false;
+		int count = Math.min( size, (int)Math.round( Math.PI * Math.pow(radius, 2) ) );
 		
 		while( count > 0 ) {
-			int xp = getPoint(-radius, radius, 0);
-			int yp = getPoint(-radius, radius, 0);
-			int zp = getPoint(-radius, radius, 0);
+			int xp = getPoint(0, maxSpread, radius);
+			int yp = getPoint(0, maxSpread, radius);
+			int zp = getPoint(0, maxSpread, radius);
 			
 			BlockPos p = blockPos.add( xp, yp, zp );
 			
 			int z = 0;
 			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace) ) {
-				xp = getPoint(-radius, radius, 0);
-				yp = getPoint(-radius, radius, 0);
-				zp = getPoint(-radius, radius, 0);
+				xp = getPoint(0, maxSpread, radius);
+				yp = getPoint(0, maxSpread, radius);
+				zp = getPoint(0, maxSpread, radius);
 				
 				p = blockPos.add( xp, yp, zp );
 				
