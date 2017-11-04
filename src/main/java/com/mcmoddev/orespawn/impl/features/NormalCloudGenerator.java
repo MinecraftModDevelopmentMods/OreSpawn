@@ -40,8 +40,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		// now to ore spawn
 
-		int blockX = chunkX * 16 + 8;
-		int blockZ = chunkZ * 16 + 8;
+		// lets not offset blind, 
+		int blockX = chunkX * 16;
+		int blockZ = chunkZ * 16;
 
 		int maxSpread  = parameters.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
 		int medianSize = parameters.get(Constants.FormatBits.MEDIAN_SIZE).getAsInt();
@@ -51,30 +52,50 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int frequency  = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
 		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
 
+		// on the X and Z you have a possible 2-chunk range - 32 blocks - subtract the spread to get
+		// a size that will let us insert by the radius
+		int offsetXZ = 32 - maxSpread;
+		
+		// you have the distance between minHeight and maxHeight
+		// this is the actual size of the space
+		int sizeY = (maxHeight - minHeight);
+		int offsetY = sizeY - maxSpread;
+		int radiusXZ = offsetXZ / 2;
+		
+		// actual radius for placement is the size minus the spread to center it in the space and keep
+		// from overflowing
+		int radiusY = offsetY/2;
+
+		// we center at the minimum plus the half the height
+		int blockY = minHeight + (sizeY/2);
+		
 		int fSave = frequency;
+		int tryCount = 0;
+		
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
-				int xRand = random.nextInt(16);
-				int zRand = random.nextInt(16);
-				int mSp = maxSpread;
+				frequency = fSave;
+				int x = blockX + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
+				// this should, hopefully, keep us centered between minHeight and maxHeight with nothing going above/below those values
+				int y = blockY + getPoint(0, offsetY, radiusY);
+				int z = blockZ + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
 				
-				int x = blockX + xRand - (mSp / 2);
-				int y = random.nextInt(maxHeight - minHeight) + minHeight;
-				int z = blockZ + zRand - (mSp / 2);
-
 				int r = medianSize - variance;
 				if(variance > 0){
 					r += random.nextInt(2 * variance) - variance;
 				}
 
-				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace) ) {
+				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace) &&
+						tryCount < 5 ) {
 					// make another try!
 					tries++;
 					frequency = 100;
+					tryCount++;
+				} else {
+					tryCount = 0;
 				}
 			}
 			
-			frequency = fSave;
 			tries--;
 		}
 	}
@@ -110,6 +131,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int count = size;
 		
 		int radius = maxSpread/2;
+		boolean alreadySpewed = false;
 		
 		while( count > 0 ) {
 			int xp = getPoint(-radius, radius, 0);
@@ -129,9 +151,11 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 				z++;
 			}
 			
-			if ( z >= 5 ) {
-				OreSpawn.LOGGER.warn("Unable to place block after 5 attempts, cloud will not have selected density");
+			if( z >= 5 && !alreadySpewed ) {
+				OreSpawn.LOGGER.info("unable to achieve requested cloud density for cloud centered at %s", blockPos);
+				alreadySpewed = true;
 			}
+			
 			count--;
 		}
 		return true;
