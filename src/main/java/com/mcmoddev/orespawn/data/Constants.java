@@ -28,6 +28,7 @@ public class Constants {
 	public static final String RETRO_BEDROCK_TAG = "retro-bedrock";
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
+	public static final String PRECISION = "precision";
 	
 	public final class FormatBits {
 		private FormatBits() {}

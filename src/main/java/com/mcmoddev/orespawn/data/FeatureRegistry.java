@@ -24,6 +24,7 @@ import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.impl.features.ClusterGenerator;
 import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
 import com.mcmoddev.orespawn.impl.features.NormalCloudGenerator;
+import com.mcmoddev.orespawn.impl.features.PrecisionGenerator;
 import com.mcmoddev.orespawn.impl.features.VeinGenerator;
 
 import net.minecraft.crash.CrashReport;
@@ -48,6 +49,9 @@ public class FeatureRegistry {
 		IFeature clusterGen = new ClusterGenerator();
 		features.put(Constants.CLUSTERS, clusterGen);
 		featuresInverse.put(clusterGen, Constants.CLUSTERS);
+		IFeature precision = new PrecisionGenerator();
+		features.put(Constants.PRECISION, precision);
+		featuresInverse.put(precision, Constants.PRECISION);
 	}
 	
 	public Map<String, IFeature> getFeatures() {
