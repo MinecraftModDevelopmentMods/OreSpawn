@@ -47,13 +47,10 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		int nodeSize  = parameters.get(FormatBits.NODE_SIZE).getAsInt();
 	
 		// now to use them
-		int c = nodeCount;
-		int curSize = nodeSize;
-		while( c >= 0 ) {
+		for( int c = nodeCount; c >= 0; c-- ) {
 			HeightRange hr = new HeightRange(minHeight, maxHeight);
 			BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
-			spawnAtSpot( spot, curSize, hr, world, blockReplace, ores, pos);
-			c--;
+			spawnAtSpot( spot, nodeSize, hr, world, blockReplace, ores, pos);
 		}
 	}
 
@@ -61,14 +58,14 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			OreList ores, ChunkPos pos ) {
 		int spawned = 0;
 		int wanted = nodeSize;
-		int counter = nodeSize;
-		int c = 1;
+		int c = 0;
 		
-		while( counter >= 0 && spawned <= wanted  ) {
-			c = spawnOreNode( spot, nodeSize, heightRange, pos, blockReplace, ores, world );
+		BlockPos act = spot;
+		for( int counter = nodeSize; counter >= 0 && spawned < wanted; counter -- ) {
+			c = spawnOreNode( act, nodeSize, heightRange, pos, blockReplace, ores, world );
 			if( c == 0 ) {
 				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
-				break;
+				act = chooseSpot( Math.floorDiv(spot.getX(),16), Math.floorDiv(spot.getZ(), 16), heightRange );
 			}
 			spawned += c;
 			counter -= c;
