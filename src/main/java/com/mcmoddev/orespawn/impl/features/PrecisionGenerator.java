@@ -48,40 +48,36 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	
 		// now to use them
 		int c = nodeCount;
+		int curSize = nodeSize;
 		while( c >= 0 ) {
-			BlockPos spot = chooseSpot(chunkX, chunkZ, maxHeight, minHeight);
-			spawnAtSpot( spot, nodeSize, maxHeight, minHeight, world, blockReplace, ores);
+			HeightRange hr = new HeightRange(minHeight, maxHeight);
+			BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
+			spawnAtSpot( spot, curSize, hr, world, blockReplace, ores, pos);
 			c--;
 		}
 	}
 
-	private void spawnAtSpot(BlockPos spot, int nodeSize, int maxHeight, int minHeight, World world, List<IBlockState> blockReplace,
-			OreList ores) {
+	private void spawnAtSpot(BlockPos spot, int nodeSize, HeightRange heightRange, World world, List<IBlockState> blockReplace,
+			OreList ores, ChunkPos pos ) {
 		int spawned = 0;
 		int wanted = nodeSize;
 		int counter = nodeSize;
+		int c = 1;
 		
-		while( counter >= 0 ) {
-			int c = spawnOreNode( spot, nodeSize, maxHeight, minHeight, blockReplace, ores, world );
+		while( counter >= 0 && spawned <= wanted  ) {
+			c = spawnOreNode( spot, nodeSize, heightRange, pos, blockReplace, ores, world );
+			if( c == 0 ) {
+				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
+				break;
+			}
 			spawned += c;
 			counter -= c;
-			if( c == 0 ) {
-				OreSpawn.LOGGER.warn("Unable to place node at %s", spot);
-				counter = -1;
-			}
 		}
 		
-		if( spawned != wanted ) {
-			if( spawned > wanted ) {
-				OreSpawn.LOGGER.warn("Somehow spawned %d more blocks than wanted for spawn at %s", spawned - wanted, spot);
-			} else {
-				OreSpawn.LOGGER.warn("Ore Spawn for node at %s is shy %d blocks of requested quantity", spot, wanted - spawned );
-			}
-		}
 	}
-
-	private int spawnOreNode(BlockPos spot, int nodeSize, int maxHeight, int minHeight, List<IBlockState> blockReplace,
-			OreList ores, World world ) {
+	
+	private int spawnOreNode(BlockPos spot, int nodeSize, HeightRange heightRange, ChunkPos pos, 
+			List<IBlockState> blockReplace,	OreList ores, World world ) {
 		int count = nodeSize;
 		int lutType = (nodeSize < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (nodeSize < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -95,46 +91,111 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			scramble(scrambledLUT, this.random);
 			
 			int nc = 0;
-			while(count > 0){
+			for( ; count > 0 && nc <= nodeSize; count-- ) {
 				IBlockState oreBlock = ores.getRandomOre(this.random).getOre();
-				if( spawn(oreBlock,world, spot.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,blockReplace) ) {
+				Vec3i offset = offs[scrambledLUT[--count]];
+				BlockPos p = fixMungeOffset( offset, spot, heightRange, pos);
+				
+				if( spawn(oreBlock,world, p, world.provider.getDimension(),true,blockReplace) ) {
 					nc++;
 				}
-				count--;
 			}
 			return nc;
 		}
 
-		return spawnFill( spot, ores, nodeSize, maxHeight, minHeight, blockReplace, world );
+		return spawnFill( spot, ores, nodeSize, blockReplace, heightRange, pos, world );
 	}
 
-	private int spawnFill(BlockPos spot, OreList ores, int nodeSize, int maxHeight, int minHeight, List<IBlockState> blockReplace,
-			World world) {
-		int count = nodeSize;
-		double radius = Math.pow(nodeSize, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int)(radius * radius);
-		if( this.random.nextBoolean() ) {
-			return spawnMungeNE( world, spot, rSqr, radius, blockReplace, count, ores );
+	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
+		BlockPos p = spot.add(offset);
+		ChunkPos x1z1 = new ChunkPos(pos.x+1, pos.z+1);
+		int xMax = x1z1.getXEnd();
+		int zMax = x1z1.getZEnd();
+		int xMin = pos.getXStart();
+		int zMin = pos.getZStart();
+		
+		int xmod = p.getX();
+		int ymod = p.getY();
+		int zmod = p.getZ();
+
+		// correct the points values to not cause the Y coordinate to go outside the permissable range
+		if( p.getY() < heightRange.getMin() || p.getY() > heightRange.getMax() ) {
+			ymod = rescaleOffset(ymod, spot.getY(), heightRange.getMin(), heightRange.getMax() );
+		}
+		
+		if( p.getX() < xMin || p.getX() > xMax ) {
+			xmod = rescaleOffset( xmod, spot.getX(), xMin, xMax );
+		}
+		
+		if( p.getZ() < zMin || p.getZ() > zMax) {
+			zmod = rescaleOffset( zmod, spot.getZ(), zMin, zMax );
+		}
+		
+		BlockPos rVal = spot.add(xmod, ymod, zmod);
+		OreSpawn.LOGGER.debug("rescaled %s to %s", spot, rVal);
+		return rVal;
+	}
+
+	private int rescaleOffset(final int offsetIn, final int centerIn, final int minimumIn, final int maximumIn) {
+		int actual = centerIn + offsetIn;
+		int wrapDistance = 0;
+		int rangeMin = minimumIn;
+		int rangeMax = maximumIn;
+		int range = maximumIn - minimumIn;
+		int workingPoint = 0;
+		
+		if( actual < rangeMin ) {
+			wrapDistance = rangeMin - actual;
 		} else {
-			return spawnMungeSW( world, spot, rSqr, radius, blockReplace, count, ores );
+			wrapDistance = actual - rangeMax;
+		}
+		
+		if( wrapDistance < 0 ) {
+			wrapDistance = ((-1)*wrapDistance)%range;
+		} else {
+			wrapDistance %= range;
+		}
+		
+		if( actual < rangeMin ) {
+			workingPoint = rangeMax - wrapDistance;
+		} else {
+			workingPoint = rangeMin + wrapDistance;
+		}
+		
+		return workingPoint - centerIn;
+	}
+
+	private int spawnFill(BlockPos spot, OreList ores, int nodeSize, List<IBlockState> blockReplace, HeightRange heightRange,
+			ChunkPos pos, World world) {
+		double radius = Math.pow(nodeSize, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		int rSqr = (int)Math.ceil(radius * radius);
+		if( this.random.nextBoolean() ) {
+			return spawnMungeNE( world, new Object[] { spot, pos, heightRange }, new int[] { rSqr, nodeSize }, radius, blockReplace, ores );
+		} else {
+			return spawnMungeSW( world, new Object[] { spot, pos, heightRange }, new int[] { rSqr, nodeSize }, radius, blockReplace, ores );
 		}
 	}
 
-	private int spawnMungeSW(World world, BlockPos spot, int rSqr, double radius, List<IBlockState> blockReplace,
-			int count, OreList ores) {
-		Random prng = this.random;
-		int quantity = count;
+	private int spawnMungeSW(World world, Object[] oParams, int[] iParams, double radius, List<IBlockState> blockReplace, OreList ores) {
+		int quantity = iParams[1];
+		int rSqr = iParams[0];
 		int nc = 0;
+		
+		BlockPos spot = (BlockPos)oParams[0];
+		ChunkPos pos = (ChunkPos)oParams[1];
+		HeightRange heightRange = (HeightRange)oParams[2];
+		
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr) {
-						IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-						nc += doMungeSpawn(oreBlock,world,spot.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
+					int total = dx*dx + dy*dy + dz*dz;
+					if(total <= rSqr){
+						BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), spot, heightRange, pos);
+						nc += doMungeSpawn(ores,world, p, blockReplace);
 						quantity--;
 					}
 					
-					if(quantity <= 0) {
+					if(quantity <= 0 || nc >= iParams[1]) {
 						return nc;
 					}
 				}
@@ -143,25 +204,30 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return nc;
 	}
 	
-	private int doMungeSpawn(IBlockState oreBlock, World world, BlockPos spot, int dimension, boolean b,
-			List<IBlockState> blockReplace) {
-		return spawn(oreBlock,world,spot,world.provider.getDimension(),true,blockReplace)?1:0;
+	private int doMungeSpawn(OreList ores, World world, BlockPos spot, List<IBlockState> blockReplace) {
+		return spawn(ores.getRandomOre(this.random).getOre(),world,spot,world.provider.getDimension(),true,blockReplace)?1:0;
 	}
 
-	private int spawnMungeNE(World world, BlockPos spot, int rSqr, double radius, List<IBlockState> blockReplace,
-			int count, OreList ores) {
-		Random prng = this.random;
-		int quantity = count;
+	private int spawnMungeNE(World world, Object[] oParams, int[] iParams, double radius, List<IBlockState> blockReplace, OreList ores) {
+		int rSqr = iParams[0];
+		int quantity = iParams[1];
 		int nc = 0;
+		
+		BlockPos spot = (BlockPos)oParams[0];
+		ChunkPos pos = (ChunkPos)oParams[1];
+		HeightRange heightRange = (HeightRange)oParams[2];
+		
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-						nc += doMungeSpawn(oreBlock,world,spot.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
+					int total = dx*dx + dy*dy + dz*dz;
+					if(total <= rSqr){					
+						BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), spot, heightRange, pos);
+						nc += doMungeSpawn(ores,world, p, blockReplace);
 						quantity--;
 					}
-					if(quantity <= 0) {
+					
+					if(quantity <= 0 || nc >= iParams[1]) {
 						return nc;
 					}
 				}
@@ -172,7 +238,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private double triangularDistribution(double a, double b, double c) {
 	    double base = (c - a) / (b - a);
-	    double rand = this.random.nextDouble();
+	    double rand = (this.random.nextDouble() * (b - a)) + a;
 	    if (rand < base) {
 	        return a + Math.sqrt(rand * (b - a) * (c - a));
 	    } else {
@@ -185,12 +251,12 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return t - median;
 	}
 
-	private BlockPos chooseSpot(int xPosition, int zPosition, int maxHeight, int minHeight) {
+	private BlockPos chooseSpot(int xPosition, int zPosition, HeightRange heightRange) {
 		int xRet = getPoint( 0, 23, 12 ) + (xPosition * 16);
 		int zRet = getPoint( 0, 23, 12 ) + (zPosition * 16);
-		int yRange = maxHeight - minHeight;
+		int yRange = heightRange.getRange();
 		int yMod = yRange/2;
-		int yRet = getPoint( minHeight, maxHeight, yMod );
+		int yRet = getPoint( heightRange.getMin(), heightRange.getMax(), yMod );
 		
 		return new BlockPos( xRet, yRet, zRet );
 	}
@@ -210,4 +276,25 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return defaults;
 	}
 
+	private class HeightRange {
+		private int min;
+		private int max;
+		
+		public HeightRange( int min, int max ) {
+			this.min = min;
+			this.max = max;
+		}
+		
+		public int getRange() {
+			return this.max - this.min;
+		}
+		
+		public int getMin() {
+			return this.min;
+		}
+		
+		public int getMax() {
+			return this.max;
+		}
+	}
 }
