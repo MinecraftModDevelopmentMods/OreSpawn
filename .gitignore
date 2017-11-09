@@ -22,4 +22,6 @@ eclipse
 run
 
 /README.txt
-/forge-*-changelog.txt.DS_Store
+/forge-*-changelog.txt
+.DS_Store
+.DS_Store/*
