@@ -61,7 +61,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		int c = 0;
 		
 		BlockPos act = spot;
-		for( int counter = nodeSize; counter >= 0 && spawned < wanted; counter -- ) {
+		for( int counter = nodeSize; counter > 0 && spawned < wanted; counter -- ) {
 			c = spawnOreNode( act, nodeSize, heightRange, pos, blockReplace, ores, world );
 			if( c == 0 ) {
 				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
@@ -105,15 +105,15 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
 		BlockPos p = spot.add(offset);
-		ChunkPos x1z1 = new ChunkPos(pos.x+1, pos.z+1);
-		int xMax = x1z1.getXEnd();
-		int zMax = x1z1.getZEnd();
+		//ChunkPos x1z1 = new ChunkPos(pos.x+1, pos.z+1);
+		int xMax = pos.getXEnd();
+		int zMax = pos.getZEnd();
 		int xMin = pos.getXStart();
 		int zMin = pos.getZStart();
 		
-		int xmod = p.getX();
-		int ymod = p.getY();
-		int zmod = p.getZ();
+		int xmod = offset.getX();
+		int ymod = offset.getY();
+		int zmod = offset.getZ();
 
 		// correct the points values to not cause the Y coordinate to go outside the permissable range
 		if( p.getY() < heightRange.getMin() || p.getY() > heightRange.getMax() ) {
@@ -249,8 +249,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	}
 
 	private BlockPos chooseSpot(int xPosition, int zPosition, HeightRange heightRange) {
-		int xRet = getPoint( 0, 23, 12 ) + (xPosition * 16);
-		int zRet = getPoint( 0, 23, 12 ) + (zPosition * 16);
+		int xRet = getPoint( 0, 15, 8 ) + (xPosition * 16);
+		int zRet = getPoint( 0, 15, 8 ) + (zPosition * 16);
 		int yRange = heightRange.getRange();
 		int yMod = yRange/2;
 		int yRet = getPoint( heightRange.getMin(), heightRange.getMax(), yMod );
