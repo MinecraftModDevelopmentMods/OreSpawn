@@ -21,12 +21,12 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class PrecisionGenerator extends FeatureBase implements IFeature {
 	
-	public PrecisionGenerator(Random rand) {
+	private PrecisionGenerator(Random rand) {
 		super(rand);
 	}
 
 	public PrecisionGenerator() {
-		super( new Random() );
+		this( new Random() );
 	}
 	
 
@@ -73,20 +73,20 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private int spawnAtSpot(BlockPos spot, int nodeSize, HeightRange heightRange, World world, List<IBlockState> blockReplace,
-			OreList ores, ChunkPos pos ) {
+	private int spawnAtSpot(BlockPos spot, int nodeSize, HeightRange heightRange, World world,
+	                        List<IBlockState> blockReplace, OreList ores, ChunkPos pos ) {
 		int spawned = 0;
-		int wanted = nodeSize;
-		int c = 0;
+		int c;
 		
 		BlockPos act = spot;
-		for( int counter = nodeSize; counter > 0 && spawned < wanted; counter -- ) {
+		int counter = nodeSize;
+		while( counter > 0 && spawned < nodeSize ) {
 			c = spawnOreNode( act, nodeSize, heightRange, pos, blockReplace, ores, world );
 			if( c == 0 ) {
 				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
 				act = chooseSpot( Math.floorDiv(spot.getX(),16), Math.floorDiv(spot.getZ(), 16), heightRange );
 			}
-			counter -= c;
+			counter -= (c + 1);
 			spawned += c;
 		}
 		return spawned;
@@ -154,16 +154,14 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private int rescaleOffset(final int offsetIn, final int centerIn, final int minimumIn, final int maximumIn) {
 		int actual = centerIn + offsetIn;
-		int wrapDistance = 0;
-		int rangeMin = minimumIn;
-		int rangeMax = maximumIn;
+		int wrapDistance;
 		int range = maximumIn - minimumIn;
-		int workingPoint = 0;
+		int workingPoint;
 		
-		if( actual < rangeMin ) {
-			wrapDistance = rangeMin - actual;
+		if( actual < minimumIn ) {
+			wrapDistance = minimumIn - actual;
 		} else {
-			wrapDistance = actual - rangeMax;
+			wrapDistance = actual - maximumIn;
 		}
 		
 		if( wrapDistance < 0 ) {
@@ -172,10 +170,10 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			wrapDistance %= range;
 		}
 		
-		if( actual < rangeMin ) {
-			workingPoint = rangeMax - wrapDistance;
+		if( actual < minimumIn ) {
+			workingPoint = maximumIn - wrapDistance;
 		} else {
-			workingPoint = rangeMin + wrapDistance;
+			workingPoint = minimumIn + wrapDistance;
 		}
 		
 		return workingPoint - centerIn;
@@ -252,18 +250,16 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return nc;
 	}
 
-	private int getPoint( int lowerBound, int upperBound, int median ) {
+	private int getPoint( int lowerBound, int upperBound ) {
 		List<Integer> arr = new ArrayList<> ();
 		for( int i = lowerBound; i <= upperBound; i++ ) arr.add ( i );
 		return arr.get(this.random.nextInt( arr.size ()));
 	}
 
 	private BlockPos chooseSpot(int xPosition, int zPosition, HeightRange heightRange) {
-		int xRet = getPoint( 0, 15, 8 ) + (xPosition * 16);
-		int zRet = getPoint( 0, 15, 8 ) + (zPosition * 16);
-		int yRange = heightRange.getRange();
-		int yMod = yRange/2;
-		int yRet = getPoint( heightRange.getMin(), heightRange.getMax(), yMod );
+		int xRet = getPoint( 0, 15 ) + (xPosition * 16);
+		int zRet = getPoint( 0, 15 ) + (zPosition * 16);
+		int yRet = getPoint( heightRange.getMin(), heightRange.getMax() );
 		
 		return new BlockPos( xRet, yRet, zRet );
 	}
@@ -287,20 +283,16 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		private int min;
 		private int max;
 		
-		public HeightRange( int min, int max ) {
+		HeightRange ( int min, int max ) {
 			this.min = min;
 			this.max = max;
 		}
 		
-		public int getRange() {
-			return this.max - this.min;
-		}
-		
-		public int getMin() {
+		int getMin () {
 			return this.min;
 		}
 		
-		public int getMax() {
+		int getMax () {
 			return this.max;
 		}
 	}
