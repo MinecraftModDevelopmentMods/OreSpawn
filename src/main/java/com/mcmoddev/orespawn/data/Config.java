@@ -26,7 +26,6 @@ public class Config {
 	private static Configuration configuration;
 	
 	private Config() {
-		return;
 	}
 	
 	public static void loadConfig() {
@@ -55,7 +54,7 @@ public class Config {
 		if( !p.toFile().exists() ) return;
 		
 		File in = p.toFile();
-		String rawData = "";
+		String rawData;
 		
 		try {
 			rawData = FileUtils.readFileToString(in, Charset.defaultCharset());
@@ -70,7 +69,7 @@ public class Config {
 	}
 
 	public static List<String> getKnownMods() {
-		return ImmutableList.<String>copyOf(extractedConfigs);
+		return ImmutableList.copyOf(extractedConfigs);
 	}
 	
 	public static void addKnownMod(String modId) {
