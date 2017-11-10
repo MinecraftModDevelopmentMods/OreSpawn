@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -45,16 +46,34 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		int maxHeight = parameters.get(FormatBits.MAX_HEIGHT).getAsInt();
 		int minHeight = parameters.get(FormatBits.MIN_HEIGHT).getAsInt();
 		int nodeSize  = parameters.get(FormatBits.NODE_SIZE).getAsInt();
-	
+
+		int thisNode = nodeSize;
+
 		// now to use them
-		for( int c = nodeCount; c >= 0; c-- ) {
+		for( int c = nodeCount; c > 0; c-- ) {
+			int sc;
 			HeightRange hr = new HeightRange(minHeight, maxHeight);
 			BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
-			spawnAtSpot( spot, nodeSize, hr, world, blockReplace, ores, pos);
+			sc = spawnAtSpot( spot, thisNode, hr, world, blockReplace, ores, pos);
+
+			// bit of feedback - if we underproduce or overproduce a node, the next one gets a correction
+			if( sc != thisNode && sc != 0 ) {
+				thisNode += (nodeSize - sc);
+				OreSpawn.LOGGER.debug("node at %s of size %d instead of %d - modding to %d",
+					 spot, sc, nodeSize, thisNode);
+			} else if( sc == thisNode ) {
+				// if we produced exact size, reset the size
+				thisNode = nodeSize;
+			}
+
+			// if we hit a node of size zero or less, we've done something wrong
+			if( thisNode <= 0 ) {
+				thisNode = nodeSize;
+			}
 		}
 	}
 
-	private void spawnAtSpot(BlockPos spot, int nodeSize, HeightRange heightRange, World world, List<IBlockState> blockReplace,
+	private int spawnAtSpot(BlockPos spot, int nodeSize, HeightRange heightRange, World world, List<IBlockState> blockReplace,
 			OreList ores, ChunkPos pos ) {
 		int spawned = 0;
 		int wanted = nodeSize;
@@ -67,10 +86,10 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
 				act = chooseSpot( Math.floorDiv(spot.getX(),16), Math.floorDiv(spot.getZ(), 16), heightRange );
 			}
-			spawned += c;
 			counter -= c;
+			spawned += c;
 		}
-		
+		return spawned;
 	}
 	
 	private int spawnOreNode(BlockPos spot, int nodeSize, HeightRange heightRange, ChunkPos pos, 
@@ -105,9 +124,9 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
 		BlockPos p = spot.add(offset);
-		//ChunkPos x1z1 = new ChunkPos(pos.x+1, pos.z+1);
-		int xMax = pos.getXEnd();
-		int zMax = pos.getZEnd();
+		ChunkPos x1z1 = new ChunkPos(pos.x+1, pos.z+1);
+		int xMax = x1z1.getXEnd();
+		int zMax = x1z1.getZEnd();
 		int xMin = pos.getXStart();
 		int zMin = pos.getZStart();
 		
@@ -233,19 +252,10 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return nc;
 	}
 
-	private double triangularDistribution(double a, double b, double c) {
-	    double base = (c - a) / (b - a);
-	    double rand = (this.random.nextDouble() * (b - a)) + a;
-	    if (rand < base) {
-	        return a + Math.sqrt(rand * (b - a) * (c - a));
-	    } else {
-	        return b - Math.sqrt((1 - rand) * (b - a) * (b - c));
-	    }
-	}
-
 	private int getPoint( int lowerBound, int upperBound, int median ) {
-		int t = (int)Math.round( triangularDistribution((float)lowerBound, (float)upperBound, (float)median) );
-		return t - median;
+		List<Integer> arr = new ArrayList<> ();
+		for( int i = lowerBound; i <= upperBound; i++ ) arr.add ( i );
+		return arr.get(this.random.nextInt( arr.size ()));
 	}
 
 	private BlockPos chooseSpot(int xPosition, int zPosition, HeightRange heightRange) {
