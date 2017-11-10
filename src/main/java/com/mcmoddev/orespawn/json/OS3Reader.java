@@ -87,27 +87,10 @@ public class OS3Reader {
 						JsonElement full = parser.parse(rawData);
 						JsonObject parsed = full.getAsJsonObject();
 
-						IOS3Reader reader = null;
 						String version = parsed.get("version").getAsString();
-						switch( version ) {
-						case "1":
-							reader = new OS3V1Reader();
-							break;
-						case "1.1":
-							reader = new OS3V11Reader();
-							break;
-						case "1.2":
-							reader = new OS3V12Reader();
-							break;
-						case "2.0":
-							reader = new OS3V2Reader();
-							break;
-						default:
-							OreSpawn.LOGGER.error("Unknown version %s", version);
-							return;
-						}
-
-						finallyParse(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
+						IOS3Reader reader = getReader( version );
+						if( reader != null )
+							finallyParse(reader.parseJson(parsed, FilenameUtils.getBaseName(file.getName())), FilenameUtils.getBaseName(file.getName()));
 					} catch (Exception e) {
 						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 						report.getCategory().addCrashSection(Constants.ORESPAWN_VERSION_CRASH_MESSAGE, Constants.VERSION);
@@ -123,10 +106,10 @@ public class OS3Reader {
 				JsonParser parser = new JsonParser();
 				String rawJson = FileUtils.readFileToString(presets.toFile(), Charsets.UTF_8);
 				JsonObject top = parser.parse(rawJson).getAsJsonObject();
-				top.entrySet().stream()
+				top.entrySet()
 				.forEach( entry -> {
 					String section = entry.getKey();
-					entry.getValue().getAsJsonObject().entrySet().stream()
+					entry.getValue().getAsJsonObject().entrySet()
 					.forEach( pres -> OreSpawn.API.getPresets().setSymbolSection(section, pres.getKey(), pres.getValue()) );
 				});
 			} catch( IOException exc ) {
@@ -172,7 +155,12 @@ public class OS3Reader {
 					gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));
 					spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
 					spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
-					spawn.create(biomes, gen, replacements, blocks.stream().toArray(OreBuilder[]::new));
+
+					if( nw.has( ConfigNames.DIMENSION) )
+						spawn.create( biomes, gen, replacements, nw.getAsJsonObject( ConfigNames.DIMENSION ), blocks.toArray( new OreBuilder[0]) );
+					else
+						spawn.create(biomes, gen, replacements, blocks.toArray( new OreBuilder[0] ) );
+
 					builder.create(spawn);
 				} catch( JsonParseException ex ) {
 					OreSpawn.LOGGER.error("Error parsing entry %s : %s", ore.getAsJsonObject().get("name").getAsString(), ex);
@@ -201,28 +189,19 @@ public class OS3Reader {
 		}
 	}
 
-	public static void loadFromJson(String modName, JsonObject json) {
-		String version = json.get("version").getAsString();
-		IOS3Reader reader = null;
-
+	private static IOS3Reader getReader(String version) {
 		switch( version ) {
-		case "1":
-			reader = new OS3V1Reader();
-			break;
-		case "1.1":
-			reader = new OS3V11Reader();
-			break;
-		case "1.2":
-			reader = new OS3V12Reader();
-			break;
-		case "2.0":
-			reader = new OS3V2Reader();
-			break;
-		default:
-			OreSpawn.LOGGER.error("Unknown version %s", version);
-			return;
+			case "1":
+				return new OS3V1Reader();
+			case "1.1":
+				return new OS3V11Reader();
+			case "1.2":
+				return new OS3V12Reader();
+			case "2.0":
+				return new OS3V2Reader();
+			default:
+				OreSpawn.LOGGER.error("Unknown version %s", version);
+				return null;
 		}
-
-		reader.parseJson(json, modName);
 	}
 }

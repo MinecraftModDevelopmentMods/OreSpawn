@@ -96,5 +96,10 @@ public class Constants {
 			public static final String MAXHEIGHT = "maxHeight";
 			public static final String MINHEIGHT = "minHeight";
 		}
+		public final class DimensionStuff {
+			private DimensionStuff() {}
+			public static final String INCLUDE = "include";
+			public static final String EXCLUDE = "exclude";
+		}
 	}
 }

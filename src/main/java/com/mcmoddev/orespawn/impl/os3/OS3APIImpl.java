@@ -75,13 +75,11 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public int dimensionWildcard() {
-		return "DIMENSION_WILDCARD".hashCode();
+		return 0xCAFEBABE;
 	}
 
 	@Override
-	public int biomeWildcard() {
-		return "BIOME_WILDCARD".hashCode();
-	}
+	public int biomeWildcard() { return 0xF00DF00D; }
 
 	@Override
 	public ImmutableMap<String, BuilderLogic> getSpawns() {

@@ -69,6 +69,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 						  !Config.getBoolean(Constants.RETROGEN_KEY))
 		.filter( ent ->	ent.getBiomes().matches(world.getBiomeProvider().getBiome(new BlockPos(chunkX*16, 64,chunkZ*16))) || 
 				ent.getBiomes().getBiomes().isEmpty() )
+		.filter( ent -> ent.hasExtendedDimensions() || ent.extendedDimensionsMatch(thisDim) )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
 			List<IBlockState> replacement = sE.getReplacementBlocks();

@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.util.OreList;
 
@@ -18,7 +19,10 @@ public interface SpawnBuilder {
 	OreBuilder newOreBuilder();
 	SpawnBuilder create( @Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature, 
 			@Nonnull List<IBlockState> replacements, @Nonnull OreBuilder... ores );
-	
+	SpawnBuilder create( @Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature,
+	                     @Nonnull List<IBlockState> replacements, JsonObject exDim,
+	                     @Nonnull OreBuilder... ores );
+
 	BiomeLocation getBiomes();
 	ImmutableList<OreBuilder> getOres();
 	ImmutableList<IBlockState> getReplacementBlocks();
@@ -31,4 +35,6 @@ public interface SpawnBuilder {
 	void enabled(boolean enabled);
 	boolean retrogen();
 	void retrogen(boolean enabled);
+	boolean hasExtendedDimensions();
+	boolean extendedDimensionsMatch( int dimension );
 }
