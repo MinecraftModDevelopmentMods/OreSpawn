@@ -5,6 +5,7 @@ import java.util.Random;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
@@ -19,17 +20,17 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
-	public NormalCloudGenerator(Random rand) {
+	private NormalCloudGenerator ( Random rand ) {
 		super(rand);
 	}
 
 	public NormalCloudGenerator() {
-		super( new Random() );
+		this( new Random() );
 	}
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -71,7 +72,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		int fSave = frequency;
 		int tryCount = 0;
-		
+
+		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
+
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
 				frequency = fSave;
@@ -116,7 +119,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 	
 	private enum parms {
-		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT;
+		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT
 	}
 	
 	private boolean spawnCloud(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
@@ -134,7 +137,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		while( count > 0 ) {
 			int xp = getPoint(0, maxSpread, radius);
-			int yp = getPoint(0, maxSpread, radius);
+			int yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
 			int zp = getPoint(0, maxSpread, radius);
 			
 			BlockPos p = blockPos.add( xp, yp, zp );
@@ -142,7 +145,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			int z = 0;
 			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace) ) {
 				xp = getPoint(0, maxSpread, radius);
-				yp = getPoint(0, maxSpread, radius);
+				yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
 				zp = getPoint(0, maxSpread, radius);
 				
 				p = blockPos.add( xp, yp, zp );

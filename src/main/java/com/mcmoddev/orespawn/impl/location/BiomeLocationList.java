@@ -1,8 +1,12 @@
 package com.mcmoddev.orespawn.impl.location;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
+
+import java.util.List;
+import java.util.LinkedList;
 
 public final class BiomeLocationList implements BiomeLocation {
     private final ImmutableSet<BiomeLocation> locations;
@@ -26,10 +30,15 @@ public final class BiomeLocationList implements BiomeLocation {
 
     @Override
     public boolean equals(Object obj) {
-        return obj == this || obj instanceof BiomeLocationList && this.locations.equals(((BiomeLocationList) obj).locations);
+        return (obj == this) || ((obj instanceof BiomeLocationList) && this.locations.equals ( ((BiomeLocationList) obj).locations ));
     }
 
-	public ImmutableSet<BiomeLocation> getLocations() {
-		return this.locations;
-	}
+    @Override
+    public ImmutableList<Biome> getBiomes() {
+    	List<Biome> temp = new LinkedList<>();
+    	locations.stream ().forEach ( bl -> temp.addAll( bl.getBiomes () ) );
+			return ImmutableList.copyOf ( temp );
+    }
+
+    public ImmutableSet<BiomeLocation> getLocations() { return this.locations; }
 }

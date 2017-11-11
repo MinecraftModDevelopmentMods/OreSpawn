@@ -31,7 +31,7 @@ public final class BiomeLocationSingle implements BiomeLocation {
 
     @Override
     public boolean equals(Object obj) {
-        return obj == this || obj instanceof BiomeLocationSingle && this.biome == ((BiomeLocationSingle) obj).biome;
+        return (obj == this) || ((obj instanceof BiomeLocationSingle) && this.biome.equals( ((BiomeLocationSingle) obj).biome ));
     }
 
 	public Biome getBiome() {

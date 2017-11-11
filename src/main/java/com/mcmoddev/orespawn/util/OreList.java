@@ -1,37 +1,41 @@
 package com.mcmoddev.orespawn.util;
 
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
+import net.minecraft.block.state.IBlockState;
 
 public class OreList {
-	private List<Integer> oreList;
+	private List<Integer> myChanceList;
 	private List<OreBuilder> myCopy;
 	
 	private Integer listCount = 0;
 	
 	public OreList() {
-		this.oreList = new LinkedList<>();
+		this.myChanceList = new LinkedList<>();
 		this.myCopy = new LinkedList<>();
 	}
 	
 	public void build(List<OreBuilder> ores) {
-		ores.stream().sorted( (o,x) -> Integer.compare( o.getChance(), x.getChance()) )
-		    .forEach( ob -> { oreList.add(ob.getChance()); myCopy.add(ob); } );
+		ores.stream().sorted( Comparator.comparingInt ( OreBuilder::getChance ) )
+		    .forEach( ob -> { myChanceList.add(ob.getChance()); myCopy.add(ob); } );
 		
-		this.listCount = oreList.stream().mapToInt(Integer::intValue).max().getAsInt();
+		this.listCount = myChanceList.stream().mapToInt(Integer::intValue).max().getAsInt();
 	}
 	
 	public OreBuilder getRandomOre(Random rand) {
 		int v = rand.nextInt(this.listCount);
 		
 		int c = 0;
-		for( Integer i : this.oreList ) {
+		for( Integer i : this.myChanceList ) {
 			c += i;
 			if( c > v ) {
-				OreBuilder rv = this.getOreWithChance(i.intValue());
+				OreBuilder rv = this.getOreWithChance( i );
 				if( rv == null )
 					break;
 				else
@@ -43,7 +47,7 @@ public class OreList {
 	}
 
 	private OreBuilder getMaxChanceOre() {
-		return this.getOreWithChance(this.oreList.stream().mapToInt( Integer::intValue ).max().getAsInt());
+		return this.getOreWithChance(this.myChanceList.stream().mapToInt( Integer::intValue ).max().getAsInt());
 	}
 
 	private OreBuilder getOreWithChance(int intValue) {
@@ -56,4 +60,7 @@ public class OreList {
 		return null;
 	}
 
+	public ImmutableList<IBlockState> getOres() {
+		return ImmutableList.copyOf(this.myCopy.stream().map( OreBuilder::getOre ).distinct().collect( Collectors.toList () ) );
+	}
 }

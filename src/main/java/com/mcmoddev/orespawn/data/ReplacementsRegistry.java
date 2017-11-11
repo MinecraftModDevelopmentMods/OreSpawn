@@ -1,20 +1,16 @@
 package com.mcmoddev.orespawn.data;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.mcmoddev.orespawn.util.StateUtil;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
+
+import java.util.*;
+
+import static java.util.Arrays.asList;
 
 public class ReplacementsRegistry {
 	private static Map<String,IBlockState> blocks = new HashMap<>();
@@ -32,7 +28,7 @@ public class ReplacementsRegistry {
 			}
 			return rv;
 		}
-		return Arrays.asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension+1])).getDefaultState());
+		return asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension+1])).getDefaultState());
 	}
 
 	public static IBlockState getBlock(String name) {

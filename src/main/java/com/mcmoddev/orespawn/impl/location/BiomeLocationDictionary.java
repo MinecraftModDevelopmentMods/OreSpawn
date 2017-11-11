@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.location;
 
+import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
@@ -26,11 +27,15 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 
     @Override
     public boolean equals(Object obj) {
-        return obj == this || obj instanceof BiomeLocationDictionary && this.type == ((BiomeLocationDictionary) obj).type;
+        return (obj == this) || ((obj instanceof BiomeLocationDictionary) && this.type.equals ( ((BiomeLocationDictionary) obj).type ));
     }
 
 	public BiomeDictionary.Type getType() {
 		return this.type;
 	}
-    
+
+	@Override
+    public ImmutableList<Biome> getBiomes() {
+        return ImmutableList.copyOf (BiomeDictionary.getBiomes ( this.type ) );
+  }
 }

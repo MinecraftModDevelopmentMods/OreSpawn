@@ -51,11 +51,11 @@ public class OreSpawn {
     public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
     public static final OS3API API = new OS3APIImpl();
     public static final OS3Writer writer = new OS3Writer();
-    public static final EventHandlers eventHandlers = new EventHandlers();
+    static final EventHandlers eventHandlers = new EventHandlers();
     public static final FeatureRegistry FEATURES = new FeatureRegistry();
     protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
     
-    public static final FlatBedrock flatBedrock= new FlatBedrock();
+    static final FlatBedrock flatBedrock= new FlatBedrock();
     
     public static Map<Integer, List<SpawnBuilder>> getSpawns() {
     	return spawns;

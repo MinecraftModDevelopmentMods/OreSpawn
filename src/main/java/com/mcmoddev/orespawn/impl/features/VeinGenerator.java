@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
@@ -19,17 +20,17 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class VeinGenerator extends FeatureBase implements IFeature {
 
-	public VeinGenerator(Random rand) {
+	private VeinGenerator ( Random rand ) {
 		super( rand );
 	}
 	
 	public VeinGenerator() {
-		super( new Random() );
+		this( new Random() );
 	}
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -50,7 +51,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int length = parameters.get(Constants.FormatBits.LENGTH).getAsInt();
 		int wander = parameters.get(Constants.FormatBits.WANDER).getAsInt();
 		int nodeSize = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		
+
+		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
+
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= freq ) {
@@ -151,7 +154,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 	
 	private enum parms {
-		LENGTH, NODESIZE, WANDER;
+		LENGTH, NODESIZE, WANDER
 	}
 	
 	private void spawnVein(BlockPos blockPos, OreList ores, int[] params, World world, Random random,
@@ -218,7 +221,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		while(count > 0){
 			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
 		}
-		return;
 	}
 
 	@Override

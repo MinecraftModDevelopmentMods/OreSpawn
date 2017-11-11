@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.List;
 import java.util.ArrayList;
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
@@ -18,7 +19,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	private List<BiomeLocation> biomeBlacklist;
 	private BiomeLocation loc;
 	
-	public BiomeBuilderImpl() {
+	BiomeBuilderImpl () {
 		this.biomeWhitelist = new ArrayList<>();
 		this.biomeBlacklist = new ArrayList<>();
 	}
@@ -32,13 +33,13 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	}
 	
 	@Override
-	public BiomeBuilder whitelistBiome(Biome biome) {
+	public BiomeBuilder whitelistBiome(@Nonnull Biome biome) {
 		this.biomeWhitelist.add(new BiomeLocationSingle(biome));
 		return this;
 	}
 
 	@Override
-	public BiomeBuilder whitelistBiomeByName(String biomeName) {
+	public BiomeBuilder whitelistBiomeByName(@Nonnull String biomeName) {
 		Biome b = getBiomeByName(biomeName);
 		BiomeLocation bL = new BiomeLocationSingle(b);
 		if( !this.biomeWhitelist.contains(bL) ) {
@@ -48,25 +49,25 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	}
 
 	@Override
-	public BiomeBuilder whitelistBiomeByDictionary(String biomeDictionaryName) {
+	public BiomeBuilder whitelistBiomeByDictionary(@Nonnull String biomeDictionaryName) {
 		this.biomeWhitelist.add(new BiomeLocationDictionary(getBiomeDictionaryType(biomeDictionaryName)));
 		return this;
 	}
 
 	@Override
-	public BiomeBuilder blacklistBiome(Biome biome) {
+	public BiomeBuilder blacklistBiome(@Nonnull Biome biome) {
 		this.biomeBlacklist.add(new BiomeLocationSingle(biome));
 		return this;
 	}
 
 	@Override
-	public BiomeBuilder blacklistBiomeByName(String biomeName) {
+	public BiomeBuilder blacklistBiomeByName(@Nonnull String biomeName) {
 		this.biomeBlacklist.add(new BiomeLocationSingle(getBiomeByName(biomeName)));
 		return this;
 	}
 
 	@Override
-	public BiomeBuilder blacklistBiomeByDictionary(String biomeDictionaryName) {
+	public BiomeBuilder blacklistBiomeByDictionary(@Nonnull String biomeDictionaryName) {
 		this.biomeBlacklist.add(new BiomeLocationDictionary(getBiomeDictionaryType(biomeDictionaryName)));
 		return this;
 	}
@@ -78,21 +79,20 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 		}
 		
 		if( !this.biomeBlacklist.isEmpty() ) {
-			this.loc = new BiomeLocationComposition(ImmutableSet.<BiomeLocation>copyOf(this.biomeWhitelist),
-					ImmutableSet.<BiomeLocation>copyOf(this.biomeBlacklist));
+			this.loc = new BiomeLocationComposition(ImmutableSet.copyOf(this.biomeWhitelist),
+					ImmutableSet.copyOf(this.biomeBlacklist));
 		} else {
 			if( this.biomeWhitelist.size() == 1 ) {
-				BiomeLocation b = this.biomeWhitelist.toArray(new BiomeLocation[1])[0];
-				this.loc = b;
+				this.loc = this.biomeWhitelist.toArray(new BiomeLocation[0])[0];
 			} else {
-				this.loc = new BiomeLocationList(ImmutableSet.<BiomeLocation>copyOf(this.biomeWhitelist));
+				this.loc = new BiomeLocationList(ImmutableSet.copyOf(this.biomeWhitelist));
 			}
 		}
 		return this.loc;
 	}
 
 	@Override
-	public BiomeBuilder setFromBiomeLocation(BiomeLocation biomes) {
+	public BiomeBuilder setFromBiomeLocation(@Nonnull BiomeLocation biomes) {
 		this.loc = biomes;
 		return this;
 	}

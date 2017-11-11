@@ -1,11 +1,15 @@
 package com.mcmoddev.orespawn.impl.location;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import java.util.Objects;
-import java.util.Set;
+import java.util.List;
+import java.util.LinkedList;
 
 public final class BiomeLocationComposition implements BiomeLocation {
     private final ImmutableSet<BiomeLocation> inclusions;
@@ -20,9 +24,16 @@ public final class BiomeLocationComposition implements BiomeLocation {
 		this.hash = Objects.hash(inclusions, exclusions);
     }
 
+    private boolean matchBiome(Biome biome, BiomeLocation loc ) {
+    	return (loc.getBiomes().stream().filter( b -> b.equals ( biome ) ).distinct().count() > 0);
+    }
+
     @Override
     public boolean matches(Biome biome) {
-        return checkTags(biome, this.inclusions, false) && checkTags(biome, this.exclusions, true);
+        boolean inWhite = this.inclusions.asList().stream().anyMatch( bl -> matchBiome(biome, bl) );
+        boolean inBlack = this.exclusions.asList().stream().anyMatch( bl -> matchBiome(biome, bl) );
+
+        return !inBlack && inWhite;
     }
 
     @Override
@@ -42,13 +53,12 @@ public final class BiomeLocationComposition implements BiomeLocation {
         return false;
     }
 
-    private static boolean checkTags(Biome biome, Set<BiomeLocation> locations, boolean failValue) {
-        for (BiomeLocation location : locations) {
-            if (location.matches(biome) == failValue) {
-                return false;
-            }
-        }
-        return true;
+    @Override
+    public ImmutableList<Biome> getBiomes() {
+    	List<Biome> temp = new LinkedList<>();
+    	this.inclusions.stream ().forEach ( bl -> temp.addAll( bl.getBiomes () ) );
+	    this.exclusions.stream ().forEach ( bl -> temp.addAll( bl.getBiomes () ) );
+    	return ImmutableList.copyOf ( temp );
     }
 
 	public ImmutableSet<BiomeLocation> getInclusions() {

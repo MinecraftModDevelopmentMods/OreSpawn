@@ -101,7 +101,7 @@ public class FeatureRegistry {
 	private IFeature getInstance(String className) {
 		Class<?> featureClazz;
 		Constructor<?> featureCons;
-		IFeature feature = null;
+		IFeature feature;
 		try {
 			featureClazz = Class.forName(className);
 			featureCons = featureClazz.getConstructor();
@@ -117,7 +117,7 @@ public class FeatureRegistry {
 	
 	public void loadFeaturesFile(File file) {
 		JsonParser parser = new JsonParser();
-		String rawJson = "[]";
+		String rawJson;
 		JsonArray elements;
 		try {
 			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
@@ -156,7 +156,6 @@ public class FeatureRegistry {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
-			return;
-        }		
+        }
 	}
 }

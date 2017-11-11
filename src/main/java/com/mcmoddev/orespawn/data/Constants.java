@@ -85,8 +85,8 @@ public class Constants {
 		}
 		public final class BiomeStuff {
 			private BiomeStuff() {}
-			public static final String WHITELIST = "inclusions";
-			public static final String BLACKLIST = "exclusions";
+			public static final String WHITELIST = "includes";
+			public static final String BLACKLIST = "excludes";
 		}
 		public final class DefaultFeatureProperties {
 			private DefaultFeatureProperties() {}

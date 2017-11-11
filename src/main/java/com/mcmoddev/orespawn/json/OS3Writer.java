@@ -42,7 +42,7 @@ public class OS3Writer {
 	}
 
 	public void writeSpawnEntries() {
-		String basePath = String.format(".%1$sconfig%1$sorespawn3%1$force-written", File.separator);
+		String basePath = Paths.get ( "config", "orespawn3", "force-written" ).toString ();
 		writeFeatures(basePath);
 		writeReplacements(basePath);
 		

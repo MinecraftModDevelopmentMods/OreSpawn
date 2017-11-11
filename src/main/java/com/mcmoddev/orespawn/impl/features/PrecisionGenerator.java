@@ -4,13 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants.FormatBits;
+import com.mcmoddev.orespawn.json.os3.readers.Helpers;
 import com.mcmoddev.orespawn.util.OreList;
 
+import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -18,6 +22,7 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class PrecisionGenerator extends FeatureBase implements IFeature {
 	
@@ -32,7 +37,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace) {
+			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -48,6 +53,14 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		int nodeSize  = parameters.get(FormatBits.NODE_SIZE).getAsInt();
 
 		int thisNode = nodeSize;
+
+		if( biomeMatch(world.getBiome( new BlockPos( chunkX * 16, 64, chunkZ * 16 ) ), biomes ) ) {
+			JsonArray xxx = new JsonArray ();
+			ores.getOres().forEach( ib -> xxx.add( String.format("%s [%s]", ib.getBlock().getRegistryName(), StateUtil.serializeState( ib ) ) ) );
+			String biomeName = ForgeRegistries.BIOMES.getKey( world.getBiome( new BlockPos( chunkX * 16, 64, chunkZ * 16 ) ) ).toString();
+			OreSpawn.LOGGER.fatal("biome %s matched for spawn with ore(s) %s", biomeName, xxx);
+			return;
+		}
 
 		// now to use them
 		for( int c = nodeCount; c > 0; c-- ) {

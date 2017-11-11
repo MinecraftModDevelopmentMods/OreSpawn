@@ -39,12 +39,12 @@ public class EventHandlers {
 	private Deque<ChunkPos> chunks;
 	private Deque<ChunkPos> retroChunks;
 	
-    public EventHandlers() {
+    EventHandlers () {
     	chunks = new ConcurrentLinkedDeque<>();
     	retroChunks = new ConcurrentLinkedDeque<>();
     }
 
-    List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, 
+    private List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT,
     		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
     		EventType.QUARTZ, EventType.SILVERFISH);
 
@@ -140,8 +140,8 @@ public class EventHandlers {
 					.collect(Collectors.toList()));
 		}
 		
-		List<SpawnBuilder> spc = new LinkedList<>();
-		spawns.stream().map( DimensionBuilder::getAllSpawns ).forEach( spc::addAll );
+//		List<SpawnBuilder> spc = new LinkedList<>();
+//		spawns.stream().map( DimensionBuilder::getAllSpawns ).forEach( spc::addAll );
 		
 		List<FeatureBuilder> featureList = new LinkedList<>();
 		

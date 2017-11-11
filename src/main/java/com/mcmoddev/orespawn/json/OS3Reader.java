@@ -146,7 +146,7 @@ public class OS3Reader {
 					List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
 					BiomeBuilder biomes = spawn.newBiomeBuilder();
 
-					if( nw.getAsJsonObject(ConfigNames.BIOMES).size() < 1 ) {
+					if( nw.get(ConfigNames.BIOMES).isJsonObject () ) {
 						biomes.setFromBiomeLocation(Helpers.deserializeBiomeLocationComposition(nw.getAsJsonObject(ConfigNames.BIOMES)));
 					}
 

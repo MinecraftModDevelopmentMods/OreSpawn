@@ -14,7 +14,8 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 public interface IFeature {
 	void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> blockReplace );
+			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> blockReplace,
+			          BiomeLocation biomes );
 	
 	void setRandom(Random rand);
 	

@@ -12,11 +12,15 @@ import java.util.Map.Entry;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 
+import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class FeatureBase {
 	private static final int MAX_CACHE_SIZE = 2048;
@@ -29,7 +33,28 @@ public class FeatureBase {
 	public FeatureBase( Random rand ) {
 		this.random = rand;
 	}
-	
+
+	protected boolean biomeMatch( Biome chunkBiome, BiomeLocation inp ) {
+		if( inp.getBiomes().isEmpty () ) {
+			return false;
+		}
+
+		if( inp instanceof BiomeLocationComposition ) {
+			BiomeLocationComposition loc = (BiomeLocationComposition) inp;
+			BiomeLocationSingle it = new BiomeLocationSingle ( chunkBiome );
+			boolean exclMatch = loc.getExclusions().contains(it);
+			boolean inclMatch = loc.getInclusions().contains(it);
+
+			if ( (loc.getInclusions().isEmpty() || inclMatch) && !exclMatch ) {
+				return false;
+			}
+		} else if( inp.matches( chunkBiome ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
 	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);

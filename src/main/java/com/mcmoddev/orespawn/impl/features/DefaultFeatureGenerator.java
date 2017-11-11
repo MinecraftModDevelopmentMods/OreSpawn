@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
@@ -27,7 +28,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	
 	@Override
 	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> replaceBlock ) {
+			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> replaceBlock,
+			                 BiomeLocation biomes ) {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
@@ -46,7 +48,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		int vari = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
 		float freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsFloat();
 		int size = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		
+
+		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
+
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
 				int x = blockX + random.nextInt(16);
@@ -77,7 +81,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		
 	}
 
-	public void spawnOre( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock) {
+	private void spawnOre ( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock ) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -97,18 +101,15 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		}
 		
 		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, possibleOres );
-		
-		return;
 	}
 
 	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres ) {
-		int count = quantity;
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres );
+			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, count, possibleOres );
+			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres );
 		}
 	}
 
