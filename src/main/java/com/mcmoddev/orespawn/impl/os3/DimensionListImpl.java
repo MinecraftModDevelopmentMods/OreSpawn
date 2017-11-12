@@ -17,8 +17,8 @@ public class DimensionListImpl implements DimensionList{
 
 	@Override
 	public boolean match( int dimensionId ) {
-		return !whitelist.isEmpty () && !blacklist.contains ( dimensionId ) && whitelist.contains ( dimensionId );
-
+		return (whitelist.isEmpty() && blacklist.isEmpty() && dimensionId != -1 && dimensionId != 1) ||
+			        whitelist.contains( dimensionId ) || !blacklist.contains( dimensionId );
 	}
 
 	@Override
