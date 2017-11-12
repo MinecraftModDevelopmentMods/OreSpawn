@@ -2,10 +2,8 @@ package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import java.util.Objects;
 import java.util.List;

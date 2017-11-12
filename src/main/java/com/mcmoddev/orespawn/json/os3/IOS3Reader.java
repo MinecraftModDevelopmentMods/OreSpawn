@@ -151,6 +151,6 @@ public interface IOS3Reader {
 			rv.add(o.getAsJsonObject().get(Constants.ConfigNames.BLOCK_V2).getAsString());
 		}
 		
-		return String.join("-", new String[1]);
+		return String.join("-", rv.toArray( new String[0] ));
 	}
 }
