@@ -189,14 +189,12 @@ public class OS3Reader {
 		}
 	}
 
-	private static IOS3Reader getReader(String version) {
+	public static IOS3Reader getReader(String version) {
 		switch( version ) {
 			case "1":
-				return new OS3V1Reader();
 			case "1.1":
-				return new OS3V11Reader();
 			case "1.2":
-				return new OS3V12Reader();
+				return new OS3V1Reader();
 			case "2.0":
 				return new OS3V2Reader();
 			default:
