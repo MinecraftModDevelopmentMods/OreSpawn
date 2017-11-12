@@ -140,9 +140,6 @@ public class EventHandlers {
 					.collect(Collectors.toList()));
 		}
 		
-//		List<SpawnBuilder> spc = new LinkedList<>();
-//		spawns.stream().map( DimensionBuilder::getAllSpawns ).forEach( spc::addAll );
-		
 		List<FeatureBuilder> featureList = new LinkedList<>();
 		
 		spawns.forEach( sp -> featureList.addAll(sp.getAllSpawns().stream().map( SpawnBuilder::getFeatureGen ).collect(Collectors.toList())));

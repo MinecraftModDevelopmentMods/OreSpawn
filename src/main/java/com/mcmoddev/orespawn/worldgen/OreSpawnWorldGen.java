@@ -1,10 +1,6 @@
 package com.mcmoddev.orespawn.worldgen;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -79,7 +75,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement, sE.getBiomes());
 		});
-	}	
+	}
 }
 
 

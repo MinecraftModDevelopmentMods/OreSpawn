@@ -101,21 +101,6 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private double triangularDistribution(double a, double b, double c) {
-	    double base = (c - a) / (b - a);
-	    double rand = this.random.nextDouble();
-	    if (rand < base) {
-	        return a + Math.sqrt(rand * (b - a) * (c - a));
-	    } else {
-	        return b - Math.sqrt((1 - rand) * (b - a) * (b - c));
-	    }
-	}
-
-	private int getPoint( int lowerBound, int upperBound, int median ) {
-		int t = (int)Math.round( triangularDistribution((float)lowerBound, (float)upperBound, (float)median) );
-		return t - median;
-	}
-	
 	private enum parms {
 		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT
 	}

@@ -34,10 +34,6 @@ public class FeatureBase {
 		this.random = rand;
 	}
 
-	private String getBiomeName( Biome biome ) {
-		return ForgeRegistries.BIOMES.getKey( biome ).toString();
-	}
-
 	private boolean fullMatch( ImmutableSet<BiomeLocation> locs, Biome biome ) {
 		for( BiomeLocation b : locs ) {
 			for( Biome bm : b.getBiomes () ) {
@@ -85,8 +81,6 @@ public class FeatureBase {
 			return false;
 		}
 
-		List<IBlockState> blockToReplace = blockReplace;
-
 		Biome thisBiome = world.getBiome ( coord );
 		if( biomeMatch ( thisBiome, biomes ) ) return false;
 
@@ -131,8 +125,6 @@ public class FeatureBase {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return false;
 		}
-
-		List<IBlockState> blockToReplace = blockReplace;
 
 		BlockPos np = mungeFixYcoord(coord);
 
@@ -217,5 +209,21 @@ public class FeatureBase {
 			if( !parameters.has(entry.getKey()) ) 
 				parameters.add(entry.getKey(), entry.getValue());
 		});
-	}	
+	}
+
+	protected double triangularDistribution(double a, double b, double c) {
+		double base = (c - a) / (b - a);
+		double rand = this.random.nextDouble();
+		if (rand < base) {
+			return a + Math.sqrt(rand * (b - a) * (c - a));
+		} else {
+			return b - Math.sqrt((1 - rand) * (b - a) * (b - c));
+		}
+	}
+
+	protected int getPoint( int lowerBound, int upperBound, int median ) {
+		int t = (int)Math.round( triangularDistribution((float)lowerBound, (float)upperBound, (float)median) );
+		return t - median;
+	}
+
 }
