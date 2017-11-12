@@ -54,8 +54,6 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int clusterSize  = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 		int clusterCount = parameters.get(Constants.FormatBits.NODE_COUNT).getAsInt();
 
-		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
-
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
 				int xRand = random.nextInt(16);
@@ -66,7 +64,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				int z = blockZ + zRand - (maxSpread / 2);
 				int[] params = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
 
-				spawnCluster(ores, new BlockPos(x,y,z), params, random, world, blockReplace);
+				spawnCluster(ores, new BlockPos(x,y,z), params, random, world, blockReplace, biomes);
 			}
 			tries--;
 		}
@@ -91,7 +89,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		SIZE, VARIANCE, CCOUNT, MAXSPREAD, MINHEIGHT, MAXHEIGHT
 	}
 	
-	private void spawnCluster(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+	private void spawnCluster ( OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace, BiomeLocation biomes ) {
 		int size = params[parms.SIZE.ordinal()];
 		int variance = params[parms.VARIANCE.ordinal()];
 		int clusterCount = params[parms.CCOUNT.ordinal()];
@@ -103,7 +101,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			r += random.nextInt(2 * variance) - variance;
 		}
 		
-		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), blockReplace, random);
+		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), blockReplace, random, biomes);
 		
 		int count = random.nextInt(clusterCount - 1); // always at least the first, but vary inside that
 		if( variance > 0) {
@@ -124,14 +122,14 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				
 			BlockPos p = blockPos.add( xp, yp, zp );
 			
-			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random);
+			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random, biomes );
 
 			count -= r;
 		}
 	}
 
-	private void spawnChunk(OreList ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
-			Random prng) {
+	private void spawnChunk ( OreList ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
+	                          Random prng, BiomeLocation biomes ) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -146,7 +144,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			int z = 0;
 			while(count > 0){
 				IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-				if( !spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace) ) {
+				if( !spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace, biomes ) ) {
 					count++;
 					z++;
 				} else {
@@ -161,22 +159,22 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores );
+		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores, biomes );
 	}
 
-	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres ) {
+	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres, BiomeLocation biomes ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres );
+			spawnMungeNE( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres, biomes );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres );
+			spawnMungeSW( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres, biomes );
 		}
 	}
 
 
-	private void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> blockReplace, int count, OreList possibleOres ) {
+	private void spawnMungeSW ( World world, BlockPos blockPos, int rSqr, double radius,
+	                            List<IBlockState> blockReplace, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -184,7 +182,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace, biomes );
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -196,8 +194,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 
-	private void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> blockReplace, int count, OreList possibleOres) {
+	private void spawnMungeNE ( World world, BlockPos blockPos, int rSqr, double radius,
+	                            List<IBlockState> blockReplace, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -205,7 +203,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace, biomes );
 						quantity--;
 					}
 					if(quantity <= 0) {

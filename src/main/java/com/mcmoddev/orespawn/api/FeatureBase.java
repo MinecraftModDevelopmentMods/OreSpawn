@@ -9,11 +9,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Map.Entry;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
-import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -34,6 +34,20 @@ public class FeatureBase {
 		this.random = rand;
 	}
 
+	private String getBiomeName( Biome biome ) {
+		return ForgeRegistries.BIOMES.getKey( biome ).toString();
+	}
+
+	private boolean fullMatch( ImmutableSet<BiomeLocation> locs, Biome biome ) {
+		for( BiomeLocation b : locs ) {
+			for( Biome bm : b.getBiomes () ) {
+				if( bm.equals( biome ) )
+					return true;
+			}
+		}
+		return false;
+	}
+
 	protected boolean biomeMatch( Biome chunkBiome, BiomeLocation inp ) {
 		if( inp.getBiomes().isEmpty () ) {
 			return false;
@@ -41,9 +55,8 @@ public class FeatureBase {
 
 		if( inp instanceof BiomeLocationComposition ) {
 			BiomeLocationComposition loc = (BiomeLocationComposition) inp;
-			BiomeLocationSingle it = new BiomeLocationSingle ( chunkBiome );
-			boolean exclMatch = loc.getExclusions().contains(it);
-			boolean inclMatch = loc.getInclusions().contains(it);
+			boolean exclMatch = fullMatch( loc.getExclusions(), chunkBiome );
+			boolean inclMatch = fullMatch( loc.getInclusions(), chunkBiome );
 
 			if ( (loc.getInclusions().isEmpty() || inclMatch) && !exclMatch ) {
 				return false;
@@ -51,49 +64,56 @@ public class FeatureBase {
 		} else if( inp.matches( chunkBiome ) ) {
 			return false;
 		}
-
 		return true;
 	}
 
-	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
+	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace ) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos,IBlockState> cache = retrieveCache(chunkCoord);
 		
 		if( !cache.isEmpty() ) { // if there is something in the cache, try to spawn it
 			for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
-				spawn( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), false, blockReplace);
+				spawnNoCheck( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), false, blockReplace );
 			}
 		}
 	}
-	
-	protected boolean spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
-			List<IBlockState> blockReplace) {
+
+	protected boolean spawn( IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
+	                          List<IBlockState> blockReplace, BiomeLocation biomes ) {
 		if( oreBlock == null ) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return false;
 		}
-		
+
 		List<IBlockState> blockToReplace = blockReplace;
-		
-		BlockPos np;
-		
-		if(coord.getY() < 0 ) {
-			int newYCoord = coord.getY() * -1;
-			np = new BlockPos( coord.getX(), newYCoord, coord.getZ() );
-		} else {
-			np = new BlockPos( coord );
-		}
-			
+
+		Biome thisBiome = world.getBiome ( coord );
+		if( biomeMatch ( thisBiome, biomes ) ) return false;
+
+		BlockPos np = mungeFixYcoord(coord);
+
 		if( coord.getY() >= world.getHeight()) {
 			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
 			return false;
 		}
-			
-		
+
+		return spawnOrCache(world,np,blockReplace,oreBlock,cacheOverflow,dimension);
+	}
+
+	private BlockPos mungeFixYcoord ( BlockPos coord ) {
+		if(coord.getY() < 0 ) {
+			int newYCoord = coord.getY() * -1;
+			return new BlockPos( coord.getX(), newYCoord, coord.getZ() );
+		} else {
+			return new BlockPos( coord );
+		}
+	}
+
+	private boolean spawnOrCache ( World world, BlockPos coord, List<IBlockState> blockReplace, IBlockState oreBlock, boolean cacheOverflow, int dimension ) {
 		if(world.isBlockLoaded(coord)){
 			IBlockState targetBlock = world.getBlockState(coord);
-			if(canReplace(targetBlock,blockToReplace)) {
-				world.setBlockState(np, oreBlock, 22);
+			if(canReplace(targetBlock,blockReplace)) {
+				world.setBlockState(coord, oreBlock, 22);
 				return true;
 			} else {
 				return false;
@@ -102,9 +122,26 @@ public class FeatureBase {
 			cacheOverflowBlock(oreBlock,coord,dimension);
 			return true;
 		}
-		
-		//if it gets here by some strange twist...
 		return false;
+	}
+
+	protected boolean spawnNoCheck( IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
+	                          List<IBlockState> blockReplace ) {
+		if( oreBlock == null ) {
+			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
+			return false;
+		}
+
+		List<IBlockState> blockToReplace = blockReplace;
+
+		BlockPos np = mungeFixYcoord(coord);
+
+		if( coord.getY() >= world.getHeight()) {
+			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
+			return false;
+		}
+
+		return spawnOrCache(world,np,blockReplace,oreBlock,cacheOverflow,dimension);
 	}
 
 	protected void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension){

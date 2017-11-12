@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.json.os3.readers;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -40,6 +41,10 @@ public class Helpers {
 	private static BiomeLocation deserializeBiomeLocationList ( JsonArray in ) {
 		List<BiomeLocation> myData = new ArrayList<>();
 
+		if( in.size() == 0 ) {
+			return new BiomeLocationList(ImmutableSet.copyOf( Collections.emptySet () ));
+		}
+
 		in.forEach( elem -> {
 			if( elem.isJsonPrimitive() ) {
 				myData.add(deserializeSingleEntry(elem.getAsString()));
@@ -51,17 +56,23 @@ public class Helpers {
 		return new BiomeLocationList(ImmutableSet.copyOf(myData));
 	}
 
-	public static BiomeLocation deserializeBiomeLocationComposition(JsonObject in) {
+	public static BiomeLocationComposition deserializeBiomeLocationComposition(JsonObject in) {
 		JsonArray includeArr = in.getAsJsonArray ( ConfigNames.BiomeStuff.WHITELIST );
 		JsonArray excludeArr = in.getAsJsonArray ( ConfigNames.BiomeStuff.BLACKLIST );
 		if( includeArr == null ) includeArr = new JsonArray ();
 		if( excludeArr == null ) excludeArr = new JsonArray ();
 
-		BiomeLocation includes = deserializeBiomeLocationList ( includeArr );
-		BiomeLocation excludes = deserializeBiomeLocationList ( excludeArr );
-		
-		return new BiomeLocationComposition(ImmutableSet.of(includes),
-				ImmutableSet.of(excludes));
+		BiomeLocation includes = null;
+		BiomeLocation excludes = null;
+
+		if( includeArr.size() > 0 ) {
+			includes = deserializeBiomeLocationList ( includeArr );
+		}
+
+		if( excludeArr.size() > 0 ) excludes = deserializeBiomeLocationList ( excludeArr );
+
+		return new BiomeLocationComposition( (includes == null) ? ImmutableSet.copyOf(Collections.emptySet()) : ImmutableSet.of(includes),
+			                                    (excludes == null) ? ImmutableSet.copyOf(Collections.emptySet()) : ImmutableSet.of(excludes));
 	}
 
 	private static void handleState ( JsonObject ore, OreBuilder oreB, String oreName ) {

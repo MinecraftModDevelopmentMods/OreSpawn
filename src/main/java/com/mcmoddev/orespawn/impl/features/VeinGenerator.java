@@ -52,8 +52,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = parameters.get(Constants.FormatBits.WANDER).getAsInt();
 		int nodeSize = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
-		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
-
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= freq ) {
@@ -67,7 +65,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnVein( new BlockPos(x,y,z), ores, new int[] { length + r, nodeSize, wander }, world, random, blockReplace);
+				spawnVein( new BlockPos(x,y,z), ores, new int[] { length + r, nodeSize, wander }, world, random, blockReplace, biomes);
 			}
 			tries--;
 		}
@@ -157,8 +155,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		LENGTH, NODESIZE, WANDER
 	}
 	
-	private void spawnVein(BlockPos blockPos, OreList ores, int[] params, World world, Random random,
-			List<IBlockState> blockReplace) {		
+	private void spawnVein ( BlockPos blockPos, OreList ores, int[] params, World world, Random random,
+	                         List<IBlockState> blockReplace, BiomeLocation biomes ) {
 		// passed in POS is our start - we start with a weighting favoring straight directions
 		// and three-quarters that to the edges
 		// and one-half to the corners
@@ -168,7 +166,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int wander = params[parms.WANDER.ordinal()];
 		
 		// generate a node here
-		spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize);
+		spawnOre(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), blockReplace, nodeSize, biomes);
 		// select a direction, decrement length, repeat
 		float curRow = 1.00f;
 		float curCol = 1.00f;
@@ -196,7 +194,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					curRow /= 10;
 				}
 
-				spawnOre(ores.getRandomOre(random).getOre(), world, workPos, world.provider.getDimension(), blockReplace, nodeSize);
+				spawnOre(ores.getRandomOre(random).getOre(), world, workPos, world.provider.getDimension(), blockReplace, nodeSize, biomes);
 
 				// when nodes are small, the veins get badly broken if we do face wandering
 				if( nodeSize > 2 ) {
@@ -206,7 +204,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnOre(IBlockState oreBlock, World world, BlockPos key, int dimension, List<IBlockState> blockReplace, int nodeSize) {
+	private void spawnOre ( IBlockState oreBlock, World world, BlockPos key, int dimension, List<IBlockState> blockReplace, int nodeSize, BiomeLocation biomes ) {
 		int count = nodeSize;
 		int lutType = (count < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (count < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -219,7 +217,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		scramble(scrambledLUT,this.random);
 		
 		while(count > 0){
-			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace);
+			spawn(oreBlock,world,key.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace, biomes );
 		}
 	}
 

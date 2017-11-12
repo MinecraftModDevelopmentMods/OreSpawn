@@ -49,8 +49,6 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		float freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsFloat();
 		int size = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
-		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
-
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
 				int x = blockX + random.nextInt(16);
@@ -63,7 +61,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock);
+				spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock, biomes);
 			}
 		} else if(random.nextFloat() < freq){
 			int x = blockX + random.nextInt(8);
@@ -76,12 +74,12 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				r = 0;
 			}
 			
-			spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock);
+			spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock, biomes);
 		}
 		
 	}
 
-	private void spawnOre ( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock ) {
+	private void spawnOre ( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock, BiomeLocation biomes ) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -95,27 +93,27 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			scramble(scrambledLUT,prng);
 			while(count > 0){
 				IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock);
+				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock, biomes );
 			}
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, possibleOres );
+		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, possibleOres, biomes );
 	}
 
-	private void doSpawnFill(boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres ) {
+	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres, BiomeLocation biomes ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres );
+			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres, biomes );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres );
+			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres, biomes );
 		}
 	}
 
 
-	private void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+	private void spawnMungeSW ( World world, BlockPos blockPos, int rSqr, double radius,
+	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -123,7 +121,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock, biomes );
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -135,8 +133,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 
-	private void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+	private void spawnMungeNE ( World world, BlockPos blockPos, int rSqr, double radius,
+	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
@@ -144,7 +142,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock);
+						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock, biomes );
 						quantity--;
 					}
 					if(quantity <= 0) {

@@ -73,8 +73,6 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int fSave = frequency;
 		int tryCount = 0;
 
-		if( biomeMatch(world.getBiome( new BlockPos( blockX, 64, blockZ ) ), biomes ) ) return;
-
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
 				frequency = fSave;
@@ -88,7 +86,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 					r += random.nextInt(2 * variance) - variance;
 				}
 
-				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace) &&
+				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace, biomes) &&
 						tryCount < 5 ) {
 					// make another try!
 					tries++;
@@ -122,12 +120,12 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT
 	}
 	
-	private boolean spawnCloud(OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace) {
+	private boolean spawnCloud ( OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace, BiomeLocation biomes ) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 		int size = params[parms.SIZE.ordinal()];
 		int maxSpread = params[parms.MAXSPREAD.ordinal()];
 		
-		if( !spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace) ) {
+		if( !spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace, biomes ) ) {
 			return false;
 		}
 		
@@ -143,7 +141,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			BlockPos p = blockPos.add( xp, yp, zp );
 			
 			int z = 0;
-			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace) ) {
+			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace, biomes ) ) {
 				xp = getPoint(0, maxSpread, radius);
 				yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
 				zp = getPoint(0, maxSpread, radius);
