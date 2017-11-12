@@ -98,8 +98,8 @@ public class Constants {
 		}
 		public final class DimensionStuff {
 			private DimensionStuff() {}
-			public static final String INCLUDE = "include";
-			public static final String EXCLUDE = "exclude";
+			public static final String INCLUDE = "includes";
+			public static final String EXCLUDE = "excludes";
 		}
 	}
 }

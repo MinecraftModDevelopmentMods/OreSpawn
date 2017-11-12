@@ -54,13 +54,13 @@ public final class OS3V1Reader implements IOS3Reader {
 				JsonArray biomes = ore.has(ConfigNames.BIOMES)?ore.getAsJsonArray(ConfigNames.BIOMES):new JsonArray();
 				JsonObject biomeObj = new JsonObject();
 				biomeObj.add(biomes.size()<1?ConfigNames.BiomeStuff.BLACKLIST:ConfigNames.BiomeStuff.WHITELIST, biomes);
-				returnValue.add("biomes", biomeObj);
-				returnValue.add("biomes", new JsonObject());
-				returnValue.addProperty("name", getBlockName(ore));
+				returnValue.add(ConfigNames.BIOMES, biomeObj);
+				returnValue.add(ConfigNames.BIOMES, new JsonObject());
+				returnValue.addProperty(ConfigNames.BLOCK_V2, getBlockName(ore));
 				break;
 			case "1":
-				returnValue.add("biomes", new JsonObject());
-				returnValue.addProperty("name", getBlockName(ore));
+				returnValue.add(ConfigNames.BIOMES, new JsonObject());
+				returnValue.addProperty(ConfigNames.BLOCK_V2, getBlockName(ore));
 				break;
 			default:
 				break;
