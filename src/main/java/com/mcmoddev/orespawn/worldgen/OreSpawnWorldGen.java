@@ -5,22 +5,18 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
-import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
@@ -59,9 +55,6 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.getOrDefault(OreSpawn.API.dimensionWildcard(), new ArrayList<>()).isEmpty()) ) {
 			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
 		}
-
-		BlockPos genLocBase = new BlockPos( chunkX*16, 64, chunkZ*16);
-		Biome chunkBiome = world.getBiome ( genLocBase );
 
 		entries.stream()
 		.filter( SpawnBuilder::enabled )

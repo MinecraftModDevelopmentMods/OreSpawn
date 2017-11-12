@@ -42,9 +42,14 @@ public final class OS3V1Reader implements IOS3Reader {
 						JsonObject biomeObj = new JsonObject();
 						biomeObj.add(biomes.size()<1?ConfigNames.BiomeStuff.BLACKLIST:ConfigNames.BiomeStuff.WHITELIST, biomes);
 						oreOut.add("biomes", biomeObj);
+						oreOut.add("biomes", new JsonObject());
+						oreOut.addProperty("name", getBlockName(ore));
+						break;
 					case "1":
 						oreOut.add("biomes", new JsonObject());
 						oreOut.addProperty("name", getBlockName(ore));
+						break;
+					default:
 						break;
 				}
 				dimData.add(oreOut);

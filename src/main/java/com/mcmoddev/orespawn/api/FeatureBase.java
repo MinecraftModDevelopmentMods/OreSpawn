@@ -1,18 +1,8 @@
 package com.mcmoddev.orespawn.api;
 
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Map.Entry;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
-
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -20,14 +10,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class FeatureBase {
 	private static final int MAX_CACHE_SIZE = 2048;
 	/** overflow cache so that ores that spawn at edge of chunk can 
 	 * appear in the neighboring chunk without triggering a chunk-load */
-	protected static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
-	protected static final Deque<Vec3i> cacheOrder = new LinkedList<>();
+	private static final Map<Vec3i,Map<BlockPos,IBlockState>> overflowCache = new HashMap<>(MAX_CACHE_SIZE);
+	private static final Deque<Vec3i> cacheOrder = new LinkedList<>();
 	protected Random random;
 	
 	public FeatureBase( Random rand ) {
@@ -44,7 +36,7 @@ public class FeatureBase {
 		return false;
 	}
 
-	protected boolean biomeMatch( Biome chunkBiome, BiomeLocation inp ) {
+	private boolean biomeMatch ( Biome chunkBiome, BiomeLocation inp ) {
 		if( inp.getBiomes().isEmpty () ) {
 			return false;
 		}
@@ -69,7 +61,7 @@ public class FeatureBase {
 		
 		if( !cache.isEmpty() ) { // if there is something in the cache, try to spawn it
 			for(Entry<BlockPos,IBlockState> ent : cache.entrySet()){
-				spawnNoCheck( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), false, blockReplace );
+				spawnNoCheck( cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), blockReplace );
 			}
 		}
 	}
@@ -116,27 +108,28 @@ public class FeatureBase {
 			cacheOverflowBlock(oreBlock,coord,dimension);
 			return true;
 		}
+
 		return false;
 	}
 
-	protected boolean spawnNoCheck( IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
-	                          List<IBlockState> blockReplace ) {
+	private void spawnNoCheck ( IBlockState oreBlock, World world, BlockPos coord, int dimension,
+	                               List<IBlockState> blockReplace ) {
 		if( oreBlock == null ) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
-			return false;
+			return;
 		}
 
 		BlockPos np = mungeFixYcoord(coord);
 
 		if( coord.getY() >= world.getHeight()) {
 			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
-			return false;
+			return;
 		}
 
-		return spawnOrCache(world,np,blockReplace,oreBlock,cacheOverflow,dimension);
+		spawnOrCache(world,np,blockReplace,oreBlock,false,dimension);
 	}
 
-	protected void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension){
+	private void cacheOverflowBlock ( IBlockState bs, BlockPos coord, int dimension ){
 		Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
 		if(overflowCache.containsKey(chunkCoord)){
 			cacheOrder.addLast(chunkCoord);
@@ -145,20 +138,20 @@ public class FeatureBase {
 				overflowCache.get(drop).clear();
 				overflowCache.remove(drop);
 			}
-			overflowCache.put(chunkCoord, new HashMap<BlockPos,IBlockState>());
+			overflowCache.put(chunkCoord, new HashMap<>());
 		}
 		Map<BlockPos,IBlockState> cache = overflowCache.getOrDefault(chunkCoord, new HashMap<>());
 		cache.put(coord, bs);
 	}
 
-	protected Map<BlockPos,IBlockState> retrieveCache(Vec3i chunkCoord ){
+	private Map<BlockPos,IBlockState> retrieveCache ( Vec3i chunkCoord ){
 		if(overflowCache.containsKey(chunkCoord)){
 			Map<BlockPos,IBlockState> cache =overflowCache.get(chunkCoord);
 			cacheOrder.remove(chunkCoord);
 			overflowCache.remove(chunkCoord);
 			return cache;
 		} else {
-			return Collections.<BlockPos,IBlockState>emptyMap();
+			return Collections.emptyMap();
 		}
 	}
 	
@@ -171,12 +164,8 @@ public class FeatureBase {
 		}
 	}
 
-	protected boolean canReplace(IBlockState target, List<IBlockState> blockToReplace) {
-		if( target.getBlock().equals(Blocks.AIR) ) {
-			return false;
-		} else {
-			return blockToReplace.contains(target);
-		}
+	private boolean canReplace ( IBlockState target, List<IBlockState> blockToReplace ) {
+		return !target.getBlock().equals( Blocks.AIR ) && blockToReplace.contains( target );
 	}
 
 	protected static final Vec3i[] offsets_small = {
@@ -211,7 +200,7 @@ public class FeatureBase {
 		});
 	}
 
-	protected double triangularDistribution(double a, double b, double c) {
+	private double triangularDistribution ( double a, double b, double c ) {
 		double base = (c - a) / (b - a);
 		double rand = this.random.nextDouble();
 		if (rand < base) {
