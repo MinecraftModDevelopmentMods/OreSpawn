@@ -30,33 +30,42 @@ public final class OS3V1Reader implements IOS3Reader {
 				ore.addProperty("enabled", true);
 				
 				
-				JsonObject oreOut = new JsonObject();
-				
-				copyOverSingleBlock(ore,oreOut);
-				switch( entries.get(ConfigNames.FILE_VERSION).getAsString() ) {
-					case "1.2":
-						ore.entrySet().forEach( prop -> oreOut.add(prop.getKey(), prop.getValue()));
-						break;
-					case "1.1":
-						JsonArray biomes = ore.has(ConfigNames.BIOMES)?ore.getAsJsonArray(ConfigNames.BIOMES):new JsonArray();
-						JsonObject biomeObj = new JsonObject();
-						biomeObj.add(biomes.size()<1?ConfigNames.BiomeStuff.BLACKLIST:ConfigNames.BiomeStuff.WHITELIST, biomes);
-						oreOut.add("biomes", biomeObj);
-						oreOut.add("biomes", new JsonObject());
-						oreOut.addProperty("name", getBlockName(ore));
-						break;
-					case "1":
-						oreOut.add("biomes", new JsonObject());
-						oreOut.addProperty("name", getBlockName(ore));
-						break;
-					default:
-						break;
-				}
+				JsonObject oreOut = handleVersionDifferences( ore, entries.get(ConfigNames.FILE_VERSION).getAsString() )
 				dimData.add(oreOut);
 			}
 			retVal.getAsJsonObject("dimensions").add(Integer.toString(dimension), dimData);
 		}
 		
 		return retVal;
-	}	
+	}
+
+	private JsonObject handleVersionDifferences ( JsonObject ore, String version ) {
+		JsonObject returnValue = new JsonObject();
+
+		if( "1".equals(version) || "1.1".equals(version) ) {
+			copyOverSingleBlock(ore, returnValue);
+		}
+
+		switch( version ) {
+			case "1.2":
+				ore.entrySet().forEach( prop -> returnValue.add(prop.getKey(), prop.getValue()));
+				break;
+			case "1.1":
+				JsonArray biomes = ore.has(ConfigNames.BIOMES)?ore.getAsJsonArray(ConfigNames.BIOMES):new JsonArray();
+				JsonObject biomeObj = new JsonObject();
+				biomeObj.add(biomes.size()<1?ConfigNames.BiomeStuff.BLACKLIST:ConfigNames.BiomeStuff.WHITELIST, biomes);
+				returnValue.add("biomes", biomeObj);
+				returnValue.add("biomes", new JsonObject());
+				returnValue.addProperty("name", getBlockName(ore));
+				break;
+			case "1":
+				returnValue.add("biomes", new JsonObject());
+				returnValue.addProperty("name", getBlockName(ore));
+				break;
+			default:
+				break;
+		}
+		return returnValue;
+	}
+
 }

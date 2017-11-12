@@ -8,7 +8,6 @@ import java.util.List;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
