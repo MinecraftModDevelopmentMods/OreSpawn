@@ -30,7 +30,7 @@ public final class OS3V1Reader implements IOS3Reader {
 				ore.addProperty("enabled", true);
 				
 				
-				JsonObject oreOut = handleVersionDifferences( ore, entries.get(ConfigNames.FILE_VERSION).getAsString() )
+				JsonObject oreOut = handleVersionDifferences( ore, entries.get(ConfigNames.FILE_VERSION).getAsString() );
 				dimData.add(oreOut);
 			}
 			retVal.getAsJsonObject("dimensions").add(Integer.toString(dimension), dimData);
