@@ -24,8 +24,8 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class ClearChunkCommand extends CommandBase {
 	private static final String STONE_ID = "minecraft:stone";
-	private static final List<String> stoneVariants = Arrays.asList(STONE_ID, "minecraft:diorite", "minecraft:andesite", "minecraft:granite", "minecraft:sandstone", "minecraft:red_sandstone", "minecraft:netherrack", "minecraft:endstone");
-	private static final List<String> baseStones = Arrays.asList(STONE_ID, "minecraft:netherrack", "minecraft:endstone", "minecraft:cobblestone", "minecraft:obsidian", "minecraft:magma", "minecraft:soul_sand");
+	private static final List<String> stoneVariants = Arrays.asList(STONE_ID, "minecraft:diorite", "minecraft:andesite", "minecraft:granite", "minecraft:sandstone", "minecraft:red_sandstone", "minecraft:netherrack", "minecraft:end_stone");
+	private static final List<String> baseStones = Arrays.asList(STONE_ID, "minecraft:netherrack", "minecraft:end_stone", "minecraft:cobblestone", "minecraft:obsidian", "minecraft:magma", "minecraft:soul_sand");
 	
 	private static final List<String> dirtVariants = Arrays.asList("minecraft:dirt", "minecraft:grass");
 	private static final List<String> otherVariants = Arrays.asList("minecraft:gravel", "minecraft:sand");
