@@ -46,7 +46,7 @@ public class EventHandlers {
 
     private List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT,
     		EventType.EMERALD, EventType.GOLD, EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS, EventType.REDSTONE, 
-    		EventType.QUARTZ, EventType.SILVERFISH);
+    		EventType.QUARTZ, EventType.SILVERFISH );
 
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onGenerateMinable(OreGenEvent.GenerateMinable event) {

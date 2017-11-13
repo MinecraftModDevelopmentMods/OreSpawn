@@ -156,9 +156,10 @@ public class OS3Reader {
 					spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
 					spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
 
-					if( nw.has( ConfigNames.DIMENSION) )
-						spawn.create( biomes, gen, replacements, nw.getAsJsonObject( ConfigNames.DIMENSION ), blocks.toArray( new OreBuilder[0]) );
-					else
+					if( nw.has( ConfigNames.DIMENSION) ) {
+						OreSpawn.LOGGER.fatal( "Entry has %s tag with contents: %s", ConfigNames.DIMENSION, nw.getAsJsonObject( ConfigNames.DIMENSION ) );
+						spawn.create( biomes, gen, replacements, nw.getAsJsonObject( ConfigNames.DIMENSION ), blocks.toArray( new OreBuilder[0] ) );
+					} else
 						spawn.create(biomes, gen, replacements, blocks.toArray( new OreBuilder[0] ) );
 
 					builder.create(spawn);

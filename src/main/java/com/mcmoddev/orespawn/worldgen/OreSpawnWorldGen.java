@@ -49,17 +49,17 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		
 		int thisDim = world.provider.getDimension();
 		List<SpawnBuilder> entries = new ArrayList<> ( this.dimensions.getOrDefault ( thisDim, new ArrayList<> () ) );
-		
-		if( entries.isEmpty() && (thisDim == -1 || thisDim == 1)) return;
 
-		if( (thisDim != -1 && thisDim != 1) && !(this.dimensions.getOrDefault(OreSpawn.API.dimensionWildcard(), new ArrayList<>()).isEmpty()) ) {
-			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()));
+		if( !this.dimensions.getOrDefault( OreSpawn.API.dimensionWildcard(), new ArrayList<>() ).isEmpty() ) {
+			entries.addAll(this.dimensions.get( OreSpawn.API.dimensionWildcard() ).stream()
+				                .filter( ent -> (!ent.hasExtendedDimensions() && thisDim > 0 && thisDim != 1) ||
+					                                 ent.extendedDimensionsMatch( thisDim ) )
+				                .collect( Collectors.toList()) );
 		}
 
 		entries.stream()
 		.filter( SpawnBuilder::enabled )
 		.filter( sb -> !Config.getBoolean ( Constants.RETROGEN_KEY ) || (sb.retrogen () || Config.getBoolean ( Constants.FORCE_RETROGEN_KEY )) )
-		.filter( ent -> ent.hasExtendedDimensions() || ent.extendedDimensionsMatch(thisDim) )
 		.forEach( sE -> {
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
 			List<IBlockState> replacement = sE.getReplacementBlocks();
