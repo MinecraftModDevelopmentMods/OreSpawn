@@ -94,8 +94,14 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 					r += random.nextInt(2 * variance) - variance;
 				}
 
-				if( !spawnCloud(ores, new BlockPos(x,y,z), new int[] { r, maxSpread, minHeight, maxHeight }, random, world, blockReplace, biomes) &&
-						tryCount < 5 ) {
+				FunctionParameterWrapper fp = new FunctionParameterWrapper();
+				fp.setBlockPos( new BlockPos(x, y, z) );
+				fp.setWorld( world );
+				fp.setReplacements( blockReplace );
+				fp.setBiomes( biomes );
+				fp.setOres( ores );
+
+				if( !spawnCloud( r, maxSpread, minHeight, maxHeight, fp) && tryCount < 5 ) {
 					// make another try!
 					tries++;
 					frequency = 100;
@@ -109,16 +115,11 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private enum parms {
-		SIZE, MAXSPREAD, MINHEIGHT, MAXHEIGHT
-	}
-	
-	private boolean spawnCloud ( OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace, BiomeLocation biomes ) {
+	private boolean spawnCloud ( int size, int maxSpread, int minHeight, int maxHeight, FunctionParameterWrapper params ) {
 		// spawn one right at the center here, then generate for the cloud and do the math
-		int size = params[parms.SIZE.ordinal()];
-		int maxSpread = params[parms.MAXSPREAD.ordinal()];
-		
-		if( !spawn(ores.getRandomOre(random).getOre(), world, blockPos, world.provider.getDimension(), true, blockReplace, biomes ) ) {
+
+		if( !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), params.getBlockPos(),
+			 params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes() ) ) {
 			return false;
 		}
 		
@@ -128,24 +129,25 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		while( count > 0 ) {
 			int xp = getPoint(0, maxSpread, radius);
-			int yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
+			int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight)/2);
 			int zp = getPoint(0, maxSpread, radius);
 			
-			BlockPos p = blockPos.add( xp, yp, zp );
+			BlockPos p = params.getBlockPos().add( xp, yp, zp );
 			
 			int z = 0;
-			while ( z < 5 && !spawn(ores.getRandomOre(random).getOre(), world, p, world.provider.getDimension(), true, blockReplace, biomes ) ) {
+			while ( z < 5 && !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), p,
+				 params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
 				xp = getPoint(0, maxSpread, radius);
-				yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
+				yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight)/2);
 				zp = getPoint(0, maxSpread, radius);
 				
-				p = blockPos.add( xp, yp, zp );
+				p = params.getBlockPos().add( xp, yp, zp );
 				
 				z++;
 			}
 			
 			if( z >= 5 && !alreadySpewed ) {
-				OreSpawn.LOGGER.info("unable to achieve requested cloud density for cloud centered at %s", blockPos);
+				OreSpawn.LOGGER.info("unable to achieve requested cloud density for cloud centered at %s", params.getBlockPos());
 				alreadySpewed = true;
 			}
 			

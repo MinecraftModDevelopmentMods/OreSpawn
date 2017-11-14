@@ -8,6 +8,7 @@ import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -217,10 +218,15 @@ public class FeatureBase {
 	}
 
 
-	protected void spawnMunge( World world, BlockPos blockPos, double radius, List<IBlockState> replace, int count,
-	                         OreList possible, BiomeLocation biomes, boolean toPositive ) {
+	protected void spawnMunge( FunctionParameterWrapper params, double radius, int count, boolean toPositive ) {
 		int rSqr = (int)(radius * radius);
 		int quantity = count;
+
+		OreList possible = params.getOres();
+		World world = params.getWorld();
+		BlockPos blockPos = params.getBlockPos();
+		List<IBlockState> replace = params.getReplacements();
+		BiomeLocation biomes = params.getBiomes();
 
 		for( int dy = (int)(-1 * radius); dy < radius; dy++ ) {
 			for( int dx = getStart( toPositive, radius); endCheck( toPositive, dx, radius); dx = countItem(dx, toPositive) ) {
@@ -253,4 +259,81 @@ public class FeatureBase {
 		return ((int) (radius * (toPositive?1:-1)));
 	}
 
+	public class FunctionParameterWrapper {
+		private World world;
+		private BlockPos blockPos;
+		private List<IBlockState> replacements;
+		private OreList ores;
+		private BiomeLocation biomes;
+		private ChunkPos chunkPos;
+		private IBlockState block;
+
+		public FunctionParameterWrapper() {}
+
+		public FunctionParameterWrapper( FunctionParameterWrapper other ) {
+			world = other.getWorld();
+			blockPos = other.getBlockPos();
+			replacements = other.getReplacements();
+			ores = other.getOres();
+			biomes = other.getBiomes();
+			chunkPos = other.getChunkPos();
+			block = other.getBlock();
+		}
+
+		public BiomeLocation getBiomes () {
+			return biomes;
+		}
+
+		public void setBiomes ( BiomeLocation biomes ) {
+			this.biomes = biomes;
+		}
+
+		public World getWorld () {
+			return world;
+		}
+
+		public void setWorld ( World world ) {
+			this.world = world;
+		}
+
+		public BlockPos getBlockPos () {
+			return blockPos;
+		}
+
+		public void setBlockPos ( BlockPos blockPos ) {
+			this.blockPos = blockPos;
+		}
+
+		public List<IBlockState> getReplacements () {
+			return replacements;
+		}
+
+		public void setReplacements ( List<IBlockState> replacements ) {
+			this.replacements = replacements;
+		}
+
+		public OreList getOres () {
+			return ores;
+		}
+
+		public void setOres ( OreList ores ) {
+			this.ores = ores;
+		}
+
+		public ChunkPos getChunkPos () {
+			return chunkPos;
+		}
+
+		public void setChunkPos ( ChunkPos chunkPos ) {
+			this.chunkPos = chunkPos;
+		}
+
+		public IBlockState getBlock () {
+			return block;
+		}
+
+		public void setBlock ( IBlockState block ) {
+			this.block = block;
+		}
+	}
 }

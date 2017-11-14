@@ -56,6 +56,12 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		float freq = params.get(Constants.FormatBits.FREQUENCY).getAsFloat();
 		int size = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
+		FunctionParameterWrapper fp = new FunctionParameterWrapper();
+		fp.setWorld( world );
+		fp.setReplacements( replaceBlock );
+		fp.setBiomes( biomes );
+		fp.setOres( ores );
+
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
 				int x = blockX + random.nextInt(16);
@@ -68,7 +74,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				} else {
 					r = 0;
 				}
-				spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock, biomes);
+
+				fp.setBlockPos( new BlockPos(x, y, z) );
+				spawnOre( fp, size + r );
 			}
 		} else if(random.nextFloat() < freq){
 			int x = blockX + random.nextInt(8);
@@ -80,13 +88,14 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			} else {
 				r = 0;
 			}
-			
-			spawnOre( new BlockPos(x,y,z), ores, size + r, world, random, replaceBlock, biomes);
+
+			fp.setBlockPos( new BlockPos(x, y, z) );
+			spawnOre( fp, size + r );
 		}
 		
 	}
 
-	private void spawnOre ( BlockPos blockPos, OreList possibleOres, int quantity, World world, Random prng, List<IBlockState> replaceBlock, BiomeLocation biomes ) {
+	private void spawnOre ( FunctionParameterWrapper params, int quantity ) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
@@ -97,23 +106,24 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		if( quantity < 27 ) {
 			int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
-			scramble(scrambledLUT,prng);
+			scramble(scrambledLUT, this.random);
 			while(count > 0){
-				IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-				spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),world.provider.getDimension(),true,replaceBlock, biomes );
+				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
+				spawn(oreBlock, params.getWorld(),params.getBlockPos().add(offs[scrambledLUT[--count]]),
+					 params.getWorld().provider.getDimension(),true, params.getReplacements(), params.getBiomes() );
 			}
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, replaceBlock, possibleOres, biomes );
+		doSpawnFill( this.random.nextBoolean(), count, params );
 	}
 
-	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres, BiomeLocation biomes ) {
+	private void doSpawnFill ( boolean nextBoolean, int quantity, FunctionParameterWrapper params ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		if( nextBoolean ) {
-			spawnMunge( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes, true );
+			spawnMunge( params, radius, quantity, false );
 		} else {
-			spawnMunge( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes, false );
+			spawnMunge( params, radius, quantity, true );
 		}
 	}
 

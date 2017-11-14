@@ -70,74 +70,73 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				int x = blockX + xRand - (maxSpread / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				int z = blockZ + zRand - (maxSpread / 2);
-				int[] keyParams = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
 
-				spawnCluster(ores, new BlockPos(x,y,z), keyParams, random, world, blockReplace, biomes);
+				FunctionParameterWrapper fp = new FunctionParameterWrapper();
+				fp.setBlockPos( new BlockPos(x, y, z) );
+				fp.setWorld( world );
+				fp.setReplacements( blockReplace );
+				fp.setBiomes( biomes );
+				fp.setOres( ores );
+
+				spawnCluster( clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight, fp );
 			}
 			tries--;
 		}
 	}
 
-	private enum parms {
-		SIZE, VARIANCE, CCOUNT, MAXSPREAD, MINHEIGHT, MAXHEIGHT
-	}
-	
-	private void spawnCluster ( OreList ores, BlockPos blockPos, int[] params, Random random, World world, List<IBlockState> blockReplace, BiomeLocation biomes ) {
-		int size = params[parms.SIZE.ordinal()];
-		int variance = params[parms.VARIANCE.ordinal()];
-		int clusterCount = params[parms.CCOUNT.ordinal()];
-		int maxSpread = params[parms.MAXSPREAD.ordinal()];
-		
+	private void spawnCluster ( int clusterSize, int variance, int clusterCount, int maxSpread, int minHeight,
+	                            int maxHeight, FunctionParameterWrapper params ) {
 		// spawn a cluster at the center, then a bunch around the outside...
-		int r = size - variance;
+		int r = clusterSize - variance;
 		if(variance > 0){
-			r += random.nextInt(2 * variance) - variance;
+			r += this.random.nextInt(2 * variance) - variance;
 		}
 		
-		spawnChunk(ores, world, blockPos, r, world.provider.getDimension(), blockReplace, random, biomes);
+		spawnChunk(params, r);
 		
-		int count = random.nextInt(clusterCount - 1); // always at least the first, but vary inside that
+		int count = this.random.nextInt(clusterCount - 1); // always at least the first, but vary inside that
 		if( variance > 0) {
-			count += random.nextInt(2 * variance) - variance;
+			count += this.random.nextInt(2 * variance) - variance;
 		}
 		
 		while( count >= 0 ) {
-			r = size - variance;
+			r = clusterSize - variance;
 			if(variance > 0){
-				r += random.nextInt(2 * variance) - variance;
+				r += this.random.nextInt(2 * variance) - variance;
 			}
 						
 			int radius = maxSpread/2;
 			
 			int xp = getPoint(-radius, radius, 0);
-			int yp = getPoint(params[parms.MINHEIGHT.ordinal()], params[parms.MAXHEIGHT.ordinal()], (params[parms.MAXHEIGHT.ordinal()] - params[parms.MINHEIGHT.ordinal()])/2);
+			int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight)/2);
 			int zp = getPoint(-radius, radius, 0);
 				
-			BlockPos p = blockPos.add( xp, yp, zp );
-			
-			spawnChunk(ores, world, p, r, world.provider.getDimension(), blockReplace, random, biomes );
+			BlockPos p = params.getBlockPos().add( xp, yp, zp );
+			FunctionParameterWrapper np = new FunctionParameterWrapper( params );
+			np.setBlockPos( p );
+			spawnChunk(np, r);
 
 			count -= r;
 		}
 	}
 
-	private void spawnChunk ( OreList ores, World world, BlockPos blockPos, int quantity, int dimension, List<IBlockState> blockReplace,
-	                          Random prng, BiomeLocation biomes ) {
+	private void spawnChunk ( FunctionParameterWrapper params, int quantity ) {
 		int count = quantity;
 		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
 		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
 		Vec3i[] offs = new Vec3i[lutType];
 		
 		System.arraycopy((quantity < 8)?offsets_small:offsets, 0, offs, 0, lutType);
-		
+
+		int dimension = params.getWorld().provider.getDimension();
 		if( quantity < 27 ) {
 			int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
-			scramble(scrambledLUT,prng);
+			scramble(scrambledLUT,this.random);
 			int z = 0;
 			while(count > 0){
-				IBlockState oreBlock = ores.getRandomOre(prng).getOre();
-				if( !spawn(oreBlock,world,blockPos.add(offs[scrambledLUT[--count]]),dimension,true,blockReplace, biomes ) ) {
+				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
+				if( !spawn(oreBlock,params.getWorld(),params.getBlockPos().add(offs[scrambledLUT[--count]]),dimension,true, params.getReplacements(), params.getBiomes() ) ) {
 					count++;
 					z++;
 				} else {
@@ -152,15 +151,15 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			return;
 		}
 		
-		doSpawnFill( prng.nextBoolean(), world, blockPos, count, blockReplace, ores, biomes );
+		doSpawnFill( this.random.nextBoolean(), count, params );
 	}
 
-	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres, BiomeLocation biomes ) {
+	private void doSpawnFill ( boolean nextBoolean, int quantity, FunctionParameterWrapper params ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		if( nextBoolean ) {
-			spawnMunge( world, blockPos, radius, blockReplace, quantity, possibleOres, biomes, false );
+			spawnMunge( params, radius, quantity, false );
 		} else {
-			spawnMunge( world, blockPos, radius, blockReplace, quantity, possibleOres, biomes, true );
+			spawnMunge( params, radius, quantity, true );
 		}
 	}
 
