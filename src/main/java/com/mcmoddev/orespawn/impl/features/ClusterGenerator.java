@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -7,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
@@ -30,13 +33,20 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 	
 	@Override
-	public void generate( ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-	                      JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
+	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	                      GeneratorParameters parameters ) {
+		ChunkPos pos = parameters.getChunk();
+		List<IBlockState> blockReplace = new LinkedList<>();
+		blockReplace.addAll( parameters.getReplacements() );
+		JsonObject params = parameters.getParameters();
+		OreList ores = parameters.getOres();
+		BiomeLocation biomes = parameters.getBiomes();
+
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 
-		mergeDefaults(parameters, getDefaultParameters());
+		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, blockReplace);
 		
@@ -45,14 +55,14 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 
-		int maxSpread  = parameters.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
-		int minHeight  = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxHeight  = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int variance   = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
-		int frequency  = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
-		int clusterSize  = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		int clusterCount = parameters.get(Constants.FormatBits.NODE_COUNT).getAsInt();
+		int maxSpread  = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		int minHeight  = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxHeight  = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int variance   = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		int frequency  = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int tries      = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int clusterSize  = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		int clusterCount = params.get(Constants.FormatBits.NODE_COUNT).getAsInt();
 
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
@@ -62,9 +72,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				int x = blockX + xRand - (maxSpread / 2);
 				int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				int z = blockZ + zRand - (maxSpread / 2);
-				int[] params = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
+				int[] keyParams = new int[] { clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight};
 
-				spawnCluster(ores, new BlockPos(x,y,z), params, random, world, blockReplace, biomes);
+				spawnCluster(ores, new BlockPos(x,y,z), keyParams, random, world, blockReplace, biomes);
 			}
 			tries--;
 		}

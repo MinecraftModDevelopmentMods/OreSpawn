@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.impl.features;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -8,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants.FormatBits;
 import com.mcmoddev.orespawn.util.OreList;
@@ -29,24 +31,31 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	public PrecisionGenerator() {
 		this( new Random() );
 	}
-	
+
 
 	@Override
-	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
+	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	                      GeneratorParameters parameters ) {
+		ChunkPos pos = parameters.getChunk();
+		List<IBlockState> blockReplace = new LinkedList<>();
+		blockReplace.addAll( parameters.getReplacements() );
+		JsonObject params = parameters.getParameters();
+		OreList ores = parameters.getOres();
+		BiomeLocation biomes = parameters.getBiomes();
+
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 
-		mergeDefaults(parameters, getDefaultParameters());
+		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, blockReplace);
 		
 		// extract parameters
-		int nodeCount = parameters.get(FormatBits.NODE_COUNT).getAsInt();
-		int maxHeight = parameters.get(FormatBits.MAX_HEIGHT).getAsInt();
-		int minHeight = parameters.get(FormatBits.MIN_HEIGHT).getAsInt();
-		int nodeSize  = parameters.get(FormatBits.NODE_SIZE).getAsInt();
+		int nodeCount = params.get(FormatBits.NODE_COUNT).getAsInt();
+		int maxHeight = params.get(FormatBits.MAX_HEIGHT).getAsInt();
+		int minHeight = params.get(FormatBits.MIN_HEIGHT).getAsInt();
+		int nodeSize  = params.get(FormatBits.NODE_SIZE).getAsInt();
 
 		int thisNode = nodeSize;
 

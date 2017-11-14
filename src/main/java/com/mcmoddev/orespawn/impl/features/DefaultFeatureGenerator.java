@@ -1,11 +1,13 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
@@ -24,17 +26,22 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	public DefaultFeatureGenerator() {
 		super( new Random() );
 	}
-	
-	
+
 	@Override
-	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, JsonObject parameters, OreList ores, List<IBlockState> replaceBlock,
-			                 BiomeLocation biomes ) {
+	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	                      GeneratorParameters parameters ) {
+		ChunkPos pos = parameters.getChunk();
+		List<IBlockState> replaceBlock = new LinkedList<>();
+		replaceBlock.addAll( parameters.getReplacements() );
+		JsonObject params = parameters.getParameters();
+		OreList ores = parameters.getOres();
+		BiomeLocation biomes = parameters.getBiomes();
+
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 	
-		mergeDefaults(parameters, getDefaultParameters());
+		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, replaceBlock);
 		
@@ -43,11 +50,11 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 		
-		int minY = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxY = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int vari = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
-		float freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsFloat();
-		int size = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		float freq = params.get(Constants.FormatBits.FREQUENCY).getAsFloat();
+		int size = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
 		if(freq >= 1){
 			for(int i = 0; i < freq; i++){
@@ -103,18 +110,18 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres, BiomeLocation biomes ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres, biomes );
+			spawnMungeNE( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, replaceBlock, quantity, possibleOres, biomes );
+			spawnMungeSW( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes );
 		}
 	}
 
 
-	private void spawnMungeSW ( World world, BlockPos blockPos, int rSqr, double radius,
+	private void spawnMungeSW ( World world, BlockPos blockPos, double radius,
 	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
+		int rSqr = (int)(radius * radius);
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
@@ -133,9 +140,10 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 
-	private void spawnMungeNE ( World world, BlockPos blockPos, int rSqr, double radius,
+	private void spawnMungeNE ( World world, BlockPos blockPos, double radius,
 	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
 		Random prng = this.random;
+		int rSqr = (int)(radius * radius);
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){

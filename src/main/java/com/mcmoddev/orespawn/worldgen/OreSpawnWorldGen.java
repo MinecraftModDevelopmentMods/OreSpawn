@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
@@ -50,12 +51,11 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		int thisDim = world.provider.getDimension();
 		List<SpawnBuilder> entries = new ArrayList<> ( this.dimensions.getOrDefault ( thisDim, new ArrayList<> () ) );
 
-		if( !this.dimensions.getOrDefault( OreSpawn.API.dimensionWildcard(), new ArrayList<>() ).isEmpty() ) {
-			entries.addAll(this.dimensions.get( OreSpawn.API.dimensionWildcard() ).stream()
-				                .filter( ent -> (!ent.hasExtendedDimensions() && thisDim > 0 && thisDim != 1) ||
-					                                 ent.extendedDimensionsMatch( thisDim ) )
-				                .collect( Collectors.toList()) );
-		}
+		if( !this.dimensions.getOrDefault( OreSpawn.API.dimensionWildcard(), new ArrayList<>() ).isEmpty() )
+			entries.addAll( this.dimensions.get( OreSpawn.API.dimensionWildcard() ).stream()
+				                 .filter( ent -> (!ent.hasExtendedDimensions() && thisDim > 0 && thisDim != 1) ||
+						                                ent.extendedDimensionsMatch( thisDim ) )
+				                 .collect( Collectors.toList() ) );
 
 		entries.stream()
 		.filter( SpawnBuilder::enabled )
@@ -65,8 +65,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			List<IBlockState> replacement = sE.getReplacementBlocks();
 			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
 
+			GeneratorParameters parameters = new GeneratorParameters( new ChunkPos(chunkX, chunkZ), sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement, sE.getBiomes() );
+
 			currentFeatureGen.setRandom(random);
-			currentFeatureGen.generate(new ChunkPos(chunkX, chunkZ), world, chunkGenerator, chunkProvider, sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement, sE.getBiomes());
+			currentFeatureGen.generate(world, chunkGenerator, chunkProvider, parameters);
 		});
 	}
 }

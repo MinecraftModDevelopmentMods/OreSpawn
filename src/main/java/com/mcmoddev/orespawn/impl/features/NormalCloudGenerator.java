@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -7,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
@@ -27,15 +29,21 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	public NormalCloudGenerator() {
 		this( new Random() );
 	}
-	
+
 	@Override
-	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
+	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	                      GeneratorParameters parameters ) {
+		ChunkPos pos = parameters.getChunk();
+		List<IBlockState> blockReplace = new LinkedList<>();
+		blockReplace.addAll( parameters.getReplacements() );
+		JsonObject params = parameters.getParameters();
+		OreList ores = parameters.getOres();
+		BiomeLocation biomes = parameters.getBiomes();
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 		
-		mergeDefaults(parameters, getDefaultParameters());
+		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, blockReplace);
 		
@@ -45,13 +53,13 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16;
 		int blockZ = chunkZ * 16;
 
-		int maxSpread  = parameters.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
-		int medianSize = parameters.get(Constants.FormatBits.MEDIAN_SIZE).getAsInt();
-		int minHeight  = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxHeight  = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int variance   = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
-		int frequency  = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries      = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int maxSpread  = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		int medianSize = params.get(Constants.FormatBits.MEDIAN_SIZE).getAsInt();
+		int minHeight  = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxHeight  = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int variance   = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		int frequency  = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int tries      = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
 
 		// on the X and Z you have a possible 2-chunk range - 32 blocks - subtract the spread to get
 		// a size that will let us insert by the radius

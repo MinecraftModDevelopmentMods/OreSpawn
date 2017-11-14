@@ -1,11 +1,13 @@
 package com.mcmoddev.orespawn.impl.features;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
+import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
@@ -27,30 +29,37 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	public VeinGenerator() {
 		this( new Random() );
 	}
-	
+
 	@Override
-	public void generate(ChunkPos pos, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			JsonObject parameters, OreList ores, List<IBlockState> blockReplace, BiomeLocation biomes) {
+	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	                      GeneratorParameters parameters ) {
+		ChunkPos pos = parameters.getChunk();
+		List<IBlockState> blockReplace = new LinkedList<>();
+		blockReplace.addAll( parameters.getReplacements() );
+		JsonObject params = parameters.getParameters();
+		OreList ores = parameters.getOres();
+		BiomeLocation biomes = parameters.getBiomes();
+
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 		
 		runCache(chunkX, chunkZ, world, blockReplace);
-		mergeDefaults(parameters, getDefaultParameters());
+		mergeDefaults(params, getDefaultParameters());
 		
 		// now to ore spawn
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 
-		int minY = parameters.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxY = parameters.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int vari = parameters.get(Constants.FormatBits.VARIATION).getAsInt();
-		int freq = parameters.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries = parameters.get(Constants.FormatBits.ATTEMPTS).getAsInt();
-		int length = parameters.get(Constants.FormatBits.LENGTH).getAsInt();
-		int wander = parameters.get(Constants.FormatBits.WANDER).getAsInt();
-		int nodeSize = parameters.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int tries = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
+		int wander = params.get(Constants.FormatBits.WANDER).getAsInt();
+		int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
