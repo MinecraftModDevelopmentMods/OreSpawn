@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
+import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -213,6 +214,43 @@ public class FeatureBase {
 	protected int getPoint( int lowerBound, int upperBound, int median ) {
 		int t = (int)Math.round( triangularDistribution((float)lowerBound, (float)upperBound, (float)median) );
 		return t - median;
+	}
+
+
+	protected void spawnMunge( World world, BlockPos blockPos, double radius, List<IBlockState> replace, int count,
+	                         OreList possible, BiomeLocation biomes, boolean toPositive ) {
+		int rSqr = (int)(radius * radius);
+		int quantity = count;
+
+		for( int dy = (int)(-1 * radius); dy < radius; dy++ ) {
+			for( int dx = getStart( toPositive, radius); endCheck( toPositive, dx, radius); dx = countItem(dx, toPositive) ) {
+				for( int dz = getStart( toPositive, radius); endCheck( toPositive, dz, radius); dz = countItem(dz, toPositive) ) {
+					if( getABC(dx, dy, dz) <= rSqr ) {
+						IBlockState oreBlock = possible.getRandomOre( this.random ).getOre();
+						spawn( oreBlock, world, blockPos.add(dx,dy,dz), world.provider.getDimension(), true, replace, biomes );
+						if( --quantity <= 0 ) {
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	protected int getABC ( int dx, int dy, int dz ) {
+		return (dx*dx + dy*dy + dz*dz);
+	}
+
+	protected int countItem ( int dx, boolean toPositive ) {
+		return toPositive?dx + 1:dx - 1;
+	}
+
+	protected boolean endCheck ( boolean toPositive, int dx, double radius ) {
+		return toPositive ? (dx >= getStart( toPositive, radius )) : (dx < radius);
+	}
+
+	protected int getStart ( boolean toPositive, double radius ) {
+		return ((int) (radius * (toPositive?1:-1)));
 	}
 
 }

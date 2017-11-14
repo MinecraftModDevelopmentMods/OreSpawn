@@ -111,53 +111,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> replaceBlock, OreList possibleOres, BiomeLocation biomes ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes );
+			spawnMunge( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes, true );
 		} else {
-			spawnMungeSW( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes );
-		}
-	}
-
-
-	private void spawnMungeSW ( World world, BlockPos blockPos, double radius,
-	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
-		Random prng = this.random;
-		int rSqr = (int)(radius * radius);
-		int quantity = count;
-		for(int dy = (int)(-1 * radius); dy < radius; dy++){
-			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
-				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock, biomes );
-						quantity--;
-					}
-					if(quantity <= 0) {
-						return;
-					}
-				}
-			}
-		}
-	}
-
-
-	private void spawnMungeNE ( World world, BlockPos blockPos, double radius,
-	                            List<IBlockState> replaceBlock, int count, OreList possibleOres, BiomeLocation biomes ) {
-		Random prng = this.random;
-		int rSqr = (int)(radius * radius);
-		int quantity = count;
-		for(int dy = (int)(-1 * radius); dy < radius; dy++){
-			for(int dz = (int)(-1 * radius); dz < radius; dz++){
-				for(int dx = (int)(-1 * radius); dx < radius; dx++){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,replaceBlock, biomes );
-						quantity--;
-					}
-					if(quantity <= 0) {
-						return;
-					}
-				}
-			}
+			spawnMunge( world, blockPos, radius, replaceBlock, quantity, possibleOres, biomes, false );
 		}
 	}
 

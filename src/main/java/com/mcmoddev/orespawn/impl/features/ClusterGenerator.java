@@ -1,10 +1,5 @@
 package com.mcmoddev.orespawn.impl.features;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
@@ -13,7 +8,6 @@ import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -21,6 +15,10 @@ import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 
 public class ClusterGenerator extends FeatureBase implements IFeature {
 
@@ -159,55 +157,13 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 	private void doSpawnFill ( boolean nextBoolean, World world, BlockPos blockPos, int quantity, List<IBlockState> blockReplace, OreList possibleOres, BiomeLocation biomes ) {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres, biomes );
+			spawnMunge( world, blockPos, radius, blockReplace, quantity, possibleOres, biomes, false );
 		} else {
-			spawnMungeSW( world, blockPos, rSqr, radius, blockReplace, quantity, possibleOres, biomes );
+			spawnMunge( world, blockPos, radius, blockReplace, quantity, possibleOres, biomes, true );
 		}
 	}
 
-
-	private void spawnMungeSW ( World world, BlockPos blockPos, int rSqr, double radius,
-	                            List<IBlockState> blockReplace, int count, OreList possibleOres, BiomeLocation biomes ) {
-		Random prng = this.random;
-		int quantity = count;
-		for(int dy = (int)(-1 * radius); dy < radius; dy++){
-			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
-				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace, biomes );
-						quantity--;
-					}
-					if(quantity <= 0) {
-						return;
-					}
-				}
-			}
-		}
-	}
-
-
-	private void spawnMungeNE ( World world, BlockPos blockPos, int rSqr, double radius,
-	                            List<IBlockState> blockReplace, int count, OreList possibleOres, BiomeLocation biomes ) {
-		Random prng = this.random;
-		int quantity = count;
-		for(int dy = (int)(-1 * radius); dy < radius; dy++){
-			for(int dz = (int)(-1 * radius); dz < radius; dz++){
-				for(int dx = (int)(-1 * radius); dx < radius; dx++){
-					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawn(oreBlock,world,blockPos.add(dx,dy,dz),world.provider.getDimension(),true,blockReplace, biomes );
-						quantity--;
-					}
-					if(quantity <= 0) {
-						return;
-					}
-				}
-			}
-		}
-	}
 
 	@Override
 	public void setRandom(Random rand) {
