@@ -29,7 +29,6 @@ public final class OS3V1Reader implements IOS3Reader {
 				ore.addProperty("retrogen", true);
 				ore.addProperty("enabled", true);
 				
-				
 				JsonObject oreOut = handleVersionDifferences( ore, entries.get(ConfigNames.FILE_VERSION).getAsString() );
 				dimData.add(oreOut);
 			}

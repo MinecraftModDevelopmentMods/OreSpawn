@@ -56,10 +56,18 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
 		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
 		int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
 		int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
 		int wander = params.get(Constants.FormatBits.WANDER).getAsInt();
 		int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		int triesMin   = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		int triesMax   = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
+
+		int tries;
+		if( triesMax == triesMin ) {
+			tries = triesMax;
+		} else {
+			tries = random.nextInt( triesMax - triesMin ) + triesMin;
+		}
 
 		// we have an offset into the chunk but actually need something more
 		while( tries > 0 ) {
@@ -240,7 +248,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 256);
 		defParams.addProperty(Constants.FormatBits.VARIATION, 16);
 		defParams.addProperty(Constants.FormatBits.FREQUENCY, 50);
-		defParams.addProperty(Constants.FormatBits.ATTEMPTS, 8);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MAX, 8);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MIN, 4);
 		defParams.addProperty(Constants.FormatBits.LENGTH, 16);
 		defParams.addProperty(Constants.FormatBits.WANDER, 75);
 		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 3);

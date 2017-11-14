@@ -53,14 +53,22 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
 
-		int maxSpread  = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
-		int minHeight  = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxHeight  = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int variance   = params.get(Constants.FormatBits.VARIATION).getAsInt();
-		int frequency  = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries      = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int maxSpread    = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		int minHeight    = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxHeight    = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int variance     = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		int frequency    = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int triesMin     = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		int triesMax     = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 		int clusterSize  = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 		int clusterCount = params.get(Constants.FormatBits.NODE_COUNT).getAsInt();
+
+		int tries;
+		if( triesMax == triesMin ) {
+			tries = triesMax;
+		} else {
+			tries = random.nextInt( triesMax - triesMin ) + triesMin;
+		}
 
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
@@ -179,7 +187,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 24);
 		defParams.addProperty(Constants.FormatBits.VARIATION, 4);
 		defParams.addProperty(Constants.FormatBits.FREQUENCY, 25);
-		defParams.addProperty(Constants.FormatBits.ATTEMPTS, 8);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MIN, 4);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MAX, 8 );
 		return defParams;
 	}
 

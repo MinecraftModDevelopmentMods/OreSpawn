@@ -31,6 +31,7 @@ public class Constants {
 	public static final String PRECISION = "precision";
 	
 	public final class FormatBits {
+
 		private FormatBits() {}
 		
 		public static final String MAX_SPREAD  = "maxSpread";
@@ -44,6 +45,8 @@ public class Constants {
 		public static final String LENGTH      = "length";
 		public static final String WANDER      = "wander";
 		public static final String NODE_COUNT  = "numObjects";
+		public static final String ATTEMPTS_MIN = "minAttempts";
+		public static final String ATTEMPTS_MAX = "maxAttempts";
 	}
 	
 	public final class FileBits {
@@ -75,14 +78,17 @@ public class Constants {
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
 		public static final String BLOCK_V2 = "name";
-		
+
 		public final class V2 {
 			private V2() {}
 			public static final String ENABLED = "enabled";
 			public static final String RETROGEN = "retrogen";
 			public static final String REPLACES = "replaces";
 			public static final String GENERATOR = "generator";
+			public static final String MINIMUM = "minimum";
+			public static final String MAXIMUM = "maximum";
 		}
+
 		public final class BiomeStuff {
 			private BiomeStuff() {}
 			public static final String WHITELIST = "includes";

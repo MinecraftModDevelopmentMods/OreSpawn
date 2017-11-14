@@ -152,6 +152,7 @@ public class OS3Reader {
 
 					FeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
 					gen.setDefaultParameters();
+					handleParameterFixes(nw);
 					gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));
 					spawn.enabled( nw.get(ConfigNames.V2.ENABLED).getAsBoolean());
 					spawn.retrogen( nw.get(ConfigNames.V2.RETROGEN).getAsBoolean());
@@ -172,7 +173,23 @@ public class OS3Reader {
 			logic.create(builder);
 		});
 	}
-	
+
+	private static void handleParameterFixes ( JsonObject nw ) {
+		JsonObject p = nw.getAsJsonObject( ConfigNames.PARAMETERS );
+		if( p.has( Constants.FormatBits.ATTEMPTS) ) {
+			if( p.get( Constants.FormatBits.ATTEMPTS ).isJsonObject() ) {
+				p.add( Constants.FormatBits.ATTEMPTS_MIN, p.getAsJsonObject( Constants.FormatBits.ATTEMPTS ).get( ConfigNames.V2.MINIMUM ) );
+				p.add( Constants.FormatBits.ATTEMPTS_MAX, p.getAsJsonObject( Constants.FormatBits.ATTEMPTS ).get( ConfigNames.V2.MAXIMUM ) );
+			} else {
+				p.addProperty( Constants.FormatBits.ATTEMPTS_MIN, p.get( Constants.FormatBits.ATTEMPTS ).getAsInt() );
+				p.addProperty( Constants.FormatBits.ATTEMPTS_MAX, p.get( Constants.FormatBits.ATTEMPTS ).getAsInt() );
+			}
+			p.remove( Constants.FormatBits.ATTEMPTS );
+			nw.remove( ConfigNames.PARAMETERS );
+			nw.add( ConfigNames.PARAMETERS, p );
+		}
+	}
+
 	private static List<IBlockState> getReplacements(String configField, int dimension) {
 		String work = configField.toLowerCase();
 		

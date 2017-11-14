@@ -59,7 +59,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int maxHeight  = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
 		int variance   = params.get(Constants.FormatBits.VARIATION).getAsInt();
 		int frequency  = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int tries      = params.get(Constants.FormatBits.ATTEMPTS).getAsInt();
+		int triesMin   = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		int triesMax   = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 
 		// on the X and Z you have a possible 2-chunk range - 32 blocks - subtract the spread to get
 		// a size that will let us insert by the radius
@@ -80,6 +81,13 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		
 		int fSave = frequency;
 		int tryCount = 0;
+
+		int tries;
+		if( triesMax == triesMin ) {
+			tries = triesMax;
+		} else {
+			tries = random.nextInt( triesMax - triesMin ) + triesMin;
+		}
 
 		while( tries > 0 ) {
 			if( this.random.nextInt(100) <= frequency ) {
@@ -170,7 +178,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 24);
 		defParams.addProperty(Constants.FormatBits.VARIATION, 4);
 		defParams.addProperty(Constants.FormatBits.FREQUENCY, 25);
-		defParams.addProperty(Constants.FormatBits.ATTEMPTS, 8);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MIN, 4);
+		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MAX, 4);
 		return defParams;
 	}
 
