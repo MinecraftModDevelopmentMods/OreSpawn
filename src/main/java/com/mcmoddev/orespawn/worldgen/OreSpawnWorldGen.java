@@ -65,7 +65,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			List<IBlockState> replacement = sE.getReplacementBlocks();
 			replacement = replacement.isEmpty()?ReplacementsRegistry.getDimensionDefault(thisDim):replacement;
 
-			GeneratorParameters parameters = new GeneratorParameters( new ChunkPos(chunkX, chunkZ), sE.getFeatureGen().getParameters(), sE.getOreSpawns(), replacement, sE.getBiomes() );
+			GeneratorParameters parameters = new GeneratorParameters( new ChunkPos(chunkX, chunkZ), sE.getOreSpawns(), replacement, sE.getBiomes(), sE.getFeatureGen().getParameters() );
 
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(world, chunkGenerator, chunkProvider, parameters);
