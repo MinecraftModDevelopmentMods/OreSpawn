@@ -18,36 +18,37 @@ public class GeneratorParameters {
 	private final JsonObject parameters;
 	private final BiomeLocation biomes;
 
-	public GeneratorParameters( ChunkPos chunkPos, OreList oreList, List<IBlockState> replacementBlocks,
-	                            BiomeLocation biomes, JsonObject generatorParameters) {
+	public GeneratorParameters(ChunkPos chunkPos, OreList oreList, List<IBlockState> replacementBlocks,
+	    BiomeLocation biomes, JsonObject generatorParameters) {
 		this.parameters = new JsonObject();
-		for ( Map.Entry<String, JsonElement> stringJsonElementEntry : generatorParameters.entrySet() ) {
+
+		for (Map.Entry<String, JsonElement> stringJsonElementEntry : generatorParameters.entrySet()) {
 			this.parameters.add(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue());
 		}
 
-		this.chunk = new ChunkPos( chunkPos.x, chunkPos.z );
+		this.chunk = new ChunkPos(chunkPos.x, chunkPos.z);
 		this.ores = oreList;
-		this.replacements = ImmutableList.copyOf( replacementBlocks );
+		this.replacements = ImmutableList.copyOf(replacementBlocks);
 		this.biomes = biomes;
 	}
 
-	public ChunkPos getChunk () {
+	public ChunkPos getChunk() {
 		return chunk;
 	}
 
-	public BiomeLocation getBiomes () {
+	public BiomeLocation getBiomes() {
 		return biomes;
 	}
 
-	public ImmutableList<IBlockState> getReplacements () {
+	public ImmutableList<IBlockState> getReplacements() {
 		return replacements;
 	}
 
-	public JsonObject getParameters () {
+	public JsonObject getParameters() {
 		return parameters;
 	}
 
-	public OreList getOres () {
+	public OreList getOres() {
 		return ores;
 	}
 

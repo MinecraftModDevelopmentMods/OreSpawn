@@ -22,10 +22,12 @@ public class OreBuilderImpl implements OreBuilder {
 	@Override
 	public OreBuilder setOre(String name) {
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(name));
-		if( block == null ) {
+
+		if (block == null) {
 			OreSpawn.LOGGER.warn("Block {} not found!", name);
 			return this;
 		}
+
 		this.ore = block.getDefaultState();
 		return this;
 	}
@@ -33,10 +35,11 @@ public class OreBuilderImpl implements OreBuilder {
 	@Override
 	public OreBuilder setOre(String name, String serializedState) {
 		this.setOre(name);
-		
-		if( this.ore == null )
+
+		if (this.ore == null) {
 			return this;
-		
+		}
+
 		this.ore = StateUtil.deserializeState(this.ore.getBlock(), serializedState);
 		return this;
 	}
@@ -45,9 +48,10 @@ public class OreBuilderImpl implements OreBuilder {
 	@Override
 	public OreBuilder setOre(String name, int metaData) {
 		this.setOre(name);
-		
-		if( this.ore == null )
+
+		if (this.ore == null) {
 			return this;
+		}
 
 		this.ore = this.ore.getBlock().getStateFromMeta(metaData);
 		return this;
@@ -81,27 +85,27 @@ public class OreBuilderImpl implements OreBuilder {
 	public OreBuilder setOre(String name, String serializedState, int chance) {
 		return this.setOre(name, serializedState).setChance(chance);
 	}
-	
+
 	@Override
 	public OreBuilder setOre(String name, int metaData, int chance) {
 		return this.setOre(name, metaData).setChance(chance);
 	}
-	
+
 	@Override
 	public OreBuilder setOre(Block base, String serializedState, int chance) {
 		return this.setOre(base, serializedState).setChance(chance);
 	}
-	
+
 	@Override
 	public OreBuilder setOre(Item base, int metaData, int chance) {
 		return this.setOre(base, metaData).setChance(chance);
 	}
-	
+
 	@Override
 	public OreBuilder setOre(ItemStack item, int chance) {
 		return this.setOre(item).setChance(chance);
 	}
-	
+
 	@Override
 	public OreBuilder setChance(int chance) {
 		this.chance = chance;

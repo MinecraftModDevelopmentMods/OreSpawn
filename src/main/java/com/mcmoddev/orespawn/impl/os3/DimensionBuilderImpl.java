@@ -14,16 +14,16 @@ import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 
 public class DimensionBuilderImpl implements DimensionBuilder {
 	private static final String UNNAMED = "unnamed";
-	private Map<String,List<SpawnBuilder>> spawns;
-	
+	private Map<String, List<SpawnBuilder>> spawns;
+
 	public DimensionBuilderImpl() {
 		this.spawns = new HashMap<>();
 	}
-	
+
 	@Override
-	public SpawnBuilder newSpawnBuilder( @Nullable String name) {
-		String entName = (name == null)?UNNAMED:name;
-		spawns.computeIfAbsent(entName, tempName -> new ArrayList<SpawnBuilder>() );
+	public SpawnBuilder newSpawnBuilder(@Nullable String name) {
+		String entName = (name == null) ? UNNAMED : name;
+		spawns.computeIfAbsent(entName, tempName -> new ArrayList<SpawnBuilder>());
 		SpawnBuilder sb = new SpawnBuilderImpl();
 		spawns.get(entName).add(sb);
 		return sb;
@@ -36,9 +36,10 @@ public class DimensionBuilderImpl implements DimensionBuilder {
 
 	@Override
 	public ImmutableList<SpawnBuilder> getSpawnByName(String name) {
-		if( spawns.containsKey(name) ) {
+		if (spawns.containsKey(name)) {
 			return ImmutableList.<SpawnBuilder>copyOf(spawns.get(name));
 		}
+
 		return null;
 	}
 

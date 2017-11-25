@@ -20,38 +20,38 @@ import java.io.File;
 import java.io.IOException;
 
 public class DumpBiomesCommand extends CommandBase {
-    @Override
-    public String getName() {
-        return "dumpbiomes";
-    }
+	@Override
+	public String getName() {
+		return "dumpbiomes";
+	}
 
-    @Override
-    public String getUsage(ICommandSender sender) {
-        return "/dumpbiomes";
-    }
+	@Override
+	public String getUsage(ICommandSender sender) {
+		return "/dumpbiomes";
+	}
 
-    @Override
-    public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        JsonArray array = new JsonArray();
+	@Override
+	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+		JsonArray array = new JsonArray();
 
-        for (Biome biome : ForgeRegistries.BIOMES) {
-            array.add(new JsonPrimitive(biome.getRegistryName().toString()));
-        }
+		for (Biome biome : ForgeRegistries.BIOMES) {
+			array.add(new JsonPrimitive(biome.getRegistryName().toString()));
+		}
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(array);
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		String json = gson.toJson(array);
 
-        try {
-            FileUtils.writeStringToFile(new File(".", "biome_dump.json"), StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
-        } catch (IOException e) {
-            throw new CommandException("Failed to save the json file");
-        }
+		try {
+			FileUtils.writeStringToFile(new File(".", "biome_dump.json"), StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
+		} catch (IOException e) {
+			throw new CommandException("Failed to save the json file");
+		}
 
-        sender.sendMessage(new TextComponentString("Done"));
-    }
+		sender.sendMessage(new TextComponentString("Done"));
+	}
 
-    @Override
-    public int compareTo(ICommand command) {
-        return this.getName().compareTo(command.getName());
-    }
+	@Override
+	public int compareTo(ICommand command) {
+		return this.getName().compareTo(command.getName());
+	}
 }

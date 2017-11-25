@@ -33,7 +33,7 @@ public class FeatureRegistry {
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 	private Map<String, IFeature> features;
 	private Map<IFeature, String> featuresInverse;
-	
+
 	public FeatureRegistry() {
 		features = new HashMap<>();
 		featuresInverse = new HashMap<>();
@@ -53,13 +53,13 @@ public class FeatureRegistry {
 		features.put(Constants.PRECISION, precision);
 		featuresInverse.put(precision, Constants.PRECISION);
 	}
-	
+
 	public Map<String, IFeature> getFeatures() {
 		return Collections.unmodifiableMap(features);
 	}
-	
+
 	public String getFeatureName(IFeature feature) {
-		if( this.hasFeature(feature) ) {
+		if (this.hasFeature(feature)) {
 			return this.featuresInverse.get(feature);
 		} else {
 			return Constants.DEFAULT_GEN;
@@ -67,95 +67,100 @@ public class FeatureRegistry {
 	}
 
 	public IFeature getFeature(String name) {
-		if( this.hasFeature(name) ) {
+		if (this.hasFeature(name)) {
 			return this.features.get(name);
 		} else {
 			return this.features.get(Constants.DEFAULT_GEN);
 		}
 	}
-	
+
 	public boolean hasFeature(String name) {
 		return features.containsKey(name);
 	}
-	
+
 	public boolean hasFeature(IFeature feature) {
 		return featuresInverse.containsKey(feature);
 	}
 
-	public void addFeature(String name, IFeature feature ) {
+	public void addFeature(String name, IFeature feature) {
 		this.addFeature(name, feature.getClass().getName());
 	}
-	
+
 	public void addFeature(JsonObject entry) {
 		this.addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
 	}
-	
+
 	public void addFeature(String name, String className) {
 		IFeature feature = getInstance(className);
-		if( feature != null && !features.containsKey(name) ) {
-				features.put(name, feature);
-				featuresInverse.put(feature, name);
-		}		
+
+		if (feature != null && !features.containsKey(name)) {
+			features.put(name, feature);
+			featuresInverse.put(feature, name);
+		}
 	}
-	
+
 	private IFeature getInstance(String className) {
 		Class<?> featureClazz;
 		Constructor<?> featureCons;
 		IFeature feature;
+
 		try {
 			featureClazz = Class.forName(className);
 			featureCons = featureClazz.getConstructor();
 			feature = (IFeature)featureCons.newInstance();
-		} catch(Exception e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed to load and instantiate an instance of the feature generator named "+className+" that was specified as a feature generator");
+		} catch (Exception e) {
+			CrashReport report = CrashReport.makeCrashReport(e, "Failed to load and instantiate an instance of the feature generator named " + className + " that was specified as a feature generator");
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return null;
 		}
-		return feature; 
+
+		return feature;
 	}
-	
+
 	public void loadFeaturesFile(File file) {
 		JsonParser parser = new JsonParser();
 		String rawJson;
 		JsonArray elements;
+
 		try {
 			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
-		} catch(IOException e) {
+		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return;
 		}
-		
+
 		elements = parser.parse(rawJson).getAsJsonArray();
-		
-		for( JsonElement elem : elements ) {
+
+		for (JsonElement elem : elements) {
 			this.addFeature(elem.getAsJsonObject());
-		}		
+		}
 	}
-	
+
 	public void writeFeatures(File file) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
+
 		JsonArray root = new JsonArray();
-		       
-		if( !features.equals(Collections.<String,IFeature>emptyMap()) ) {
-            for( Entry<String, IFeature> feature : features.entrySet() ) {
-            	JsonObject entry = new JsonObject();
-            	entry.addProperty("name", feature.getKey());
-            	entry.addProperty("class", feature.getValue().getClass().getName());
-            	root.add(entry);
-            }
- 		}
+
+		if (!features.equals(Collections.<String, IFeature>emptyMap())) {
+			for (Entry<String, IFeature> feature : features.entrySet()) {
+				JsonObject entry = new JsonObject();
+				entry.addProperty("name", feature.getKey());
+				entry.addProperty("class", feature.getValue().getClass().getName());
+				root.add(entry);
+			}
+		}
 
 		String json = gson.toJson(root);
-        try {
-            FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
-        } catch (IOException e) {
+
+		try {
+			FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
+		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
-        }
+		}
 	}
 }

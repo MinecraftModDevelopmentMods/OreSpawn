@@ -22,17 +22,17 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 
 public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
-	
+
 	public DefaultFeatureGenerator() {
-		super( new Random() );
+		super(new Random());
 	}
 
 	@Override
-	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-	                      GeneratorParameters parameters ) {
+	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	    GeneratorParameters parameters) {
 		ChunkPos pos = parameters.getChunk();
 		List<IBlockState> replaceBlock = new LinkedList<>();
-		replaceBlock.addAll( parameters.getReplacements() );
+		replaceBlock.addAll(parameters.getReplacements());
 		JsonObject params = parameters.getParameters();
 		OreList ores = parameters.getOres();
 		BiomeLocation biomes = parameters.getBiomes();
@@ -40,16 +40,16 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
-	
+
 		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, replaceBlock);
-		
+
 		// now to ore spawn
 
 		int blockX = chunkX * 16 + 8;
 		int blockZ = chunkZ * 16 + 8;
-		
+
 		int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
 		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
 		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
@@ -57,73 +57,78 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		int size = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
 
 		FunctionParameterWrapper fp = new FunctionParameterWrapper();
-		fp.setWorld( world );
-		fp.setReplacements( replaceBlock );
-		fp.setBiomes( biomes );
-		fp.setOres( ores );
+		fp.setWorld(world);
+		fp.setReplacements(replaceBlock);
+		fp.setBiomes(biomes);
+		fp.setOres(ores);
 
-		if(freq >= 1){
-			for(int i = 0; i < freq; i++){
+		if (freq >= 1) {
+			for (int i = 0; i < freq; i++) {
 				int x = blockX + random.nextInt(16);
 				int y = random.nextInt(maxY - minY) + minY;
 				int z = blockZ + random.nextInt(16);
-				
+
 				final int r;
-				if(vari > 0){
+
+				if (vari > 0) {
 					r = random.nextInt(2 * vari) - vari;
 				} else {
 					r = 0;
 				}
 
-				fp.setBlockPos( new BlockPos(x, y, z) );
-				spawnOre( fp, size + r );
+				fp.setBlockPos(new BlockPos(x, y, z));
+				spawnOre(fp, size + r);
 			}
-		} else if(random.nextFloat() < freq){
+		} else if (random.nextFloat() < freq) {
 			int x = blockX + random.nextInt(8);
 			int y = random.nextInt(maxY - minY) + minY;
 			int z = blockZ + random.nextInt(8);
 			final int r;
-			if(vari > 0){
+
+			if (vari > 0) {
 				r = random.nextInt(2 * vari) - vari;
 			} else {
 				r = 0;
 			}
 
-			fp.setBlockPos( new BlockPos(x, y, z) );
-			spawnOre( fp, size + r );
+			fp.setBlockPos(new BlockPos(x, y, z));
+			spawnOre(fp, size + r);
 		}
-		
+
 	}
 
-	private void spawnOre ( FunctionParameterWrapper params, int quantity ) {
+	private void spawnOre(FunctionParameterWrapper params, int quantity) {
 		int count = quantity;
-		int lutType = (quantity < 8)?offsetIndexRef_small.length:offsetIndexRef.length;
-		int[] lut = (quantity < 8)?offsetIndexRef_small:offsetIndexRef;
+		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
+		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
 		Vec3i[] offs = new Vec3i[lutType];
-		
-		System.arraycopy((quantity < 8)?offsets_small:offsets, 0, offs, 0, lutType);
-		
-		if( quantity < 27 ) {
+
+		System.arraycopy((quantity < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
+
+		if (quantity < 27) {
 			int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
-			while(count > 0){
+
+			while (count > 0) {
 				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
-				spawn(oreBlock, params.getWorld(),params.getBlockPos().add(offs[scrambledLUT[--count]]),
-					 params.getWorld().provider.getDimension(),true, params.getReplacements(), params.getBiomes() );
+				spawn(oreBlock, params.getWorld(), params.getBlockPos().add(offs[scrambledLUT[--count]]),
+				    params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes());
 			}
+
 			return;
 		}
-		
-		doSpawnFill( this.random.nextBoolean(), count, params );
+
+		doSpawnFill(this.random.nextBoolean(), count, params);
 	}
 
-	private void doSpawnFill ( boolean nextBoolean, int quantity, FunctionParameterWrapper params ) {
-		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		if( nextBoolean ) {
-			spawnMunge( params, radius, quantity, false );
+	private void doSpawnFill(boolean nextBoolean, int quantity, FunctionParameterWrapper params) {
+		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+
+		if (nextBoolean) {
+			spawnMunge(params, radius, quantity, false);
 		} else {
-			spawnMunge( params, radius, quantity, true );
+			spawnMunge(params, radius, quantity, true);
 		}
 	}
 

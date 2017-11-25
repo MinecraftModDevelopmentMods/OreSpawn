@@ -39,63 +39,63 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
  * @author DShadowWolf &lt;dshadowwolf@gmail.com&gt;
  */
 
-@Mod( modid = Constants.MODID,
-      name = Constants.NAME,
-      version = Constants.VERSION,
-      acceptedMinecraftVersions = "[1.12,)" )
+@Mod(modid = Constants.MODID,
+    name = Constants.NAME,
+    version = Constants.VERSION,
+    acceptedMinecraftVersions = "[1.12,)")
 
 public class OreSpawn {
-    @Instance
-    public static OreSpawn instance;
-    
-    public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
-    public static final OS3API API = new OS3APIImpl();
-    public static final OS3Writer writer = new OS3Writer();
-    static final EventHandlers eventHandlers = new EventHandlers();
-    public static final FeatureRegistry FEATURES = new FeatureRegistry();
-    protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
-    
-    static final FlatBedrock flatBedrock= new FlatBedrock();
-    
-    public static Map<Integer, List<SpawnBuilder>> getSpawns() {
-    	return spawns;
-    }
-    
-    @EventHandler
-    public void preInit(FMLPreInitializationEvent ev) {
-    	Config.loadConfig();
-    	
-    	PluginLoader.INSTANCE.load(ev);
-    	
-    	if( Config.getBoolean(Constants.FLAT_BEDROCK) ) {
-    		GameRegistry.registerWorldGenerator(flatBedrock, 100);
-    	}
-    	
-    	if( Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) || Config.getBoolean(Constants.RETRO_BEDROCK)) {
-    		MinecraftForge.EVENT_BUS.register(eventHandlers);
-    		MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
-    	}    	
-    }
+	@Instance
+	public static OreSpawn instance;
 
-    @EventHandler
-    public void init(FMLInitializationEvent ev) {
-    	PluginLoader.INSTANCE.register();
-    	
-    	OS3Reader.loadEntries();
-    	writer.writeSysconfIfNonexistent();
-    	API.registerSpawns();
-    }
+	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
+	public static final OS3API API = new OS3APIImpl();
+	public static final OS3Writer writer = new OS3Writer();
+	static final EventHandlers eventHandlers = new EventHandlers();
+	public static final FeatureRegistry FEATURES = new FeatureRegistry();
+	protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
 
-    @EventHandler
-    public void postInit(FMLPostInitializationEvent ev) {
-    	Config.saveConfig();
-    }
-        
-    @EventHandler
-    public void onServerStarting(FMLServerStartingEvent ev) {
-    	ev.registerServerCommand(new ClearChunkCommand());
-    	ev.registerServerCommand(new DumpBiomesCommand());
-    	ev.registerServerCommand(new AddOreCommand());
-    	ev.registerServerCommand(new WriteConfigsCommand());
-    }
+	static final FlatBedrock flatBedrock = new FlatBedrock();
+
+	public static Map<Integer, List<SpawnBuilder>> getSpawns() {
+		return spawns;
+	}
+
+	@EventHandler
+	public void preInit(FMLPreInitializationEvent ev) {
+		Config.loadConfig();
+
+		PluginLoader.INSTANCE.load(ev);
+
+		if (Config.getBoolean(Constants.FLAT_BEDROCK)) {
+			GameRegistry.registerWorldGenerator(flatBedrock, 100);
+		}
+
+		if (Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) || Config.getBoolean(Constants.RETRO_BEDROCK)) {
+			MinecraftForge.EVENT_BUS.register(eventHandlers);
+			MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
+		}
+	}
+
+	@EventHandler
+	public void init(FMLInitializationEvent ev) {
+		PluginLoader.INSTANCE.register();
+
+		OS3Reader.loadEntries();
+		writer.writeSysconfIfNonexistent();
+		API.registerSpawns();
+	}
+
+	@EventHandler
+	public void postInit(FMLPostInitializationEvent ev) {
+		Config.saveConfig();
+	}
+
+	@EventHandler
+	public void onServerStarting(FMLServerStartingEvent ev) {
+		ev.registerServerCommand(new ClearChunkCommand());
+		ev.registerServerCommand(new DumpBiomesCommand());
+		ev.registerServerCommand(new AddOreCommand());
+		ev.registerServerCommand(new WriteConfigsCommand());
+	}
 }

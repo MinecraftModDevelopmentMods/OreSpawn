@@ -26,11 +26,11 @@ public class OS3APIImpl implements OS3API {
 	private final Map<String, BuilderLogic> logic;
 	private OreSpawnWorldGen generator;
 	private OS3V2PresetStorage presets;
-	
-    public OS3APIImpl() {
-    	this.logic = new HashMap<>();
-    	this.presets = new OS3V2PresetStorage();
-    }
+
+	public OS3APIImpl() {
+		this.logic = new HashMap<>();
+		this.presets = new OS3V2PresetStorage();
+	}
 
 	@Override
 	public void registerReplacementBlock(String name, Block itemBlock) {
@@ -46,7 +46,7 @@ public class OS3APIImpl implements OS3API {
 	public void registerFeatureGenerator(String name, String className) {
 		OreSpawn.FEATURES.addFeature(name, className);
 	}
-	
+
 	@Override
 	public void registerFeatureGenerator(String name, IFeature feature) {
 		this.registerFeatureGenerator(name, feature.getClass().getName());
@@ -59,11 +59,11 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public BuilderLogic getLogic(String name) {
-		if( logic.containsKey(name) ) {
+		if (logic.containsKey(name)) {
 			return logic.get(name);
 		} else {
 			BuilderLogic bl = new BuilderLogicImpl();
-			logic.put(name,bl);
+			logic.put(name, bl);
 			return bl;
 		}
 	}
@@ -79,7 +79,9 @@ public class OS3APIImpl implements OS3API {
 	}
 
 	@Override
-	public int biomeWildcard() { return 0xF00DF00D; }
+	public int biomeWildcard() {
+		return 0xF00DF00D;
+	}
 
 	@Override
 	public ImmutableMap<String, BuilderLogic> getSpawns() {
@@ -88,33 +90,35 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public void registerSpawns() {
-		Map<Integer,List<SpawnBuilder>> spawns = OreSpawn.getSpawns();
-    	// build a proper tracking of data for the spawner
-    	for( Entry<String, BuilderLogic> ent : logic.entrySet() ) {
-    		for( Entry<Integer, DimensionBuilder> dL : ent.getValue().getAllDimensions().entrySet()) {
-				if( spawns.containsKey(dL.getKey()) ) {
+		Map<Integer, List<SpawnBuilder>> spawns = OreSpawn.getSpawns();
+
+		// build a proper tracking of data for the spawner
+		for (Entry<String, BuilderLogic> ent : logic.entrySet()) {
+			for (Entry<Integer, DimensionBuilder> dL : ent.getValue().getAllDimensions().entrySet()) {
+				if (spawns.containsKey(dL.getKey())) {
 					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				} else {
 					spawns.put(dL.getKey(), new ArrayList<>());
 					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				}
-    		}
-        	OreSpawn.LOGGER.info("Registered spawn logic from data-file (maybe mod) %s", ent.getKey());
-    	}
-    	
-    	Random random = new Random();
-   
-        this.generator = new OreSpawnWorldGen(spawns, random.nextLong());
+			}
 
-    	GameRegistry.registerWorldGenerator(generator, 100);
-            
+			OreSpawn.LOGGER.info("Registered spawn logic from data-file (maybe mod) %s", ent.getKey());
+		}
+
+		Random random = new Random();
+
+		this.generator = new OreSpawnWorldGen(spawns, random.nextLong());
+
+		GameRegistry.registerWorldGenerator(generator, 100);
+
 	}
 
 	@Override
 	public OreSpawnWorldGen getGenerator() {
 		return this.generator;
 	}
-	
+
 	@Override
 	public OS3V2PresetStorage getPresets() {
 		return this.presets;

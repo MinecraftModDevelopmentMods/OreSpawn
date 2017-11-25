@@ -24,13 +24,13 @@ import net.minecraftforge.common.config.Configuration;
 
 public class Config {
 	private static Configuration configuration;
-	
+
 	private Config() {
 	}
-	
+
 	public static void loadConfig() {
 		configuration = new Configuration(new File(Constants.CONFIG_FILE));
-		
+
 		// Load our Boolean Values
 		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
 		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Force all chunks to retrogen regardless of anything else"));
@@ -45,96 +45,108 @@ public class Config {
 		knownKeys.add(Constants.FLAT_BEDROCK);
 		knownKeys.add(Constants.RETRO_BEDROCK);
 		knownKeys.add(Constants.BEDROCK_LAYERS);
-		
+
 		loadExtractedConfigs();
 	}
 
 	private static void loadExtractedConfigs() {
 		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
-		if( !p.toFile().exists() ) return;
-		
+
+		if (!p.toFile().exists()) {
+			return;
+		}
+
 		File in = p.toFile();
 		String rawData;
-		
+
 		try {
 			rawData = FileUtils.readFileToString(in, Charset.defaultCharset());
 		} catch (IOException e) {
 			return;
 		}
-		
-		if( rawData.isEmpty() ) return;
-		
+
+		if (rawData.isEmpty()) {
+			return;
+		}
+
 		JsonArray data = new JsonParser().parse(rawData).getAsJsonArray();
-		data.forEach( item -> addKnownMod(item.getAsString()) );
+		data.forEach(item -> addKnownMod(item.getAsString()));
 	}
 
 	public static List<String> getKnownMods() {
 		return ImmutableList.copyOf(extractedConfigs);
 	}
-	
+
 	public static void addKnownMod(String modId) {
 		extractedConfigs.add(modId);
 	}
-	
+
 	public static boolean getBoolean(String keyname) {
-		if( knownKeys.contains(keyname) && boolVals.containsKey(keyname) ) {
+		if (knownKeys.contains(keyname) && boolVals.containsKey(keyname)) {
 			return boolVals.get(keyname);
 		}
+
 		return false;
 	}
-	
+
 	public static String getString(String keyname) {
-		if( knownKeys.contains(keyname) && stringVals.containsKey(keyname) ) {
+		if (knownKeys.contains(keyname) && stringVals.containsKey(keyname)) {
 			return stringVals.get(keyname);
 		}
+
 		return "";
 	}
-	
+
 	public static int getInt(String keyname) {
-		if( knownKeys.contains(keyname) && intVals.containsKey(keyname) ) {
+		if (knownKeys.contains(keyname) && intVals.containsKey(keyname)) {
 			return intVals.get(keyname);
 		}
+
 		return 0;
 	}
-	
+
 	public static float getFloat(String keyname) {
-		if( knownKeys.contains(keyname) && floatVals.containsKey(keyname) ) {
+		if (knownKeys.contains(keyname) && floatVals.containsKey(keyname)) {
 			return floatVals.get(keyname);
 		}
+
 		return 0.0f;
 	}
-	
+
 	public static void saveConfig() {
-		if( !extractedConfigs.isEmpty() ) {
+		if (!extractedConfigs.isEmpty()) {
 			saveKnownConfigs();
 		}
+
 		configuration.save();
 	}
-	
+
 	private static void saveKnownConfigs() {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
-		
-		if( !p.toFile().getParentFile().exists() )
+
+		if (!p.toFile().getParentFile().exists()) {
 			p.toFile().mkdirs();
-		
+		}
+
 		File in = p.toFile();
-		
+
 		JsonArray data = new JsonArray();
-		extractedConfigs.forEach( data::add );
+		extractedConfigs.forEach(data::add);
+
 		try {
-			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset() );
+			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset());
 		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, "Failed saving list of already extracted mod configs");
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
-			OreSpawn.LOGGER.info(report.getCompleteReport());			
+			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
 	}
 
-	private static final HashMap<String,Boolean> boolVals = new HashMap<>();
-	private static final HashMap<String,String> stringVals = new HashMap<>();
-	private static final HashMap<String,Integer> intVals = new HashMap<>();
-	private static final HashMap<String,Float> floatVals = new HashMap<>();
+	private static final HashMap<String, Boolean> boolVals = new HashMap<>();
+	private static final HashMap<String, String> stringVals = new HashMap<>();
+	private static final HashMap<String, Integer> intVals = new HashMap<>();
+	private static final HashMap<String, Float> floatVals = new HashMap<>();
 	private static final List<String> knownKeys = new ArrayList<>();
 	private static final List<String> extractedConfigs = new ArrayList<>();
 }

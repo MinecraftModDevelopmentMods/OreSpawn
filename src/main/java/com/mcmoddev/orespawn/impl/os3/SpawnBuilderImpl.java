@@ -26,23 +26,24 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	private boolean extendedDimensionsBool = false;
 	private DimensionList extendedDimensions;
 
-	SpawnBuilderImpl () {
+	SpawnBuilderImpl() {
 		this.biomeLocs = null;
 		this.featureGen = null;
 		this.replacementBlocks = new ArrayList<>();
 		this.myOres = new ArrayList<>();
 	}
-	
+
 	@Override
 	public FeatureBuilder newFeatureBuilder(@Nullable String featureName) {
 		String featName;
 		this.featureGen = new FeatureBuilderImpl();
-		if( OreSpawn.FEATURES.getFeature(featureName) == null || featureName == null) {
+
+		if (OreSpawn.FEATURES.getFeature(featureName) == null || featureName == null) {
 			featName = "default";
 		} else {
 			featName = featureName;
 		}
-		
+
 		this.featureGen.setGenerator(featName);
 		return this.featureGen;
 	}
@@ -59,45 +60,48 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 
 	@Override
 	public SpawnBuilder create(@Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature,
-	                           @Nonnull List<IBlockState> replacements, @Nonnull OreBuilder... ores) {
+	    @Nonnull List<IBlockState> replacements, @Nonnull OreBuilder... ores) {
 		this.biomeLocs = biomes.getBiomes();
 		this.featureGen = feature;
 		this.replacementBlocks.addAll(replacements);
-		
-		if( ores.length > 1 ) {
-			this.myOres.addAll ( Arrays.asList ( ores ) );
+
+		if (ores.length > 1) {
+			this.myOres.addAll(Arrays.asList(ores));
 		} else {
 			this.myOres.add(ores[0]);
 		}
+
 		return this;
 	}
 
 	@Override
-	public SpawnBuilder create ( @Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature,
-	                             @Nonnull List<IBlockState> replacements, JsonObject exDim,
-	                             @Nonnull OreBuilder... ores ) {
+	public SpawnBuilder create(@Nonnull BiomeBuilder biomes, @Nonnull FeatureBuilder feature,
+	    @Nonnull List<IBlockState> replacements, JsonObject exDim,
+	    @Nonnull OreBuilder... ores) {
 		this.create(biomes, feature, replacements, ores);
 
 		this.setupDimensionWhitelist(exDim);
 		return this;
 	}
 
-	private void setupDimensionWhitelist ( JsonObject exDim ) {
-		JsonArray whitelist = exDim.getAsJsonArray( Constants.ConfigNames.DimensionStuff.INCLUDE);
-		JsonArray blacklist = exDim.getAsJsonArray ( Constants.ConfigNames.DimensionStuff.EXCLUDE );
+	private void setupDimensionWhitelist(JsonObject exDim) {
+		JsonArray whitelist = exDim.getAsJsonArray(Constants.ConfigNames.DimensionStuff.INCLUDE);
+		JsonArray blacklist = exDim.getAsJsonArray(Constants.ConfigNames.DimensionStuff.EXCLUDE);
 		List<Integer> tempW = new ArrayList<> ();
 		List<Integer> tempB = new ArrayList<> ();
 
-		if( whitelist != null )
-			whitelist.forEach( it -> tempW.add(it.getAsInt()) );
+		if (whitelist != null) {
+			whitelist.forEach(it -> tempW.add(it.getAsInt()));
+		}
 
-		if( blacklist != null )
-			blacklist.forEach( it -> tempB.add(it.getAsInt()) );
+		if (blacklist != null) {
+			blacklist.forEach(it -> tempB.add(it.getAsInt()));
+		}
 
 		this.extendedDimensionsBool = true;
 		this.extendedDimensions = new DimensionListImpl();
-		this.extendedDimensions.create( ArrayUtils.toPrimitive( tempW.toArray ( new Integer[0] ) ),
-			 ArrayUtils.toPrimitive( tempB.toArray ( new Integer[0] ) ) );
+		this.extendedDimensions.create(ArrayUtils.toPrimitive(tempW.toArray(new Integer[0])),
+		    ArrayUtils.toPrimitive(tempB.toArray(new Integer[0])));
 	}
 
 	@Override
@@ -121,10 +125,12 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 
 	private void buildSpawnList() {
-		if( this.oreList != null ) return;
+		if (this.oreList != null) {
+			return;
+		}
 
 		this.oreList = new OreList();
-		
+
 		this.oreList.build(Collections.unmodifiableList(this.myOres));
 	}
 
@@ -149,28 +155,30 @@ public class SpawnBuilderImpl implements SpawnBuilder {
 	}
 
 	@Override
-	public boolean hasExtendedDimensions () {
+	public boolean hasExtendedDimensions() {
 		return this.extendedDimensionsBool;
 	}
 
 	@Override
-	public boolean extendedDimensionsMatch ( int dimension ) {
-		return !this.extendedDimensionsBool || this.extendedDimensions.match ( dimension );
+	public boolean extendedDimensionsMatch(int dimension) {
+		return !this.extendedDimensionsBool || this.extendedDimensions.match(dimension);
 	}
 
 	@Override
 	public OreBuilder getRandomOre(Random rand) {
-		if( this.oreList == null )
+		if (this.oreList == null) {
 			this.buildSpawnList();
-		
+		}
+
 		return this.oreList.getRandomOre(rand);
 	}
 
 	@Override
 	public OreList getOreSpawns() {
-		if( this.oreList == null )
+		if (this.oreList == null) {
 			this.buildSpawnList();
-		
+		}
+
 		return this.oreList;
 	}
 }

@@ -29,11 +29,11 @@ public class Constants {
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
 	public static final String PRECISION = "precision";
-	
+
 	public final class FormatBits {
 
 		private FormatBits() {}
-		
+
 		public static final String MAX_SPREAD  = "maxSpread";
 		public static final String MEDIAN_SIZE = "medianSize";
 		public static final String MIN_HEIGHT  = "minHeight";
@@ -48,16 +48,16 @@ public class Constants {
 		public static final String ATTEMPTS_MIN = "minAttempts";
 		public static final String ATTEMPTS_MAX = "maxAttempts";
 	}
-	
+
 	public final class FileBits {
 		private FileBits() {}
-		
+
 		public static final String CONFIG_DIR = "config";
 		public static final String OS3 = "orespawn3";
 		public static final String SYSCONF = "sysconf";
 		public static final String PRESETS = "presets.json";
 	}
-	
+
 	public final class ConfigNames {
 		private ConfigNames() {}
 		public static final String DEFAULT = "default";

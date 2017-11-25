@@ -7,9 +7,9 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public interface BiomeLocation {
-    boolean matches(Biome biome);
+	boolean matches(Biome biome);
 
-    default ImmutableList<Biome> getBiomes() {
-        return ForgeRegistries.BIOMES.getValues().stream().filter(this::matches).collect(Collectors2.toImmutableList());
-    }
+default ImmutableList<Biome> getBiomes() {
+		return ForgeRegistries.BIOMES.getValues().stream().filter(this::matches).collect(Collectors2.toImmutableList());
+	}
 }

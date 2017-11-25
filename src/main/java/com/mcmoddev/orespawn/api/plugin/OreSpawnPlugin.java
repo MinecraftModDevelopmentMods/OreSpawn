@@ -15,8 +15,9 @@ public @interface OreSpawnPlugin {
 	// actual mod-id we can use for creating a
 	// resource location
 	String modid();
-	
+
 	// resource location segment to look in
 	// for registered config files
-	String resourcePath() default "orespawn";
+
+String resourcePath() default "orespawn";
 }

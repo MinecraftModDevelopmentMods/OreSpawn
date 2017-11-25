@@ -18,12 +18,12 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	private List<BiomeLocation> biomeWhitelist;
 	private List<BiomeLocation> biomeBlacklist;
 	private BiomeLocation loc;
-	
-	BiomeBuilderImpl () {
+
+	BiomeBuilderImpl() {
 		this.biomeWhitelist = new ArrayList<>();
 		this.biomeBlacklist = new ArrayList<>();
 	}
-	
+
 	private Biome getBiomeByName(String name) {
 		return ForgeRegistries.BIOMES.getValue(new ResourceLocation(name));
 	}
@@ -31,7 +31,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	private BiomeDictionary.Type getBiomeDictionaryType(String name) {
 		return BiomeDictionary.Type.getType(name);
 	}
-	
+
 	@Override
 	public BiomeBuilder whitelistBiome(@Nonnull Biome biome) {
 		this.biomeWhitelist.add(new BiomeLocationSingle(biome));
@@ -42,9 +42,11 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	public BiomeBuilder whitelistBiomeByName(@Nonnull String biomeName) {
 		Biome b = getBiomeByName(biomeName);
 		BiomeLocation bL = new BiomeLocationSingle(b);
-		if( !this.biomeWhitelist.contains(bL) ) {
+
+		if (!this.biomeWhitelist.contains(bL)) {
 			this.biomeWhitelist.add(bL);
 		}
+
 		return this;
 	}
 
@@ -74,20 +76,21 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 
 	@Override
 	public BiomeLocation getBiomes() {
-		if( this.loc != null ) {
+		if (this.loc != null) {
 			return this.loc;
 		}
-		
-		if( !this.biomeBlacklist.isEmpty() ) {
+
+		if (!this.biomeBlacklist.isEmpty()) {
 			this.loc = new BiomeLocationComposition(ImmutableSet.copyOf(this.biomeWhitelist),
-					ImmutableSet.copyOf(this.biomeBlacklist));
+			    ImmutableSet.copyOf(this.biomeBlacklist));
 		} else {
-			if( this.biomeWhitelist.size() == 1 ) {
+			if (this.biomeWhitelist.size() == 1) {
 				this.loc = this.biomeWhitelist.toArray(new BiomeLocation[0])[0];
 			} else {
 				this.loc = new BiomeLocationList(ImmutableSet.copyOf(this.biomeWhitelist));
 			}
 		}
+
 		return this.loc;
 	}
 

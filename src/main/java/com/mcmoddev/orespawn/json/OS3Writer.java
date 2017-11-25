@@ -42,29 +42,29 @@ public class OS3Writer {
 	}
 
 	public void writeSpawnEntries() {
-		String basePath = Paths.get ( "config", "orespawn3", "force-written" ).toString ();
+		String basePath = Paths.get("config", "orespawn3", "force-written").toString();
 		writeFeatures(basePath);
 		writeReplacements(basePath);
-		
-		OreSpawn.API.getSpawns().entrySet().forEach( ent -> {			
+
+		OreSpawn.API.getSpawns().entrySet().forEach(ent -> {
 			JsonArray dimensions = new JsonArray();
-			
-			for( Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet() ) {
+
+			for (Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet()) {
 				JsonObject dimension = new JsonObject();
-				
-				if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
+
+				if (dim.getKey() != OreSpawn.API.dimensionWildcard()) {
 					dimension.addProperty(ConfigNames.DIMENSION, String.format("%d", dim.getKey()));
 				}
 
 				JsonArray spawns = this.genSpawns(dim.getValue().getAllSpawns());
-				
-				if( spawns.size() > 0 ) {
+
+				if (spawns.size() > 0) {
 					dimension.add(ConfigNames.ORES, spawns);
 					dimensions.add(dimension);
 				}
 			}
-			
-			if( countOres(dimensions) > 0 ) {
+
+			if (countOres(dimensions) > 0) {
 				File file = new File(basePath, String.format("%s.json", ent.getKey()));
 				JsonObject wrapper = new JsonObject();
 				wrapper.addProperty(ConfigNames.FILE_VERSION, "1.2");
@@ -73,34 +73,38 @@ public class OS3Writer {
 			}
 		});
 	}
-	
+
 	private JsonArray genSpawns(ImmutableList<SpawnBuilder> allSpawns) {
 		JsonArray rv = new JsonArray();
-		for( SpawnBuilder spawn : allSpawns ) {
-			if( spawn.getOres().isEmpty() ||
-				spawn.getOres().get(0).getOre() == null ||
-				"minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString()) ) {
+
+		for (SpawnBuilder spawn : allSpawns) {
+			if (spawn.getOres().isEmpty() ||
+			    spawn.getOres().get(0).getOre() == null ||
+			    "minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString())) {
 				continue;
 			}
-			rv.add( this.genSpawn(spawn) );
+
+			rv.add(this.genSpawn(spawn));
 		}
+
 		return rv;
 	}
 
 	private void writeFile(File file, JsonObject wrapper) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
 		try {
 			FileUtils.writeStringToFile(file, gson.toJson(wrapper), Charset.defaultCharset(), false);
 		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed in config %s", file.getName()));
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
-			OreSpawn.LOGGER.info(report.getCompleteReport());			
+			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
 	}
 
 	private JsonObject genSpawn(SpawnBuilder spawn) {
 		JsonObject ore = new JsonObject();
-		
+
 		ore.add(ConfigNames.BLOCKS, genBlocks(spawn.getOres()));
 		ore.add(ConfigNames.PARAMETERS, spawn.getFeatureGen().getParameters());
 		ore.addProperty(ConfigNames.FEATURE, spawn.getFeatureGen().getFeatureName());
@@ -111,8 +115,8 @@ public class OS3Writer {
 
 	private JsonArray genBlocks(ImmutableList<OreBuilder> ores) {
 		JsonArray retval = new JsonArray();
-		
-		ores.forEach( ore -> {
+
+		ores.forEach(ore -> {
 			JsonObject obj = new JsonObject();
 			obj.addProperty(ConfigNames.BLOCK, ore.getOre().getBlock().getRegistryName().toString());
 			obj.addProperty(ConfigNames.STATE, StateUtil.serializeState(ore.getOre()));
@@ -122,23 +126,25 @@ public class OS3Writer {
 		return retval;
 	}
 
-	private int countOres(JsonArray dims ) {
+	private int countOres(JsonArray dims) {
 		int count = 0;
-		for( JsonElement dim : dims ) {
+
+		for (JsonElement dim : dims) {
 			count += dim.getAsJsonObject().get(ConfigNames.ORES).getAsJsonArray().size();
 		}
+
 		return count;
 	}
-	
+
 	private JsonElement biomeLocationToJsonObject(BiomeLocation value) {
-		if( (value instanceof BiomeLocationSingle) || (value instanceof BiomeLocationDictionary) ) {
+		if ((value instanceof BiomeLocationSingle) || (value instanceof BiomeLocationDictionary)) {
 			return getString(value);
-		} else if( value instanceof BiomeLocationList ) {
+		} else if (value instanceof BiomeLocationList) {
 			return getList(value);
-		} else if( value instanceof BiomeLocationComposition ) {
+		} else if (value instanceof BiomeLocationComposition) {
 			return getComposition(value);
 		}
-		
+
 		return null;
 	}
 
@@ -151,59 +157,67 @@ public class OS3Writer {
 
 	private JsonArray getList(BiomeLocation value) {
 		JsonArray rv = new JsonArray();
-		((BiomeLocationList)value).getLocations().forEach( loc -> {
-			if( (loc instanceof BiomeLocationSingle) || (loc instanceof BiomeLocationDictionary) ) {
+		((BiomeLocationList)value).getLocations().forEach(loc -> {
+			if ((loc instanceof BiomeLocationSingle) || (loc instanceof BiomeLocationDictionary)) {
 				rv.add(getString(loc));
-			} else if( loc instanceof BiomeLocationComposition ) {
+			} else if (loc instanceof BiomeLocationComposition) {
 				rv.add(getComposition(loc));
-			}			
+			}
 		});
 		return rv;
 	}
 
 	private JsonElement getString(BiomeLocation value) {
 		String val = null;
-		if( value instanceof BiomeLocationSingle ) {
+
+		if (value instanceof BiomeLocationSingle) {
 			val = ForgeRegistries.BIOMES.getKey(((BiomeLocationSingle)value).getBiome()).toString();
 		} else {
 			val = ((BiomeLocationDictionary)value).getType().toString();
 		}
+
 		return new JsonPrimitive(val);
 	}
 
 	public void writeSysconfIfNonexistent() {
 		String base = String.format(".%1$sconfig%1$sorespawn3", File.separator);
-		if( !Paths.get(base, Constants.FileBits.SYSCONF, "features-default.json").toFile().exists() ) {
+
+		if (!Paths.get(base, Constants.FileBits.SYSCONF, "features-default.json").toFile().exists()) {
 			writeFeatures(base);
 		}
-		
-		if( !Paths.get(base, Constants.FileBits.SYSCONF, "replacements-default.json").toFile().exists() ) {
+
+		if (!Paths.get(base, Constants.FileBits.SYSCONF, "replacements-default.json").toFile().exists()) {
 			writeReplacements(base);
 		}
 	}
 
 	public void writeAddOreEntry(String fileName) {
 		BuilderLogic ent = OreSpawn.API.getLogic(fileName);
-		
+
 		JsonArray dimensions = new JsonArray();
-		for( Entry<Integer, DimensionBuilder> dim : ent.getAllDimensions().entrySet() ) {
+
+		for (Entry<Integer, DimensionBuilder> dim : ent.getAllDimensions().entrySet()) {
 			JsonObject dimension = new JsonObject();
-			
-			if( dim.getKey() != OreSpawn.API.dimensionWildcard() ) {
+
+			if (dim.getKey() != OreSpawn.API.dimensionWildcard()) {
 				dimension.addProperty(ConfigNames.DIMENSION, String.format("%d", dim.getKey()));
 			}
 
 			JsonArray spawns = this.genSpawns(dim.getValue().getAllSpawns());
-			
-			if( spawns.size() > 0 ) {
+
+			if (spawns.size() > 0) {
 				dimension.add(ConfigNames.ORES, spawns);
 				dimensions.add(dimension);
 			}
 		}
-		
-		if( countOres(dimensions) > 0 ) {
+
+		if (countOres(dimensions) > 0) {
 			Path p = Paths.get("config", "orespawn3", "force-written");
-			if( !p.toFile().exists() ) p.toFile().mkdirs();
+
+			if (!p.toFile().exists()) {
+				p.toFile().mkdirs();
+			}
+
 			File file = Paths.get(p.toString(), String.format("%s-addOre.json", fileName)).toFile();
 			JsonObject wrapper = new JsonObject();
 			wrapper.addProperty(ConfigNames.FILE_VERSION, "1.2");

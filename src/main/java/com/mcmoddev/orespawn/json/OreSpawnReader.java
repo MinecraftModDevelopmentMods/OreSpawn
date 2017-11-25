@@ -21,36 +21,37 @@ import net.minecraft.crash.CrashReport;
 
 public class OreSpawnReader {
 	private List<JsonObject> spawns;
-	
+
 	public OreSpawnReader() {
 		this.spawns = new LinkedList<>();
 	}
-	
+
 	public void loadSpawnData() {
 		// first we parse the OS3 format spawns, as we prefer them over other versions
 		parseSpawnsV3();
-		
+
 	}
 
 	private void parseSpawnsV3() {
-		File directory = new File(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3);
+		File directory = new File(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3);
 		File[] files;
 
-		if( !directory.exists() ) {
+		if (!directory.exists()) {
 			return;
 		}
 
-		if( !directory.isDirectory() ) {
-			OreSpawn.LOGGER.fatal("OreSpawn data directory inaccessible - "+directory+" is not a directory!");
+		if (!directory.isDirectory()) {
+			OreSpawn.LOGGER.fatal("OreSpawn data directory inaccessible - " + directory + " is not a directory!");
 			return;
 		}
 
 		files = directory.listFiles();
-		if( files.length == 0 ) {
+
+		if (files.length == 0) {
 			// nothing to load
 			return;
 		}
-		
+
 		loadFeaturesAndReplacements();
 		loadSpawns(files);
 	}
@@ -58,34 +59,39 @@ public class OreSpawnReader {
 	private void loadSpawns(File[] files) {
 		JsonParser parser = new JsonParser();
 		Arrays.stream(files).filter(file -> file.getName().endsWith(".json")).forEach(
-				file -> {
-					try {
-						String rawData = FileUtils.readFileToString(file, Charset.defaultCharset());
-						if( rawData.isEmpty() ) return;
-						JsonElement full = parser.parse(rawData);
-						JsonObject parsed = full.getAsJsonObject();
+		file -> {
+			try {
+				String rawData = FileUtils.readFileToString(file, Charset.defaultCharset());
 
-						String version = parsed.get("version").getAsString();
-						IOS3Reader reader =OS3Reader.getReader( version );
+				if (rawData.isEmpty()) {
+					return;
+				}
 
-						spawns.add(reader.parseJson(parsed, file.getName().substring(0, file.getName().lastIndexOf('.'))));
-					} catch (Exception e) {
-						CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
-						report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
-						OreSpawn.LOGGER.info(report.getCompleteReport());
-					}
-				});
+				JsonElement full = parser.parse(rawData);
+				JsonObject parsed = full.getAsJsonObject();
+
+				String version = parsed.get("version").getAsString();
+				IOS3Reader reader = OS3Reader.getReader(version);
+
+				spawns.add(reader.parseJson(parsed, file.getName().substring(0, file.getName().lastIndexOf('.'))));
+			} catch (Exception e) {
+				CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
+				report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+				OreSpawn.LOGGER.info(report.getCompleteReport());
+			}
+		});
 	}
 
 	private void loadFeaturesAndReplacements() {
-		if( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().exists() && Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().isDirectory() ) {
-			Arrays.stream( Paths.get(Constants.FileBits.CONFIG_DIR,Constants.FileBits.OS3,Constants.FileBits.SYSCONF).toFile().listFiles() )
-			.filter( file -> "json".equals(FilenameUtils.getExtension(file.getName())))
-			.forEach( file -> {
+		if (Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF).toFile().exists() && Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF).toFile().isDirectory()) {
+			Arrays.stream(Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF).toFile().listFiles())
+			.filter(file -> "json".equals(FilenameUtils.getExtension(file.getName())))
+			.forEach(file -> {
 				String filename = file.getName();
-				if( FilenameUtils.getBaseName(filename).matches("features-.+") ) {
-					OreSpawn.FEATURES.loadFeaturesFile( file );
-				} else if(FilenameUtils.getBaseName(filename).matches("replacements-.+") ) {
+
+				if (FilenameUtils.getBaseName(filename).matches("features-.+")) {
+					OreSpawn.FEATURES.loadFeaturesFile(file);
+				} else if (FilenameUtils.getBaseName(filename).matches("replacements-.+")) {
 					Replacements.load(file);
 				}
 			});

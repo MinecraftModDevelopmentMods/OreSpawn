@@ -9,36 +9,38 @@ import java.util.List;
 import java.util.LinkedList;
 
 public final class BiomeLocationList implements BiomeLocation {
-    private final ImmutableSet<BiomeLocation> locations;
+	private final ImmutableSet<BiomeLocation> locations;
 
-    private final int hash;
+	private final int hash;
 
-    public BiomeLocationList(ImmutableSet<BiomeLocation> locations) {
-        this.locations = locations;
-        this.hash = locations.hashCode();
-    }
+	public BiomeLocationList(ImmutableSet<BiomeLocation> locations) {
+		this.locations = locations;
+		this.hash = locations.hashCode();
+	}
 
-    @Override
-    public boolean matches(Biome biome) {
-        return this.locations.stream().anyMatch(loc -> loc.matches(biome));
-    }
+	@Override
+	public boolean matches(Biome biome) {
+		return this.locations.stream().anyMatch(loc -> loc.matches(biome));
+	}
 
-    @Override
-    public int hashCode() {
-        return this.hash;
-    }
+	@Override
+	public int hashCode() {
+		return this.hash;
+	}
 
-    @Override
-    public boolean equals(Object obj) {
-        return (obj == this) || ((obj instanceof BiomeLocationList) && this.locations.equals ( ((BiomeLocationList) obj).locations ));
-    }
+	@Override
+	public boolean equals(Object obj) {
+		return (obj == this) || ((obj instanceof BiomeLocationList) && this.locations.equals(((BiomeLocationList) obj).locations));
+	}
 
-    @Override
-    public ImmutableList<Biome> getBiomes() {
-    	List<Biome> temp = new LinkedList<>();
-    	locations.stream ().forEach ( bl -> temp.addAll( bl.getBiomes () ) );
-			return ImmutableList.copyOf ( temp );
-    }
+	@Override
+	public ImmutableList<Biome> getBiomes() {
+		List<Biome> temp = new LinkedList<>();
+		locations.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
+		return ImmutableList.copyOf(temp);
+	}
 
-    public ImmutableSet<BiomeLocation> getLocations() { return this.locations; }
+	public ImmutableSet<BiomeLocation> getLocations() {
+		return this.locations;
+	}
 }

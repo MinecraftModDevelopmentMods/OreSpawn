@@ -22,34 +22,34 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
-	private NormalCloudGenerator ( Random rand ) {
+	private NormalCloudGenerator(Random rand) {
 		super(rand);
 	}
 
 	public NormalCloudGenerator() {
-		this( new Random() );
+		this(new Random());
 	}
 
 	@Override
-	public void generate( World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-	                      GeneratorParameters parameters ) {
+	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	    GeneratorParameters parameters) {
 		ChunkPos pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
-		blockReplace.addAll( parameters.getReplacements() );
+		blockReplace.addAll(parameters.getReplacements());
 		JsonObject params = parameters.getParameters();
 		OreList ores = parameters.getOres();
 		BiomeLocation biomes = parameters.getBiomes();
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
-		
+
 		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, blockReplace);
-		
+
 		// now to ore spawn
 
-		// lets not offset blind, 
+		// lets not offset blind,
 		int blockX = chunkX * 16;
 		int blockZ = chunkZ * 16;
 
@@ -65,51 +65,53 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		// on the X and Z you have a possible 2-chunk range - 32 blocks - subtract the spread to get
 		// a size that will let us insert by the radius
 		int offsetXZ = 32 - maxSpread;
-		
+
 		// you have the distance between minHeight and maxHeight
 		// this is the actual size of the space
 		int sizeY = (maxHeight - minHeight);
 		int offsetY = sizeY - maxSpread;
 		int radiusXZ = offsetXZ / 2;
-		
+
 		// actual radius for placement is the size minus the spread to center it in the space and keep
 		// from overflowing
-		int radiusY = offsetY/2;
+		int radiusY = offsetY / 2;
 
 		// we center at the minimum plus the half the height
-		int blockY = minHeight + (sizeY/2);
-		
+		int blockY = minHeight + (sizeY / 2);
+
 		int fSave = frequency;
 		int tryCount = 0;
 
 		int tries;
-		if( triesMax == triesMin ) {
+
+		if (triesMax == triesMin) {
 			tries = triesMax;
 		} else {
-			tries = random.nextInt( triesMax - triesMin ) + triesMin;
+			tries = random.nextInt(triesMax - triesMin) + triesMin;
 		}
 
-		while( tries > 0 ) {
-			if( this.random.nextInt(100) <= frequency ) {
+		while (tries > 0) {
+			if (this.random.nextInt(100) <= frequency) {
 				frequency = fSave;
 				int x = blockX + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
 				// this should, hopefully, keep us centered between minHeight and maxHeight with nothing going above/below those values
 				int y = blockY + getPoint(0, offsetY, radiusY);
 				int z = blockZ + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
-				
+
 				int r = medianSize - variance;
-				if(variance > 0){
+
+				if (variance > 0) {
 					r += random.nextInt(2 * variance) - variance;
 				}
 
 				FunctionParameterWrapper fp = new FunctionParameterWrapper();
-				fp.setBlockPos( new BlockPos(x, y, z) );
-				fp.setWorld( world );
-				fp.setReplacements( blockReplace );
-				fp.setBiomes( biomes );
-				fp.setOres( ores );
+				fp.setBlockPos(new BlockPos(x, y, z));
+				fp.setWorld(world);
+				fp.setReplacements(blockReplace);
+				fp.setBiomes(biomes);
+				fp.setOres(ores);
 
-				if( !spawnCloud( r, maxSpread, minHeight, maxHeight, fp) && tryCount < 5 ) {
+				if (!spawnCloud(r, maxSpread, minHeight, maxHeight, fp) && tryCount < 5) {
 					// make another try!
 					tries++;
 					frequency = 100;
@@ -118,49 +120,51 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 					tryCount = 0;
 				}
 			}
-			
+
 			tries--;
 		}
 	}
 
-	private boolean spawnCloud ( int size, int maxSpread, int minHeight, int maxHeight, FunctionParameterWrapper params ) {
+	private boolean spawnCloud(int size, int maxSpread, int minHeight, int maxHeight, FunctionParameterWrapper params) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 
-		if( !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), params.getBlockPos(),
-			 params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes() ) ) {
+		if (!spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), params.getBlockPos(),
+		        params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
 			return false;
 		}
-		
-		int radius = maxSpread/2;
+
+		int radius = maxSpread / 2;
 		boolean alreadySpewed = false;
-		int count = Math.min( size, (int)Math.round( Math.PI * Math.pow(radius, 2) ) );
-		
-		while( count > 0 ) {
+		int count = Math.min(size, (int)Math.round(Math.PI * Math.pow(radius, 2)));
+
+		while (count > 0) {
 			int xp = getPoint(0, maxSpread, radius);
-			int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight)/2);
+			int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
 			int zp = getPoint(0, maxSpread, radius);
-			
-			BlockPos p = params.getBlockPos().add( xp, yp, zp );
-			
+
+			BlockPos p = params.getBlockPos().add(xp, yp, zp);
+
 			int z = 0;
-			while ( z < 5 && !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), p,
-				 params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
+
+			while (z < 5 && !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), p,
+			        params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
 				xp = getPoint(0, maxSpread, radius);
-				yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight)/2);
+				yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
 				zp = getPoint(0, maxSpread, radius);
-				
-				p = params.getBlockPos().add( xp, yp, zp );
-				
+
+				p = params.getBlockPos().add(xp, yp, zp);
+
 				z++;
 			}
-			
-			if( z >= 5 && !alreadySpewed ) {
+
+			if (z >= 5 && !alreadySpewed) {
 				OreSpawn.LOGGER.info("unable to achieve requested cloud density for cloud centered at %s", params.getBlockPos());
 				alreadySpewed = true;
 			}
-			
+
 			count--;
 		}
+
 		return true;
 	}
 
