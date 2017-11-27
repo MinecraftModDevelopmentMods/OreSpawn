@@ -17,7 +17,7 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 
 	@Override
 	public boolean matches(Biome biome) {
-		return BiomeDictionary.hasType(biome, this.type);
+		return BiomeDictionary.isBiomeOfType(biome, this.type);
 	}
 
 	@Override
@@ -36,6 +36,6 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 
 	@Override
 	public ImmutableList<Biome> getBiomes() {
-		return ImmutableList.copyOf(BiomeDictionary.getBiomes(this.type));
+		return ImmutableList.copyOf(BiomeDictionary.getBiomesForType(this.type));
 	}
 }

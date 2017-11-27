@@ -38,8 +38,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		BiomeLocation biomes = parameters.getBiomes();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		int chunkX = pos.chunkXPos;
+		int chunkZ = pos.chunkZPos;
 
 		mergeDefaults(params, getDefaultParameters());
 

@@ -48,7 +48,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		EntityPlayer player = (EntityPlayer) sender;
 		Chunk chunk = player.getEntityWorld().getChunkFromBlockCoords(player.getPosition());
-		ChunkPos chunkPos = chunk.getPos();
+		ChunkPos chunkPos = chunk.getChunkCoordIntPair();
 		List<Block> blocks;
 
 		boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic") : false;
@@ -64,7 +64,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
-		player.sendStatusMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"), true);
+		player.sendStatusMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"));
 	}
 
 	private void clearBlocks(ChunkPos chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {

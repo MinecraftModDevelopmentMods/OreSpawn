@@ -27,7 +27,6 @@ import com.mcmoddev.orespawn.json.os3.readers.*;
 
 import net.minecraft.crash.CrashReport;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
@@ -207,7 +206,7 @@ public class OS3Reader {
 		if (work.equals(ConfigNames.DEFAULT)) {
 			return ReplacementsRegistry.getDimensionDefault(dimension);
 		} else if (work.startsWith("ore:")) {
-			NonNullList<ItemStack> ores = OreDictionary.getOres(work.substring(4));
+			List<ItemStack> ores = OreDictionary.getOres(work.substring(4));
 			List<IBlockState> reps = new ArrayList<>();
 			ores.forEach(ore -> reps.add(Block.getBlockFromItem(ore.getItem()).getDefaultState()));
 			return reps;

@@ -40,8 +40,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		OreList ores = parameters.getOres();
 		BiomeLocation biomes = parameters.getBiomes();
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		int chunkX = pos.chunkXPos;
+		int chunkZ = pos.chunkZPos;
 
 		mergeDefaults(params, getDefaultParameters());
 

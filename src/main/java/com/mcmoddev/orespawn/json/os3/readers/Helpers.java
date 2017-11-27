@@ -18,7 +18,6 @@ import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -119,7 +118,7 @@ public class Helpers {
 		int chance = oreObj.has(ConfigNames.CHANCE) ? oreObj.get(ConfigNames.CHANCE).getAsInt() : 100;
 		List<OreBuilder> retval = new ArrayList<>();
 
-		NonNullList<ItemStack> ores = OreDictionary.getOres(oreName);
+		List<ItemStack> ores = OreDictionary.getOres(oreName);
 
 		for (ItemStack ore : ores) {
 			OreBuilder thisOre = spawn.newOreBuilder();

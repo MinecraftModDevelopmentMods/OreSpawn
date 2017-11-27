@@ -44,8 +44,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		BiomeLocation biomes = parameters.getBiomes();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		int chunkX = pos.chunkXPos;
+		int chunkZ = pos.chunkZPos;
 
 		mergeDefaults(params, getDefaultParameters());
 
@@ -150,7 +150,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
 		BlockPos p = spot.add(offset);
-		ChunkPos x1z1 = new ChunkPos(pos.x + 1, pos.z + 1);
+		ChunkPos x1z1 = new ChunkPos(pos.chunkXPos + 1, pos.chunkZPos + 1);
 		int xMax = x1z1.getXEnd();
 		int zMax = x1z1.getZEnd();
 		int xMin = pos.getXStart();

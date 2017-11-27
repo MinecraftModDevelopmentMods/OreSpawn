@@ -92,7 +92,7 @@ public class EventHandlers {
 		.map(feat -> new NBTTagString(feat.getFeatureName()))
 		.forEach(features::appendTag);
 
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
+		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().xPosition, ev.getChunk().zPosition);
 
 		if (!Config.getBoolean(Constants.RETROGEN_KEY) || chunks.contains(chunkCoords)) {
 			dataTag.setTag(Constants.ORE_TAG, ores);
@@ -105,7 +105,7 @@ public class EventHandlers {
 	@SubscribeEvent
 	public void onChunkLoad(ChunkDataEvent.Load ev) {
 		World world = ev.getWorld();
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
+		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().xPosition, ev.getChunk().zPosition);
 
 		doBedrockRetrogen(chunkCoords);
 
@@ -187,15 +187,15 @@ public class EventHandlers {
 				ChunkPos p = chunks.pop();
 				Random random = new Random(world.getSeed());
 				// re-seed with something totally new :P
-				random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z)) ^ world.getSeed());
+				random.setSeed((((random.nextLong() >> 4 + 1) + p.chunkXPos) + ((random.nextLong() >> 2 + 1) + p.chunkZPos)) ^ world.getSeed());
 				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
 				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-				OreSpawn.API.getGenerator().generate(random, p.x, p.z, world, chunkGenerator, chunkProvider);
+				OreSpawn.API.getGenerator().generate(random, p.chunkXPos, p.chunkZPos, world, chunkGenerator, chunkProvider);
 			}
 
 			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {
 				ChunkPos p = retroChunks.pop();
-				OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
+				OreSpawn.flatBedrock.retrogen(world, p.chunkXPos, p.chunkZPos);
 			}
 		}
 	}

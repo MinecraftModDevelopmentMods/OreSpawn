@@ -100,7 +100,7 @@ public class AddOreCommand extends CommandBase {
 
 		this.putFile(file, ore, dimension);
 
-		player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
+		player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
 	}
 
 	private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {

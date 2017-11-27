@@ -41,8 +41,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		BiomeLocation biomes = parameters.getBiomes();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		int chunkX = pos.chunkXPos;
+		int chunkZ = pos.chunkZPos;
 
 		runCache(chunkX, chunkZ, world, blockReplace);
 		mergeDefaults(params, getDefaultParameters());
