@@ -10,19 +10,20 @@ public class FeatureBuilderImpl implements FeatureBuilder {
 	private String featureName;
 	private JsonObject parameters;
 	private IFeature feature;
-	
+
 	public FeatureBuilderImpl() {
 		this.featureName = "default";
 		this.feature = new DefaultFeatureGenerator();
 		this.parameters = new JsonObject();
 	}
-	
+
 	@Override
 	public FeatureBuilder setGenerator(String name) {
-		if( OreSpawn.FEATURES.hasFeature(name) ) {
+		if (OreSpawn.FEATURES.hasFeature(name)) {
 			this.featureName = name;
 			this.feature = OreSpawn.FEATURES.getFeature(name);
 		}
+
 		return this;
 	}
 
@@ -50,12 +51,12 @@ public class FeatureBuilderImpl implements FeatureBuilder {
 		return this;
 	}
 
-	@Override 
+	@Override
 	public FeatureBuilder setParameters(JsonObject parameters) {
 		this.parameters = parameters;
 		return this;
 	}
-	
+
 	@Override
 	public FeatureBuilder setDefaultParameters() {
 		this.parameters = this.feature.getDefaultParameters();
@@ -71,7 +72,7 @@ public class FeatureBuilderImpl implements FeatureBuilder {
 	public JsonObject getParameters() {
 		return this.parameters;
 	}
-	
+
 	@Override
 	public String getFeatureName() {
 		return this.featureName;

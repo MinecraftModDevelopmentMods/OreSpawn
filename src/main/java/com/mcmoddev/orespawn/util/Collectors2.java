@@ -10,17 +10,17 @@ public final class Collectors2 {
 
 	public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>> toImmutableList() {
 		return Collector.of(
-			ImmutableList.Builder::new, ImmutableList.Builder::add,
-			(left, right) -> left.addAll(right.build()),
-			ImmutableList.Builder::build
-		);
+		        ImmutableList.Builder::new, ImmutableList.Builder::add,
+		        (left, right) -> left.addAll(right.build()),
+		        ImmutableList.Builder::build
+		    );
 	}
 
 	public static <T> Collector<T, ImmutableSet.Builder<T>, ImmutableSet<T>> toImmutableSet() {
 		return Collector.of(
-			ImmutableSet.Builder::new, ImmutableSet.Builder::add,
-			(left, right) -> left.addAll(right.build()),
-			ImmutableSet.Builder::build
-		);
+		        ImmutableSet.Builder::new, ImmutableSet.Builder::add,
+		        (left, right) -> left.addAll(right.build()),
+		        ImmutableSet.Builder::build
+		    );
 	}
 }

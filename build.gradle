@@ -69,10 +69,10 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.11.2-13.20.0.2228"
-    runDir = "run"
-    mappings = "stable_32"
-//    coreMod = ""
+    version = '1.11.2-13.20.1.2386'
+    runDir = 'run'
+    mappings = 'stable_32'
+    //    coreMod = ""
     makeObfSourceJar = false
 }
 
@@ -233,7 +233,6 @@ curseforge {
         id = "245586"
         changelog = file("CHANGELOG.txt")
         releaseType = "alpha"
-        addGameVersion("1.11")
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {

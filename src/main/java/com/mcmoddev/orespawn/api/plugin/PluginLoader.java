@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 
 import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
+import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.OreSpawn;
 
@@ -61,9 +62,10 @@ public enum PluginLoader {
 			final String resourceBase = getAnnotationItem("resourcePath", asmDataItem);
 			final String clazz = asmDataItem.getClassName();
 			IOreSpawnPlugin integration;
+
 			try {
 				integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
-				PluginData pd = new PluginData( modId, resourceBase, integration);
+				PluginData pd = new PluginData(modId, resourceBase, integration);
 				dataStore.add(pd);
 			} catch (final Exception ex) {
 				OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
@@ -72,62 +74,72 @@ public enum PluginLoader {
 	}
 
 	public void register() {
-		dataStore.forEach( pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); });
+		dataStore.forEach(pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); });
 	}
 
 	public void scanResources(PluginData pd) {
-		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
-		URL resURL = getClass().getClassLoader().getResource(base);
-		
-		URI uri;
-		try {
-			uri = resURL.toURI();
-		} catch (URISyntaxException ex) {
-			CrashReport report = CrashReport.makeCrashReport(ex, String.format("Failed to get URI for %s", (new ResourceLocation(pd.modId,pd.resourcePath)).toString()));
-			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+		if (Config.getKnownMods().contains(pd.modId)) {
 			return;
 		}
 
-		Path myPath = null;
-		FileSystem fileSystem = null;
-		String tName = null;
-		try {
-			if (uri.getScheme().equals("jar")) {
-				fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
-				myPath = fileSystem.getPath(base);
-			} else {
-				myPath = Paths.get(uri);
-			}
+		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
+		URL resURL = getClass().getClassLoader().getResource(base);
 
-			Stream<Path> walk = Files.walk(myPath, 1);
-			for (Iterator<Path> it = walk.iterator(); it.hasNext();){
+		URI uri;
+
+		try {
+			uri = resURL.toURI();
+		} catch (URISyntaxException ex) {
+			CrashReport report = CrashReport.makeCrashReport(ex, String.format("Failed to get URI for %s", (new ResourceLocation(pd.modId, pd.resourcePath)).toString()));
+			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
+			return;
+		}
+
+		if (uri.getScheme().equals("jar")) {
+			try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
+				copyout(fileSystem.getPath(base), pd.modId);
+			} catch (IOException exc) {
+				CrashReport report = CrashReport.makeCrashReport(exc,
+				        String.format("Failed in getting FileSystem handler set up for %s", uri.getPath()));
+				report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
+				OreSpawn.LOGGER.info(report.getCompleteReport());
+			}
+		} else {
+			copyout(Paths.get(uri), pd.modId);
+		}
+
+		Config.addKnownMod(pd.modId);
+	}
+
+	private void copyout(Path myPath, String modId) {
+		try(Stream<Path> walk = Files.walk(myPath, 1)) {
+			for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
 				Path p = it.next();
 				String name = p.getFileName().toString();
 
-				if( "json".equals(FilenameUtils.getExtension(name)) ) {
+				if ("json".equals(FilenameUtils.getExtension(name))) {
 					InputStream reader = null;
-					Path target = Paths.get(".","orespawn","os3",String.format("%s.json", pd.modId));
-					tName = String.format("%s.json", pd.modId);
-					if( !target.toFile().exists() ) {
+					Path target;
+
+					if ("_features".equals(FilenameUtils.getBaseName(name))) {
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF, String.format("features-%s.json", modId));
+					} else if ("_replacements".equals(FilenameUtils.getBaseName(name))) {
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF, String.format("replacements-%s.json", modId));
+					} else {
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, String.format("%s.json", modId));
+					}
+
+					if (!target.toFile().exists()) {
 						reader = Files.newInputStream(p);
 						FileUtils.copyInputStreamToFile(reader, target.toFile());
 						IOUtils.closeQuietly(reader);
 					}
 				}
 			}
-			walk.close();
-		} catch( IOException exc ) {
-			String resName = (new ResourceLocation(pd.modId,
-					String.format("%s/%s", pd.resourcePath, 
-							FilenameUtils.getBaseName(uri.getPath())))).toString();
-			CrashReport report = CrashReport.makeCrashReport(exc, 
-					String.format("Failed in copying out config %s to %s", resName, tName));
-			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
-			OreSpawn.LOGGER.info(report.getCompleteReport());			
-		} finally {
-			if( fileSystem != null ) {
-				IOUtils.closeQuietly(fileSystem);
-			}
+		} catch (IOException exc) {
+			CrashReport report = CrashReport.makeCrashReport(exc, String.format("Faulted while iterating %s for config files or copying them out", myPath));
+			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
+			OreSpawn.LOGGER.error(report.getCompleteReport());
 		}
 	}
 }

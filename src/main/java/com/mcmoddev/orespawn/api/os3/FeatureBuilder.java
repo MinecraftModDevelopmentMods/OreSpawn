@@ -13,7 +13,7 @@ public interface FeatureBuilder {
 	FeatureBuilder addParameter(@Nonnull String name, @Nonnull String value);
 	FeatureBuilder setParameters(@Nonnull JsonObject parameters);
 	FeatureBuilder setDefaultParameters();
-	
+
 	IFeature getGenerator();
 	JsonObject getParameters();
 	String getFeatureName();

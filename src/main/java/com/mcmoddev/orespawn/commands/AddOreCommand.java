@@ -28,121 +28,124 @@ import java.util.Map.Entry;
 
 public class AddOreCommand extends CommandBase {
 	private static final String ALL = "all";
-	
-    @Override
-    public String getName() {
-        return "addore";
-    }
 
-    @Override
-    public String getUsage(ICommandSender sender) {
-        return "/addore <file> <dimension|all> <options>";
-    }
+	@Override
+	public String getName() {
+		return "addore";
+	}
 
-    @Override
-    public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (!(sender instanceof EntityPlayer)) {
-            throw new CommandException("Only players can use this command");
-        }
+	@Override
+	public String getUsage(ICommandSender sender) {
+		return "/addore <file> <dimension|all> <options>";
+	}
 
-        EntityPlayer player = (EntityPlayer) sender;
-        ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-        String jsonArgs = null;
-        
-        if (stack == null) {
-            throw new CommandException("You have no item in your main hand");
-        } else if (!(stack.getItem() instanceof ItemBlock)) {
-            throw new CommandException("The item in your main hand isn't a block");
-        } else if (args.length <= 2) {
-            throw new CommandException(this.getUsage(sender));
-        } else {
-        	jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();        	
-        }
-        
-        String file = args[0];
-        @SuppressWarnings("deprecation")
-        IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
+	@Override
+	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+		if (!(sender instanceof EntityPlayer)) {
+			throw new CommandException("Only players can use this command");
+		}
 
-        int dimension = OreSpawn.API.dimensionWildcard();
+		EntityPlayer player = (EntityPlayer) sender;
+		ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+		String jsonArgs = null;
 
-        try {
-            if (!args[1].equals(ALL)) {
-                dimension = Integer.parseInt(args[1]);
-            }
-        } catch (NumberFormatException e) {
-            throw new CommandException(args[1] + " isn't a valid dimension");
-        }
+		if (stack == null) {
+			throw new CommandException("You have no item in your main hand");
+		} else if (!(stack.getItem() instanceof ItemBlock)) {
+			throw new CommandException("The item in your main hand isn't a block");
+		} else if (args.length < 2) {
+			throw new CommandException(this.getUsage(sender));
+		} else if (args.length > 2) {
+			jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();
+		}
 
-        
-        JsonObject ore = new JsonObject();
-        JsonObject oreArgs = null;
-        int size = 25;
-        int variation = 12;
-        int frequency = 20;
-        int minHeight = 0;
-        int maxHeight = 128;
+		String file = args[0];
+		@SuppressWarnings("deprecation")
+		IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
 
-    	oreArgs = new JsonObject();
-    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, size);
-    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, variation);
-    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, frequency);
-    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, minHeight);
-    	oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, maxHeight);
-    	ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
-    	ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
+		int dimension = OreSpawn.API.dimensionWildcard();
 
-        if( jsonArgs != null ) {
-        	JsonObject newOreArgs = (new JsonParser()).parse(jsonArgs).getAsJsonObject();
-        	setProperties(oreArgs,newOreArgs);
-        }
-        
-        setOre(ore,oreArgs);
-        
-        this.putFile(file, ore, dimension);
+		try {
+			if (!args[1].equalsIgnoreCase(ALL)) {
+				dimension = Integer.parseInt(args[1]);
+			}
+		} catch (NumberFormatException e) {
+			throw new CommandException(args[1] + " isn't a valid dimension");
+		}
 
-        player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
-    }
 
-    private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {
-		for( Entry<String, JsonElement> ent : newOreArgs.entrySet() ) {
+		JsonObject ore = new JsonObject();
+		JsonObject oreArgs = null;
+		int size = 25;
+		int variation = 12;
+		int frequency = 20;
+		int minHeight = 0;
+		int maxHeight = 128;
+
+		oreArgs = new JsonObject();
+		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, size);
+		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, variation);
+		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, frequency);
+		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, minHeight);
+		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, maxHeight);
+		ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
+		ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
+
+		if (jsonArgs != null) {
+			JsonObject newOreArgs = (new JsonParser()).parse(jsonArgs).getAsJsonObject();
+			setProperties(oreArgs, newOreArgs);
+		}
+
+		setOre(ore, oreArgs);
+
+		this.putFile(file, ore, dimension);
+
+		player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
+	}
+
+	private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {
+		for (Entry<String, JsonElement> ent : newOreArgs.entrySet()) {
 			oreArgs.remove(ent.getKey());
 			oreArgs.add(ent.getKey(), ent.getValue());
 		}
 	}
 
 	private void setOre(JsonObject ore, JsonObject oreArgs) {
-		for( Entry<String, JsonElement> ent : oreArgs.entrySet() ) {
+		for (Entry<String, JsonElement> ent : oreArgs.entrySet()) {
 			ore.add(ent.getKey(), ent.getValue());
-		}		
+		}
 	}
 
 	private void putFile(String file, JsonObject ore, int id) {
-    	DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
-    	SpawnBuilder sb = db.newSpawnBuilder(null);
-    	OreBuilder ob = sb.newOreBuilder();
-    	String b = ore.get(ConfigNames.BLOCK).getAsString();
-    	ore.remove(ConfigNames.BLOCK);
-    	String s = ore.get(ConfigNames.STATE).getAsString();
-    	ore.remove(ConfigNames.STATE);
-    	if( ConfigNames.STATE_NORMAL.equals(s) ) {
-    		ob.setOre(b);
-    	} else {
-    		ob.setOre(b, s);
-    	}
-    	FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
-    	fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
-    	BiomeBuilder bb = sb.newBiomeBuilder();
-    	IBlockState rep = ReplacementsRegistry.getDimensionDefault(id);
-    	List<IBlockState> rl = new ArrayList<>();
-    	rl.add(rep);
-    	sb.create(bb, fb, rl, ob);
-    	db.create(sb);
-    	OreSpawn.API.getLogic(file).create(db);
-    	OreSpawn.API.registerLogic(OreSpawn.API.getLogic(file));
+		DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
+		SpawnBuilder sb = db.newSpawnBuilder(null);
+		OreBuilder ob = sb.newOreBuilder();
+		String b = ore.get(ConfigNames.BLOCK).getAsString();
+		ore.remove(ConfigNames.BLOCK);
+		String s = ore.get(ConfigNames.STATE).getAsString();
+		ore.remove(ConfigNames.STATE);
+
+		if (ConfigNames.STATE_NORMAL.equals(s)) {
+			ob.setOre(b);
+		} else {
+			ob.setOre(b, s);
+		}
+
+		FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
+		fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
+		BiomeBuilder bb = sb.newBiomeBuilder();
+		IBlockState rep = ReplacementsRegistry.getDimensionDefault(id).get(0);
+		List<IBlockState> rl = new ArrayList<>();
+		rl.add(rep);
+		sb.create(bb, fb, rl, ob);
+		db.create(sb);
+		OreSpawn.API.getLogic(file).create(db);
+		OreSpawn.API.registerLogic(OreSpawn.API.getLogic(file));
+		OreSpawn.writer.writeAddOreEntry(file);
 	}
 
-    @Override
-    public int compareTo(ICommand command) {
-        return this.getName().compareTo(command.getName());
-    }
+	@Override
+	public int compareTo(ICommand command) {
+		return this.getName().compareTo(command.getName());
+	}
 }
