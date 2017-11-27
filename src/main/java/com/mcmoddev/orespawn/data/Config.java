@@ -15,6 +15,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.google.gson.JsonPrimitive;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -132,7 +133,8 @@ public class Config {
 		File in = p.toFile();
 
 		JsonArray data = new JsonArray();
-		extractedConfigs.forEach(data::add);
+		
+		extractedConfigs.forEach( val -> data.add( new JsonPrimitive(val) ) );
 
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset());

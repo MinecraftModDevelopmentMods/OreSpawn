@@ -17,7 +17,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
         classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
         classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
     }
@@ -34,7 +34,7 @@ javadoc {
 
 description = 'OreSpawn'
 def mod_file = getModFile()
-def mc_version = "1.12"
+def mc_version = "1.11.2"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
@@ -69,10 +69,10 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12.1-14.22.1.2485"
-    runDir = "run"
-    mappings = "snapshot_20170925"
-//    coreMod = ""
+    version = '1.11.2-13.20.1.2386'
+    runDir = 'run'
+    mappings = 'stable_32'
+    //    coreMod = ""
     makeObfSourceJar = false
 }
 

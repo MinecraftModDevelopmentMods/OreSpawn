@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.json.os3.IOS3Reader;
@@ -70,7 +71,7 @@ public class OS3V2Reader implements IOS3Reader {
 		if (lw.get(ConfigNames.DIMENSIONS).isJsonArray()) {
 			if (lw.getAsJsonArray(ConfigNames.DIMENSIONS).size() < 1) {
 				JsonArray temp = lw.getAsJsonArray(ConfigNames.DIMENSIONS);
-				temp.add(OreSpawn.API.dimensionWildcard());
+				temp.add(new JsonPrimitive(OreSpawn.API.dimensionWildcard()));
 				lw.remove(ConfigNames.DIMENSIONS);
 				lw.add(ConfigNames.DIMENSIONS, temp);
 			}
@@ -79,7 +80,7 @@ public class OS3V2Reader implements IOS3Reader {
 			lw.add(ConfigNames.DIMENSION, dimSet);
 			lw.remove(ConfigNames.DIMENSIONS);
 			JsonArray temp = new JsonArray();
-			temp.add(OreSpawn.API.dimensionWildcard());
+			temp.add(new JsonPrimitive(OreSpawn.API.dimensionWildcard()));
 			lw.add(ConfigNames.DIMENSIONS, temp);
 		}
 

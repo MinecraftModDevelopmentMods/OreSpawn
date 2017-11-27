@@ -42,7 +42,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 @Mod(modid = Constants.MODID,
     name = Constants.NAME,
     version = Constants.VERSION,
-    acceptedMinecraftVersions = "[1.12,)")
+    acceptedMinecraftVersions = "[1.11.2,)")
 
 public class OreSpawn {
 	@Instance
