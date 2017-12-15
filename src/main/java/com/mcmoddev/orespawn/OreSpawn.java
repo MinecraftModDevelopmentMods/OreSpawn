@@ -22,7 +22,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -42,7 +41,8 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 @Mod(modid = Constants.MODID,
     name = Constants.NAME,
     version = Constants.VERSION,
-    acceptedMinecraftVersions = "[1.12,)")
+    acceptedMinecraftVersions = "[1.12,)",
+	certificateFingerprint = "@FINGERPRINT@")
 
 public class OreSpawn {
 	@Instance
@@ -59,6 +59,11 @@ public class OreSpawn {
 
 	public static Map<Integer, List<SpawnBuilder>> getSpawns() {
 		return spawns;
+	}
+
+	@EventHandler
+	public void onFingerprintViolation(FMLFingerprintViolationEvent event) {
+		logger.warn("Invalid fingerprint detected!");
 	}
 
 	@EventHandler
