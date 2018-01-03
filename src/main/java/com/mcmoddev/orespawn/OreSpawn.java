@@ -64,7 +64,7 @@ public class OreSpawn {
 
 	@EventHandler
 	public void onFingerprintViolation(FMLFingerprintViolationEvent event) {
-		logger.warn("Invalid fingerprint detected!");
+		LOGGER.warn("Invalid fingerprint detected!");
 	}
 
 	@EventHandler
