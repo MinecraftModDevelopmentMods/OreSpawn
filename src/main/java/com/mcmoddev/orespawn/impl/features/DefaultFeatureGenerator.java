@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.GeneratorParameters;
@@ -112,7 +113,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 			while (count > 0) {
 				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
-				spawn(oreBlock, params.getWorld(), params.getBlockPos().add(offs[scrambledLUT[--count]]),
+				BlockPos target = params.getBlockPos().add(offs[scrambledLUT[--count]]);
+				spawn(oreBlock, params.getWorld(), target,
 				    params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes());
 			}
 
@@ -123,12 +125,13 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 	private void doSpawnFill(boolean nextBoolean, int quantity, FunctionParameterWrapper params) {
-		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
-
-		if (nextBoolean) {
-			spawnMunge(params, radius, quantity, false);
+		int count = quantity;
+		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		int rSqr = (int)(radius * radius);
+		if( nextBoolean ) {
+			spawnMungeNE( params.getWorld(), params.getBlockPos(), rSqr, radius, params.getReplacements(), count, params.getOres() );
 		} else {
-			spawnMunge(params, radius, quantity, true);
+			spawnMungeSW( params.getWorld(), params.getBlockPos(), rSqr, radius, params.getReplacements(), count, params.getOres() );
 		}
 	}
 
