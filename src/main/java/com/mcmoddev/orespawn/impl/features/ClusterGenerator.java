@@ -173,12 +173,13 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	private void doSpawnFill(boolean nextBoolean, int quantity, FunctionParameterWrapper params) {
-		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
-
-		if (nextBoolean) {
-			spawnMunge(params, radius, quantity, false);
+		int count = quantity;
+		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		int rSqr = (int)(radius * radius);
+		if( nextBoolean ) {
+			spawnMungeNE( params.getWorld(), params.getBlockPos(), rSqr, radius, params.getReplacements(), count, params.getOres() );
 		} else {
-			spawnMunge(params, radius, quantity, true);
+			spawnMungeSW( params.getWorld(), params.getBlockPos(), rSqr, radius, params.getReplacements(), count, params.getOres() );
 		}
 	}
 
