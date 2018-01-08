@@ -94,7 +94,7 @@ public class OS3Writer {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		try {
-			FileUtils.writeStringToFile(file, gson.toJson(wrapper), Charset.defaultCharset(), false);
+			FileUtils.writeStringToFile(file, gson.toJson(wrapper), "UTF8", false);
 		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed in config %s", file.getName()));
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
