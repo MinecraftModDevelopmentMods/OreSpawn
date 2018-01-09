@@ -134,7 +134,7 @@ public class Config {
 
 		JsonArray data = new JsonArray();
 
-		extractedConfigs.forEach( val -> data.add(new JsonPrimitive(val)));
+		extractedConfigs.forEach(val -> data.add(new JsonPrimitive(val)));
 
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset());
