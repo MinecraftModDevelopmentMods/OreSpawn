@@ -108,7 +108,7 @@ public class FeatureBase {
 			IBlockState targetBlock = world.getBlockState(coord);
 
 			if (canReplace(targetBlock, blockReplace)) {
-				world.setBlockState(coord, oreBlock); // , 22);
+				world.setBlockState(coord, oreBlock);
 				return true;
 			} else {
 				return false;
