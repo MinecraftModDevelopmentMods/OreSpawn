@@ -19,7 +19,7 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
         classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
-        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
+        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.1'
     }
 }
 
@@ -72,7 +72,7 @@ minecraft {
     version = '1.11.2-13.20.1.2386'
     runDir = 'run'
     mappings = 'stable_32'
-    //    coreMod = ""
+//    coreMod = ''
     makeObfSourceJar = false
 
 	replace '@FINGERPRINT@', project.findProperty('signSHA1')
@@ -254,7 +254,7 @@ curseforge {
     project {
         id = "245586"
         changelog = file("CHANGELOG.txt")
-        releaseType = "alpha"
+        releaseType = "release"
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
