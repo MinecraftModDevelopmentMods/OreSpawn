@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.util;
 
+import com.mcmoddev.orespawn.OreSpawn;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 
@@ -15,7 +17,8 @@ public class StateUtil {
 		if (string.equals(state.getBlock().getRegistryName().toString())) {
 			string = "normal";
 		}
-
+		
+		OreSpawn.LOGGER.fatal("State is %s (for block %s)", string, state.getBlock().getRegistryName());
 		return string;
 	}
 
