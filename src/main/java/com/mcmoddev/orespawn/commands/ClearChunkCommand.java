@@ -72,7 +72,7 @@ public class ClearChunkCommand extends CommandBase {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
 					BlockPos pos = new BlockPos(x, y, z);
-					Block block = player.worldObj.getBlockState(pos).getBlock();
+					Block block = player.getEntityWorld().getBlockState(pos).getBlock();
 					removeIfBlocks(player, pos, block, blocks, overburden, !flagClassic);
 					removeIfFluid(pos, player);
 				}
@@ -81,18 +81,18 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	private void removeIfFluid(BlockPos pos, EntityPlayer player) {
-		if (player.worldObj.getBlockState(pos).getMaterial().isLiquid()) {
-			IBlockState bs = player.worldObj.getBlockState(pos);
+		if (player.getEntityWorld().getBlockState(pos).getMaterial().isLiquid()) {
+			IBlockState bs = player.getEntityWorld().getBlockState(pos);
 
 			if (bs.getMaterial().equals(Material.LAVA) || bs.getMaterial().equals(Material.WATER)) {
-				player.worldObj.setBlockToAir(pos);
+				player.getEntityWorld().setBlockToAir(pos);
 			}
 		}
 	}
 
 	private void removeIfBlocks(EntityPlayer player, BlockPos pos, Block block, List<Block> blocks, List<Block> overburden, boolean flagClassic) {
 		if (blocks.contains(block) || ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
-			player.worldObj.setBlockToAir(pos);
+			player.getEntityWorld().setBlockToAir(pos);
 		}
 	}
 
@@ -106,7 +106,7 @@ public class ClearChunkCommand extends CommandBase {
 					break;
 
 				case "dirtandgravel":
-					blockNames.add("minecraft:stone");
+					blockNames.add(STONE_ID);
 					blockNames.addAll(dirtVariants);
 					blockNames.addAll(otherVariants);
 					break;
