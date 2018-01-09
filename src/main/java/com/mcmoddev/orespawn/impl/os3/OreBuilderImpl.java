@@ -47,13 +47,13 @@ public class OreBuilderImpl implements OreBuilder {
 	@SuppressWarnings("deprecation")
 	@Override
 	public OreBuilder setOre(String name, int metaData) {
-		this.setOre(name);
+		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(name));
 
-		if (this.ore == null) {
+		if (block == null) {
 			return this;
 		}
 
-		this.ore = this.ore.getBlock().getStateFromMeta(metaData);
+		this.ore = block.getStateFromMeta(metaData);
 		return this;
 	}
 

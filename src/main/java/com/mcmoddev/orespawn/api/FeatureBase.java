@@ -108,7 +108,7 @@ public class FeatureBase {
 			IBlockState targetBlock = world.getBlockState(coord);
 
 			if (canReplace(targetBlock, blockReplace)) {
-				world.setBlockState(coord, oreBlock, 22);
+				world.setBlockState(coord, oreBlock); // , 22);
 				return true;
 			} else {
 				return false;
@@ -229,33 +229,47 @@ public class FeatureBase {
 		return t - median;
 	}
 
-
-	protected void spawnMunge(FunctionParameterWrapper params, double radius, int count, boolean toPositive) {
-		int rSqr = (int)(radius * radius);
+	protected void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
+			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+		Random prng = this.random;
 		int quantity = count;
-
-		OreList possible = params.getOres();
-		World world = params.getWorld();
-		BlockPos blockPos = params.getBlockPos();
-		List<IBlockState> replace = params.getReplacements();
-		BiomeLocation biomes = params.getBiomes();
-
-		for (int dy = (int)(-1 * radius); dy < radius; dy++) {
-			for (int dx = getStart(toPositive, radius); endCheck(toPositive, dx, radius); dx = countItem(dx, toPositive)) {
-				for (int dz = getStart(toPositive, radius); endCheck(toPositive, dz, radius); dz = countItem(dz, toPositive)) {
-					if (getABC(dx, dy, dz) <= rSqr) {
-						IBlockState oreBlock = possible.getRandomOre(this.random).getOre();
-						spawn(oreBlock, world, blockPos.add(dx, dy, dz), world.provider.getDimension(), true, replace, biomes);
-
-						if (--quantity <= 0) {
-							return;
-						}
+		for(int dy = (int)(-1 * radius); dy < radius; dy++){
+			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
+				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
+					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
+						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						quantity--;
+					}
+					if(quantity <= 0) {
+						return;
 					}
 				}
 			}
 		}
 	}
 
+
+	protected void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
+			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+		Random prng = this.random;
+		int quantity = count;
+		for(int dy = (int)(-1 * radius); dy < radius; dy++){
+			for(int dz = (int)(-1 * radius); dz < radius; dz++){
+				for(int dx = (int)(-1 * radius); dx < radius; dx++){
+					if((dx*dx + dy*dy + dz*dz) <= rSqr){
+						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
+						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						quantity--;
+					}
+					if(quantity <= 0) {
+						return;
+					}
+				}
+			}
+		}
+	}
+	
 	protected int getABC(int dx, int dy, int dz) {
 		return (dx * dx + dy * dy + dz * dz);
 	}
