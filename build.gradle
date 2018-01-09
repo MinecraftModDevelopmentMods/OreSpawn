@@ -19,7 +19,7 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
         classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
-        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
+        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.1'
     }
 }
 
@@ -69,9 +69,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12.1-14.22.1.2485"
+    version = "1.12.2-14.23.1.2555"
     runDir = "run"
-    mappings = "snapshot_20170925"
+    mappings = "snapshot_20171231"
 //    coreMod = ""
     makeObfSourceJar = false
 
@@ -254,7 +254,7 @@ curseforge {
     project {
         id = "245586"
         changelog = file("CHANGELOG.txt")
-        releaseType = "alpha"
+        releaseType = "release"
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
