@@ -30,12 +30,12 @@ public class AddOreCommand extends CommandBase {
 	private static final String ALL = "all";
 
 	@Override
-	public String getName() {
+	public String getCommandName() {
 		return "addore";
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getCommandUsage(ICommandSender sender) {
 		return "/addore <file> <dimension|all> <options>";
 	}
 
@@ -54,7 +54,7 @@ public class AddOreCommand extends CommandBase {
 		} else if (!(stack.getItem() instanceof ItemBlock)) {
 			throw new CommandException("The item in your main hand isn't a block");
 		} else if (args.length < 2) {
-			throw new CommandException(this.getUsage(sender));
+			throw new CommandException(this.getCommandUsage(sender));
 		} else if (args.length > 2) {
 			jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();
 		}
@@ -100,7 +100,7 @@ public class AddOreCommand extends CommandBase {
 
 		this.putFile(file, ore, dimension);
 
-		player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
+		player.addChatComponentMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
 	}
 
 	private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {
@@ -146,6 +146,6 @@ public class AddOreCommand extends CommandBase {
 
 	@Override
 	public int compareTo(ICommand command) {
-		return this.getName().compareTo(command.getName());
+		return this.getCommandName().compareTo(command.getCommandName());
 	}
 }

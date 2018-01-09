@@ -10,12 +10,12 @@ import net.minecraft.server.MinecraftServer;
 public class WriteConfigsCommand extends CommandBase {
 
 	@Override
-	public String getName() {
+	public String getCommandName() {
 		return "osSaveConfigs";
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getCommandUsage(ICommandSender sender) {
 		return "/osSaveConfigs";
 	}
 

@@ -31,12 +31,12 @@ public class ClearChunkCommand extends CommandBase {
 	private static final List<String> otherVariants = Arrays.asList("minecraft:gravel", "minecraft:sand");
 
 	@Override
-	public String getName() {
+	public String getCommandName() {
 		return "clearchunk";
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getCommandUsage(ICommandSender sender) {
 		return "/clearchunk <viewores|dirtandgravel|classic>";
 	}
 
@@ -64,7 +64,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
-		player.sendStatusMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"));
+		player.addChatComponentMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"));
 	}
 
 	private void clearBlocks(ChunkPos chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {
@@ -72,7 +72,7 @@ public class ClearChunkCommand extends CommandBase {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
 					BlockPos pos = new BlockPos(x, y, z);
-					Block block = player.world.getBlockState(pos).getBlock();
+					Block block = player.worldObj.getBlockState(pos).getBlock();
 					removeIfBlocks(player, pos, block, blocks, overburden, !flagClassic);
 					removeIfFluid(pos, player);
 				}
@@ -81,18 +81,18 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	private void removeIfFluid(BlockPos pos, EntityPlayer player) {
-		if (player.world.getBlockState(pos).getMaterial().isLiquid()) {
-			IBlockState bs = player.world.getBlockState(pos);
+		if (player.worldObj.getBlockState(pos).getMaterial().isLiquid()) {
+			IBlockState bs = player.worldObj.getBlockState(pos);
 
 			if (bs.getMaterial().equals(Material.LAVA) || bs.getMaterial().equals(Material.WATER)) {
-				player.world.setBlockToAir(pos);
+				player.worldObj.setBlockToAir(pos);
 			}
 		}
 	}
 
 	private void removeIfBlocks(EntityPlayer player, BlockPos pos, Block block, List<Block> blocks, List<Block> overburden, boolean flagClassic) {
 		if (blocks.contains(block) || ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
-			player.world.setBlockToAir(pos);
+			player.worldObj.setBlockToAir(pos);
 		}
 	}
 
@@ -125,6 +125,6 @@ public class ClearChunkCommand extends CommandBase {
 
 	@Override
 	public int compareTo(ICommand command) {
-		return this.getName().compareTo(command.getName());
+		return this.getCommandName().compareTo(command.getCommandName());
 	}
 }

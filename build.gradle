@@ -34,7 +34,7 @@ javadoc {
 
 description = 'OreSpawn'
 def mod_file = getModFile()
-def mc_version = "1.10.2"
+def mc_version = "1.9.4"
 def short_version = getVersion("VERSION", mod_file)
 version = mc_version + "-" + short_version
 if (System.getenv().BUILD_NUMBER) {
@@ -69,13 +69,13 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = '1.10.2-12.18.3.2185'
-    runDir = 'run'
-    mappings = 'stable_29'
+    version = "1.9.4-12.17.0.1976"
+    runDir = "run"
+    mappings = "stable_26"
     //    coreMod = ""
     makeObfSourceJar = false
 }
-
+		
 repositories {
     maven { // Mantle, TCon, JEI
         name 'DVS1 Maven FS'

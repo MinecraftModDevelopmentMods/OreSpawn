@@ -11,6 +11,8 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.entity.player.EntityPlayer;
+
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -21,12 +23,12 @@ import java.io.IOException;
 
 public class DumpBiomesCommand extends CommandBase {
 	@Override
-	public String getName() {
+	public String getCommandName() {
 		return "dumpbiomes";
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getCommandUsage(ICommandSender sender) {
 		return "/dumpbiomes";
 	}
 
@@ -47,11 +49,11 @@ public class DumpBiomesCommand extends CommandBase {
 			throw new CommandException("Failed to save the json file");
 		}
 
-		sender.sendMessage(new TextComponentString("Done"));
+		((EntityPlayer)sender).addChatComponentMessage(new TextComponentString("Done"));
 	}
 
 	@Override
 	public int compareTo(ICommand command) {
-		return this.getName().compareTo(command.getName());
+		return this.getCommandName().compareTo(command.getCommandName());
 	}
 }
