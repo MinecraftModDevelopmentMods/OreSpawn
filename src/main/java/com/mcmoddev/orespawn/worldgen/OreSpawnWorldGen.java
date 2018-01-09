@@ -28,7 +28,6 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	private final Map<Integer, List<SpawnBuilder>> dimensions;
 	private static final List<Block> SPAWN_BLOCKS = new ArrayList<>();
 
-	@SuppressWarnings("unused")
 	public OreSpawnWorldGen(Map<Integer, List<SpawnBuilder>> allDimensions, long nextLong) {
 		this.dimensions = Collections.unmodifiableMap(allDimensions);
 

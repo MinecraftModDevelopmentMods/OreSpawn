@@ -69,10 +69,10 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12.2-14.23.1.2555"
-    runDir = "run"
-    mappings = "snapshot_20171231"
-//    coreMod = ""
+    version = '1.12.2-14.23.1.2555'
+    runDir = 'run'
+    mappings = 'snapshot_20171231'
+//    coreMod = ''
     makeObfSourceJar = false
 
 	replace '@FINGERPRINT@', project.findProperty('signSHA1')

@@ -132,6 +132,7 @@ public class Config {
 		File in = p.toFile();
 
 		JsonArray data = new JsonArray();
+
 		extractedConfigs.forEach(data::add);
 
 		try {
