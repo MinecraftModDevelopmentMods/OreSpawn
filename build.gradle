@@ -19,7 +19,7 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
         classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.0.9'
-        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5'
+        classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.1'
     }
 }
 
@@ -72,8 +72,10 @@ minecraft {
     version = '1.10.2-12.18.3.2185'
     runDir = 'run'
     mappings = 'stable_29'
-    //    coreMod = ""
+//    coreMod = ''
     makeObfSourceJar = false
+
+	replace '@FINGERPRINT@', project.findProperty('signSHA1')
 }
 
 repositories {
@@ -179,6 +181,26 @@ task deobfJar(type: Jar) {
     from sourceSets.main.output
 }
 
+task signJar(type: SignJar, dependsOn: reobfJar) {
+
+    // Skips if the keyStore property is missing.
+    onlyIf {
+        project.hasProperty('keyStore')
+    }
+
+    // findProperty allows us to reference the property without it existing. 
+    // Using project.propName would cause the script to fail validation if 
+    // the property did not exist. 
+    keyStore = project.findProperty('keyStore')
+    alias = project.findProperty('keyStoreAlias')
+    storePass = project.findProperty('keyStorePass')
+    keyPass = project.findProperty('keyStoreKeyPass')
+    inputFile = jar.archivePath
+    outputFile = jar.archivePath
+}
+
+build.dependsOn signJar
+
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.getDestinationDir()
@@ -232,7 +254,7 @@ curseforge {
     project {
         id = "245586"
         changelog = file("CHANGELOG.txt")
-        releaseType = "alpha"
+        releaseType = "release"
         def projName = "OreSpawn"
         def displayVersion = getVersion("VERSION", mod_file)
         if (System.getenv().BUILD_NUMBER) {
