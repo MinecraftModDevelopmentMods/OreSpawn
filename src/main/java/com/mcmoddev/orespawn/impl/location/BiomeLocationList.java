@@ -3,7 +3,7 @@ package com.mcmoddev.orespawn.impl.location;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 import java.util.List;
 import java.util.LinkedList;
@@ -19,7 +19,7 @@ public final class BiomeLocationList implements BiomeLocation {
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(BiomeGenBase biome) {
 		return this.locations.stream().anyMatch(loc -> loc.matches(biome));
 	}
 
@@ -34,8 +34,8 @@ public final class BiomeLocationList implements BiomeLocation {
 	}
 
 	@Override
-	public ImmutableList<Biome> getBiomes() {
-		List<Biome> temp = new LinkedList<>();
+	public ImmutableList<BiomeGenBase> getBiomes() {
+		List<BiomeGenBase> temp = new LinkedList<>();
 		locations.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
 		return ImmutableList.copyOf(temp);
 	}

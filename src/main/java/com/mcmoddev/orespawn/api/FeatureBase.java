@@ -8,10 +8,10 @@ import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -28,9 +28,9 @@ public class FeatureBase {
 		this.random = rand;
 	}
 
-	private boolean fullMatch(ImmutableSet<BiomeLocation> locs, Biome biome) {
+	private boolean fullMatch(ImmutableSet<BiomeLocation> locs, BiomeGenBase biome) {
 		for (BiomeLocation b : locs) {
-			for (Biome bm : b.getBiomes()) {
+			for (BiomeGenBase bm : b.getBiomes()) {
 				if (bm.equals(biome)) {
 					return true;
 				}
@@ -40,7 +40,7 @@ public class FeatureBase {
 		return false;
 	}
 
-	private boolean biomeMatch(Biome chunkBiome, BiomeLocation inp) {
+	private boolean biomeMatch(BiomeGenBase chunkBiome, BiomeLocation inp) {
 		if (inp.getBiomes().isEmpty()) {
 			return false;
 		}
@@ -78,7 +78,7 @@ public class FeatureBase {
 			return false;
 		}
 
-		Biome thisBiome = world.getBiome(coord);
+		BiomeGenBase thisBiome = world.provider.getBiomeGenForCoords(coord);
 
 		if (biomeMatch(thisBiome, biomes)) {
 			return false;
@@ -292,7 +292,7 @@ public class FeatureBase {
 		private List<IBlockState> replacements;
 		private OreList ores;
 		private BiomeLocation biomes;
-		private ChunkPos chunkPos;
+		private ChunkCoordIntPair chunkPos;
 		private IBlockState block;
 
 		public FunctionParameterWrapper() {}
@@ -347,11 +347,11 @@ public class FeatureBase {
 			this.ores = ores;
 		}
 
-		public ChunkPos getChunkPos() {
+		public ChunkCoordIntPair getChunkPos() {
 			return chunkPos;
 		}
 
-		public void setChunkPos(ChunkPos chunkPos) {
+		public void setChunkPos(ChunkCoordIntPair chunkPos) {
 			this.chunkPos = chunkPos;
 		}
 

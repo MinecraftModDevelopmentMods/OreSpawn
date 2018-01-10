@@ -16,7 +16,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -64,7 +64,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			List<IBlockState> replacement = sE.getReplacementBlocks();
 			replacement = replacement.isEmpty() ? ReplacementsRegistry.getDimensionDefault(thisDim) : replacement;
 
-			GeneratorParameters parameters = new GeneratorParameters(new ChunkPos(chunkX, chunkZ), sE.getOreSpawns(), replacement, sE.getBiomes(), sE.getFeatureGen().getParameters());
+			GeneratorParameters parameters = new GeneratorParameters(new ChunkCoordIntPair(chunkX, chunkZ), sE.getOreSpawns(), replacement, sE.getBiomes(), sE.getFeatureGen().getParameters());
 
 			currentFeatureGen.setRandom(random);
 			currentFeatureGen.generate(world, chunkGenerator, chunkProvider, parameters);

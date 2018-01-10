@@ -16,7 +16,7 @@ import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -36,7 +36,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	@Override
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
-		ChunkPos pos = parameters.getChunk();
+		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
 		blockReplace.addAll(parameters.getReplacements());
 		JsonObject params = parameters.getParameters();
@@ -70,7 +70,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			fp.setReplacements(blockReplace);
 			fp.setBiomes(biomes);
 			fp.setOres(ores);
-			fp.setChunkPos(new ChunkPos(chunkX, chunkZ));
+			fp.setChunkPos(new ChunkCoordIntPair(chunkX, chunkZ));
 
 			sc = spawnAtSpot(thisNode, hr, fp);
 
@@ -148,9 +148,9 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return spawnFill(params, nodeSize, heightRange);
 	}
 
-	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
+	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkCoordIntPair pos) {
 		BlockPos p = spot.add(offset);
-		ChunkPos x1z1 = new ChunkPos(pos.chunkXPos + 1, pos.chunkZPos + 1);
+		ChunkCoordIntPair x1z1 = new ChunkCoordIntPair(pos.chunkXPos + 1, pos.chunkZPos + 1);
 		int xMax = x1z1.getXEnd();
 		int zMax = x1z1.getZEnd();
 		int xMin = pos.getXStart();

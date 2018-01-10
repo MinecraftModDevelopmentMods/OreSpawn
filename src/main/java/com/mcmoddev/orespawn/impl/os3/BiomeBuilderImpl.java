@@ -10,7 +10,7 @@ import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
 import com.mcmoddev.orespawn.impl.location.*;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
@@ -24,7 +24,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 		this.biomeBlacklist = new ArrayList<>();
 	}
 
-	private Biome getBiomeByName(String name) {
+	private BiomeGenBase getBiomeByName(String name) {
 		return ForgeRegistries.BIOMES.getValue(new ResourceLocation(name));
 	}
 
@@ -33,14 +33,14 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	}
 
 	@Override
-	public BiomeBuilder whitelistBiome(@Nonnull Biome biome) {
+	public BiomeBuilder whitelistBiome(@Nonnull BiomeGenBase biome) {
 		this.biomeWhitelist.add(new BiomeLocationSingle(biome));
 		return this;
 	}
 
 	@Override
 	public BiomeBuilder whitelistBiomeByName(@Nonnull String biomeName) {
-		Biome b = getBiomeByName(biomeName);
+		BiomeGenBase b = getBiomeByName(biomeName);
 		BiomeLocation bL = new BiomeLocationSingle(b);
 
 		if (!this.biomeWhitelist.contains(bL)) {
@@ -57,7 +57,7 @@ public class BiomeBuilderImpl implements BiomeBuilder {
 	}
 
 	@Override
-	public BiomeBuilder blacklistBiome(@Nonnull Biome biome) {
+	public BiomeBuilder blacklistBiome(@Nonnull BiomeGenBase biome) {
 		this.biomeBlacklist.add(new BiomeLocationSingle(biome));
 		return this;
 	}

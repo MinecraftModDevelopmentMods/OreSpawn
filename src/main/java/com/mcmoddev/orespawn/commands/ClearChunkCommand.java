@@ -17,7 +17,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -48,7 +48,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		EntityPlayer player = (EntityPlayer) sender;
 		Chunk chunk = player.getEntityWorld().getChunkFromBlockCoords(player.getPosition());
-		ChunkPos chunkPos = chunk.getChunkCoordIntPair();
+		ChunkCoordIntPair chunkPos = chunk.getChunkCoordIntPair();
 		List<Block> blocks;
 
 		boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic") : false;
@@ -67,7 +67,7 @@ public class ClearChunkCommand extends CommandBase {
 		player.addChatComponentMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"));
 	}
 
-	private void clearBlocks(ChunkPos chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {
+	private void clearBlocks(ChunkCoordIntPair chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {

@@ -8,7 +8,7 @@ import com.mcmoddev.orespawn.data.Constants;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -23,10 +23,10 @@ public class FlatBedrock implements IWorldGenerator {
 		// no need to do flat-bedrock on a "FLAT" world
 		if (world.getWorldType() != WorldType.FLAT) {
 			if (world.provider.getDimension() == -1) {
-				genTopPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.NETHERRACK);
-				genBottomPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.NETHERRACK);
+				genTopPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.NETHERRACK);
+				genBottomPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.NETHERRACK);
 			} else if (world.provider.getDimension() >= 0 && world.provider.getDimension() != 1) {
-				genBottomPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.STONE);
+				genBottomPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.STONE);
 			}
 		}
 	}
@@ -34,15 +34,15 @@ public class FlatBedrock implements IWorldGenerator {
 	public void retrogen(World world, int chunkX, int chunkZ) {
 		if (world.getWorldType() != WorldType.FLAT) {
 			if (world.provider.getDimension() == -1) {
-				genTopPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.NETHERRACK);
-				genBottomPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.NETHERRACK);
+				genTopPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.NETHERRACK);
+				genBottomPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.NETHERRACK);
 			} else if (world.provider.getDimension() >= 0 && world.provider.getDimension() != 1) {
-				genBottomPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.STONE);
+				genBottomPlate(world, new ChunkCoordIntPair(chunkX, chunkZ), Blocks.STONE);
 			}
 		}
 	}
 
-	private void genBottomPlate(World world, ChunkPos chunkPos, Block repBlock) {
+	private void genBottomPlate(World world, ChunkCoordIntPair chunkPos, Block repBlock) {
 		int plateThickness = Config.getInt(Constants.BEDROCK_LAYERS);
 
 		for (int xP = 0; xP < 16; xP++) {
@@ -60,7 +60,7 @@ public class FlatBedrock implements IWorldGenerator {
 		}
 	}
 
-	private void genTopPlate(World world, ChunkPos chunkPos, Block repBlock) {
+	private void genTopPlate(World world, ChunkCoordIntPair chunkPos, Block repBlock) {
 		int plateThickness = Config.getInt(Constants.BEDROCK_LAYERS);
 		int thickness = 127 - plateThickness; // layer where the flat for the top starts
 

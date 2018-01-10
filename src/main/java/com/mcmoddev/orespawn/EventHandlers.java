@@ -20,7 +20,7 @@ import com.mcmoddev.orespawn.data.Constants;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.gen.ChunkProviderServer;
@@ -36,8 +36,8 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
-	private Deque<ChunkPos> chunks;
-	private Deque<ChunkPos> retroChunks;
+	private Deque<ChunkCoordIntPair> chunks;
+	private Deque<ChunkCoordIntPair> retroChunks;
 
 	EventHandlers() {
 		chunks = new ConcurrentLinkedDeque<>();
@@ -92,7 +92,7 @@ public class EventHandlers {
 		.map(feat -> new NBTTagString(feat.getFeatureName()))
 		.forEach(features::appendTag);
 
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().xPosition, ev.getChunk().zPosition);
+		ChunkCoordIntPair chunkCoords = new ChunkCoordIntPair(ev.getChunk().xPosition, ev.getChunk().zPosition);
 
 		if (!Config.getBoolean(Constants.RETROGEN_KEY) || chunks.contains(chunkCoords)) {
 			dataTag.setTag(Constants.ORE_TAG, ores);
@@ -105,7 +105,7 @@ public class EventHandlers {
 	@SubscribeEvent
 	public void onChunkLoad(ChunkDataEvent.Load ev) {
 		World world = ev.getWorld();
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().xPosition, ev.getChunk().zPosition);
+		ChunkCoordIntPair chunkCoords = new ChunkCoordIntPair(ev.getChunk().xPosition, ev.getChunk().zPosition);
 
 		doBedrockRetrogen(chunkCoords);
 
@@ -148,7 +148,7 @@ public class EventHandlers {
 		return featureList.size() == tagList.tagCount();
 	}
 
-	private void doBedrockRetrogen(ChunkPos chunkCoords) {
+	private void doBedrockRetrogen(ChunkCoordIntPair chunkCoords) {
 		if (retroChunks.contains(chunkCoords)) {
 			return;
 		}
@@ -184,7 +184,7 @@ public class EventHandlers {
 
 		if (ev.phase == Phase.END) {
 			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
-				ChunkPos p = chunks.pop();
+				ChunkCoordIntPair p = chunks.pop();
 				Random random = new Random(world.getSeed());
 				// re-seed with something totally new :P
 				random.setSeed((((random.nextLong() >> 4 + 1) + p.chunkXPos) + ((random.nextLong() >> 2 + 1) + p.chunkZPos)) ^ world.getSeed());
@@ -194,7 +194,7 @@ public class EventHandlers {
 			}
 
 			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {
-				ChunkPos p = retroChunks.pop();
+				ChunkCoordIntPair p = retroChunks.pop();
 				OreSpawn.flatBedrock.retrogen(world, p.chunkXPos, p.chunkZPos);
 			}
 		}

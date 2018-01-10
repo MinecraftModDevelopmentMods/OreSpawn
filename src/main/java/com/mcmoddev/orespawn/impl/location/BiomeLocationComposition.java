@@ -3,7 +3,7 @@ package com.mcmoddev.orespawn.impl.location;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 import java.util.Objects;
 import java.util.List;
@@ -22,12 +22,12 @@ public final class BiomeLocationComposition implements BiomeLocation {
 		this.hash = Objects.hash(inclusions, exclusions);
 	}
 
-	private boolean matchBiome(Biome biome, BiomeLocation loc) {
+	private boolean matchBiome(BiomeGenBase biome, BiomeLocation loc) {
 		return (loc.getBiomes().stream().filter(b -> b.equals(biome)).distinct().count() > 0);
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(BiomeGenBase biome) {
 		boolean inWhite = this.inclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
 		boolean inBlack = this.exclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
 
@@ -54,8 +54,8 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	}
 
 	@Override
-	public ImmutableList<Biome> getBiomes() {
-		List<Biome> temp = new LinkedList<>();
+	public ImmutableList<BiomeGenBase> getBiomes() {
+		List<BiomeGenBase> temp = new LinkedList<>();
 		this.inclusions.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
 		this.exclusions.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
 		return ImmutableList.copyOf(temp);

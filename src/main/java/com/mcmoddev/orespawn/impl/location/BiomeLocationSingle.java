@@ -2,25 +2,25 @@ package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.BiomeLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 
 public final class BiomeLocationSingle implements BiomeLocation {
-	private final Biome biome;
+	private final BiomeGenBase biome;
 
 	private final int hash;
 
-	public BiomeLocationSingle(Biome biome) {
+	public BiomeLocationSingle(BiomeGenBase biome) {
 		this.biome = biome;
 		this.hash = biome.hashCode();
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(BiomeGenBase biome) {
 		return this.biome.equals(biome);
 	}
 
 	@Override
-	public ImmutableList<Biome> getBiomes() {
+	public ImmutableList<BiomeGenBase> getBiomes() {
 		return ImmutableList.of(this.biome);
 	}
 
@@ -34,7 +34,7 @@ public final class BiomeLocationSingle implements BiomeLocation {
 		return (obj == this) || ((obj instanceof BiomeLocationSingle) && this.biome.equals(((BiomeLocationSingle) obj).biome));
 	}
 
-	public Biome getBiome() {
+	public BiomeGenBase getBiome() {
 		return this.biome;
 	}
 }

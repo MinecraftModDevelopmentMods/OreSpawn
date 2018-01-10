@@ -5,20 +5,20 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 
 import java.util.List;
 import java.util.Map;
 
 public class GeneratorParameters {
 
-	private final ChunkPos chunk;
+	private final ChunkCoordIntPair chunk;
 	private final OreList ores;
 	private final ImmutableList<IBlockState> replacements;
 	private final JsonObject parameters;
 	private final BiomeLocation biomes;
 
-	public GeneratorParameters(ChunkPos chunkPos, OreList oreList, List<IBlockState> replacementBlocks,
+	public GeneratorParameters(ChunkCoordIntPair chunkPos, OreList oreList, List<IBlockState> replacementBlocks,
 	    BiomeLocation biomes, JsonObject generatorParameters) {
 		this.parameters = new JsonObject();
 
@@ -26,13 +26,13 @@ public class GeneratorParameters {
 			this.parameters.add(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue());
 		}
 
-		this.chunk = new ChunkPos(chunkPos.chunkXPos, chunkPos.chunkZPos);
+		this.chunk = new ChunkCoordIntPair(chunkPos.chunkXPos, chunkPos.chunkZPos);
 		this.ores = oreList;
 		this.replacements = ImmutableList.copyOf(replacementBlocks);
 		this.biomes = biomes;
 	}
 
-	public ChunkPos getChunk() {
+	public ChunkCoordIntPair getChunk() {
 		return chunk;
 	}
 

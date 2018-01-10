@@ -10,7 +10,7 @@ import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -33,7 +33,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	@Override
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
-		ChunkPos pos = parameters.getChunk();
+		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
 		blockReplace.addAll(parameters.getReplacements());
 		JsonObject params = parameters.getParameters();

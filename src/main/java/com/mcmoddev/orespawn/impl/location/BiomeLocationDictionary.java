@@ -2,7 +2,7 @@ package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.BiomeLocation;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.BiomeDictionary;
 
 public final class BiomeLocationDictionary implements BiomeLocation {
@@ -16,7 +16,7 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(BiomeGenBase biome) {
 		return BiomeDictionary.isBiomeOfType(biome, this.type);
 	}
 
@@ -35,7 +35,7 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 	}
 
 	@Override
-	public ImmutableList<Biome> getBiomes() {
+	public ImmutableList<BiomeGenBase> getBiomes() {
 		return ImmutableList.copyOf(BiomeDictionary.getBiomesForType(this.type));
 	}
 }
