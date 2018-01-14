@@ -174,9 +174,9 @@ public class OS3Reader {
 
 					builder.create(spawn);
 				} catch (JsonParseException ex) {
-					OreSpawn.LOGGER.error("Error parsing entry %s : %s", ore.getAsJsonObject().get("name").getAsString(), ex);
+					OreSpawn.LOGGER.error(String.format("Error parsing entry %s : %s", ore.getAsJsonObject().get("name").getAsString(), ex));
 				} catch (NullPointerException npe) {
-					OreSpawn.LOGGER.error("Exception parsing entry %s : possibly mis-named or missing item ?", ore.getAsJsonObject().get("name").getAsString());
+					OreSpawn.LOGGER.error(String.format("Exception parsing entry %s : possibly mis-named or missing item ?", ore.getAsJsonObject().get("name").getAsString()));
 				}
 			});
 			logic.create(builder);
