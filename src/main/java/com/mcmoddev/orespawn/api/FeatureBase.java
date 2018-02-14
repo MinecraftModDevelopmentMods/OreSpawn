@@ -7,9 +7,9 @@ import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
@@ -61,12 +61,12 @@ public class FeatureBase {
 	}
 
 	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
-		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
+		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimensionId());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
 
 		if (!cache.isEmpty()) {  // if there is something in the cache, try to spawn it
 			for (Entry<BlockPos, IBlockState> ent : cache.entrySet()) {
-				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), blockReplace);
+				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimensionId(), blockReplace);
 			}
 		}
 	}
@@ -178,7 +178,7 @@ public class FeatureBase {
 	}
 
 	private boolean canReplace(IBlockState target, List<IBlockState> blockToReplace) {
-		return !target.getBlock().equals(Blocks.AIR) && blockToReplace.contains(target);
+		return !target.getBlock().equals(Blocks.air) && blockToReplace.contains(target);
 	}
 
 	protected static final Vec3i[] offsets_small = {
@@ -238,7 +238,7 @@ public class FeatureBase {
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimensionId());
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -259,7 +259,7 @@ public class FeatureBase {
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimensionId());
 						quantity--;
 					}
 					if(quantity <= 0) {

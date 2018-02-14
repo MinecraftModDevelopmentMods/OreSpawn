@@ -27,7 +27,6 @@ import com.mcmoddev.orespawn.impl.location.*;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.crash.CrashReport;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class OS3Writer {
 	private void writeFeatures(String base) {

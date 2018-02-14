@@ -12,7 +12,6 @@ import com.mcmoddev.orespawn.impl.location.*;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class BiomeBuilderImpl implements BiomeBuilder {
 	private List<BiomeLocation> biomeWhitelist;

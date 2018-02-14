@@ -14,13 +14,11 @@ import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class ClearChunkCommand extends CommandBase {
 	private static final String STONE_ID = "minecraft:stone";
@@ -41,7 +39,7 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
 		}
@@ -64,7 +62,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
-		player.addChatComponentMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"));
+		player.addChatComponentMessage(new ChatComponentText("chunk " + chunkPos.toString() + " cleared"));
 	}
 
 	private void clearBlocks(ChunkCoordIntPair chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {
@@ -81,10 +79,10 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	private void removeIfFluid(BlockPos pos, EntityPlayer player) {
-		if (player.getEntityWorld().getBlockState(pos).getMaterial().isLiquid()) {
+		if (player.getEntityWorld().getBlockState(pos).getBlock().getMaterial().isLiquid()) {
 			IBlockState bs = player.getEntityWorld().getBlockState(pos);
 
-			if (bs.getMaterial().equals(Material.LAVA) || bs.getMaterial().equals(Material.WATER)) {
+			if (bs.getBlock().getMaterial().equals(Material.lava) || bs.getBlock().getMaterial().equals(Material.water)) {
 				player.getEntityWorld().setBlockToAir(pos);
 			}
 		}

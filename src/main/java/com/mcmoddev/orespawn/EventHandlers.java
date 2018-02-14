@@ -22,7 +22,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.ChunkProviderServer;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
@@ -50,7 +50,7 @@ public class EventHandlers {
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
 	public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
-		if (Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) && vanillaEvents.contains(event.getType())) {
+		if (Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) && vanillaEvents.contains(event.type)) {
 			event.setResult(Event.Result.DENY);
 		}
 	}
@@ -64,11 +64,11 @@ public class EventHandlers {
 		features.appendTag(new NBTTagString("orespawn:default"));
 
 		List<DimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
-		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(ev.getWorld().provider.getDimension()))
-		    .map(ent -> ent.getValue().getDimension(ev.getWorld().provider.getDimension()))
+		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(ev.world.provider.getDimensionId()))
+		    .map(ent -> ent.getValue().getDimension(ev.world.provider.getDimensionId()))
 		    .collect(Collectors.toList());
 
-		if (ev.getWorld().provider.getDimension() > 0 && ev.getWorld().provider.getDimension() != 1) {
+		if (ev.world.provider.getDimensionId() > 0 && ev.world.provider.getDimensionId() != 1) {
 			spawns.addAll(OreSpawn.API.getSpawns().entrySet().stream()
 			    .filter(ent -> ent.getValue().getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard()))
 			    .map(ent -> ent.getValue().getDimension(OreSpawn.API.dimensionWildcard()))
@@ -104,7 +104,7 @@ public class EventHandlers {
 
 	@SubscribeEvent
 	public void onChunkLoad(ChunkDataEvent.Load ev) {
-		World world = ev.getWorld();
+		World world = ev.world;
 		ChunkCoordIntPair chunkCoords = new ChunkCoordIntPair(ev.getChunk().xPosition, ev.getChunk().zPosition);
 
 		doBedrockRetrogen(chunkCoords);
@@ -116,7 +116,7 @@ public class EventHandlers {
 		if (Config.getBoolean(Constants.RETROGEN_KEY)) {
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 
-			if (featuresAreDifferent(chunkTag, world.provider.getDimension()) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
+			if (featuresAreDifferent(chunkTag, world.provider.getDimensionId()) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
 				chunks.addLast(chunkCoords);
 			}
 		}
@@ -189,7 +189,7 @@ public class EventHandlers {
 				// re-seed with something totally new :P
 				random.setSeed((((random.nextLong() >> 4 + 1) + p.chunkXPos) + ((random.nextLong() >> 2 + 1) + p.chunkZPos)) ^ world.getSeed());
 				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
-				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
+				IChunkProvider chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
 				OreSpawn.API.getGenerator().generate(random, p.chunkXPos, p.chunkZPos, world, chunkGenerator, chunkProvider);
 			}
 

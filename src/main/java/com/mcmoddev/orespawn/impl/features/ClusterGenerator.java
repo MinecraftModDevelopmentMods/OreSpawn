@@ -9,12 +9,11 @@ import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.chunk.IChunkGenerator;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +30,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	public void generate(World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
 		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
@@ -141,7 +140,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 		System.arraycopy((quantity < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
 
-		int dimension = params.getWorld().provider.getDimension();
+		int dimension = params.getWorld().provider.getDimensionId();
 
 		if (quantity < 27) {
 			int[] scrambledLUT = new int[lutType];

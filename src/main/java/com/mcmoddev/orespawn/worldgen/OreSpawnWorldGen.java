@@ -18,7 +18,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.oredict.OreDictionary;
@@ -32,9 +31,9 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		this.dimensions = Collections.unmodifiableMap(allDimensions);
 
 		if (SPAWN_BLOCKS.isEmpty()) {
-			SPAWN_BLOCKS.add(Blocks.STONE);
-			SPAWN_BLOCKS.add(Blocks.NETHERRACK);
-			SPAWN_BLOCKS.add(Blocks.END_STONE);
+			SPAWN_BLOCKS.add(Blocks.stone);
+			SPAWN_BLOCKS.add(Blocks.netherrack);
+			SPAWN_BLOCKS.add(Blocks.end_stone);
 			SPAWN_BLOCKS.addAll(OreDictionary.getOres("stone").stream().filter(stack -> stack.getItem() instanceof ItemBlock).map(stack -> ((ItemBlock) stack.getItem()).getBlock()).collect(Collectors.toList()));
 		}
 	}
@@ -44,10 +43,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	}
 
 	@Override
-	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
+	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkProvider chunkGenerator,
 	    IChunkProvider chunkProvider) {
 
-		int thisDim = world.provider.getDimension();
+		int thisDim = world.provider.getDimensionId();
 		List<SpawnBuilder> entries = new ArrayList<> (this.dimensions.getOrDefault(thisDim, new ArrayList<> ()));
 
 		if (!this.dimensions.getOrDefault(OreSpawn.API.dimensionWildcard(), new ArrayList<>()).isEmpty())

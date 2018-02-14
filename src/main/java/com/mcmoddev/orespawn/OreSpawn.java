@@ -42,7 +42,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 @Mod(modid = Constants.MODID,
     name = Constants.NAME,
     version = Constants.VERSION,
-    acceptedMinecraftVersions = "[1.9,)",
+    acceptedMinecraftVersions = "[1.8.9,)",
 	certificateFingerprint = "@FINGERPRINT@")
 
 public class OreSpawn {

@@ -15,12 +15,11 @@ import com.mcmoddev.orespawn.data.Constants.FormatBits;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.chunk.IChunkGenerator;
 
 public class PrecisionGenerator extends FeatureBase implements IFeature {
 
@@ -34,7 +33,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	public void generate(World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
 		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
@@ -135,7 +134,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
 				Vec3i offset = offs[scrambledLUT[--count]];
 				BlockPos p = fixMungeOffset(offset, params.getBlockPos(), heightRange, params.getChunkPos());
-				int dimension = params.getWorld().provider.getDimension();
+				int dimension = params.getWorld().provider.getDimensionId();
 
 				if (spawn(oreBlock, params.getWorld(), p, dimension, true, params.getReplacements(), params.getBiomes())) {
 					nc++;
@@ -244,7 +243,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		if (getABC(dx, dy, dz) <= rSqr) {
 			BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), params.getBlockPos(), heightRange, params.getChunkPos());
 			IBlockState bl = params.getOres().getRandomOre(this.random).getOre();
-			return spawn(bl, params.getWorld(), p, params.getWorld().provider.getDimension(), true,
+			return spawn(bl, params.getWorld(), p, params.getWorld().provider.getDimensionId(), true,
 			        params.getReplacements(), params.getBiomes()) ? 1 : 0;
 		}
 

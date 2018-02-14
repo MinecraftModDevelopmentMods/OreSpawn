@@ -9,10 +9,8 @@ import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.codec.CharEncoding;
@@ -32,11 +30,11 @@ public class DumpBiomesCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
 		JsonArray array = new JsonArray();
 
 		for (BiomeGenBase biome : ForgeRegistries.BIOMES) {
-			array.add(new JsonPrimitive(biome.getRegistryName().toString()));
+			array.add(new JsonPrimitive(biome.biomeName));
 		}
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -48,7 +46,7 @@ public class DumpBiomesCommand extends CommandBase {
 			throw new CommandException("Failed to save the json file");
 		}
 
-		((EntityPlayer)sender).addChatComponentMessage(new TextComponentString("Done"));
+		((EntityPlayer)sender).addChatComponentMessage(new ChatComponentText("Done"));
 	}
 
 	@Override

@@ -13,11 +13,10 @@ import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.Vec3i;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 
 
@@ -28,7 +27,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	public void generate(World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
 		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> replaceBlock = new LinkedList<>();
@@ -114,7 +113,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
 				BlockPos target = params.getBlockPos().add(offs[scrambledLUT[--count]]);
 				spawn(oreBlock, params.getWorld(), target,
-				    params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes());
+				    params.getWorld().provider.getDimensionId(), true, params.getReplacements(), params.getBiomes());
 			}
 
 			return;

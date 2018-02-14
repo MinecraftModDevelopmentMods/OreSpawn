@@ -20,7 +20,6 @@ import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 
 public class Helpers {

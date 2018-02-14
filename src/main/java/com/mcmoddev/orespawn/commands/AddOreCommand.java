@@ -18,9 +18,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.ChatComponentText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,13 +38,13 @@ public class AddOreCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
 		}
 
 		EntityPlayer player = (EntityPlayer) sender;
-		ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+		ItemStack stack = player.getHeldItem();
 		String jsonArgs = null;
 
 		if (stack == null) {
@@ -100,7 +98,7 @@ public class AddOreCommand extends CommandBase {
 
 		this.putFile(file, ore, dimension);
 
-		player.addChatComponentMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
+		player.addChatComponentMessage(new ChatComponentText("Added " + state.getBlock().getRegistryName().toString() + " to the json"));
 	}
 
 	private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {

@@ -5,7 +5,6 @@ import com.mcmoddev.orespawn.OreSpawn;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.server.MinecraftServer;
 
 public class WriteConfigsCommand extends CommandBase {
 
@@ -20,7 +19,7 @@ public class WriteConfigsCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+	public void processCommand(ICommandSender sender, String[] args) throws CommandException {
 		OreSpawn.writer.writeSpawnEntries();
 	}
 

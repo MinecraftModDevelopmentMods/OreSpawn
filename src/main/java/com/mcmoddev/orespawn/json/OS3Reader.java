@@ -28,7 +28,6 @@ import com.mcmoddev.orespawn.json.os3.readers.*;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;

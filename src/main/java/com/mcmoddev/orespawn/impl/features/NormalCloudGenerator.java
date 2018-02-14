@@ -14,11 +14,10 @@ import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.chunk.IChunkGenerator;
 
 public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
@@ -31,7 +30,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+	public void generate(World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters) {
 		ChunkCoordIntPair pos = parameters.getChunk();
 		List<IBlockState> blockReplace = new LinkedList<>();
@@ -129,7 +128,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		// spawn one right at the center here, then generate for the cloud and do the math
 
 		if (!spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), params.getBlockPos(),
-		        params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
+		        params.getWorld().provider.getDimensionId(), true, params.getReplacements(), params.getBiomes())) {
 			return false;
 		}
 
@@ -147,7 +146,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			int z = 0;
 
 			while (z < 5 && !spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(), p,
-			        params.getWorld().provider.getDimension(), true, params.getReplacements(), params.getBiomes())) {
+			        params.getWorld().provider.getDimensionId(), true, params.getReplacements(), params.getBiomes())) {
 				xp = getPoint(0, maxSpread, radius);
 				yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
 				zp = getPoint(0, maxSpread, radius);
