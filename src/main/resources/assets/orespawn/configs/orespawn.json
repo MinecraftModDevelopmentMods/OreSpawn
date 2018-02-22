@@ -7,7 +7,7 @@
 			"feature": "default",
 			"replaces": "default",
 			"dimensions": [
-				"-1"
+				-1
 			],
 			"biomes": {
 				"excludes": []
