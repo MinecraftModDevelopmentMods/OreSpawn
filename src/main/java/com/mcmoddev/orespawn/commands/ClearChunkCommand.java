@@ -5,11 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -88,7 +85,7 @@ public class ClearChunkCommand extends CommandBase {
 		if (player.getEntityWorld().getBlockState(pos).getMaterial().isLiquid()) {
 			IBlockState bs = player.getEntityWorld().getBlockState(pos);
 
-			if (bs.getMaterial().equals(Material.LAVA) || bs.getMaterial().equals(Material.WATER)) {
+			if (bs.getMaterial().isLiquid()) {
 				player.getEntityWorld().setBlockToAir(pos);
 			}
 		}
