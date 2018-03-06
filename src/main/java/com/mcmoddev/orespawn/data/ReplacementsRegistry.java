@@ -24,21 +24,19 @@ public class ReplacementsRegistry {
 				.filter( iS -> iS.getItem().getRegistryName().getResourceDomain().equals("mineralogy"))
 				.map( iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
 				.collect(Collectors.toList());
+		List<IBlockState> baseRv = new ArrayList<>();
+		baseRv.addAll(mineralogyOres);
 
+		
 		if (dimension < -1 || dimension > 1 || dimension == 0) {
-			List<IBlockState> rv = new ArrayList<>();
-
 			for (ItemStack iS : OreDictionary.getOres("stone")) {
-				rv.add(Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()));
-				rv.addAll(mineralogyOres);
+				baseRv.add(Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()));
 			}
 			
-			return rv;
-		}
+			return baseRv;
+		} 
 		
-		List<IBlockState> baseRv = new ArrayList<>();
 		baseRv.addAll(Arrays.asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension + 1])).getDefaultState()));
-		baseRv.addAll(mineralogyOres);
 		return baseRv;
 	}
 
