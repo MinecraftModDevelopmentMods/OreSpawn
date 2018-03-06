@@ -9,8 +9,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.*;
-
-import static java.util.Arrays.asList;
+import java.util.stream.Collectors;
 
 public class ReplacementsRegistry {
 	private static Map<String, IBlockState> blocks = new HashMap<>();
@@ -21,18 +20,24 @@ public class ReplacementsRegistry {
 	@SuppressWarnings("deprecation")
 	public static List<IBlockState> getDimensionDefault(int dimension) {
 		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
+		List<IBlockState> mineralogyOres = 	OreDictionary.getOres("cobblestone").stream()
+				.filter( iS -> iS.getItem().getRegistryName().getResourceDomain().equals("mineralogy"))
+				.map( iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
+				.collect(Collectors.toList());
+		List<IBlockState> baseRv = new ArrayList<>();
+		baseRv.addAll(mineralogyOres);
 
+		
 		if (dimension < -1 || dimension > 1 || dimension == 0) {
-			List<IBlockState> rv = new ArrayList<>();
-
 			for (ItemStack iS : OreDictionary.getOres("stone")) {
-				rv.add(Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()));
+				baseRv.add(Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()));
 			}
-
-			return rv;
-		}
-
-		return asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension + 1])).getDefaultState());
+			
+			return baseRv;
+		} 
+		
+		baseRv.addAll(Arrays.asList(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(names[dimension + 1])).getDefaultState()));
+		return baseRv;
 	}
 
 	public static IBlockState getBlock(String name) {

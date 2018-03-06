@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -49,7 +51,7 @@ public class ClearChunkCommand extends CommandBase {
 		EntityPlayer player = (EntityPlayer) sender;
 		Chunk chunk = player.getEntityWorld().getChunkFromBlockCoords(player.getPosition());
 		ChunkPos chunkPos = chunk.getPos();
-		List<Block> blocks;
+		List<IBlockState> blocks;
 
 		boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic") : false;
 
@@ -57,22 +59,24 @@ public class ClearChunkCommand extends CommandBase {
 		getBlocks(args, blockNames);
 
 		blocks = blockNames.stream()
-		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).collect(Collectors.toList());
+		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).map(block -> block.getDefaultState()).collect(Collectors.toList());
 
-		List<Block> overburden = Arrays.asList("minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:grass", "minecraft:sandstone", "minecraft:red_sandstone").stream()
-		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).collect(Collectors.toList());
-
+		blocks.addAll(ReplacementsRegistry.getDimensionDefault(player.getEntityWorld().provider.getDimension()).stream().collect(Collectors.toList()));
+		List<IBlockState> overburden = Arrays.asList("minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:grass", "minecraft:sandstone", "minecraft:red_sandstone").stream()
+		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
+		    .map(bl -> bl.getDefaultState()).collect(Collectors.toList());
+		
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
 		player.sendStatusMessage(new TextComponentString("chunk " + chunkPos.toString() + " cleared"), true);
 	}
 
-	private void clearBlocks(ChunkPos chunkPos, List<Block> blocks, List<Block> overburden, boolean flagClassic, EntityPlayer player) {
+	private void clearBlocks(ChunkPos chunkPos, List<IBlockState> blocks, List<IBlockState> overburden, boolean flagClassic, EntityPlayer player) {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
 					BlockPos pos = new BlockPos(x, y, z);
-					Block block = player.getEntityWorld().getBlockState(pos).getBlock();
+					IBlockState block = player.getEntityWorld().getBlockState(pos);
 					removeIfBlocks(player, pos, block, blocks, overburden, !flagClassic);
 					removeIfFluid(pos, player);
 				}
@@ -90,7 +94,7 @@ public class ClearChunkCommand extends CommandBase {
 		}
 	}
 
-	private void removeIfBlocks(EntityPlayer player, BlockPos pos, Block block, List<Block> blocks, List<Block> overburden, boolean flagClassic) {
+	private void removeIfBlocks(EntityPlayer player, BlockPos pos, IBlockState block, List<IBlockState> blocks, List<IBlockState> overburden, boolean flagClassic) {
 		if (blocks.contains(block) || ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
 			player.getEntityWorld().setBlockToAir(pos);
 		}
