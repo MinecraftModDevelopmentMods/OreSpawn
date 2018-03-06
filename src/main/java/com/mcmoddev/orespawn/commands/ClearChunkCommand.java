@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -59,6 +60,7 @@ public class ClearChunkCommand extends CommandBase {
 		blocks = blockNames.stream()
 		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).collect(Collectors.toList());
 
+		blocks.addAll(ReplacementsRegistry.getDimensionDefault(player.getEntityWorld().provider.getDimension()).stream().map(bs -> bs.getBlock()).collect(Collectors.toList()));
 		List<Block> overburden = Arrays.asList("minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:grass", "minecraft:sandstone", "minecraft:red_sandstone").stream()
 		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).collect(Collectors.toList());
 
