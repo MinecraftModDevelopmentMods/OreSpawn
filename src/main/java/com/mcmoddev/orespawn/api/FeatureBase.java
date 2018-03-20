@@ -31,7 +31,7 @@ public class FeatureBase {
 	private boolean fullMatch(ImmutableSet<BiomeLocation> locs, Biome biome) {
 		for (BiomeLocation b : locs) {
 			for (Biome bm : b.getBiomes()) {
-				if (bm.equals(biome)) {
+				if (bm.equals(biome) || bm.equals(biome.getRegistryName().toString())) {
 					return true;
 				}
 			}

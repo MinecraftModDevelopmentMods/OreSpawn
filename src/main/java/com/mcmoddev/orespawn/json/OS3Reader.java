@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -150,7 +151,12 @@ public class OS3Reader {
 					JsonObject nw = ore.getAsJsonObject();
 					SpawnBuilder spawn = builder.newSpawnBuilder(null);
 					// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
-					List<OreBuilder> blocks = Helpers.loadOres(nw.getAsJsonArray(ConfigNames.BLOCKS), spawn);
+					// filter out all null entries
+					List<OreBuilder> blocks = Helpers.loadOres(nw.getAsJsonArray(ConfigNames.BLOCKS), spawn).stream()
+							.filter(ob -> !ob.getOre().getBlock().equals(net.minecraft.init.Blocks.AIR)).collect(Collectors.toList());
+					// null entry
+					if (blocks.size() == 0) return;
+					
 					List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
 					BiomeBuilder biomes = spawn.newBiomeBuilder();
 
