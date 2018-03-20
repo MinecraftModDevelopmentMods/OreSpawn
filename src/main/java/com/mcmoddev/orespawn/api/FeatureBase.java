@@ -28,38 +28,6 @@ public class FeatureBase {
 		this.random = rand;
 	}
 
-	private boolean fullMatch(ImmutableSet<BiomeLocation> locs, Biome biome) {
-		for (BiomeLocation b : locs) {
-			for (Biome bm : b.getBiomes()) {
-				if (bm.equals(biome) || bm.equals(biome.getRegistryName().toString())) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	private boolean biomeMatch(Biome chunkBiome, BiomeLocation inp) {
-		if (inp.getBiomes().isEmpty()) {
-			return false;
-		}
-
-		if (inp instanceof BiomeLocationComposition) {
-			BiomeLocationComposition loc = (BiomeLocationComposition) inp;
-			boolean exclMatch = fullMatch(loc.getExclusions(), chunkBiome);
-			boolean inclMatch = fullMatch(loc.getInclusions(), chunkBiome);
-
-			if ((loc.getInclusions().isEmpty() || inclMatch) && !exclMatch) {
-				return false;
-			}
-		} else if (inp.matches(chunkBiome)) {
-			return false;
-		}
-
-		return true;
-	}
-
 	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
@@ -80,7 +48,7 @@ public class FeatureBase {
 
 		Biome thisBiome = world.getBiome(coord);
 
-		if (biomeMatch(thisBiome, biomes)) {
+		if (!biomes.matches(thisBiome) && !biomes.getBiomes().isEmpty()) {
 			return false;
 		}
 
