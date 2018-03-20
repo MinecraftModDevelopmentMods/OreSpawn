@@ -8,6 +8,7 @@ import java.util.List;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
@@ -138,7 +139,7 @@ public class Helpers {
 			JsonObject work = oreEntry.getAsJsonObject();
 			String oreName = work.get(ConfigNames.BLOCK_V2).getAsString();
 			OreBuilder ores = spawn.newOreBuilder();
-
+			
 			if (work.has(ConfigNames.STATE) ||	work.has(ConfigNames.METADATA)) {
 				Helpers.handleState(work, ores, oreName);
 				rV.add(ores);

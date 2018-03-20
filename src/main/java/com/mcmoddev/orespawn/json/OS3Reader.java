@@ -93,7 +93,6 @@ public class OS3Reader {
 
 				JsonElement full = parser.parse(rawData);
 				JsonObject parsed = full.getAsJsonObject();
-
 				String version = parsed.get("version").getAsString();
 				IOS3Reader reader = getReader(version);
 
@@ -145,7 +144,6 @@ public class OS3Reader {
 		work.entrySet().forEach(entry -> {
 			int dimension = Integer.parseInt(entry.getKey());
 			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
-
 			entry.getValue().getAsJsonArray().forEach(ore -> {
 				try {
 					JsonObject nw = ore.getAsJsonObject();

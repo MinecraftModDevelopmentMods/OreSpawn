@@ -60,6 +60,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		.filter(SpawnBuilder::enabled)
 		.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY) || (sb.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
 		.forEach(sE -> {
+			if (sE == null || sE.getFeatureGen() == null) {
+				OreSpawn.LOGGER.fatal("From the state of things right now, you've likely had a parse-error happen and you have invalid JSON. You'll likely find some ores have not been generated.");
+				return;
+			}
 			IFeature currentFeatureGen = sE.getFeatureGen().getGenerator();
 			List<IBlockState> replacement = sE.getReplacementBlocks();
 			replacement = replacement.isEmpty() ? ReplacementsRegistry.getDimensionDefault(thisDim) : replacement;
