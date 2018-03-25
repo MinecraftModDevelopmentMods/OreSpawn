@@ -1,19 +1,12 @@
 package com.mcmoddev.orespawn.impl.os3;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.tuple.Pair;
-
-import com.google.common.collect.ImmutableList;
+import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -22,7 +15,7 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	private final String spawnName;
 	private final IDimensionList dimensions;
 	private final IReplacementEntry replacements;
-	private final List<Pair<IBlockState,Integer>> blocks;
+	private final IBlockList blocks;
 	private final BiomeLocationComposition biomes;
 	private final IFeatureEntry feature;
 	private final boolean enabled;
@@ -30,7 +23,7 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	
 	public SpawnEntry(final String spawnName, final boolean enabled, final boolean retrogen,
 			final IDimensionList dimensions, final BiomeLocationComposition biomes,
-			final IReplacementEntry replacements, final List<Pair<IBlockState,Integer>> blocks, 
+			final IReplacementEntry replacements, final IBlockList blocks, 
 			final IFeatureEntry feature) {
 		this.spawnName = spawnName;
 		this.enabled = enabled;
@@ -38,8 +31,7 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 		this.dimensions = dimensions;
 		this.biomes = biomes;
 		this.replacements = replacements;
-		this.blocks = new LinkedList<>();
-		this.blocks.addAll(blocks);
+		this.blocks = blocks;
 		this.feature = feature;
 	}
 	
@@ -84,15 +76,8 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public ImmutableList<IBlockState> getOreList() {
-		return ImmutableList.copyOf(this.blocks.stream()
-				.map(pair -> pair.getLeft())
-				.collect(Collectors.toList()));
-	}
-
-	@Override
-	public ImmutableList<Pair<IBlockState, Integer>> getOreListWithChances() {
-		return ImmutableList.copyOf(this.blocks);
+	public IBlockList getBlocks() {
+		return this.blocks;
 	}
 
 }

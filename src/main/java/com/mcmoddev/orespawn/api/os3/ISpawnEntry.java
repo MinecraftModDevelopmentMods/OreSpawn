@@ -3,11 +3,7 @@ package com.mcmoddev.orespawn.api.os3;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 
-import org.apache.commons.lang3.tuple.Pair;
-
-import com.google.common.collect.ImmutableList;
-
-import net.minecraft.block.state.IBlockState;
+import com.mcmoddev.orespawn.api.IBlockList;
 
 public interface ISpawnEntry {
 	default public boolean isEnabled() {
@@ -24,7 +20,5 @@ public interface ISpawnEntry {
 	public boolean biomeAllowed(final Biome biome);
 	public IFeatureEntry getFeature();
 	public OreSpawnBlockMatcher getMatcher();
-	public ImmutableList<IBlockState> getOreList();
-	public ImmutableList<Pair<IBlockState,Integer>> getOreListWithChances();
-	
+	public IBlockList getBlocks();
 }

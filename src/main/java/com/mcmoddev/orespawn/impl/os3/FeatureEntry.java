@@ -5,49 +5,50 @@ import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 
 public class FeatureEntry implements IFeatureEntry {
+	private final IFeature feature;
+	private final JsonObject parameters;
+	
 	public FeatureEntry(IFeature feature) {
-		
+		this.feature = feature;
+		this.parameters = new JsonObject();
 	}
+	
 	@Override
 	public IFeature getFeature() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.feature;
 	}
 
 	@Override
 	public String getFeatureName() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.feature.getRegistryName().getResourcePath();
 	}
 
 	@Override
 	public JsonObject getFeatureParameters() {
-		// TODO Auto-generated method stub
-		return null;
+		JsonObject defs = feature.getDefaultParameters();
+		this.parameters.entrySet().stream()
+		.forEach(ent -> defs.add(ent.getKey(), ent.getValue()));
+		return defs;
 	}
 
 	@Override
 	public void setParameter(String parameterName, String parameterValue) {
-		// TODO Auto-generated method stub
-
+		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
 	public void setParameter(String parameterName, int parameterValue) {
-		// TODO Auto-generated method stub
-
+		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
 	public void setParameter(String parameterName, boolean parameterValue) {
-		// TODO Auto-generated method stub
-
+		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
 	public void setParameter(String parameterName, float parameterValue) {
-		// TODO Auto-generated method stub
-
+		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 }

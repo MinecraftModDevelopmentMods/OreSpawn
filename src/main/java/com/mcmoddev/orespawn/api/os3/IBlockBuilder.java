@@ -26,5 +26,5 @@ public interface IBlockBuilder {
 	@Deprecated
 	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final int metadata, final int chance);
 	public IBlockBuilder setChance(int chance);
-	public IBlockDefition create();
+	public IBlockDefinition create();
 }

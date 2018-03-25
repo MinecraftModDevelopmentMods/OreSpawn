@@ -1,10 +1,6 @@
 package com.mcmoddev.orespawn.impl.os3;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import org.apache.commons.lang3.tuple.Pair;
-
+import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.util.StateUtil;
@@ -21,7 +17,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	private String spawnName;
 	private boolean enabled;
 	private boolean retrogen;
-	private List<Pair<IBlockState,Integer>> blocks = new LinkedList<>();
+	private IBlockList blocks;
 	private IFeatureEntry feature;
 	private BiomeLocationComposition biomes;
 	private IDimensionList dimensions;
@@ -30,6 +26,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	public SpawnBuilder() {
 		this.enabled = false;
 		this.retrogen = false;
+		this.blocks = new BlockList();
 	}
 	
 	public SpawnBuilder(final String spawnName) {
@@ -172,7 +169,9 @@ public class SpawnBuilder implements ISpawnBuilder {
 
 	@Override
 	public ISpawnBuilder addBlockWithChance(IBlockState block, int chance) {
-		this.blocks.add(Pair.of(block, chance));
+		BlockBuilder bb = new BlockBuilder();
+		bb.setFromBlockStateWithChance(block, chance);
+		this.blocks.addBlock(bb.create());
 		return this;
 	}
 

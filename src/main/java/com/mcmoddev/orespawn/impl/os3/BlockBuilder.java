@@ -1,7 +1,7 @@
 package com.mcmoddev.orespawn.impl.os3;
 
 import com.mcmoddev.orespawn.api.os3.IBlockBuilder;
-import com.mcmoddev.orespawn.api.os3.IBlockDefition;
+import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
@@ -12,6 +12,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 public class BlockBuilder implements IBlockBuilder {
 	private IBlockState blockState;
 	private int chance;
+	private boolean isValid;
 	
 	public BlockBuilder() {
 		// nothing to do here
@@ -19,11 +20,23 @@ public class BlockBuilder implements IBlockBuilder {
 	
 	@Override
 	public IBlockBuilder setFromBlockState(IBlockState blockState) {
+		ResourceLocation key = blockState.getBlock().getRegistryName();
+		if (ForgeRegistries.BLOCKS.containsKey(key)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		return this.setFromBlockStateWithChance(blockState, 100);
 	}
 
 	@Override
 	public IBlockBuilder setFromBlock(Block block) {
+		ResourceLocation key = block.getRegistryName();
+		if (ForgeRegistries.BLOCKS.containsKey(key)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		return this.setFromBlockState(block.getDefaultState());
 	}
 
@@ -44,11 +57,21 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		return this.setFromBlock(ForgeRegistries.BLOCKS.getValue(blockResourceLocation));
 	}
 
 	@Override
 	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation, String state) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockState(StateUtil.deserializeState(tempBlock, state));
 	}
@@ -56,12 +79,23 @@ public class BlockBuilder implements IBlockBuilder {
 	@Override
 	@Deprecated
 	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation, int metadata) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockState(tempBlock.getStateFromMeta(metadata));
 	}
 
 	@Override
 	public IBlockBuilder setFromBlockStateWithChance(IBlockState blockState, int chance) {
+		ResourceLocation key = blockState.getBlock().getRegistryName();
+		if (ForgeRegistries.BLOCKS.containsKey(key)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		this.blockState = blockState;
 		this.chance = chance;
 		return this;
@@ -69,6 +103,12 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromBlockWithChance(Block block, int chance) {
+		ResourceLocation key = block.getRegistryName();
+		if (ForgeRegistries.BLOCKS.containsKey(key)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		return this.setFromBlockStateWithChance(block.getDefaultState(), chance);
 	}
 
@@ -89,11 +129,21 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, int chance) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		return this.setFromBlockWithChance(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), chance);
 	}
 
 	@Override
 	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, String state, int chance) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockStateWithChance(StateUtil.deserializeState(tempBlock, state), chance);
 	}
@@ -101,6 +151,11 @@ public class BlockBuilder implements IBlockBuilder {
 	@Override
 	@Deprecated
 	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, int metadata, int chance) {
+		if (ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
+			this.isValid = true;
+		} else {
+			this.isValid = false;
+		}
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockStateWithChance(tempBlock.getStateFromMeta(metadata), chance);
 	}
@@ -112,7 +167,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockDefition create() {
-		return new BlockDefinition(this.blockState, this.chance);
+	public IBlockDefinition create() {
+		return new BlockDefinition(this.blockState, this.chance, this.isValid);
 	}
 }
