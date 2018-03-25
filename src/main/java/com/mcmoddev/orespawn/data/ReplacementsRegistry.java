@@ -1,18 +1,29 @@
 package com.mcmoddev.orespawn.data;
 
 import com.mcmoddev.orespawn.util.StateUtil;
+import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
+import com.mcmoddev.orespawn.impl.os3.ReplacementEntry;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.state.pattern.BlockMatcher;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ReplacementsRegistry {
-	private static Map<String, IBlockState> blocks = new HashMap<>();
+	private static final IForgeRegistry<IReplacementEntry> registry = new RegistryBuilder<IReplacementEntry>()
+			.setName(new ResourceLocation("orespawn", "replacements_registry"))
+			.setType(IReplacementEntry.class)
+			.setMaxID(65535) // 16 bits should be enough...
+			.create();
 
 	private ReplacementsRegistry() {
 	}
@@ -40,20 +51,29 @@ public class ReplacementsRegistry {
 		return baseRv;
 	}
 
-	public static IBlockState getBlock(String name) {
-		return blocks.get(name);
+	public static IReplacementEntry getReplacement(String name) {
+		if (registry.containsKey(new ResourceLocation(name))) {
+			return registry.getValue(new ResourceLocation(name));
+		} else {
+			return registry.getValue(new ResourceLocation("default"));
+		}
 	}
 
 	public static void addBlock(String name, String blockName, String blockState) {
-		Block nb = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName));
-		blocks.put(name, "default".equals(blockState) ? nb.getDefaultState() : StateUtil.deserializeState(nb, blockState));
+		IBlockState b = StateUtil.deserializeState(ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
+		addBlock(name, b);
 	}
 
 	public static Map<String, IBlockState> getBlocks() {
-		return Collections.unmodifiableMap(blocks);
+		Map<String,IBlockState> tempMap = new TreeMap<>();
+		registry.getEntries().stream()
+		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue().getBlockState()));
+		
+		return Collections.unmodifiableMap(tempMap);
 	}
 
 	public static void addBlock(String name, IBlockState state) {
-		blocks.put(name, state);
+		IReplacementEntry r = new ReplacementEntry(name, state);		
+		registry.register(r);
 	}
 }
