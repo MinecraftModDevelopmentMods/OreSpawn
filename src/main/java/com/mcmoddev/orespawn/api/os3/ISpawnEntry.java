@@ -1,6 +1,5 @@
 package com.mcmoddev.orespawn.api.os3;
 
-import net.minecraft.block.state.pattern.BlockMatcher;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 
@@ -24,7 +23,7 @@ public interface ISpawnEntry {
 	public boolean biomeAllowed(final ResourceLocation biomeName);
 	public boolean biomeAllowed(final Biome biome);
 	public IFeatureEntry getFeature();
-	public BlockMatcher getMatcher();
+	public OreSpawnBlockMatcher getMatcher();
 	public ImmutableList<IBlockState> getOreList();
 	public ImmutableList<Pair<IBlockState,Integer>> getOreListWithChances();
 	

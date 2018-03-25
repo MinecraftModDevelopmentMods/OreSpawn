@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +19,11 @@ public class ReplacementEntry extends IForgeRegistryEntry.Impl<IReplacementEntry
 		this.matchVal = Arrays.asList(toMatch);
 	}
 
+	public ReplacementEntry(final String name, final List<IBlockState> toMatch) {
+		super.setRegistryName(name);
+		this.matchVal = new ArrayList<>();
+		this.matchVal.addAll(toMatch);
+	}
 	@Override
 	public OreSpawnBlockMatcher getMatcher() {
 		return new OreSpawnBlockMatcher(this.matchVal);

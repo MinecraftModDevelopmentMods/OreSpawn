@@ -10,10 +10,10 @@ import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
+import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.block.state.pattern.BlockMatcher;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -44,6 +44,16 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 	
 	@Override
+	public boolean isRetrogen() {
+		return this.retrogen;
+	}
+	
+	@Override 
+	public boolean isEnabled() {
+		return this.enabled;
+	}
+	
+	@Override
 	public String getSpawnName() {
 		return this.spawnName;
 	}
@@ -69,7 +79,7 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public BlockMatcher getMatcher() {
+	public OreSpawnBlockMatcher getMatcher() {
 		return this.replacements.getMatcher();
 	}
 
