@@ -13,14 +13,17 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryModifiable;
 import net.minecraftforge.registries.RegistryBuilder;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ReplacementsRegistry {
-	private static final IForgeRegistry<IReplacementEntry> registry = new RegistryBuilder<IReplacementEntry>()
+	private static final IForgeRegistryModifiable<IReplacementEntry> registry = (IForgeRegistryModifiable<IReplacementEntry>) new RegistryBuilder<IReplacementEntry>()
 			.setName(new ResourceLocation("orespawn", "replacements_registry"))
+			.allowModification()
 			.setType(IReplacementEntry.class)
 			.setMaxID(65535) // 16 bits should be enough...
 			.create();
@@ -28,7 +31,7 @@ public class ReplacementsRegistry {
 	private ReplacementsRegistry() {
 	}
 
-	@SuppressWarnings("deprecation")
+	@Deprecated
 	public static List<IBlockState> getDimensionDefault(int dimension) {
 		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
 		List<IBlockState> mineralogyOres = 	OreDictionary.getOres("cobblestone").stream()
@@ -64,16 +67,34 @@ public class ReplacementsRegistry {
 		addBlock(name, b);
 	}
 
-	public static Map<String, IBlockState> getBlocks() {
-		Map<String,IBlockState> tempMap = new TreeMap<>();
+	public static Map<String, List<IBlockState>> getBlocks() {
+		Map<String,List<IBlockState>> tempMap = new TreeMap<>();
 		registry.getEntries().stream()
-		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue().getBlockState()));
+		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue().getEntries()));
 		
 		return Collections.unmodifiableMap(tempMap);
 	}
 
 	public static void addBlock(String name, IBlockState state) {
+		ResourceLocation regName = new ResourceLocation(name);
+		if (registry.containsKey(regName)) {
+			IReplacementEntry old = registry.getValue(regName);
+			IReplacementEntry newRE;
+			List<IBlockState> oldList = old.getEntries();
+			oldList.add(state);
+			IBlockState ents[] = new IBlockState[oldList.size()];
+			newRE = new ReplacementEntry(name, oldList.toArray(ents));
+			registry.remove(regName);
+			newRE.setRegistryName(regName);
+			registry.register(newRE);
+			return;
+		}
+		
 		IReplacementEntry r = new ReplacementEntry(name, state);		
 		registry.register(r);
+	}
+	
+	public static void loadFile(Path file) {
+		
 	}
 }
