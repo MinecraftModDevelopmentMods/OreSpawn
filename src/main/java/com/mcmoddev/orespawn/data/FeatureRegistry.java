@@ -5,9 +5,8 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -21,85 +20,77 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.impl.features.ClusterGenerator;
-import com.mcmoddev.orespawn.impl.features.DefaultFeatureGenerator;
-import com.mcmoddev.orespawn.impl.features.NormalCloudGenerator;
-import com.mcmoddev.orespawn.impl.features.PrecisionGenerator;
-import com.mcmoddev.orespawn.impl.features.VeinGenerator;
 
 import net.minecraft.crash.CrashReport;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryBuilder;
 
 public class FeatureRegistry {
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
-	private Map<String, IFeature> features;
-	private Map<IFeature, String> featuresInverse;
+	private static final IForgeRegistry<IFeature> registry = new RegistryBuilder<IFeature>()
+			.setName(new ResourceLocation("orespawn", "feature_registry"))
+			.setType(IFeature.class)
+			.setMaxID(4096)  // 12 bits should be enough... hell, 8 bits would be, IMNSHO
+			.create();
 
-	public FeatureRegistry() {
-		features = new HashMap<>();
-		featuresInverse = new HashMap<>();
-		IFeature defaultGen = new DefaultFeatureGenerator();
-		features.put(Constants.DEFAULT_GEN, defaultGen);
-		featuresInverse.put(defaultGen, Constants.DEFAULT_GEN);
-		IFeature veinGen = new VeinGenerator();
-		features.put(Constants.VEIN_GEN, veinGen);
-		featuresInverse.put(veinGen, Constants.VEIN_GEN);
-		IFeature normalCloudGen = new NormalCloudGenerator();
-		features.put(Constants.NORMAL_CLOUD, normalCloudGen);
-		featuresInverse.put(normalCloudGen, Constants.NORMAL_CLOUD);
-		IFeature clusterGen = new ClusterGenerator();
-		features.put(Constants.CLUSTERS, clusterGen);
-		featuresInverse.put(clusterGen, Constants.CLUSTERS);
-		IFeature precision = new PrecisionGenerator();
-		features.put(Constants.PRECISION, precision);
-		featuresInverse.put(precision, Constants.PRECISION);
+	private FeatureRegistry() {
 	}
 
-	public Map<String, IFeature> getFeatures() {
-		return Collections.unmodifiableMap(features);
+	public static Map<String, IFeature> getFeatures() {
+		Map<String,IFeature> tempMap = new TreeMap<>();
+		registry.getEntries().stream()
+		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue()));
+		
+		return Collections.unmodifiableMap(tempMap);
 	}
 
-	public String getFeatureName(IFeature feature) {
-		if (this.hasFeature(feature)) {
-			return this.featuresInverse.get(feature);
+	public static String getFeatureName(IFeature feature) {
+		return feature.getRegistryName().toString();
+	}
+
+	public static IFeature getFeature(String name) {
+		return getFeature(new ResourceLocation(name));
+	}
+	
+	public static IFeature getFeature(ResourceLocation featureResourceLocation) {
+		ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
+		if (registry.containsKey(featureResourceLocation)) {
+			return registry.getValue(featureResourceLocation);
 		} else {
-			return Constants.DEFAULT_GEN;
+			return registry.getValue(defaultGen);
 		}
 	}
 
-	public IFeature getFeature(String name) {
-		if (this.hasFeature(name)) {
-			return this.features.get(name);
-		} else {
-			return this.features.get(Constants.DEFAULT_GEN);
-		}
+	public static boolean hasFeature(String name) {
+		return hasFeature(new ResourceLocation(name));
 	}
 
-	public boolean hasFeature(String name) {
-		return features.containsKey(name);
+	public static boolean hasFeature(ResourceLocation featureResourceLocation) {
+		return registry.containsKey(featureResourceLocation);
+	}
+	public static boolean hasFeature(IFeature feature) {
+		return registry.containsKey(feature.getRegistryName());
 	}
 
-	public boolean hasFeature(IFeature feature) {
-		return featuresInverse.containsKey(feature);
+	public static void addFeature(String name, IFeature feature) {
+		feature.setRegistryName(new ResourceLocation(name));
+		registry.register(feature);
 	}
 
-	public void addFeature(String name, IFeature feature) {
-		this.addFeature(name, feature.getClass().getName());
+	public static void addFeature(JsonObject entry) {
+		addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
 	}
 
-	public void addFeature(JsonObject entry) {
-		this.addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
-	}
-
-	public void addFeature(String name, String className) {
+	public static void addFeature(String name, String className) {
 		IFeature feature = getInstance(className);
 
-		if (feature != null && !features.containsKey(name)) {
-			features.put(name, feature);
-			featuresInverse.put(feature, name);
+		if (feature != null && !hasFeature(name)) {
+			addFeature(name, feature);
 		}
 	}
 
-	private IFeature getInstance(String className) {
+	private static IFeature getInstance(String className) {
 		Class<?> featureClazz;
 		Constructor<?> featureCons;
 		IFeature feature;
@@ -118,7 +109,7 @@ public class FeatureRegistry {
 		return feature;
 	}
 
-	public void loadFeaturesFile(File file) {
+	public static void loadFeaturesFile(File file) {
 		JsonParser parser = new JsonParser();
 		String rawJson;
 		JsonArray elements;
@@ -135,23 +126,23 @@ public class FeatureRegistry {
 		elements = parser.parse(rawJson).getAsJsonArray();
 
 		for (JsonElement elem : elements) {
-			this.addFeature(elem.getAsJsonObject());
+			addFeature(elem.getAsJsonObject());
 		}
 	}
 
-	public void writeFeatures(File file) {
+	public static void writeFeatures(File file) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		JsonArray root = new JsonArray();
 
-		if (!features.equals(Collections.<String, IFeature>emptyMap())) {
-			for (Entry<String, IFeature> feature : features.entrySet()) {
-				JsonObject entry = new JsonObject();
-				entry.addProperty("name", feature.getKey());
-				entry.addProperty("class", feature.getValue().getClass().getName());
-				root.add(entry);
-			}
-		}
+		registry.getEntries().stream()
+		.map( ent -> { 
+			JsonObject e = new JsonObject(); 
+			e.addProperty("name", ent.getKey().getResourcePath());
+			e.addProperty("class", ent.getValue().getClass().getName());
+			return e;
+		})
+		.forEach( root::add );
 
 		String json = gson.toJson(root);
 

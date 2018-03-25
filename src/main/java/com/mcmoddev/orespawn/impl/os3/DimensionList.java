@@ -3,7 +3,7 @@ package com.mcmoddev.orespawn.impl.os3;
 import java.util.List;
 import java.util.ArrayList;
 
-public class DimensionList implements com.mcmoddev.orespawn.api.DimensionList {
+public class DimensionList implements com.mcmoddev.orespawn.api.IDimensionList {
 	private final List<Integer> whitelist = new ArrayList<>();
 	private final List<Integer> blacklist = new ArrayList<>();
 	

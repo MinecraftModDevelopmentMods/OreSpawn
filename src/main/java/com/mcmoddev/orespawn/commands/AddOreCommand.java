@@ -3,10 +3,10 @@ package com.mcmoddev.orespawn.commands;
 import com.google.gson.*;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
-import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.IFeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.util.StateUtil;
@@ -117,8 +117,8 @@ public class AddOreCommand extends CommandBase {
 	}
 
 	private void putFile(String file, JsonObject ore, int id) {
-		DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
-		SpawnBuilder sb = db.newSpawnBuilder(null);
+		IDimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
+		ISpawnBuilder sb = db.newSpawnBuilder(null);
 		OreBuilder ob = sb.newOreBuilder();
 		String b = ore.get(ConfigNames.BLOCK).getAsString();
 		ore.remove(ConfigNames.BLOCK);
@@ -131,9 +131,9 @@ public class AddOreCommand extends CommandBase {
 			ob.setOre(b, s);
 		}
 
-		FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
+		IFeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
 		fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
-		BiomeBuilder bb = sb.newBiomeBuilder();
+		IBiomeBuilder bb = sb.newBiomeBuilder();
 		IBlockState rep = ReplacementsRegistry.getDimensionDefault(id).get(0);
 		List<IBlockState> rl = new ArrayList<>();
 		rl.add(rep);

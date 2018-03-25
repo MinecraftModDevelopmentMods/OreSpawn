@@ -18,9 +18,9 @@ import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.impl.location.*;
@@ -48,7 +48,7 @@ public class OS3Writer {
 		OreSpawn.API.getSpawns().entrySet().forEach(ent -> {
 			JsonArray dimensions = new JsonArray();
 
-			for (Entry<Integer, DimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet()) {
+			for (Entry<Integer, IDimensionBuilder> dim : ent.getValue().getAllDimensions().entrySet()) {
 				JsonObject dimension = new JsonObject();
 
 				if (dim.getKey() != OreSpawn.API.dimensionWildcard()) {
@@ -73,10 +73,10 @@ public class OS3Writer {
 		});
 	}
 
-	private JsonArray genSpawns(ImmutableList<SpawnBuilder> allSpawns) {
+	private JsonArray genSpawns(ImmutableList<ISpawnBuilder> allSpawns) {
 		JsonArray rv = new JsonArray();
 
-		for (SpawnBuilder spawn : allSpawns) {
+		for (ISpawnBuilder spawn : allSpawns) {
 			if (spawn.getOres().isEmpty() ||
 			    spawn.getOres().get(0).getOre() == null ||
 			    "minecraft:air".equals(spawn.getOres().get(0).getOre().getBlock().getRegistryName().toString())) {
@@ -101,7 +101,7 @@ public class OS3Writer {
 		}
 	}
 
-	private JsonObject genSpawn(SpawnBuilder spawn) {
+	private JsonObject genSpawn(ISpawnBuilder spawn) {
 		JsonObject ore = new JsonObject();
 
 		ore.add(ConfigNames.BLOCKS, genBlocks(spawn.getOres()));
@@ -195,7 +195,7 @@ public class OS3Writer {
 
 		JsonArray dimensions = new JsonArray();
 
-		for (Entry<Integer, DimensionBuilder> dim : ent.getAllDimensions().entrySet()) {
+		for (Entry<Integer, IDimensionBuilder> dim : ent.getAllDimensions().entrySet()) {
 			JsonObject dimension = new JsonObject();
 
 			if (dim.getKey() != OreSpawn.API.dimensionWildcard()) {

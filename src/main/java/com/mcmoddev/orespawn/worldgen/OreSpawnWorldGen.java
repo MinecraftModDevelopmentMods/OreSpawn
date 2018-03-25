@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
@@ -25,10 +25,10 @@ import net.minecraftforge.oredict.OreDictionary;
 
 public class OreSpawnWorldGen implements IWorldGenerator {
 
-	private final Map<Integer, List<SpawnBuilder>> dimensions;
+	private final Map<Integer, List<ISpawnBuilder>> dimensions;
 	private static final List<Block> SPAWN_BLOCKS = new ArrayList<>();
 
-	public OreSpawnWorldGen(Map<Integer, List<SpawnBuilder>> allDimensions, long nextLong) {
+	public OreSpawnWorldGen(Map<Integer, List<ISpawnBuilder>> allDimensions, long nextLong) {
 		this.dimensions = Collections.unmodifiableMap(allDimensions);
 
 		if (SPAWN_BLOCKS.isEmpty()) {
@@ -48,7 +48,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	    IChunkProvider chunkProvider) {
 
 		int thisDim = world.provider.getDimension();
-		List<SpawnBuilder> entries = new ArrayList<> (this.dimensions.getOrDefault(thisDim, new ArrayList<> ()));
+		List<ISpawnBuilder> entries = new ArrayList<> (this.dimensions.getOrDefault(thisDim, new ArrayList<> ()));
 
 		if (!this.dimensions.getOrDefault(OreSpawn.API.dimensionWildcard(), new ArrayList<>()).isEmpty())
 			entries.addAll(this.dimensions.get(OreSpawn.API.dimensionWildcard()).stream()
@@ -57,7 +57,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 			    .collect(Collectors.toList()));
 
 		entries.stream()
-		.filter(SpawnBuilder::enabled)
+		.filter(ISpawnBuilder::enabled)
 		.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY) || (sb.retrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
 		.forEach(sE -> {
 			if (sE == null || sE.getFeatureGen() == null) {

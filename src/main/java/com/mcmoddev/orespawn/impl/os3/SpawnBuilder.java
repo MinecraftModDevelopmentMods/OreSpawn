@@ -5,26 +5,27 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import com.mcmoddev.orespawn.api.DimensionList;
-import com.mcmoddev.orespawn.api.FeatureEntry;
-import com.mcmoddev.orespawn.api.ReplacementEntry;
+import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.util.StateUtil;
+import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
+import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-public class SpawnBuilder implements com.mcmoddev.orespawn.api.os3.SpawnBuilder {
+public class SpawnBuilder implements ISpawnBuilder {
 	private String spawnName;
 	private boolean enabled;
 	private boolean retrogen;
 	private List<Pair<IBlockState,Integer>> blocks = new LinkedList<>();
-	private FeatureEntry feature;
+	private IFeatureEntry feature;
 	private BiomeLocationComposition biomes;
-	private DimensionList dimensions;
-	private ReplacementEntry replacements;
+	private IDimensionList dimensions;
+	private IReplacementEntry replacements;
 	
 	public SpawnBuilder() {
 		this.enabled = false;
@@ -37,118 +38,118 @@ public class SpawnBuilder implements com.mcmoddev.orespawn.api.os3.SpawnBuilder 
 	}
 	
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setName(String name) {
+	public ISpawnBuilder setName(String name) {
 		this.spawnName = name;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setDimensions(DimensionList dimensions) {
+	public ISpawnBuilder setDimensions(IDimensionList dimensions) {
 		this.dimensions = dimensions;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setBiomes(BiomeLocationComposition biomes) {
+	public ISpawnBuilder setBiomes(BiomeLocationComposition biomes) {
 		this.biomes = biomes;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setEnabled(boolean enabled) {
+	public ISpawnBuilder setEnabled(boolean enabled) {
 		this.enabled = enabled;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setRetrogen(boolean retrogen) {
+	public ISpawnBuilder setRetrogen(boolean retrogen) {
 		this.retrogen = retrogen;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setReplacement(ReplacementEntry replacements) {
+	public ISpawnBuilder setReplacement(IReplacementEntry replacements) {
 		this.replacements = replacements;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder setFeature(FeatureEntry feature) {
+	public ISpawnBuilder setFeature(IFeatureEntry feature) {
 		this.feature = feature;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(String blockName) {
+	public ISpawnBuilder addBlock(String blockName) {
 		return this.addBlock(new ResourceLocation(blockName));
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(String blockName, String blockState) {
+	public ISpawnBuilder addBlock(String blockName, String blockState) {
 		return this.addBlock(new ResourceLocation(blockName), blockState);
 	}
 
 	@Override
 	@Deprecated
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(String blockName, int blockMetadata) {
+	public ISpawnBuilder addBlock(String blockName, int blockMetadata) {
 		return this.addBlock(new ResourceLocation(blockName), blockMetadata);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(ResourceLocation blockResourceLocation) {
+	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(ResourceLocation blockResourceLocation,
+	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
 			String blockState) {
 		return this.addBlockWithChance(blockResourceLocation, blockState, 100);
 	}
 
 	@Override
 	@Deprecated
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(ResourceLocation blockResourceLocation,
+	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
 			int blockMetadata) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(Block block) {
+	public ISpawnBuilder addBlock(Block block) {
 		return this.addBlockWithChance(block, 100);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlock(IBlockState block) {
+	public ISpawnBuilder addBlock(IBlockState block) {
 		return this.addBlockWithChance(block, 100);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(String blockName, int chance) {
+	public ISpawnBuilder addBlockWithChance(String blockName, int chance) {
 		return this.addBlockWithChance( new ResourceLocation(blockName), chance);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(String blockName, String blockState,
+	public ISpawnBuilder addBlockWithChance(String blockName, String blockState,
 			int chance) {
 		return this.addBlockWithChance(new ResourceLocation(blockName), blockState, chance);
 	}
 
 	@Override
 	@Deprecated
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
+	public ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
 			int chance) {
 		return this.addBlockWithChance(blockName, blockMetadata, chance);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
 			int chance) {
 		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
 			String blockState, int chance) {
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		IBlockState tempVar = StateUtil.deserializeState(tempBlock, blockState);
@@ -157,20 +158,20 @@ public class SpawnBuilder implements com.mcmoddev.orespawn.api.os3.SpawnBuilder 
 
 	@Override
 	@Deprecated
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
 			int blockMetadata, int chance) {
 		IBlockState tempVar =  ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(blockMetadata);
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(Block block, int chance) {
+	public ISpawnBuilder addBlockWithChance(Block block, int chance) {
 		IBlockState tempVar = block.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.SpawnBuilder addBlockWithChance(IBlockState block, int chance) {
+	public ISpawnBuilder addBlockWithChance(IBlockState block, int chance) {
 		this.blocks.add(Pair.of(block, chance));
 		return this;
 	}

@@ -11,9 +11,9 @@ import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.OS3API;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
@@ -90,11 +90,11 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public void registerSpawns() {
-		Map<Integer, List<SpawnBuilder>> spawns = OreSpawn.getSpawns();
+		Map<Integer, List<ISpawnBuilder>> spawns = OreSpawn.getSpawns();
 
 		// build a proper tracking of data for the spawner
 		for (Entry<String, BuilderLogic> ent : logic.entrySet()) {
-			for (Entry<Integer, DimensionBuilder> dL : ent.getValue().getAllDimensions().entrySet()) {
+			for (Entry<Integer, IDimensionBuilder> dL : ent.getValue().getAllDimensions().entrySet()) {
 				if (spawns.containsKey(dL.getKey())) {
 					spawns.get(dL.getKey()).addAll(dL.getValue().getAllSpawns());
 				} else {

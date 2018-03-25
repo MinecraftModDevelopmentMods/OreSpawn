@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.mcmoddev.orespawn.api.DimensionList;
-import com.mcmoddev.orespawn.api.FeatureEntry;
-import com.mcmoddev.orespawn.api.ReplacementEntry;
+import com.mcmoddev.orespawn.api.IDimensionList;
+import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
+import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.block.state.IBlockState;
@@ -18,20 +18,20 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-public class SpawnEntry implements com.mcmoddev.orespawn.api.SpawnEntry {
+public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	private final String spawnName;
-	private final DimensionList dimensions;
-	private final ReplacementEntry replacements;
+	private final IDimensionList dimensions;
+	private final IReplacementEntry replacements;
 	private final List<Pair<IBlockState,Integer>> blocks;
 	private final BiomeLocationComposition biomes;
-	private final FeatureEntry feature;
+	private final IFeatureEntry feature;
 	private final boolean enabled;
 	private final boolean retrogen;
 	
 	public SpawnEntry(final String spawnName, final boolean enabled, final boolean retrogen,
-			final DimensionList dimensions, final BiomeLocationComposition biomes,
-			final ReplacementEntry replacements, final List<Pair<IBlockState,Integer>> blocks, 
-			final FeatureEntry feature) {
+			final IDimensionList dimensions, final BiomeLocationComposition biomes,
+			final IReplacementEntry replacements, final List<Pair<IBlockState,Integer>> blocks, 
+			final IFeatureEntry feature) {
 		this.spawnName = spawnName;
 		this.enabled = enabled;
 		this.retrogen = retrogen;
@@ -64,7 +64,7 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.SpawnEntry {
 	}
 
 	@Override
-	public FeatureEntry getFeature() {
+	public IFeatureEntry getFeature() {
 		return this.feature;
 	}
 

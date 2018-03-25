@@ -11,7 +11,7 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationDictionary;
@@ -101,7 +101,7 @@ public class Helpers {
 		}
 	}
 
-	private static OreBuilder parseOreEntry(JsonObject oreSpawn, SpawnBuilder spawn) {
+	private static OreBuilder parseOreEntry(JsonObject oreSpawn, ISpawnBuilder spawn) {
 		String blockName = oreSpawn.has(ConfigNames.BLOCK) ? ConfigNames.BLOCK : ConfigNames.BLOCK_V2;
 		String oreName = oreSpawn.get(blockName).getAsString();
 		int chance = oreSpawn.has(ConfigNames.CHANCE) ? oreSpawn.get(ConfigNames.CHANCE).getAsInt() : 100;
@@ -115,7 +115,7 @@ public class Helpers {
 		return thisOre;
 	}
 
-	private static List<OreBuilder> loadOreDict(JsonObject oreObj, SpawnBuilder spawn) {
+	private static List<OreBuilder> loadOreDict(JsonObject oreObj, ISpawnBuilder spawn) {
 		String oreName = oreObj.get(ConfigNames.BLOCK).getAsString().split(":")[1];
 		int chance = oreObj.has(ConfigNames.CHANCE) ? oreObj.get(ConfigNames.CHANCE).getAsInt() : 100;
 		List<OreBuilder> retval = new ArrayList<>();
@@ -132,7 +132,7 @@ public class Helpers {
 		return retval;
 	}
 
-	public static List<OreBuilder> loadOres(JsonArray oresArray, SpawnBuilder spawn) {
+	public static List<OreBuilder> loadOres(JsonArray oresArray, ISpawnBuilder spawn) {
 		List<OreBuilder> rV = new LinkedList<>();
 
 		oresArray.forEach(oreEntry -> {

@@ -2,8 +2,10 @@ package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.LinkedList;
 import java.util.List;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
+import com.mcmoddev.orespawn.api.IDimensionList;
 
-public class DimensionBuilder implements com.mcmoddev.orespawn.api.os3.DimensionBuilder {
+public class DimensionBuilder implements IDimensionBuilder {
 	private final List<Integer> dimensionWhitelist = new LinkedList<>();
 	private final List<Integer> dimensionBlacklist = new LinkedList<>();
 	private boolean acceptAll = true;
@@ -13,33 +15,33 @@ public class DimensionBuilder implements com.mcmoddev.orespawn.api.os3.Dimension
 	}
 	
 	@Override
-	public com.mcmoddev.orespawn.api.os3.DimensionBuilder addWhitelistEntry(int dimensionID) {
+	public IDimensionBuilder addWhitelistEntry(int dimensionID) {
 		this.dimensionWhitelist.add(dimensionID);
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.DimensionBuilder addBlacklistEntry(int dimensionID) {
+	public IDimensionBuilder addBlacklistEntry(int dimensionID) {
 		this.dimensionBlacklist.add(dimensionID);
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.DimensionBuilder setAcceptAll() {
+	public IDimensionBuilder setAcceptAll() {
 		if (this.denyAll) this.denyAll = false;
 		this.acceptAll = true;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.os3.DimensionBuilder setDenyAll() {
+	public IDimensionBuilder setDenyAll() {
 		if (this.acceptAll) this.acceptAll = false;
 		this.denyAll = true;
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.DimensionList create() {
+	public IDimensionList create() {
 		if (this.acceptAll ||
 				((this.dimensionWhitelist.size() == 0) &&
 						(this.dimensionBlacklist.size() == 0))) {

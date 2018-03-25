@@ -11,7 +11,7 @@ import com.mcmoddev.orespawn.commands.WriteConfigsCommand;
 import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.api.os3.OS3API;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 import com.mcmoddev.orespawn.worldgen.FlatBedrock;
 
@@ -54,11 +54,11 @@ public class OreSpawn {
 	public static final OS3Writer writer = new OS3Writer();
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();
-	protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
+	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
 
 	static final FlatBedrock flatBedrock = new FlatBedrock();
 
-	public static Map<Integer, List<SpawnBuilder>> getSpawns() {
+	public static Map<Integer, List<ISpawnBuilder>> getSpawns() {
 		return spawns;
 	}
 

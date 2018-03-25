@@ -6,9 +6,10 @@ import com.google.gson.JsonObject;
 
 import net.minecraft.world.World;
 import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraft.world.chunk.IChunkProvider;
 
-public interface IFeature {
+public interface IFeature extends IForgeRegistryEntry<IFeature> {
 	void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 	    GeneratorParameters parameters);
 

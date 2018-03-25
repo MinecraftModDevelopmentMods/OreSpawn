@@ -143,11 +143,11 @@ public class OS3Reader {
 		// at the top-most level we have the dimension sets
 		work.entrySet().forEach(entry -> {
 			int dimension = Integer.parseInt(entry.getKey());
-			DimensionBuilder builder = logic.newDimensionBuilder(dimension);
+			IDimensionBuilder builder = logic.newDimensionBuilder(dimension);
 			entry.getValue().getAsJsonArray().forEach(ore -> {
 				try {
 					JsonObject nw = ore.getAsJsonObject();
-					SpawnBuilder spawn = builder.newSpawnBuilder(null);
+					ISpawnBuilder spawn = builder.newSpawnBuilder(null);
 					// load the "ores" as "OreBuilder" - we should always have a "blocks" here, so...
 					// filter out all null entries
 					List<OreBuilder> blocks = Helpers.loadOres(nw.getAsJsonArray(ConfigNames.BLOCKS), spawn).stream()
@@ -156,13 +156,13 @@ public class OS3Reader {
 					if (blocks.size() == 0) return;
 					
 					List<IBlockState> replacements = getReplacements(nw.get(ConfigNames.V2.REPLACES).getAsString(), dimension);
-					BiomeBuilder biomes = spawn.newBiomeBuilder();
+					IBiomeBuilder biomes = spawn.newBiomeBuilder();
 
 					if (nw.get(ConfigNames.BIOMES).isJsonObject()) {
 						biomes.setFromBiomeLocation(Helpers.deserializeBiomeLocationComposition(nw.getAsJsonObject(ConfigNames.BIOMES)));
 					}
 
-					FeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
+					IFeatureBuilder gen = spawn.newFeatureBuilder(nw.get(ConfigNames.FEATURE).getAsString());
 					gen.setDefaultParameters();
 					handleParameterFixes(nw);
 					gen.setParameters(nw.getAsJsonObject(ConfigNames.PARAMETERS));

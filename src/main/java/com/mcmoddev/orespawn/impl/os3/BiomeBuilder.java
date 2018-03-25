@@ -1,4 +1,4 @@
-package com.mcmoddev.orespawn.impl.features;
+package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -9,12 +9,13 @@ import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationEmpty;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
+import com.mcmoddev.orespawn.api.os3.IBiomeBuilder;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-public class BiomeBuilder implements com.mcmoddev.orespawn.api.BiomeBuilder {
+public class BiomeBuilder implements IBiomeBuilder {
 	private final List<Biome> whitelist = new LinkedList<>();
 	private final List<Biome> blacklist = new LinkedList<>();
 	
@@ -25,45 +26,54 @@ public class BiomeBuilder implements com.mcmoddev.orespawn.api.BiomeBuilder {
 	}
 	
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addWhitelistEntry(Biome biome) {
+	public IBiomeBuilder addWhitelistEntry(Biome biome) {
 		this.whitelist.add(biome);
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addWhitelistEntry(String biomeName) {
+	public IBiomeBuilder addWhitelistEntry(String biomeName) {
 		return this.addWhitelistEntry(new ResourceLocation(biomeName));
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addWhitelistEntry(ResourceLocation biomeResourceLocation) {
+	public IBiomeBuilder addWhitelistEntry(ResourceLocation biomeResourceLocation) {
 		return this.addWhitelistEntry(ForgeRegistries.BIOMES.getValue(biomeResourceLocation));
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addBlacklistEntry(Biome biome) {
+	public IBiomeBuilder addBlacklistEntry(Biome biome) {
 		this.blacklist.add(biome);
 		return this;
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addBlacklistEntry(String biomeName) {
+	public IBiomeBuilder addBlacklistEntry(String biomeName) {
 		return this.addBlacklistEntry(new ResourceLocation(biomeName));
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder addBlacklistEntry(ResourceLocation biomeResourceLocation) {
+	public IBiomeBuilder addBlacklistEntry(ResourceLocation biomeResourceLocation) {
 		return this.addBlacklistEntry(ForgeRegistries.BIOMES.getValue(biomeResourceLocation));
 	}
 
 	@Override
-	public com.mcmoddev.orespawn.api.BiomeBuilder setAcceptAll() {
+	public IBiomeBuilder setAcceptAll() {
 		this.acceptAll = true;
 		return this;
 	}
 
 	@Override
 	public BiomeLocation create() {
+		if (this.acceptAll) {
+			return new BiomeLocationComposition(ImmutableSet.of(new BiomeLocationEmpty()),
+					ImmutableSet.of(new BiomeLocation() {
+						public boolean matches(Biome b) {
+							return true;
+						}
+					}));
+		}
+		
 		ImmutableSet<BiomeLocation> whitelist;
 		ImmutableSet<BiomeLocation> blacklist;
 		if (this.whitelist.size() == 0) {

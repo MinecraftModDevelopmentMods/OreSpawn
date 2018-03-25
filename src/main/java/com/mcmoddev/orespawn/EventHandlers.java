@@ -10,10 +10,10 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
-import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
+import com.mcmoddev.orespawn.api.os3.IFeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
@@ -63,7 +63,7 @@ public class EventHandlers {
 
 		features.appendTag(new NBTTagString("orespawn:default"));
 
-		List<DimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
+		List<IDimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
 		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(ev.getWorld().provider.getDimension()))
 		    .map(ent -> ent.getValue().getDimension(ev.getWorld().provider.getDimension()))
 		    .collect(Collectors.toList());
@@ -75,18 +75,18 @@ public class EventHandlers {
 			    .collect(Collectors.toList()));
 		}
 
-		List<SpawnBuilder> spc = new LinkedList<>();
+		List<ISpawnBuilder> spc = new LinkedList<>();
 		List<OreBuilder> oreList = new LinkedList<>();
-		spawns.stream().map(DimensionBuilder::getAllSpawns).forEach(spc::addAll);
-		spc.stream().map(SpawnBuilder::getOres).forEach(oreList::addAll);
+		spawns.stream().map(IDimensionBuilder::getAllSpawns).forEach(spc::addAll);
+		spc.stream().map(ISpawnBuilder::getOres).forEach(oreList::addAll);
 
 		oreList.stream()
 		.map(oreEnt -> new NBTTagString(oreEnt.getOre().getBlock().getRegistryName().toString()))
 		.forEach(ores::appendTag);
 
-		List<FeatureBuilder> featureList = new LinkedList<>();
+		List<IFeatureBuilder> featureList = new LinkedList<>();
 
-		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(SpawnBuilder::getFeatureGen).collect(Collectors.toList())));
+		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(ISpawnBuilder::getFeatureGen).collect(Collectors.toList())));
 
 		featureList.stream()
 		.map(feat -> new NBTTagString(feat.getFeatureName()))
@@ -129,7 +129,7 @@ public class EventHandlers {
 	}
 
 	private boolean compFeatures(NBTTagList tagList, int dim) {
-		List<DimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
+		List<IDimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
 		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(dim))
 		    .map(ent -> ent.getValue().getDimension(dim))
 		    .collect(Collectors.toList());
@@ -141,9 +141,9 @@ public class EventHandlers {
 			    .collect(Collectors.toList()));
 		}
 
-		List<FeatureBuilder> featureList = new LinkedList<>();
+		List<IFeatureBuilder> featureList = new LinkedList<>();
 
-		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(SpawnBuilder::getFeatureGen).collect(Collectors.toList())));
+		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(ISpawnBuilder::getFeatureGen).collect(Collectors.toList())));
 
 		return featureList.size() == tagList.tagCount();
 	}

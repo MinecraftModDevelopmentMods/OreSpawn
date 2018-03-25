@@ -1,4 +1,4 @@
-package com.mcmoddev.orespawn.api;
+package com.mcmoddev.orespawn.api.os3;
 
 import net.minecraft.block.state.pattern.BlockMatcher;
 import net.minecraft.util.ResourceLocation;
@@ -10,7 +10,7 @@ import com.google.common.collect.ImmutableList;
 
 import net.minecraft.block.state.IBlockState;
 
-public interface SpawnEntry {
+public interface ISpawnEntry {
 	default public boolean isEnabled() {
 		return false;
 	}
@@ -23,7 +23,7 @@ public interface SpawnEntry {
 	public boolean dimensionAllowed(final int dimension);
 	public boolean biomeAllowed(final ResourceLocation biomeName);
 	public boolean biomeAllowed(final Biome biome);
-	public FeatureEntry getFeature();
+	public IFeatureEntry getFeature();
 	public BlockMatcher getMatcher();
 	public ImmutableList<IBlockState> getOreList();
 	public ImmutableList<Pair<IBlockState,Integer>> getOreListWithChances();
