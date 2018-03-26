@@ -8,8 +8,9 @@ import com.mcmoddev.orespawn.api.IDimensionList;
 public class DimensionBuilder implements IDimensionBuilder {
 	private final List<Integer> dimensionWhitelist = new LinkedList<>();
 	private final List<Integer> dimensionBlacklist = new LinkedList<>();
-	private boolean acceptAll = true;
+	private boolean acceptAll = false;
 	private boolean denyAll = false;
+	private boolean acceptAllOverworld = true;
 	
 	public DimensionBuilder() {		
 	}
@@ -48,9 +49,19 @@ public class DimensionBuilder implements IDimensionBuilder {
 			return new DimensionListAcceptAll();
 		} else if (this.denyAll) {
 			return new DimensionListDenyAll();
+		} else if (this.acceptAllOverworld) {
+			return new DimensionListAcceptAllOverworld();
 		} else {
 			return new DimensionList(this.dimensionWhitelist, this.dimensionBlacklist);
 		}
+	}
+
+	@Override
+	public IDimensionBuilder setAcceptAllOverworld() {
+		this.acceptAll = false;
+		this.denyAll = false;
+		this.acceptAllOverworld = true;
+		return this;
 	}
 
 }

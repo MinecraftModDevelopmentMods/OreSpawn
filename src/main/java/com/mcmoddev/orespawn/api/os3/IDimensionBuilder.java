@@ -7,5 +7,6 @@ public interface IDimensionBuilder {
 	public IDimensionBuilder addBlacklistEntry(final int dimensionID);
 	public IDimensionBuilder setAcceptAll();
 	public IDimensionBuilder setDenyAll();
+	public IDimensionBuilder setAcceptAllOverworld();
 	public IDimensionList create();
 }

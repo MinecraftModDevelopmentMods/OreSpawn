@@ -34,10 +34,10 @@ public class FeatureRegistry {
 			.setMaxID(4096)  // 12 bits should be enough... hell, 8 bits would be, IMNSHO
 			.create();
 
-	private FeatureRegistry() {
+	public FeatureRegistry() {
 	}
 
-	public static Map<String, IFeature> getFeatures() {
+	public Map<String, IFeature> getFeatures() {
 		Map<String,IFeature> tempMap = new TreeMap<>();
 		registry.getEntries().stream()
 		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue()));
@@ -45,15 +45,15 @@ public class FeatureRegistry {
 		return Collections.unmodifiableMap(tempMap);
 	}
 
-	public static String getFeatureName(IFeature feature) {
+	public String getFeatureName(IFeature feature) {
 		return feature.getRegistryName().toString();
 	}
 
-	public static IFeature getFeature(String name) {
+	public IFeature getFeature(String name) {
 		return getFeature(new ResourceLocation(name));
 	}
 	
-	public static IFeature getFeature(ResourceLocation featureResourceLocation) {
+	public IFeature getFeature(ResourceLocation featureResourceLocation) {
 		ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
 		if (registry.containsKey(featureResourceLocation)) {
 			return registry.getValue(featureResourceLocation);
@@ -62,27 +62,27 @@ public class FeatureRegistry {
 		}
 	}
 
-	public static boolean hasFeature(String name) {
+	public boolean hasFeature(String name) {
 		return hasFeature(new ResourceLocation(name));
 	}
 
-	public static boolean hasFeature(ResourceLocation featureResourceLocation) {
+	public boolean hasFeature(ResourceLocation featureResourceLocation) {
 		return registry.containsKey(featureResourceLocation);
 	}
-	public static boolean hasFeature(IFeature feature) {
+	public boolean hasFeature(IFeature feature) {
 		return registry.containsKey(feature.getRegistryName());
 	}
 
-	public static void addFeature(String name, IFeature feature) {
+	public void addFeature(String name, IFeature feature) {
 		feature.setRegistryName(new ResourceLocation(name));
 		registry.register(feature);
 	}
 
-	public static void addFeature(JsonObject entry) {
+	public void addFeature(JsonObject entry) {
 		addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
 	}
 
-	public static void addFeature(String name, String className) {
+	public void addFeature(String name, String className) {
 		IFeature feature = getInstance(className);
 
 		if (feature != null && !hasFeature(name)) {
@@ -109,7 +109,7 @@ public class FeatureRegistry {
 		return feature;
 	}
 
-	public static void loadFeaturesFile(File file) {
+	public void loadFeaturesFile(File file) {
 		JsonParser parser = new JsonParser();
 		String rawJson;
 		JsonArray elements;
@@ -130,7 +130,7 @@ public class FeatureRegistry {
 		}
 	}
 
-	public static void writeFeatures(File file) {
+	public void writeFeatures(File file) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		JsonArray root = new JsonArray();

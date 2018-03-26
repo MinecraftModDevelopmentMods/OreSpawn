@@ -1,5 +1,8 @@
 package com.mcmoddev.orespawn.data;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class Constants {
 	public static final String MODID = "orespawn";
 	public static final String NAME = "MMD OreSpawn";
@@ -29,7 +32,9 @@ public class Constants {
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
 	public static final String PRECISION = "precision";
-
+	public static final Path CONFDIR = Paths.get("config", "orespawn3");
+	public static final Path SYSCONF = Paths.get("config", "orespawn3", "sysconf");
+	
 	public final class FormatBits {
 
 		private FormatBits() {}
@@ -65,20 +70,23 @@ public class Constants {
 		public static final String DIMENSION = "dimension";
 		public static final String ORES = "ores";
 		public static final String DIMENSIONS = "dimensions";
-		public static final String BLOCKID = "blockID";
-		public static final String BLOCK = "block";
-		public static final String BLOCKS = "blocks";
 		public static final String CHANCE = "chance";
 		public static final String METADATA = "metaData";
 		public static final String BIOMES = "biomes";
 		public static final String STATE = "state";
-		public static final String REPLACEMENT = "replace_block";
-		public static final String REPLACEMENT_V2 = "replaces";
+		public static final String REPLACEMENT = "replaces";
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
-		public static final String BLOCK_V2 = "name";
-
+		public static final String BLOCK = "name";
+		public static final String SPAWNS = "spawns";
+		public static final String RETROGEN = "retrogen";
+		public static final String ENABLED = "enabled";
+		public static final String NAME = "name";
+		public static final String WHITELIST = "includes";
+		public static final String BLACKLIST = "excludes";
+		public static final String PRESETS = "presets";
+		
 		public final class V2 {
 			private V2() {}
 			public static final String ENABLED = "enabled";
@@ -89,11 +97,6 @@ public class Constants {
 			public static final String MAXIMUM = "maximum";
 		}
 
-		public final class BiomeStuff {
-			private BiomeStuff() {}
-			public static final String WHITELIST = "includes";
-			public static final String BLACKLIST = "excludes";
-		}
 		public final class DefaultFeatureProperties {
 			private DefaultFeatureProperties() {}
 			public static final String SIZE = "size";
@@ -101,11 +104,6 @@ public class Constants {
 			public static final String FREQUENCY = "frequency";
 			public static final String MAXHEIGHT = "maxHeight";
 			public static final String MINHEIGHT = "minHeight";
-		}
-		public final class DimensionStuff {
-			private DimensionStuff() {}
-			public static final String INCLUDE = "includes";
-			public static final String EXCLUDE = "excludes";
 		}
 	}
 }

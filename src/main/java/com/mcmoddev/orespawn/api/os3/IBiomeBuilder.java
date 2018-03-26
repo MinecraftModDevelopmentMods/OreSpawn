@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.api.os3;
 
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
@@ -13,5 +14,5 @@ public interface IBiomeBuilder {
 	public IBiomeBuilder addBlacklistEntry(final String biomeName);
 	public IBiomeBuilder addBlacklistEntry(final ResourceLocation biomeResourceLocation);
 	public IBiomeBuilder setAcceptAll();
-	public BiomeLocation create();
+	public BiomeLocationComposition create();
 }

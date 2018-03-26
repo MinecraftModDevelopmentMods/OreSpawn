@@ -1,33 +1,33 @@
 package com.mcmoddev.orespawn.api.os3;
 
-import javax.annotation.Nonnull;
+import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.mcmoddev.orespawn.api.IFeature;
-import com.mcmoddev.orespawn.util.OS3V2PresetStorage;
-import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
+import com.mcmoddev.orespawn.data.PresetsStorage;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.ResourceLocation;
 
 public interface OS3API {
-	int dimensionWildcard();
-	int biomeWildcard();
+	public void addSpawn(ISpawnEntry spawnEntry);
+	public void addFeature(String featureName, IFeature feature);
+	public void addReplacement(IReplacementEntry replacementEntry);
 
-	// register replacement blocks
-	void registerReplacementBlock(@Nonnull String name, @Nonnull Block itemBlock);
-	void registerReplacementBlock(@Nonnull String name, @Nonnull IBlockState itemBlock);
-
-	//register feature generators
-	void registerFeatureGenerator(@Nonnull String name, @Nonnull IFeature feature);
-	void registerFeatureGenerator(@Nonnull String name, @Nonnull Class<? extends IFeature> feature);
-	void registerFeatureGenerator(@Nonnull String name, @Nonnull String className);
-
-	BuilderLogic getLogic(@Nonnull String name);
-	void registerLogic(@Nonnull BuilderLogic logic);
-	ImmutableMap<String, BuilderLogic> getSpawns();
-	void registerSpawns();
-
-	OreSpawnWorldGen getGenerator();
-	OS3V2PresetStorage getPresets();
+	public Map<String, IReplacementEntry> getReplacements();
+	public IReplacementEntry getReplacement(String replacementName);
+	public List<ISpawnEntry> getSpawns(int dimensionID);
+	public ISpawnEntry getSpawn(String spawnName);
+	public Map<String, ISpawnEntry> getAllSpawns();
+	
+	public ISpawnBuilder getSpawnBuilder();
+	public IDimensionBuilder getDimensionBuilder();
+	public IFeatureBuilder getFeatureBuilder();
+	public IBlockBuilder getBlockBuilder();
+	public IBiomeBuilder getBiomeBuilder();
+	public IReplacementBuilder getReplacementBuilder();
+	public boolean featureExists(String featureName);
+	public boolean featureExists(ResourceLocation featureName);
+	public IFeature getFeature(String featureName);
+	public IFeature getFeature(ResourceLocation featureName);
+	public PresetsStorage copyPresets();
 }

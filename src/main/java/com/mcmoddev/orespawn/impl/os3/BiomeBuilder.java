@@ -64,7 +64,7 @@ public class BiomeBuilder implements IBiomeBuilder {
 	}
 
 	@Override
-	public BiomeLocation create() {
+	public BiomeLocationComposition create() {
 		if (this.acceptAll) {
 			return new BiomeLocationComposition(ImmutableSet.of(new BiomeLocationEmpty()),
 					ImmutableSet.of(new BiomeLocation() {

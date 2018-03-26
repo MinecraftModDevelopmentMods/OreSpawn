@@ -27,10 +27,10 @@ public class FeatureBuilder implements IFeatureBuilder {
 
 	@Override
 	public IFeatureBuilder setFeature(ResourceLocation featureResourceLocation) {
-		if (!FeatureRegistry.hasFeature(featureResourceLocation)) {
+		if (!OreSpawn.API.featureExists(featureResourceLocation)) {
 			OreSpawn.LOGGER.warn("Feature %s is not known, feature for this will be set to the default feature", featureResourceLocation.getResourcePath());
 		}
-		return this.setFeature(FeatureRegistry.getFeature(featureResourceLocation));
+		return this.setFeature(OreSpawn.API.getFeature(featureResourceLocation));
 	}
 
 	@Override
@@ -60,6 +60,12 @@ public class FeatureBuilder implements IFeatureBuilder {
 	@Override
 	public IFeatureBuilder setParameter(String parameterName, boolean parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
+		return this;
+	}
+
+	@Override
+	public IFeatureBuilder setParameter(String parameterName, JsonElement parameterValue) {
+		this.parameters.add(parameterName, parameterValue);
 		return this;
 	}
 

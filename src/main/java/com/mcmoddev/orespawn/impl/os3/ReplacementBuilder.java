@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn.impl.os3;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.util.StateUtil;
@@ -23,7 +24,7 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	@Override
 	public IReplacementBuilder setFromName(String entryName) {
 		this.replacementName = entryName;
-		this.entries.addAll(ReplacementsRegistry.getReplacement(entryName).getEntries());
+		this.entries.addAll(OreSpawn.API.getReplacement(entryName).getEntries());
 		return this;
 	}
 
