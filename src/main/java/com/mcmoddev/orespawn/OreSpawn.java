@@ -3,8 +3,6 @@ package com.mcmoddev.orespawn;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
-import com.mcmoddev.orespawn.json.OS3Reader;
-import com.mcmoddev.orespawn.json.OS3Writer;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
 import com.mcmoddev.orespawn.commands.ClearChunkCommand;
 import com.mcmoddev.orespawn.commands.WriteConfigsCommand;
@@ -50,8 +48,7 @@ public class OreSpawn {
 	public static OreSpawn instance;
 
 	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
-	public static final OS3API API = new OS3APIImpl();
-	public static final OS3Writer writer = new OS3Writer();
+	public static OS3API API;
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();
 	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
@@ -87,9 +84,7 @@ public class OreSpawn {
 	public void init(FMLInitializationEvent ev) {
 		PluginLoader.INSTANCE.register();
 
-		OS3Reader.loadEntries();
-		writer.writeSysconfIfNonexistent();
-		API.registerSpawns();
+		API = new OS3APIImpl();
 	}
 
 	@EventHandler
