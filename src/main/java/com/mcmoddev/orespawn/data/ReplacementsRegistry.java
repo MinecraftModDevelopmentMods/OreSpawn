@@ -127,12 +127,7 @@ public class ReplacementsRegistry {
 		JsonParser parser = new JsonParser();
 		JsonObject elements;
 		String rawJson;
-		String modName = getModName(FilenameUtils.getBaseName(file.toString()));
 		
-		OreSpawn.LOGGER.fatal("Replacements Registry Dump:");
-		registry.getEntries().stream().forEach(ent -> OreSpawn.LOGGER.fatal("Replacement Entry %s -> %s", ent.getKey().toString(), ent.getValue().toString()));
-		OreSpawn.LOGGER.fatal("Loading replacements file %s", file.toAbsolutePath().toString());
-
 		try {
 			rawJson = FileUtils.readFileToString(file.toFile(), Charset.defaultCharset());
 		} catch (IOException e) {
@@ -147,7 +142,6 @@ public class ReplacementsRegistry {
 		.forEach( elem -> {
 			String entName = elem.getKey();
 			JsonArray entries = elem.getValue().getAsJsonArray();
-			OreSpawn.LOGGER.fatal("Handling entry %s:%s", modName, entName);
 			List<IBlockState> blocks = new LinkedList<>();
 			for (JsonElement e : entries) {
 				JsonObject asObj = e.getAsJsonObject();
@@ -164,7 +158,6 @@ public class ReplacementsRegistry {
 							blocks.add(Block.getBlockFromItem(iS.getItem()).getDefaultState());
 						}
 					});
-					OreSpawn.LOGGER.fatal("added OreDictionary entry %s to %s:%s", oreDictName, modName, entName);
 				} else {
 					String state = null;
 					ResourceLocation blockRL = new ResourceLocation(blockName);
@@ -173,22 +166,18 @@ public class ReplacementsRegistry {
 						// has metadata
 						int meta = asObj.get(Constants.ConfigNames.METADATA).getAsInt();
 						blocks.add(theBlock.getStateFromMeta(meta));
-						OreSpawn.LOGGER.fatal("added Block %s with Metadata %d to %s:%s", blockRL.toString(), meta, modName, entName);
 					} else if(asObj.has(Constants.ConfigNames.STATE)) {
 						// has a state
 						state = asObj.get(Constants.ConfigNames.STATE).getAsString();
 						blocks.add(StateUtil.deserializeState(theBlock, state));
-						OreSpawn.LOGGER.fatal("added Block %s with state %s to %s:%s", blockRL.toString(), state, modName, entName);
 					} else {
 						// use the default state
 						blocks.add(theBlock.getDefaultState());
-						OreSpawn.LOGGER.fatal("added Block %s to %s:%s", blockRL.toString(), modName, entName);
 					}
 				}
 			}
 			
 			IReplacementEntry replacer = new ReplacementEntry("orespawn:"+entName, blocks);
-			OreSpawn.LOGGER.fatal("Adding Replacer %s to the registry", replacer.getRegistryName().toString());
 			registry.register(replacer);
 		});
 	}

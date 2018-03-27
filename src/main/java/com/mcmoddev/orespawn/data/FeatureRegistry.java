@@ -114,7 +114,6 @@ public class FeatureRegistry {
 		String rawJson;
 		JsonArray elements;
 
-		OreSpawn.LOGGER.fatal("Loading features file %s", file.getAbsolutePath());
 		try {
 			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
 		} catch (IOException e) {
@@ -128,10 +127,7 @@ public class FeatureRegistry {
 
 		for (JsonElement elem : elements) {
 			addFeature(elem.getAsJsonObject());
-		}
-		
-		registry.getEntries().stream()
-		.forEach(ent -> OreSpawn.LOGGER.fatal("Features Entry %s -> %s", ent.getKey().toString(), ent.getValue().toString()));
+		}		
 	}
 
 	public void writeFeatures(File file) {

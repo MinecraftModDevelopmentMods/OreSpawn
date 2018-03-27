@@ -49,7 +49,7 @@ public class OreSpawnReader {
 	
 	public static void tryReadFile(Path conf, OS3APIImpl os3apiImpl) throws MissingVersionException, NotAProperConfigException, OldVersionException, UnknownVersionException {
 		JsonParser parser = new JsonParser();
-		OreSpawn.LOGGER.fatal("trying to load config file %s", conf.toAbsolutePath().toString());
+
 		try(BufferedReader data = Files.newBufferedReader(conf)) {
 			JsonElement json = parser.parse(data);
 			

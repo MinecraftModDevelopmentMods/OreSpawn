@@ -22,7 +22,11 @@ public class FeatureBuilder implements IFeatureBuilder {
 	
 	@Override
 	public IFeatureBuilder setFeature(String featureName) {
-		return this.setFeature(new ResourceLocation("orespawn", featureName));
+		String actName = featureName;
+		if(!actName.contains(":")) {
+			actName = String.format("orespawn:%s", featureName);
+		}
+		return this.setFeature(new ResourceLocation(actName));
 	}
 
 	@Override
