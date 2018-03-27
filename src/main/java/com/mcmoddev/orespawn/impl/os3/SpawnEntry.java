@@ -8,7 +8,11 @@ import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
@@ -78,6 +82,11 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	@Override
 	public IBlockList getBlocks() {
 		return this.blocks;
+	}
+
+	@Override
+	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos) {
+		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}
 
 }

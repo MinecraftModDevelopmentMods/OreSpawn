@@ -9,10 +9,10 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
-import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
+import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.data.Constants.FormatBits;
-import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -35,13 +35,10 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-	    GeneratorParameters parameters) {
-		ChunkPos pos = parameters.getChunk();
-		List<IBlockState> blockReplace = new LinkedList<>();
-		blockReplace.addAll(parameters.getReplacements());
-		JsonObject params = parameters.getParameters();
-		OreList ores = parameters.getOres();
-		BiomeLocation biomes = parameters.getBiomes();
+	    ISpawnEntry spawnData, ChunkPos _pos) {
+		ChunkPos pos = _pos;
+		OreSpawnBlockMatcher replaceMatch = spawnData.getMatcher();
+		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
@@ -49,7 +46,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 		mergeDefaults(params, getDefaultParameters());
 
-		runCache(chunkX, chunkZ, world, blockReplace);
+		runCache(chunkX, chunkZ, world, replaceMatch);
 
 		// extract parameters
 		int nodeCount = params.get(FormatBits.NODE_COUNT).getAsInt();
@@ -64,15 +61,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			int sc;
 			HeightRange hr = new HeightRange(minHeight, maxHeight);
 			BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
-			FunctionParameterWrapper fp = new FunctionParameterWrapper();
-			fp.setBlockPos(spot);
-			fp.setWorld(world);
-			fp.setReplacements(blockReplace);
-			fp.setBiomes(biomes);
-			fp.setOres(ores);
-			fp.setChunkPos(new ChunkPos(chunkX, chunkZ));
 
-			sc = spawnAtSpot(thisNode, hr, fp);
+			sc = spawnAtSpot(thisNode, hr, spot, new ChunkPos(chunkX, chunkZ), spawnData, world);
 
 			// bit of feedback - if we underproduce or overproduce a node, the next one gets a correction
 			if (sc != thisNode && sc != 0) {
@@ -91,21 +81,19 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private int spawnAtSpot(int nodeSize, HeightRange heightRange, FunctionParameterWrapper params) {
+	private int spawnAtSpot(int nodeSize, HeightRange heightRange, BlockPos spot, ChunkPos pos, ISpawnEntry spawnData, World world) {
 		int spawned = 0;
 		int c;
 
-		FunctionParameterWrapper np = new FunctionParameterWrapper(params);
-		BlockPos act = params.getBlockPos();
+		BlockPos act = spot;
 		int counter = nodeSize;
 
 		while (counter > 0 && spawned < nodeSize) {
-			np.setBlockPos(act);
-			c = spawnOreNode(np, nodeSize, heightRange);
+			c = spawnOreNode(act, pos, spawnData, world, nodeSize, heightRange);
 
 			if (c == 0) {
-				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", np.getBlockPos(), np.getChunkPos());
-				act = chooseSpot(Math.floorDiv(params.getBlockPos().getX(), 16), Math.floorDiv(params.getBlockPos().getZ(), 16), heightRange);
+				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
+				act = chooseSpot(Math.floorDiv(spot.getX(), 16), Math.floorDiv(spot.getZ(), 16), heightRange);
 			}
 
 			counter -= (c + 1);
@@ -115,7 +103,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return spawned;
 	}
 
-	private int spawnOreNode(FunctionParameterWrapper params, int nodeSize, HeightRange heightRange) {
+	private int spawnOreNode(BlockPos loc, ChunkPos pos, ISpawnEntry spawnData, World world, int nodeSize, HeightRange heightRange) {
 
 		int count = nodeSize;
 		int lutType = (nodeSize < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
@@ -132,12 +120,12 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			int nc = 0;
 
 			for (; count > 0 && nc <= nodeSize; count--) {
-				IBlockState oreBlock = params.getOres().getRandomOre(this.random).getOre();
+				IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(this.random);
 				Vec3i offset = offs[scrambledLUT[--count]];
-				BlockPos p = fixMungeOffset(offset, params.getBlockPos(), heightRange, params.getChunkPos());
-				int dimension = params.getWorld().provider.getDimension();
+				BlockPos p = fixMungeOffset(offset, loc, heightRange, pos);
+				int dimension = world.provider.getDimension();
 
-				if (spawn(oreBlock, params.getWorld(), p, dimension, true, params.getReplacements(), params.getBiomes())) {
+				if (spawn(oreBlock, world, p, dimension, true, spawnData)) {
 					nc++;
 				}
 			}
@@ -145,7 +133,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			return nc;
 		}
 
-		return spawnFill(params, nodeSize, heightRange);
+		return spawnFill(spawnData, world, pos, loc, nodeSize, heightRange);
 	}
 
 	private BlockPos fixMungeOffset(Vec3i offset, BlockPos spot, HeightRange heightRange, ChunkPos pos) {
@@ -205,19 +193,19 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return workingPoint - centerIn;
 	}
 
-	private int spawnFill(FunctionParameterWrapper params, int nodeSize, HeightRange heightRange) {
+	private int spawnFill(ISpawnEntry spawnData, World world, ChunkPos pos, BlockPos loc, int nodeSize, HeightRange heightRange) {
 
 		double radius = Math.pow(nodeSize, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)Math.ceil(radius * radius);
 
 		if (this.random.nextBoolean()) {
-			return spawnPrecise(params, heightRange, false, radius, rSqr, nodeSize);
+			return spawnPrecise(spawnData, world, pos, loc, heightRange, false, radius, rSqr, nodeSize);
 		} else {
-			return spawnPrecise(params, heightRange, true, radius, rSqr, nodeSize);
+			return spawnPrecise(spawnData, world, pos, loc, heightRange, true, radius, rSqr, nodeSize);
 		}
 	}
 
-	private int spawnPrecise(FunctionParameterWrapper params, HeightRange heightRange, boolean toPositive, double radius,
+	private int spawnPrecise(ISpawnEntry spawnData, World world, ChunkPos pos, BlockPos loc, HeightRange heightRange, boolean toPositive, double radius,
 	    int rSqr, int nodeSize) {
 		int quantity = nodeSize;
 		int nc = 0;
@@ -225,7 +213,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		for (int dy = (int)(-1 * radius); dy < radius; dy++) {
 			for (int dx = getStart(toPositive, radius); endCheck(toPositive, dx, radius); dx = countItem(dx, toPositive)) {
 				for (int dz = getStart(toPositive, radius); endCheck(toPositive, dz, radius); dz = countItem(dz, toPositive)) {
-					if (doCheckSpawn(dx, dy, dz, rSqr, heightRange, params) >= 0) {
+					if (doCheckSpawn(dx, dy, dz, rSqr, heightRange, spawnData, world, pos, loc) >= 0) {
 						nc++;
 						quantity--;
 
@@ -240,12 +228,12 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		return nc;
 	}
 
-	private int doCheckSpawn(int dx, int dy, int dz, int rSqr, HeightRange heightRange, FunctionParameterWrapper params) {
+	private int doCheckSpawn(int dx, int dy, int dz, int rSqr, HeightRange heightRange, ISpawnEntry spawnData, World world, ChunkPos pos, BlockPos loc) {
 		if (getABC(dx, dy, dz) <= rSqr) {
-			BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), params.getBlockPos(), heightRange, params.getChunkPos());
-			IBlockState bl = params.getOres().getRandomOre(this.random).getOre();
-			return spawn(bl, params.getWorld(), p, params.getWorld().provider.getDimension(), true,
-			        params.getReplacements(), params.getBiomes()) ? 1 : 0;
+			BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), loc, heightRange, pos);
+			IBlockState bl = spawnData.getBlocks().getRandomBlock(this.random);
+			return spawn(bl, world, p, world.provider.getDimension(), true,
+			        spawnData) ? 1 : 0;
 		}
 
 		return -1;
