@@ -5,14 +5,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
+
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -20,6 +25,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class ClearChunkCommand extends CommandBase {
 	private static final String STONE_ID = "minecraft:stone";
@@ -58,7 +64,7 @@ public class ClearChunkCommand extends CommandBase {
 		blocks = blockNames.stream()
 		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName))).map(block -> block.getDefaultState()).collect(Collectors.toList());
 
-		blocks.addAll(ReplacementsRegistry.getDimensionDefault(player.getEntityWorld().provider.getDimension()).stream().collect(Collectors.toList()));
+		blocks.addAll(OreSpawn.API.getDimensionDefaultReplacements(player.getEntityWorld().provider.getDimension()).stream().collect(Collectors.toList()));
 		List<IBlockState> overburden = Arrays.asList("minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:grass", "minecraft:sandstone", "minecraft:red_sandstone").stream()
 		    .map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
 		    .map(bl -> bl.getDefaultState()).collect(Collectors.toList());
@@ -113,7 +119,15 @@ public class ClearChunkCommand extends CommandBase {
 					break;
 
 				case "classic":
-					blockNames.addAll(OreSpawnWorldGen.getSpawnBlocks().stream().map(block -> block.getRegistryName().toString()).collect(Collectors.toList()));
+					blockNames.add(Blocks.STONE.getRegistryName().toString());
+					blockNames.add(Blocks.NETHERRACK.getRegistryName().toString());
+					blockNames.add(Blocks.END_STONE.getRegistryName().toString());
+					blockNames.addAll(OreDictionary.getOres("stone").stream()
+							.map(ItemStack::getItem)
+							.map(Block::getBlockFromItem)
+							.map(Block::getRegistryName)
+							.map(ResourceLocation::toString)
+							.collect(Collectors.toList()));
 					break;
 
 				default:

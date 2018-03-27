@@ -37,6 +37,7 @@ import com.mcmoddev.orespawn.json.OreSpawnReader;
 
 import net.minecraft.crash.CrashReport;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.state.IBlockState;
 
 public class OS3APIImpl implements OS3API {
 	private static final Map<ResourceLocation,ISpawnEntry> spawns;
@@ -196,6 +197,11 @@ public class OS3APIImpl implements OS3API {
 		PresetsStorage copy = new PresetsStorage();
 		presets.copy(copy);
 		return copy;
+	}
+
+	@Override
+	public List<IBlockState> getDimensionDefaultReplacements(int dimensionID) {
+		return replacements.getDimensionDefault(dimensionID);
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.PresetsStorage;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 
 public interface OS3API {
@@ -18,6 +19,7 @@ public interface OS3API {
 	public List<ISpawnEntry> getSpawns(int dimensionID);
 	public ISpawnEntry getSpawn(String spawnName);
 	public Map<String, ISpawnEntry> getAllSpawns();
+	public List<IBlockState> getDimensionDefaultReplacements(int dimensionID);
 	
 	public ISpawnBuilder getSpawnBuilder();
 	public IDimensionBuilder getDimensionBuilder();

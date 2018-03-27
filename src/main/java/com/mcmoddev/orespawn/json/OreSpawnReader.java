@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
@@ -143,7 +144,16 @@ public class OreSpawnReader {
 		return rv;
 	}
 
-	
+	public static void loadFromJson(String name, JsonElement json) {
+		Entry<String, JsonElement> t = new AbstractMap.SimpleEntry<String,JsonElement>(name, json);
+		try {
+			loadSingleEntry(t);
+		} catch (UnknownFieldException | BadValueException | UnknownNameException e) {
+			CrashReport report = CrashReport.makeCrashReport(e, "Error parsing an manual JSON read for " + name);
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());
+		}
+	}
 	private static void loadSingleEntry(Entry<String, JsonElement> entry) throws UnknownFieldException, BadValueException, UnknownNameException {
 		ISpawnBuilder sb = OreSpawn.API.getSpawnBuilder();
 		IFeatureBuilder fb = OreSpawn.API.getFeatureBuilder();

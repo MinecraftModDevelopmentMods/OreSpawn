@@ -1,13 +1,11 @@
 package com.mcmoddev.orespawn.impl.features;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;

@@ -67,8 +67,6 @@ public class Constants {
 		private ConfigNames() {}
 		public static final String DEFAULT = "default";
 		public static final String STATE_NORMAL = "normal";
-		public static final String DIMENSION = "dimension";
-		public static final String ORES = "ores";
 		public static final String DIMENSIONS = "dimensions";
 		public static final String CHANCE = "chance";
 		public static final String METADATA = "metaData";
@@ -78,7 +76,7 @@ public class Constants {
 		public static final String FEATURE = "feature";
 		public static final String PARAMETERS = "parameters";
 		public static final String FILE_VERSION = "version";
-		public static final String BLOCK = "name";
+		public static final String BLOCK = "blocks";
 		public static final String SPAWNS = "spawns";
 		public static final String RETROGEN = "retrogen";
 		public static final String ENABLED = "enabled";
@@ -87,16 +85,6 @@ public class Constants {
 		public static final String BLACKLIST = "excludes";
 		public static final String PRESETS = "presets";
 		
-		public final class V2 {
-			private V2() {}
-			public static final String ENABLED = "enabled";
-			public static final String RETROGEN = "retrogen";
-			public static final String REPLACES = "replaces";
-			public static final String GENERATOR = "generator";
-			public static final String MINIMUM = "minimum";
-			public static final String MAXIMUM = "maximum";
-		}
-
 		public final class DefaultFeatureProperties {
 			private DefaultFeatureProperties() {}
 			public static final String SIZE = "size";
