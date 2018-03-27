@@ -62,7 +62,14 @@ public class OS3APIImpl implements OS3API {
 			stream.filter(featuresFiles::matches)
 			.map(Path::toFile)
 			.forEach(features::loadFeaturesFile);
-			
+		}  catch (IOException e) {
+			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading configs from " + Constants.SYSCONF.toString());
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());
+		}
+		
+		// have to do this twice or we have issues	
+		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
 			stream.filter(replacementsFiles::matches)
 			.forEach(replacements::loadFile);
 		}  catch (IOException e) {
