@@ -48,7 +48,7 @@ public class OreSpawn {
 	public static OreSpawn instance;
 
 	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
-	public static OS3API API;
+	public static final OS3API API = new OS3APIImpl();
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();
 	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
@@ -84,7 +84,7 @@ public class OreSpawn {
 	public void init(FMLInitializationEvent ev) {
 		PluginLoader.INSTANCE.register();
 
-		API = new OS3APIImpl();
+		API.loadConfigFiles();
 	}
 
 	@EventHandler

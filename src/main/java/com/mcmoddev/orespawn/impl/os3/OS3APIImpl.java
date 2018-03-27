@@ -54,9 +54,12 @@ public class OS3APIImpl implements OS3API {
 	}
 	
 	public OS3APIImpl() {
-		PathMatcher featuresFiles = FileSystems.getDefault().getPathMatcher("glob:features-*.json");
-		PathMatcher replacementsFiles = FileSystems.getDefault().getPathMatcher("glob:replacements-*.json");
-		PathMatcher jsonMatcher = FileSystems.getDefault().getPathMatcher("glob:*.json");
+	}
+	
+	public void loadConfigFiles() {
+		PathMatcher featuresFiles = FileSystems.getDefault().getPathMatcher("glob:**/features-*.json");
+		PathMatcher replacementsFiles = FileSystems.getDefault().getPathMatcher("glob:**/replacements-*.json");
+		PathMatcher jsonMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
 		
 		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
 			stream.filter(featuresFiles::matches)
@@ -209,6 +212,16 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public List<IBlockState> getDimensionDefaultReplacements(int dimensionID) {
 		return replacements.getDimensionDefault(dimensionID);
+	}
+
+	@Override
+	public boolean hasReplacement(ResourceLocation resourceLocation) {
+		return this.replacements.has(resourceLocation);
+	}
+
+	@Override
+	public boolean hasReplacement(String name) {
+		return this.hasReplacement(new ResourceLocation("orespawn", name));
 	}
 
 }

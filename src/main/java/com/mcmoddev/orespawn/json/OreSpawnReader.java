@@ -49,6 +49,7 @@ public class OreSpawnReader {
 	
 	public static void tryReadFile(Path conf, OS3APIImpl os3apiImpl) throws MissingVersionException, NotAProperConfigException, OldVersionException, UnknownVersionException {
 		JsonParser parser = new JsonParser();
+		OreSpawn.LOGGER.fatal("trying to load config file %s", conf.toAbsolutePath().toString());
 		try(BufferedReader data = Files.newBufferedReader(conf)) {
 			JsonElement json = parser.parse(data);
 			
@@ -73,7 +74,7 @@ public class OreSpawnReader {
 				throw new NotAProperConfigException();
 			}
 			
-			JsonObject spawnData = doHandlePresets(root);
+			JsonObject spawnData = doHandlePresets(root).get(Constants.ConfigNames.SPAWNS).getAsJsonObject();
 			spawnData.entrySet().stream()
 			.forEach(e -> {
 				try {
@@ -203,24 +204,29 @@ public class OreSpawnReader {
 					throw new BadValueException(Constants.ConfigNames.FEATURE, ent.getValue().toString());
 				}
 				String featureName = ent.getValue().getAsString();
-				if(!OreSpawn.API.featureExists(featureName)) {
+				if(!OreSpawn.API.featureExists(new ResourceLocation("orespawn", featureName))) {
 					throw new UnknownNameException(Constants.ConfigNames.FEATURE, featureName);
 				}
 				fb.setFeature(featureName);
 				break;
 			case Constants.ConfigNames.REPLACEMENT:
-				if(!ent.getValue().isJsonArray()) {
+				if(!ent.getValue().isJsonArray() && !ent.getValue().getAsJsonPrimitive().isString()) {
 					throw new BadValueException(Constants.ConfigNames.REPLACEMENT, ent.getValue().toString());
-				}
-				IReplacementBuilder rb = OreSpawn.API.getReplacementBuilder();
-				for( JsonElement e : ent.getValue().getAsJsonArray() ) {
-					if(e.isJsonObject()) {
-						loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
-					} else {
-						OreSpawn.LOGGER.error("Skipping value %s in replacements list as it is not the correct format", e.toString());
+				} else if(ent.getValue().getAsJsonPrimitive().isString()) {
+					if(OreSpawn.API.hasReplacement(new ResourceLocation("orespawn", ent.getValue().getAsString()))) {
+						sb.setReplacement(OreSpawn.API.getReplacement(ent.getValue().getAsString()));
 					}
+				} else {
+					IReplacementBuilder rb = OreSpawn.API.getReplacementBuilder();
+					for( JsonElement e : ent.getValue().getAsJsonArray() ) {
+						if(e.isJsonObject()) {
+							loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
+						} else {
+							OreSpawn.LOGGER.error("Skipping value %s in replacements list as it is not the correct format", e.toString());
+						}
+					}
+					sb.setReplacement(rb.create());
 				}
-				sb.setReplacement(rb.create());
 				break;
 			case Constants.ConfigNames.BLOCK:
 				if (ent.getValue().isJsonArray()) {
@@ -308,7 +314,7 @@ public class OreSpawnReader {
 		}
 		
 		if (biomeList.has(Constants.ConfigNames.BLACKLIST) && 
-				biomeList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray().size() > 0) {
+				biomeList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray().size() > 0) {
 			for( JsonElement elem : biomeList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray() ) {
 				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
 					String xN = elem.getAsString();

@@ -22,7 +22,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 	
 	@Override
 	public IFeatureBuilder setFeature(String featureName) {
-		return this.setFeature(new ResourceLocation(featureName));
+		return this.setFeature(new ResourceLocation("orespawn", featureName));
 	}
 
 	@Override

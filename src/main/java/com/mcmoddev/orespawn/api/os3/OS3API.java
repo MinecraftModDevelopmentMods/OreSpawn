@@ -32,4 +32,8 @@ public interface OS3API {
 	public IFeature getFeature(String featureName);
 	public IFeature getFeature(ResourceLocation featureName);
 	public PresetsStorage copyPresets();
+	
+	public void loadConfigFiles();
+	public boolean hasReplacement(ResourceLocation resourceLocation);
+	public boolean hasReplacement(String name);
 }
