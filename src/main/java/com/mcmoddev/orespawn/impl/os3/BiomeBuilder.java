@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationAcceptAny;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationEmpty;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
@@ -64,14 +65,9 @@ public class BiomeBuilder implements IBiomeBuilder {
 	}
 
 	@Override
-	public BiomeLocationComposition create() {
+	public BiomeLocation create() {
 		if (this.acceptAll) {
-			return new BiomeLocationComposition(ImmutableSet.of(new BiomeLocationEmpty()),
-					ImmutableSet.of(new BiomeLocation() {
-						public boolean matches(Biome b) {
-							return true;
-						}
-					}));
+			return new BiomeLocationAcceptAny();
 		}
 		
 		ImmutableSet<BiomeLocation> whitelist;

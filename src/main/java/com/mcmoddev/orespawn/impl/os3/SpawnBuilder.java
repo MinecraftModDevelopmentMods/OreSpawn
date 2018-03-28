@@ -1,8 +1,8 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
-import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.util.StateUtil;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
@@ -19,7 +19,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	private boolean retrogen;
 	private IBlockList blocks;
 	private IFeatureEntry feature;
-	private BiomeLocationComposition biomes;
+	private BiomeLocation biomes;
 	private IDimensionList dimensions;
 	private IReplacementEntry replacements;
 	
@@ -47,7 +47,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	}
 
 	@Override
-	public ISpawnBuilder setBiomes(BiomeLocationComposition biomes) {
+	public ISpawnBuilder setBiomes(BiomeLocation biomes) {
 		this.biomes = biomes;
 		return this;
 	}

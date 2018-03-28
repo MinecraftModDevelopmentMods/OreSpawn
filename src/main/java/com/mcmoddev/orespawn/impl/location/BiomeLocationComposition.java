@@ -30,8 +30,17 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	public boolean matches(Biome biome) {
 		boolean inWhite = this.inclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
 		boolean inBlack = this.exclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
-
-		return !inBlack && inWhite;
+		if(this.inclusions.size() > 0 && this.exclusions.size() > 0) {
+			return !inBlack && inWhite;
+		} else if( this.inclusions.size() > 0 && this.exclusions.size() == 0) {
+			return inWhite;
+		} else if( this.inclusions.size() == 0 && this.exclusions.size() > 0) {
+			return !inBlack;
+		} else {
+			// both are empty! Mein Gott! Lets assume this was a mistake and the user actually
+			// wants all biomes allowed.
+			return true;
+		}
 	}
 
 	@Override

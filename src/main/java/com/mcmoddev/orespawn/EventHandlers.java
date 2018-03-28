@@ -175,7 +175,7 @@ public class EventHandlers {
 				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
 				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
 				for(String s : spawns) {
-					OreSpawn.API.getSpawn(s).generate(world, chunkGenerator, chunkProvider, p);
+					OreSpawn.API.getSpawn(s).generate(random, world, chunkGenerator, chunkProvider, p);
 				}
 			}
 

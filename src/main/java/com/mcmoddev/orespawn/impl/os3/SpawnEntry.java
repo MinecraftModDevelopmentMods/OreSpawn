@@ -1,11 +1,13 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import java.util.Random;
+
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
-import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
@@ -20,13 +22,13 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	private final IDimensionList dimensions;
 	private final IReplacementEntry replacements;
 	private final IBlockList blocks;
-	private final BiomeLocationComposition biomes;
+	private final BiomeLocation biomes;
 	private final IFeatureEntry feature;
 	private final boolean enabled;
 	private final boolean retrogen;
 	
 	public SpawnEntry(final String spawnName, final boolean enabled, final boolean retrogen,
-			final IDimensionList dimensions, final BiomeLocationComposition biomes,
+			final IDimensionList dimensions, final BiomeLocation biomes,
 			final IReplacementEntry replacements, final IBlockList blocks, 
 			final IFeatureEntry feature) {
 		this.spawnName = spawnName;
@@ -85,7 +87,8 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos) {
+	public void generate(Random random, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos) {
+		this.feature.getFeature().setRandom(random);
 		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}
 

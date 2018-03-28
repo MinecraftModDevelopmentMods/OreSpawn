@@ -7,6 +7,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 
+import java.util.Random;
+
 import com.mcmoddev.orespawn.api.IBlockList;
 
 public interface ISpawnEntry {
@@ -26,5 +28,5 @@ public interface ISpawnEntry {
 	public OreSpawnBlockMatcher getMatcher();
 	public IBlockList getBlocks();
 
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos);
+	public void generate(Random random, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos);
 }

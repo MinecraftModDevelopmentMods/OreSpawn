@@ -20,7 +20,11 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 		this.possibles.addAll(matches);
 	}
 	
+	private boolean has(final IBlockState bs) {
+		return this.possibles.stream().filter(bs::equals).count() > 0;
+	}
+	
 	public boolean test(final IBlockState other) {
-		return other != null && other.getBlock() != Blocks.AIR && possibles.contains(other);
+		return (other != null) && (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
 	}
 }

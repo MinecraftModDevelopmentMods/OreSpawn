@@ -47,7 +47,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 		Biome thisBiome = world.getBiome(coord);
 
-		if (!spawnData.biomeAllowed(thisBiome)) {
+		if (!spawnData.biomeAllowed(thisBiome.getRegistryName())) {
+			OreSpawn.LOGGER.fatal("biome of chunk containing %s (%s) is invalid for this spawn (%s)", coord, thisBiome.getRegistryName(), spawnData.getSpawnName());
 			return false;
 		}
 

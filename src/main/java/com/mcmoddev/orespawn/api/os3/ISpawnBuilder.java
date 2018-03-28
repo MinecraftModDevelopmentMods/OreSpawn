@@ -1,7 +1,7 @@
 package com.mcmoddev.orespawn.api.os3;
 
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IDimensionList;
-import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -10,7 +10,7 @@ import net.minecraft.util.ResourceLocation;
 public interface ISpawnBuilder {
 	public ISpawnBuilder setName(final String name);
 	public ISpawnBuilder setDimensions(final IDimensionList dimensions);
-	public ISpawnBuilder setBiomes(final BiomeLocationComposition biomes);
+	public ISpawnBuilder setBiomes(final BiomeLocation biomes);
 	public ISpawnBuilder setEnabled(final boolean enabled);
 	public ISpawnBuilder setRetrogen(final boolean retrogen);
 	public ISpawnBuilder setReplacement(final IReplacementEntry replacements);
