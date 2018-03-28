@@ -72,7 +72,7 @@
 				}
 			]
 		},
-		"gold_ore": {
+		"gold_ore_standard": {
 			"retrogen": false,
 			"enabled": true,
 			"feature": "default",
@@ -95,19 +95,41 @@
 				}
 			]
 		},
-		"diamond_ore": {
+		"gold_ore_mesa": {
 			"retrogen": false,
 			"enabled": true,
 			"feature": "default",
 			"replaces": "default",
 			"dimensions": [],
 			"biomes": {
+				"includes": [ "MESA" ]
+			},
+			"parameters": {
+				"size": 8,
+				"variation": 2,
+				"frequency": 2,
+				"minHeight": 32,
+				"maxHeight": 79
+			},
+			"blocks": [
+				{
+					"name": "minecraft:gold_ore",
+					"chance": 100
+				}
+			]
+		},
+		"diamond_ore": {
+			"retrogen": false,
+			"enabled": true,
+			"feature": "precision",
+			"replaces": "default",
+			"dimensions": [],
+			"biomes": {
 				"excludes": []
 			},
 			"parameters": {
-				"size": 6,
-				"variation": 3,
-				"frequency": 8,
+				"size": 3,
+				"numObjects": 2,
 				"minHeight": 0,
 				"maxHeight": 16
 			},
@@ -143,7 +165,7 @@
 		},
 		"lapis_ore": {
 			"retrogen": false,
-			"enabled": true,
+			"enabled": false,
 			"feature": "default",
 			"replaces": "default",
 			"dimensions": [],
@@ -171,7 +193,7 @@
 			"replaces": "default",
 			"dimensions": [],
 			"biomes": {
-				"excludes": []
+				"includes": [ "MOUNTAIN" ]
 			},
 			"parameters": {
 				"size": 1,
@@ -234,7 +256,7 @@
 				}
 			]
 		},
-		"stone": {
+		"andesite": {
 			"retrogen": false,
 			"enabled": true,
 			"feature": "default",
@@ -255,6 +277,54 @@
 					"name": "minecraft:stone",
 					"chance": 100,
 					"state": "variant=andesite"
+				}
+			]
+		},
+		"diorite": {
+			"retrogen": false,
+			"enabled": true,
+			"feature": "default",
+			"replaces": "default",
+			"dimensions": [],
+			"biomes": {
+				"excludes": []
+			},
+			"parameters": {
+				"size": 112,
+				"variation": 50,
+				"frequency": 10,
+				"minHeight": 0,
+				"maxHeight": 255
+			},
+			"blocks": [
+				{
+					"name": "minecraft:stone",
+					"chance": 100,
+					"state": "variant=diorite"
+				}
+			]
+		},
+		"granite": {
+			"retrogen": false,
+			"enabled": true,
+			"feature": "default",
+			"replaces": "default",
+			"dimensions": [],
+			"biomes": {
+				"excludes": []
+			},
+			"parameters": {
+				"size": 112,
+				"variation": 50,
+				"frequency": 10,
+				"minHeight": 0,
+				"maxHeight": 255
+			},
+			"blocks": [
+				{
+					"name": "minecraft:stone",
+					"chance": 100,
+					"state": "variant=granite"
 				}
 			]
 		}
