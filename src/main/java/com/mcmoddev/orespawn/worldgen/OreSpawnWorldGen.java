@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.worldgen;
 
 import java.util.*;
+
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
@@ -12,6 +13,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
 
 public class OreSpawnWorldGen implements IWorldGenerator {
+	
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
 	    IChunkProvider chunkProvider) {
@@ -20,10 +22,16 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		
 		OreSpawn.API.getSpawns(thisDim).stream()
 		.filter(spawn -> spawn.isEnabled())
-		.filter(spawn -> (spawn.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) 
-				|| (!Config.getBoolean(Constants.RETROGEN_KEY)))
+		.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY) || (sb.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
+		.forEach(sp -> {
+			OreSpawn.LOGGER.fatal("Spawn %s in dimension %s dump:", sp.getSpawnName(), thisDim);
+			sp.getBlocks().dump();
+		});
+		OreSpawn.API.getSpawns(thisDim).stream()
+		.filter(spawn -> spawn.isEnabled())
+		.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY) || (sb.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
 		.forEach(spawn -> {
-			spawn.generate(world, chunkGenerator, chunkProvider, new ChunkPos(chunkX, chunkZ));
+				spawn.generate(world, chunkGenerator, chunkProvider, new ChunkPos(chunkX, chunkZ));
 		});
 	}
 }

@@ -10,4 +10,5 @@ public interface IBlockList {
 	public void addBlock(IBlockDefinition block);
 	public IBlockState getRandomBlock(Random rand);
 	public void startNewSpawn();
+	public void dump();
 }

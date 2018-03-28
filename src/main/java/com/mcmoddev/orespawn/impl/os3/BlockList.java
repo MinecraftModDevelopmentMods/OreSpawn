@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 
@@ -46,6 +47,13 @@ public class BlockList implements IBlockList {
 				this.workingList.add(b.getBlock());
 			}
 		});
+	}
+
+	@Override
+	public void dump() {
+		this.myBlocks.stream()
+		.map(bd -> bd.getBlock())
+		.forEach(bs -> OreSpawn.LOGGER.fatal("Block %s (with state: %s)", bs.getBlock(), bs));
 	}
 
 }
