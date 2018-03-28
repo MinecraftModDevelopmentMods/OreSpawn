@@ -184,7 +184,7 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public boolean featureExists(String featureName) {
-		return this.featureExists(new ResourceLocation(featureName));
+		return this.featureExists(new ResourceLocation(featureName.contains(":")?featureName:String.format("orespawn:%s", featureName)));
 	}
 	
 	@Override
@@ -216,12 +216,12 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public boolean hasReplacement(ResourceLocation resourceLocation) {
-		return this.replacements.has(resourceLocation);
+		return replacements.has(resourceLocation);
 	}
 
 	@Override
 	public boolean hasReplacement(String name) {
-		return this.hasReplacement(new ResourceLocation("orespawn", name));
+		return this.hasReplacement(new ResourceLocation(name.contains(":")?name:String.format("orespawn:%s", name)));
 	}
 
 }

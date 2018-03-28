@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.data.ReplacementsRegistry;
-import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;

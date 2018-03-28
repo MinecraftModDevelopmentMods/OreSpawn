@@ -7,7 +7,6 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.util.StateUtil;
-import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;

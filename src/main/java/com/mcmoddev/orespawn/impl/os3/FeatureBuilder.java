@@ -6,7 +6,6 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.IFeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
-import com.mcmoddev.orespawn.data.FeatureRegistry;
 
 import net.minecraft.util.ResourceLocation;
 

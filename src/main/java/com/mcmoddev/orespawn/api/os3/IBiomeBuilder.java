@@ -1,6 +1,5 @@
 package com.mcmoddev.orespawn.api.os3;
 
-import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 
 import net.minecraft.util.ResourceLocation;

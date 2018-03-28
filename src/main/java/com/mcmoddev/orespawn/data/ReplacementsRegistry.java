@@ -39,7 +39,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 
 public class ReplacementsRegistry {
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
@@ -80,10 +79,11 @@ public class ReplacementsRegistry {
 	}
 
 	public IReplacementEntry getReplacement(String name) {
-		if (registry.containsKey(new ResourceLocation(name))) {
-			return registry.getValue(new ResourceLocation(name));
+		ResourceLocation act = new ResourceLocation(name.contains(":")?name:String.format("orespawn:%s", name));
+		if (registry.containsKey(act)) {
+			return registry.getValue(act);
 		} else {
-			return registry.getValue(new ResourceLocation("default"));
+			return registry.getValue(new ResourceLocation("orespawn:default"));
 		}
 	}
 
@@ -211,15 +211,6 @@ public class ReplacementsRegistry {
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
-	}
-	
-	private static String getModName(String baseName) {
-		if(baseName.indexOf("-") > 0) {
-			String[] bits = baseName.split("-");
-			return bits[1];
-		}
-		
-		return baseName;
 	}
 
 	public boolean has(ResourceLocation resourceLocation) {

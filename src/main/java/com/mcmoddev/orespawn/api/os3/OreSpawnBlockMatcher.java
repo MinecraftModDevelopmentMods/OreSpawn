@@ -2,11 +2,11 @@ package com.mcmoddev.orespawn.api.os3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 
 public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 	private final List<IBlockState> possibles;
@@ -17,10 +17,10 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 	
 	public OreSpawnBlockMatcher(final List<IBlockState> matches) {
 		this.possibles = new ArrayList<>();
-		Collections.copy(this.possibles, matches);
+		this.possibles.addAll(matches);
 	}
 	
 	public boolean test(final IBlockState other) {
-		return other != null && possibles.contains(other);
+		return other != null && other.getBlock() != Blocks.AIR && possibles.contains(other);
 	}
 }

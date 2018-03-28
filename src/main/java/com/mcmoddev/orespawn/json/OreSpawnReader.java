@@ -170,18 +170,15 @@ public class OreSpawnReader {
 				break;
 			case Constants.ConfigNames.DIMENSIONS:
 				IDimensionBuilder db = OreSpawn.API.getDimensionBuilder();
-				OreSpawn.LOGGER.fatal("Dimensions Tag: %s", ent.getValue());
 				if (ent.getValue().isJsonArray()) {
 					JsonArray dims = ent.getValue().getAsJsonArray();
 					if(dims.size() == 0) {
 						// blank list, accept all overworld
-						OreSpawn.LOGGER.fatal("Empty Dimensions Array, setting to accept all overworld");
 						db.setAcceptAllOverworld();
 					} else {
 						dims.forEach(item -> {
 							if (item.isJsonPrimitive() &&
 									item.getAsJsonPrimitive().isNumber()) {
-								OreSpawn.LOGGER.fatal("Adding %d to the whitelist", item.getAsInt());
 								db.addWhitelistEntry(item.getAsInt());
 							}
 						});
@@ -207,7 +204,7 @@ public class OreSpawnReader {
 					throw new BadValueException(Constants.ConfigNames.FEATURE, ent.getValue().toString());
 				}
 				String featureName = ent.getValue().getAsString();
-				if(!OreSpawn.API.featureExists(new ResourceLocation("orespawn", featureName))) {
+				if(!OreSpawn.API.featureExists(featureName)) {
 					throw new UnknownNameException(Constants.ConfigNames.FEATURE, featureName);
 				}
 				fb.setFeature(featureName);
@@ -216,7 +213,7 @@ public class OreSpawnReader {
 				if(!ent.getValue().isJsonArray() && !ent.getValue().getAsJsonPrimitive().isString()) {
 					throw new BadValueException(Constants.ConfigNames.REPLACEMENT, ent.getValue().toString());
 				} else if(ent.getValue().getAsJsonPrimitive().isString()) {
-					if(OreSpawn.API.hasReplacement(new ResourceLocation("orespawn", ent.getValue().getAsString()))) {
+					if(OreSpawn.API.hasReplacement(ent.getValue().getAsString())) {
 						sb.setReplacement(OreSpawn.API.getReplacement(ent.getValue().getAsString()));
 					}
 				} else {
@@ -266,8 +263,9 @@ public class OreSpawnReader {
 			default:
 				throw new UnknownFieldException(ent.getKey());
 			}
-			OreSpawn.API.addSpawn(sb.create());
 		}
+		sb.setFeature(fb.create());
+		OreSpawn.API.addSpawn(sb.create());
 	}
 
 	private static List<IBlockState> loadBlock(JsonObject json) {
