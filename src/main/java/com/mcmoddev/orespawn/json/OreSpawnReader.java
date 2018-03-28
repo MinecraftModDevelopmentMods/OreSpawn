@@ -78,6 +78,7 @@ public class OreSpawnReader {
 			spawnData.entrySet().stream()
 			.forEach(e -> {
 				try {
+					OreSpawn.API.mapEntryToFile(conf, e.getKey());
 					loadSingleEntry(e);
 				} catch (UnknownFieldException | BadValueException | UnknownNameException e1) {
 					CrashReport report = CrashReport.makeCrashReport(e1, "Error parsing an entry " + e.getKey() + " in " + conf.toString());

@@ -9,7 +9,9 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 import java.util.Random;
 
+import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
+import com.mcmoddev.orespawn.api.IDimensionList;
 
 public interface ISpawnEntry {
 	default public boolean isEnabled() {
@@ -29,4 +31,7 @@ public interface ISpawnEntry {
 	public IBlockList getBlocks();
 
 	public void generate(Random random, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos);
+
+	public IDimensionList getDimensions();
+	public BiomeLocation getBiomes();
 }

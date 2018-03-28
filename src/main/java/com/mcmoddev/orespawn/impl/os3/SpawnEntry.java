@@ -92,4 +92,14 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}
 
+	@Override
+	public IDimensionList getDimensions() {
+		return this.dimensions;
+	}
+
+	@Override
+	public BiomeLocation getBiomes() {
+		return this.biomes;
+	}
+
 }

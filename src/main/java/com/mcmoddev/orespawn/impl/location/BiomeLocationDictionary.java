@@ -1,6 +1,8 @@
 package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
@@ -37,5 +39,10 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 	@Override
 	public ImmutableList<Biome> getBiomes() {
 		return ImmutableList.copyOf(BiomeDictionary.getBiomes(this.type));
+	}
+
+	@Override
+	public JsonElement serialize() {
+		return new JsonPrimitive(this.type.toString().toUpperCase());
 	}
 }

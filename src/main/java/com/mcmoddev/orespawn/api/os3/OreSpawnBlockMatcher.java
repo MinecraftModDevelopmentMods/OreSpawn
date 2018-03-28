@@ -5,6 +5,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.util.StateUtil;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 
@@ -26,5 +31,22 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 	
 	public boolean test(final IBlockState other) {
 		return (other != null) && (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
+	}
+	
+	public JsonArray serialize() {
+		JsonArray rv = new JsonArray();
+		
+		possibles.stream()
+		.forEach(bs -> {
+			JsonObject t = new JsonObject();
+			t.addProperty(Constants.ConfigNames.NAME, bs.getBlock().getRegistryName().toString());
+			if(!bs.equals(bs.getBlock().getDefaultState())) {
+				String state = StateUtil.serializeState(bs);
+				t.addProperty(Constants.ConfigNames.STATE, state);
+			}
+			rv.add(t);
+		});
+		
+		return rv;
 	}
 }

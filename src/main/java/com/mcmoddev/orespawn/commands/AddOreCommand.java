@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 import com.mcmoddev.orespawn.json.OreSpawnReader;
+import com.mcmoddev.orespawn.json.OreSpawnWriter;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
@@ -57,6 +58,7 @@ public class AddOreCommand extends CommandBase {
 		JsonParser p = new JsonParser();
 		JsonElement parsed = mergeDefaults(p.parse(rawData), state);
 		OreSpawnReader.loadFromJson(FilenameUtils.getBaseName(file), parsed);
+		OreSpawnWriter.saveSingle(FilenameUtils.getBaseName(file));
 	}
 	
 	private JsonElement mergeDefaults(JsonElement parse, IBlockState state) {

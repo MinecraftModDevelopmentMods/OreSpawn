@@ -9,6 +9,7 @@ import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationAcceptAny;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationEmpty;
+import com.mcmoddev.orespawn.impl.location.BiomeLocationList;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationSingle;
 import com.mcmoddev.orespawn.api.os3.IBiomeBuilder;
 
@@ -69,29 +70,27 @@ public class BiomeBuilder implements IBiomeBuilder {
 		if (this.acceptAll) {
 			return new BiomeLocationAcceptAny();
 		}
-		
-		ImmutableSet<BiomeLocation> whitelist;
-		ImmutableSet<BiomeLocation> blacklist;
+
+		BiomeLocation whitelist;
+		BiomeLocation blacklist;
 		if (this.whitelist.size() == 0) {
-			whitelist = ImmutableSet.of(new BiomeLocationEmpty());
+			whitelist = new BiomeLocationEmpty();
 		} else {
-			whitelist = ImmutableSet.<BiomeLocation>copyOf(
-				this.whitelist.stream()
-				.map( biome -> new BiomeLocationSingle(biome) )
-				.collect(Collectors.toList()));
+			whitelist = new BiomeLocationList(					
+					ImmutableSet.<BiomeLocation>copyOf(
+							this.whitelist.stream()
+							.map( biome -> new BiomeLocationSingle(biome) )
+							.collect(Collectors.toList())) );
 		}
-		
+
 		if (this.blacklist.size() == 0) {
-			blacklist = ImmutableSet.of(new BiomeLocation() {
-				public boolean matches(Biome b) {
-					return true;
-				}
-			});
+			blacklist = new BiomeLocationAcceptAny();
 		} else {
-			blacklist = ImmutableSet.<BiomeLocation>copyOf(
-				this.blacklist.stream()
-				.map( biome -> new BiomeLocationSingle(biome) )
-				.collect(Collectors.toList()));
+			blacklist = new BiomeLocationList(
+					ImmutableSet.<BiomeLocation>copyOf(
+							this.blacklist.stream()
+							.map( biome -> new BiomeLocationSingle(biome) )
+							.collect(Collectors.toList())));
 		}
 
 		return new BiomeLocationComposition(whitelist, blacklist);

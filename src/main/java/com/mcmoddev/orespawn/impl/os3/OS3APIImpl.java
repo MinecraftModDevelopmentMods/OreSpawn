@@ -5,15 +5,19 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.exceptions.MissingVersionException;
@@ -45,6 +49,7 @@ public class OS3APIImpl implements OS3API {
 	private static final ReplacementsRegistry replacements;
 	private static final PresetsStorage presets;
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
+	private static final Map<String, Path> spawnsToSourceFiles = new TreeMap<>();
 	
 	static {
 		spawns = new ConcurrentHashMap<>();
@@ -222,6 +227,36 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public boolean hasReplacement(String name) {
 		return this.hasReplacement(new ResourceLocation(name.contains(":")?name:String.format("orespawn:%s", name)));
+	}
+
+	@Override
+	public void mapEntryToFile(Path p, String entryName) {
+		spawnsToSourceFiles.put(entryName, p);
+	}
+
+	@Override
+	public List<String> getSpawnsForFile(String fileName) {
+		Path p = Constants.CONFDIR.resolve(fileName);
+		List<String> values = spawnsToSourceFiles.entrySet().stream()
+				.filter(ent -> ent.getValue().equals(p))
+				.map(ent -> ent.getKey())
+				.collect(Collectors.toList());
+		return ImmutableList.copyOf(values);
+	}
+
+	@Override
+	public Map<Path, List<String>> getSpawnsByFile() {
+		Map<Path, List<String>> temp = new HashMap<>();
+		spawnsToSourceFiles.entrySet().stream()
+		.forEach(ent -> {
+			if(temp.containsKey(ent.getValue())) {
+				temp.get(ent.getValue()).add(ent.getKey());
+			} else {
+				temp.put(ent.getValue(), Lists.newLinkedList(Arrays.asList(ent.getKey())));
+			}
+		});
+		
+		return ImmutableMap.copyOf(temp);
 	}
 
 }

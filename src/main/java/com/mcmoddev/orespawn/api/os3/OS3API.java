@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.api.os3;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -36,4 +37,7 @@ public interface OS3API {
 	public void loadConfigFiles();
 	public boolean hasReplacement(ResourceLocation resourceLocation);
 	public boolean hasReplacement(String name);
+	public void mapEntryToFile(Path p, String entryName);
+	public List<String> getSpawnsForFile(String fileName);
+	public Map<Path,List<String>> getSpawnsByFile();
 }
