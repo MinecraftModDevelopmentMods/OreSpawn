@@ -1,22 +1,21 @@
 package com.mcmoddev.orespawn.api;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
-import com.mcmoddev.orespawn.util.OreList;
+import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
+import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.*;
 import java.util.Map.Entry;
 
-public class FeatureBase {
+public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	private static final int MAX_CACHE_SIZE = 2048;
 	/** overflow cache so that ores that spawn at edge of chunk can
 	 * appear in the neighboring chunk without triggering a chunk-load */
@@ -28,19 +27,19 @@ public class FeatureBase {
 		this.random = rand;
 	}
 
-	protected void runCache(int chunkX, int chunkZ, World world, List<IBlockState> blockReplace) {
+	protected void runCache(int chunkX, int chunkZ, World world, OreSpawnBlockMatcher replacer) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
 
 		if (!cache.isEmpty()) {  // if there is something in the cache, try to spawn it
 			for (Entry<BlockPos, IBlockState> ent : cache.entrySet()) {
-				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), blockReplace);
+				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), replacer);
 			}
 		}
 	}
 
 	protected boolean spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension, boolean cacheOverflow,
-	    List<IBlockState> blockReplace, BiomeLocation biomes) {
+			ISpawnEntry spawnData) {
 		if (oreBlock == null) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return false;
@@ -48,7 +47,8 @@ public class FeatureBase {
 
 		Biome thisBiome = world.getBiome(coord);
 
-		if (!biomes.matches(thisBiome) && !biomes.getBiomes().isEmpty()) {
+		if (!spawnData.biomeAllowed(thisBiome.getRegistryName())) {
+			OreSpawn.LOGGER.fatal("biome of chunk containing %s (%s) is invalid for this spawn (%s)", coord, thisBiome.getRegistryName(), spawnData.getSpawnName());
 			return false;
 		}
 
@@ -59,7 +59,7 @@ public class FeatureBase {
 			return false;
 		}
 
-		return spawnOrCache(world, np, blockReplace, oreBlock, cacheOverflow, dimension);
+		return spawnOrCache(world, np, spawnData.getMatcher(), oreBlock, cacheOverflow, dimension);
 	}
 
 	private BlockPos mungeFixYcoord(BlockPos coord) {
@@ -71,11 +71,11 @@ public class FeatureBase {
 		}
 	}
 
-	private boolean spawnOrCache(World world, BlockPos coord, List<IBlockState> blockReplace, IBlockState oreBlock, boolean cacheOverflow, int dimension) {
+	private boolean spawnOrCache(World world, BlockPos coord, OreSpawnBlockMatcher replacer, IBlockState oreBlock, boolean cacheOverflow, int dimension) {
 		if (world.isBlockLoaded(coord)) {
 			IBlockState targetBlock = world.getBlockState(coord);
 
-			if (canReplace(targetBlock, blockReplace)) {
+			if (replacer.test(targetBlock)) {
 				world.setBlockState(coord, oreBlock);
 				return true;
 			} else {
@@ -90,7 +90,7 @@ public class FeatureBase {
 	}
 
 	private void spawnNoCheck(IBlockState oreBlock, World world, BlockPos coord, int dimension,
-	    List<IBlockState> blockReplace) {
+	    OreSpawnBlockMatcher replacer) {
 		if (oreBlock == null) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return;
@@ -103,7 +103,7 @@ public class FeatureBase {
 			return;
 		}
 
-		spawnOrCache(world, np, blockReplace, oreBlock, false, dimension);
+		spawnOrCache(world, np, replacer, oreBlock, false, dimension);
 	}
 
 	private void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension) {
@@ -143,10 +143,6 @@ public class FeatureBase {
 			target[i] = target[n];
 			target[n] = temp;
 		}
-	}
-
-	private boolean canReplace(IBlockState target, List<IBlockState> blockToReplace) {
-		return !target.getBlock().equals(Blocks.AIR) && blockToReplace.contains(target);
 	}
 
 	protected static final Vec3i[] offsets_small = {
@@ -198,15 +194,15 @@ public class FeatureBase {
 	}
 
 	protected void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+			OreSpawnBlockMatcher replacer, int count, IBlockList possibleOres) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension());
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -219,15 +215,15 @@ public class FeatureBase {
 
 
 	protected void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			List<IBlockState> replaceBlock, int count, OreList possibleOres) {
+			OreSpawnBlockMatcher replacer, int count, IBlockList possibleOres) {
 		Random prng = this.random;
 		int quantity = count;
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
-						IBlockState oreBlock = possibleOres.getRandomOre(prng).getOre();
-						spawnOrCache(world,blockPos.add(dx,dy,dz),replaceBlock, oreBlock, true, world.provider.getDimension());
+						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension());
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -258,7 +254,7 @@ public class FeatureBase {
 		private World world;
 		private BlockPos blockPos;
 		private List<IBlockState> replacements;
-		private OreList ores;
+		private IBlockList blocks;
 		private BiomeLocation biomes;
 		private ChunkPos chunkPos;
 		private IBlockState block;
@@ -269,7 +265,7 @@ public class FeatureBase {
 			world = other.getWorld();
 			blockPos = other.getBlockPos();
 			replacements = other.getReplacements();
-			ores = other.getOres();
+			blocks = other.getOres();
 			biomes = other.getBiomes();
 			chunkPos = other.getChunkPos();
 			block = other.getBlock();
@@ -307,12 +303,12 @@ public class FeatureBase {
 			this.replacements = replacements;
 		}
 
-		public OreList getOres() {
-			return ores;
+		public IBlockList getOres() {
+			return blocks;
 		}
 
-		public void setOres(OreList ores) {
-			this.ores = ores;
+		public void setOres(IBlockList ores) {
+			this.blocks = ores;
 		}
 
 		public ChunkPos getChunkPos() {

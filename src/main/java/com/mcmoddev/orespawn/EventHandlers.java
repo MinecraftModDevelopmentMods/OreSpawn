@@ -1,27 +1,28 @@
 package com.mcmoddev.orespawn;
 
-import java.util.LinkedList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
-import com.mcmoddev.orespawn.api.os3.BuilderLogic;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
-import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
-import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.gen.ChunkProviderServer;
 import net.minecraftforge.event.terraingen.OreGenEvent;
@@ -36,12 +37,12 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
-	private Deque<ChunkPos> chunks;
 	private Deque<ChunkPos> retroChunks;
+	private Map<ChunkPos, List<String>> chunks;
 
 	EventHandlers() {
-		chunks = new ConcurrentLinkedDeque<>();
 		retroChunks = new ConcurrentLinkedDeque<>();
+		chunks = new ConcurrentHashMap<>();
 	}
 
 	private List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT,
@@ -58,47 +59,22 @@ public class EventHandlers {
 	@SubscribeEvent
 	public void onChunkSave(ChunkDataEvent.Save ev) {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
-		NBTTagList ores = new NBTTagList();
-		NBTTagList features = new NBTTagList();
-
-		features.appendTag(new NBTTagString("orespawn:default"));
-
-		List<DimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
-		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(ev.getWorld().provider.getDimension()))
-		    .map(ent -> ent.getValue().getDimension(ev.getWorld().provider.getDimension()))
-		    .collect(Collectors.toList());
-
-		if (ev.getWorld().provider.getDimension() > 0 && ev.getWorld().provider.getDimension() != 1) {
-			spawns.addAll(OreSpawn.API.getSpawns().entrySet().stream()
-			    .filter(ent -> ent.getValue().getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard()))
-			    .map(ent -> ent.getValue().getDimension(OreSpawn.API.dimensionWildcard()))
-			    .collect(Collectors.toList()));
-		}
-
-		List<SpawnBuilder> spc = new LinkedList<>();
-		List<OreBuilder> oreList = new LinkedList<>();
-		spawns.stream().map(DimensionBuilder::getAllSpawns).forEach(spc::addAll);
-		spc.stream().map(SpawnBuilder::getOres).forEach(oreList::addAll);
-
-		oreList.stream()
-		.map(oreEnt -> new NBTTagString(oreEnt.getOre().getBlock().getRegistryName().toString()))
-		.forEach(ores::appendTag);
-
-		List<FeatureBuilder> featureList = new LinkedList<>();
-
-		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(SpawnBuilder::getFeatureGen).collect(Collectors.toList())));
-
-		featureList.stream()
-		.map(feat -> new NBTTagString(feat.getFeatureName()))
-		.forEach(features::appendTag);
-
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
-
-		if (!Config.getBoolean(Constants.RETROGEN_KEY) || chunks.contains(chunkCoords)) {
-			dataTag.setTag(Constants.ORE_TAG, ores);
-			dataTag.setTag(Constants.FEATURES_TAG, features);
-		}
-
+		NBTTagCompound features = new NBTTagCompound();
+		
+		// save a list of the spawns that were configured and available - in this dimension - when the chunk
+		// was first generated.
+		
+		// collect that data
+		int thisDimension = ev.getWorld().provider.getDimension();
+		BlockPos thisPos = new BlockPos( ev.getChunk().x+8, 128, ev.getChunk().z+8 );
+		Biome thisBiome = ev.getChunk().getBiome(thisPos, ev.getWorld().getBiomeProvider());
+		
+		OreSpawn.API.getAllSpawns().entrySet().stream()
+		.filter( ent -> ent.getValue().dimensionAllowed(thisDimension) )
+		.filter( ent -> ent.getValue().biomeAllowed(thisBiome) )
+		.forEach( ent -> features.setString(ent.getKey(), ent.getValue().getFeature().getFeatureName()) );
+		dataTag.setTag(Constants.FEATURES_TAG, features);
+		
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 
@@ -109,43 +85,63 @@ public class EventHandlers {
 
 		doBedrockRetrogen(chunkCoords);
 
-		if (chunks.contains(chunkCoords)) {
+		if (chunks.containsKey(chunkCoords)) {
 			return;
 		}
 
 		if (Config.getBoolean(Constants.RETROGEN_KEY)) {
 			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
+			int thisDimension = world.provider.getDimension();
+			BlockPos thisPos = new BlockPos( ev.getChunk().x+8, 128, ev.getChunk().z+8 );
+			Biome thisBiome = ev.getChunk().getBiome(thisPos, world.getBiomeProvider());
 
-			if (featuresAreDifferent(chunkTag, world.provider.getDimension()) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
-				chunks.addLast(chunkCoords);
+			if (featuresAreDifferent(chunkTag, thisDimension, thisBiome) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
+				chunks.put(chunkCoords, getDifferingTags(chunkTag, thisDimension, thisBiome));
 			}
 		}
 	}
 
+	private List<String> getDifferingTags(NBTTagCompound chunkTag, int dim, Biome biome) {
+		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
+		Map<String,String> currentBits = new TreeMap<>();
+		Map<String,String> oldBits = new TreeMap<>();
+		
+		OreSpawn.API.getAllSpawns().entrySet().stream()
+		.filter( ent -> ent.getValue().dimensionAllowed(dim) )
+		.filter( ent -> ent.getValue().biomeAllowed(biome) )
+		.forEach( ent -> currentBits.put(ent.getKey(), ent.getValue().getFeature().getFeatureName()) );
 
-	private boolean featuresAreDifferent(NBTTagCompound chunkTag, int dim) {
-		return ((countOres(dim) != chunkTag.getTagList(Constants.ORE_TAG, 8).tagCount()) ||
-		        compFeatures(chunkTag.getTagList(Constants.FEATURES_TAG, 8), dim));
+		tagList.getKeySet().stream()
+		.forEach( tag -> oldBits.put(tag, tagList.getString(tag)));
+		
+		MapDifference<String,String> diff = Maps.difference(oldBits, currentBits);
+		
+		List<String> stuff = Lists.newLinkedList();
+		stuff.addAll(diff.entriesDiffering().entrySet()
+				.stream().map(ent -> ent.getKey()).collect(Collectors.toList()));
+		stuff.addAll(diff.entriesOnlyOnRight().entrySet()
+				.stream().map(ent -> ent.getKey()).collect(Collectors.toList()));
+		return ImmutableList.copyOf(stuff);
 	}
 
-	private boolean compFeatures(NBTTagList tagList, int dim) {
-		List<DimensionBuilder> spawns = OreSpawn.API.getSpawns().entrySet().stream()
-		    .filter(ent -> ent.getValue().getAllDimensions().containsKey(dim))
-		    .map(ent -> ent.getValue().getDimension(dim))
-		    .collect(Collectors.toList());
+	private boolean featuresAreDifferent(NBTTagCompound chunkTag, int dim, Biome biome) {
+		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
+		Map<String,String> currentBits = new TreeMap<>();
+		Map<String,String> oldBits = new TreeMap<>();
+		
+		OreSpawn.API.getAllSpawns().entrySet().stream()
+		.filter( ent -> ent.getValue().dimensionAllowed(dim) )
+		.filter( ent -> ent.getValue().biomeAllowed(biome) )
+		.forEach( ent -> currentBits.put(ent.getKey(), ent.getValue().getFeature().getFeatureName()) );
 
-		if (dim > 0 && dim != 1) {
-			spawns.addAll(OreSpawn.API.getSpawns().entrySet().stream()
-			    .filter(ent -> ent.getValue().getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard()))
-			    .map(ent -> ent.getValue().getDimension(OreSpawn.API.dimensionWildcard()))
-			    .collect(Collectors.toList()));
-		}
+		tagList.getKeySet().stream()
+		.forEach( tag -> oldBits.put(tag, tagList.getString(tag)));
+		
+		MapDifference<String,String> diff = Maps.difference(oldBits, currentBits);
 
-		List<FeatureBuilder> featureList = new LinkedList<>();
-
-		spawns.forEach(sp -> featureList.addAll(sp.getAllSpawns().stream().map(SpawnBuilder::getFeatureGen).collect(Collectors.toList())));
-
-		return featureList.size() == tagList.tagCount();
+		return diff.entriesDiffering().size() == 0 && 
+				diff.entriesOnlyOnLeft().size() == 0 && 
+				diff.entriesOnlyOnRight().size() == 0;
 	}
 
 	private void doBedrockRetrogen(ChunkPos chunkCoords) {
@@ -158,22 +154,6 @@ public class EventHandlers {
 		}
 	}
 
-	private int countOres(int dim) {
-		int acc = 0;
-
-		for (Entry<String, BuilderLogic> sL : OreSpawn.API.getSpawns().entrySet()) {
-			if (sL.getValue().getAllDimensions().containsKey(dim)) {
-				acc += sL.getValue().getAllDimensions().get(dim).getAllSpawns().size();
-			}
-
-			if (sL.getValue().getAllDimensions().containsKey(OreSpawn.API.dimensionWildcard())) {
-				acc += sL.getValue().getAllDimensions().get(OreSpawn.API.dimensionWildcard()).getAllSpawns().size();
-			}
-		}
-
-		return acc;
-	}
-
 	@SubscribeEvent
 	public void worldTick(WorldTickEvent ev) {
 		if (ev.side != Side.SERVER) {
@@ -181,16 +161,22 @@ public class EventHandlers {
 		}
 
 		World world = ev.world;
-
+		
 		if (ev.phase == Phase.END) {
+			Deque<ChunkPos> keys = Queues.newArrayDeque(chunks.keySet());
+
 			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
-				ChunkPos p = chunks.pop();
+				ChunkPos p = keys.pop();
+				List<String> spawns = chunks.remove(p);
+				
 				Random random = new Random(world.getSeed());
 				// re-seed with something totally new :P
 				random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z)) ^ world.getSeed());
 				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
 				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-				OreSpawn.API.getGenerator().generate(random, p.x, p.z, world, chunkGenerator, chunkProvider);
+				for(String s : spawns) {
+					OreSpawn.API.getSpawn(s).generate(random, world, chunkGenerator, chunkProvider, p);
+				}
 			}
 
 			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {

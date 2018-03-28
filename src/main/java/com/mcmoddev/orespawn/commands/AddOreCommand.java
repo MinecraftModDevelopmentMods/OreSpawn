@@ -2,14 +2,12 @@ package com.mcmoddev.orespawn.commands;
 
 import com.google.gson.*;
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
-import com.mcmoddev.orespawn.api.os3.DimensionBuilder;
-import com.mcmoddev.orespawn.api.os3.FeatureBuilder;
-import com.mcmoddev.orespawn.api.os3.OreBuilder;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
-import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.data.Constants.ConfigNames;
+import com.mcmoddev.orespawn.json.OreSpawnReader;
+import com.mcmoddev.orespawn.json.OreSpawnWriter;
 import com.mcmoddev.orespawn.util.StateUtil;
+
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -20,14 +18,10 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.text.TextComponentString;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
+import org.apache.commons.io.FilenameUtils;
 
 public class AddOreCommand extends CommandBase {
-	private static final String ALL = "all";
 
 	@Override
 	public String getName() {
@@ -36,7 +30,7 @@ public class AddOreCommand extends CommandBase {
 
 	@Override
 	public String getUsage(ICommandSender sender) {
-		return "/addore <file> <dimension|all> <options>";
+		return "/addore <file> <options - json data>";
 	}
 
 	@Override
@@ -47,7 +41,6 @@ public class AddOreCommand extends CommandBase {
 
 		EntityPlayer player = (EntityPlayer) sender;
 		ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-		String jsonArgs = null;
 
 		if (stack == null) {
 			throw new CommandException("You have no item in your main hand");
@@ -55,93 +48,40 @@ public class AddOreCommand extends CommandBase {
 			throw new CommandException("The item in your main hand isn't a block");
 		} else if (args.length < 2) {
 			throw new CommandException(this.getUsage(sender));
-		} else if (args.length > 2) {
-			jsonArgs = getChatComponentFromNthArg(sender, args, 2).getUnformattedText();
 		}
 
 		String file = args[0];
 		@SuppressWarnings("deprecation")
-		IBlockState state = ((ItemBlock) stack.getItem()).getBlock().getStateFromMeta(stack.getItemDamage());
+		IBlockState state = Block.getBlockFromItem(stack.getItem()).getStateFromMeta(stack.getItemDamage());
 
-		int dimension = OreSpawn.API.dimensionWildcard();
-
-		try {
-			if (!args[1].equalsIgnoreCase(ALL)) {
-				dimension = Integer.parseInt(args[1]);
-			}
-		} catch (NumberFormatException e) {
-			throw new CommandException(args[1] + " isn't a valid dimension");
-		}
-
-
-		JsonObject ore = new JsonObject();
-		JsonObject oreArgs = null;
-		int size = 25;
-		int variation = 12;
-		int frequency = 20;
-		int minHeight = 0;
-		int maxHeight = 128;
-
-		oreArgs = new JsonObject();
-		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.SIZE, size);
-		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.VARIATION, variation);
-		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.FREQUENCY, frequency);
-		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MINHEIGHT, minHeight);
-		oreArgs.addProperty(ConfigNames.DefaultFeatureProperties.MAXHEIGHT, maxHeight);
-		ore.addProperty(ConfigNames.BLOCK, state.getBlock().getRegistryName().toString());
-		ore.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
-
-		if (jsonArgs != null) {
-			JsonObject newOreArgs = (new JsonParser()).parse(jsonArgs).getAsJsonObject();
-			setProperties(oreArgs, newOreArgs);
-		}
-
-		setOre(ore, oreArgs);
-
-		this.putFile(file, ore, dimension);
-
-		player.sendStatusMessage(new TextComponentString("Added " + state.getBlock().getRegistryName().toString() + " to the json"), true);
+		String rawData = getChatComponentFromNthArg(sender, args, 1).getUnformattedText();
+		JsonParser p = new JsonParser();
+		JsonElement parsed = mergeDefaults(p.parse(rawData), state);
+		OreSpawnReader.loadFromJson(FilenameUtils.getBaseName(file), parsed);
+		OreSpawnWriter.saveSingle(FilenameUtils.getBaseName(file));
 	}
-
-	private void setProperties(JsonObject oreArgs, JsonObject newOreArgs) {
-		for (Entry<String, JsonElement> ent : newOreArgs.entrySet()) {
-			oreArgs.remove(ent.getKey());
-			oreArgs.add(ent.getKey(), ent.getValue());
-		}
-	}
-
-	private void setOre(JsonObject ore, JsonObject oreArgs) {
-		for (Entry<String, JsonElement> ent : oreArgs.entrySet()) {
-			ore.add(ent.getKey(), ent.getValue());
-		}
-	}
-
-	private void putFile(String file, JsonObject ore, int id) {
-		DimensionBuilder db = OreSpawn.API.getLogic(file).newDimensionBuilder(id);
-		SpawnBuilder sb = db.newSpawnBuilder(null);
-		OreBuilder ob = sb.newOreBuilder();
-		String b = ore.get(ConfigNames.BLOCK).getAsString();
-		ore.remove(ConfigNames.BLOCK);
-		String s = ore.get(ConfigNames.STATE).getAsString();
-		ore.remove(ConfigNames.STATE);
-
-		if (ConfigNames.STATE_NORMAL.equals(s)) {
-			ob.setOre(b);
-		} else {
-			ob.setOre(b, s);
-		}
-
-		FeatureBuilder fb = sb.newFeatureBuilder(ConfigNames.DEFAULT);
-		fb.setGenerator(ConfigNames.DEFAULT).setDefaultParameters().setParameters(ore);
-		BiomeBuilder bb = sb.newBiomeBuilder();
-		IBlockState rep = ReplacementsRegistry.getDimensionDefault(id).get(0);
-		List<IBlockState> rl = new ArrayList<>();
-		rl.add(rep);
-		sb.create(bb, fb, rl, ob);
-		db.create(sb);
-		OreSpawn.API.getLogic(file).create(db);
-		OreSpawn.API.registerLogic(OreSpawn.API.getLogic(file));
-		OreSpawn.writer.writeAddOreEntry(file);
+	
+	private JsonElement mergeDefaults(JsonElement parse, IBlockState state) {
+		JsonObject work = parse.getAsJsonObject();
+		JsonObject emptyBlacklist = new JsonObject();
+		emptyBlacklist.add("excludes", new JsonArray());
+		
+		if(!work.has(ConfigNames.ENABLED)) work.addProperty(ConfigNames.ENABLED, true);
+		if(!work.has(ConfigNames.RETROGEN)) work.addProperty(ConfigNames.RETROGEN, false);
+		if(!work.has(ConfigNames.FEATURE)) work.addProperty(ConfigNames.FEATURE, "default");
+		if(!work.has(ConfigNames.REPLACEMENT)) work.addProperty(ConfigNames.REPLACEMENT, "default");
+		if(!work.has(ConfigNames.PARAMETERS)) work.add(ConfigNames.PARAMETERS, 
+				OreSpawn.API.getFeature(work.get(ConfigNames.FEATURE).getAsString()).getDefaultParameters());
+		if(!work.has(ConfigNames.DIMENSIONS)) work.add(ConfigNames.DIMENSIONS, emptyBlacklist);
+		if(!work.has(ConfigNames.BIOMES)) work.add(ConfigNames.BIOMES, emptyBlacklist);
+		
+		JsonObject block = new JsonObject();
+		block.addProperty(ConfigNames.CHANCE, 100);
+		block.addProperty(ConfigNames.NAME, state.getBlock().getRegistryName().toString());
+		block.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));
+		work.add(ConfigNames.BLOCK, block);
+		
+		return work;
 	}
 
 	@Override
