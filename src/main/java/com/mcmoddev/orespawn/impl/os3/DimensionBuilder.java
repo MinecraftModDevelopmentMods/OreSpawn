@@ -17,12 +17,14 @@ public class DimensionBuilder implements IDimensionBuilder {
 	
 	@Override
 	public IDimensionBuilder addWhitelistEntry(int dimensionID) {
+		this.acceptAllOverworld = false;
 		this.dimensionWhitelist.add(dimensionID);
 		return this;
 	}
 
 	@Override
 	public IDimensionBuilder addBlacklistEntry(int dimensionID) {
+		this.acceptAllOverworld = false;
 		this.dimensionBlacklist.add(dimensionID);
 		return this;
 	}

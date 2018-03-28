@@ -12,9 +12,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
 
 public class OreSpawnWorldGen implements IWorldGenerator {
-	public OreSpawnWorldGen() {
-	}
-
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
 	    IChunkProvider chunkProvider) {
@@ -25,7 +22,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		.filter(spawn -> spawn.isEnabled())
 		.filter(spawn -> (spawn.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) 
 				|| (!Config.getBoolean(Constants.RETROGEN_KEY)))
-		.forEach(spawn -> spawn.generate(world, chunkGenerator, chunkProvider, new ChunkPos(chunkX, chunkZ)));
+		.forEach(spawn -> {
+			OreSpawn.LOGGER.fatal("Spawning for entry %s (generator %s) in chunk at %d by %d in dimension %d", spawn.getSpawnName(), spawn.getFeature(), chunkX, chunkZ, thisDim);
+			spawn.generate(world, chunkGenerator, chunkProvider, new ChunkPos(chunkX, chunkZ));
+		});
 	}
 }
 

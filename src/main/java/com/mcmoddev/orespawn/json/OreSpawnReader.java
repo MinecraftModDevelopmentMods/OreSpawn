@@ -170,15 +170,18 @@ public class OreSpawnReader {
 				break;
 			case Constants.ConfigNames.DIMENSIONS:
 				IDimensionBuilder db = OreSpawn.API.getDimensionBuilder();
+				OreSpawn.LOGGER.fatal("Dimensions Tag: %s", ent.getValue());
 				if (ent.getValue().isJsonArray()) {
 					JsonArray dims = ent.getValue().getAsJsonArray();
 					if(dims.size() == 0) {
 						// blank list, accept all overworld
+						OreSpawn.LOGGER.fatal("Empty Dimensions Array, setting to accept all overworld");
 						db.setAcceptAllOverworld();
 					} else {
 						dims.forEach(item -> {
 							if (item.isJsonPrimitive() &&
 									item.getAsJsonPrimitive().isNumber()) {
+								OreSpawn.LOGGER.fatal("Adding %d to the whitelist", item.getAsInt());
 								db.addWhitelistEntry(item.getAsInt());
 							}
 						});

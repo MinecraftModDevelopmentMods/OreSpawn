@@ -12,6 +12,7 @@ import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 import com.mcmoddev.orespawn.worldgen.FlatBedrock;
+import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +75,8 @@ public class OreSpawn {
 			GameRegistry.registerWorldGenerator(flatBedrock, 100);
 		}
 
+		GameRegistry.registerWorldGenerator(new OreSpawnWorldGen(), 100);
+
 		if (Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) || Config.getBoolean(Constants.RETRO_BEDROCK)) {
 			MinecraftForge.EVENT_BUS.register(eventHandlers);
 			MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
@@ -84,7 +87,7 @@ public class OreSpawn {
 	public void init(FMLInitializationEvent ev) {
 		PluginLoader.INSTANCE.register();
 
-		API.loadConfigFiles();
+		API.loadConfigFiles();		
 	}
 
 	@EventHandler
