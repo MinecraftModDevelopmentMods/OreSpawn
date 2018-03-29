@@ -9,7 +9,6 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
-import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.data.Constants.FormatBits;
 
 import net.minecraft.block.state.IBlockState;
@@ -35,7 +34,6 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 	    ISpawnEntry spawnData, ChunkPos _pos) {
 		ChunkPos pos = _pos;
-		OreSpawnBlockMatcher replaceMatch = spawnData.getMatcher();
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -44,7 +42,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 		mergeDefaults(params, getDefaultParameters());
 
-		runCache(chunkX, chunkZ, world, replaceMatch);
+		runCache(chunkX, chunkZ, world, spawnData);
 
 		// extract parameters
 		int nodeCount = params.get(FormatBits.NODE_COUNT).getAsInt();

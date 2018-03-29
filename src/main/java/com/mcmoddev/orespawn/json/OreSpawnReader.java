@@ -300,7 +300,7 @@ public class OreSpawnReader {
 			for( JsonElement elem : biomeList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray() ) {
 				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
 					String xN = elem.getAsString();
-					if (xN.matches(":")) {
+					if (xN.contains(":")) {
 						// not a BiomeDictionary entry (we hope)
 						bb.addWhitelistEntry(xN);
 					} else {
@@ -320,7 +320,7 @@ public class OreSpawnReader {
 			for( JsonElement elem : biomeList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray() ) {
 				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
 					String xN = elem.getAsString();
-					if (xN.matches(":")) {
+					if (xN.contains(":")) {
 						// not a BiomeDictionary entry (we hope)
 						bb.addBlacklistEntry(xN);
 					} else {
@@ -332,6 +332,7 @@ public class OreSpawnReader {
 				}
 			}
 		} else if(emptyWhitelist) {
+			// empty whitelist and blacklist - accept everything
 			bb.setAcceptAll();
 		}
 	}

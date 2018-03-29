@@ -6,7 +6,6 @@ import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
 import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -27,13 +26,13 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		this.random = rand;
 	}
 
-	protected void runCache(int chunkX, int chunkZ, World world, OreSpawnBlockMatcher replacer) {
+	protected void runCache(int chunkX, int chunkZ, World world, ISpawnEntry spawnData) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
 
 		if (!cache.isEmpty()) {  // if there is something in the cache, try to spawn it
 			for (Entry<BlockPos, IBlockState> ent : cache.entrySet()) {
-				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), replacer);
+				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(), world.provider.getDimension(), spawnData);
 			}
 		}
 	}
@@ -48,10 +47,9 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		Biome thisBiome = world.getBiome(coord);
 
 		if (!spawnData.biomeAllowed(thisBiome.getRegistryName())) {
-			OreSpawn.LOGGER.fatal("biome of chunk containing %s (%s) is invalid for this spawn (%s)", coord, thisBiome.getRegistryName(), spawnData.getSpawnName());
 			return false;
 		}
-
+		
 		BlockPos np = mungeFixYcoord(coord);
 
 		if (coord.getY() >= world.getHeight()) {
@@ -59,7 +57,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			return false;
 		}
 
-		return spawnOrCache(world, np, spawnData.getMatcher(), oreBlock, cacheOverflow, dimension);
+		return spawnOrCache(world, np, spawnData.getMatcher(), oreBlock, cacheOverflow, dimension, spawnData);
 	}
 
 	private BlockPos mungeFixYcoord(BlockPos coord) {
@@ -71,11 +69,12 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	private boolean spawnOrCache(World world, BlockPos coord, OreSpawnBlockMatcher replacer, IBlockState oreBlock, boolean cacheOverflow, int dimension) {
+	private boolean spawnOrCache(World world, BlockPos coord, OreSpawnBlockMatcher replacer, IBlockState oreBlock, boolean cacheOverflow, int dimension, ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
 			IBlockState targetBlock = world.getBlockState(coord);
+			Biome thisBiome = world.getBiome(coord);
 
-			if (replacer.test(targetBlock)) {
+			if (replacer.test(targetBlock) && spawnData.biomeAllowed(thisBiome.getRegistryName())) {
 				world.setBlockState(coord, oreBlock);
 				return true;
 			} else {
@@ -90,7 +89,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	private void spawnNoCheck(IBlockState oreBlock, World world, BlockPos coord, int dimension,
-	    OreSpawnBlockMatcher replacer) {
+	    ISpawnEntry spawnData) {
 		if (oreBlock == null) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return;
@@ -103,7 +102,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			return;
 		}
 
-		spawnOrCache(world, np, replacer, oreBlock, false, dimension);
+		spawnOrCache(world, np, spawnData.getMatcher(), oreBlock, false, dimension, spawnData);
 	}
 
 	private void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension) {
@@ -194,15 +193,17 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	protected void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			OreSpawnBlockMatcher replacer, int count, IBlockList possibleOres) {
+			ISpawnEntry spawnData, int count) {
 		Random prng = this.random;
 		int quantity = count;
+		IBlockList possibleOres = spawnData.getBlocks();
+		OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dx = (int)(radius); dx >= (int)(-1 * radius); dx--){
 				for(int dz = (int)(radius); dz >= (int)(-1 * radius); dz--){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension());
+						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension(), spawnData);
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -215,15 +216,17 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 
 	protected void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			OreSpawnBlockMatcher replacer, int count, IBlockList possibleOres) {
+			ISpawnEntry spawnData, int count) {
 		Random prng = this.random;
 		int quantity = count;
+		IBlockList possibleOres = spawnData.getBlocks();
+		OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for(int dy = (int)(-1 * radius); dy < radius; dy++){
 			for(int dz = (int)(-1 * radius); dz < radius; dz++){
 				for(int dx = (int)(-1 * radius); dx < radius; dx++){
 					if((dx*dx + dy*dy + dz*dz) <= rSqr){
 						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension());
+						spawnOrCache(world,blockPos.add(dx,dy,dz), replacer, oreBlock, true, world.provider.getDimension(), spawnData);
 						quantity--;
 					}
 					if(quantity <= 0) {
@@ -248,83 +251,5 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	protected int getStart(boolean toPositive, double radius) {
 		return ((int)(radius * (toPositive ? 1 : -1)));
-	}
-
-	public class FunctionParameterWrapper {
-		private World world;
-		private BlockPos blockPos;
-		private List<IBlockState> replacements;
-		private IBlockList blocks;
-		private BiomeLocation biomes;
-		private ChunkPos chunkPos;
-		private IBlockState block;
-
-		public FunctionParameterWrapper() {}
-
-		public FunctionParameterWrapper(FunctionParameterWrapper other) {
-			world = other.getWorld();
-			blockPos = other.getBlockPos();
-			replacements = other.getReplacements();
-			blocks = other.getOres();
-			biomes = other.getBiomes();
-			chunkPos = other.getChunkPos();
-			block = other.getBlock();
-		}
-
-		public BiomeLocation getBiomes() {
-			return biomes;
-		}
-
-		public void setBiomes(BiomeLocation biomes) {
-			this.biomes = biomes;
-		}
-
-		public World getWorld() {
-			return world;
-		}
-
-		public void setWorld(World world) {
-			this.world = world;
-		}
-
-		public BlockPos getBlockPos() {
-			return blockPos;
-		}
-
-		public void setBlockPos(BlockPos blockPos) {
-			this.blockPos = blockPos;
-		}
-
-		public List<IBlockState> getReplacements() {
-			return replacements;
-		}
-
-		public void setReplacements(List<IBlockState> replacements) {
-			this.replacements = replacements;
-		}
-
-		public IBlockList getOres() {
-			return blocks;
-		}
-
-		public void setOres(IBlockList ores) {
-			this.blocks = ores;
-		}
-
-		public ChunkPos getChunkPos() {
-			return chunkPos;
-		}
-
-		public void setChunkPos(ChunkPos chunkPos) {
-			this.chunkPos = chunkPos;
-		}
-
-		public IBlockState getBlock() {
-			return block;
-		}
-
-		public void setBlock(IBlockState block) {
-			this.block = block;
-		}
 	}
 }

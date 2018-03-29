@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationAcceptAny;
 import com.mcmoddev.orespawn.impl.location.BiomeLocationComposition;
@@ -71,12 +72,12 @@ public class BiomeBuilder implements IBiomeBuilder {
 			return new BiomeLocationAcceptAny();
 		}
 
-		BiomeLocation whitelist;
-		BiomeLocation blacklist;
+		BiomeLocation whitelistI;
+		BiomeLocation blacklistI;
 		if (this.whitelist.size() == 0) {
-			whitelist = new BiomeLocationEmpty();
+			whitelistI = new BiomeLocationEmpty();
 		} else {
-			whitelist = new BiomeLocationList(					
+			whitelistI = new BiomeLocationList(					
 					ImmutableSet.<BiomeLocation>copyOf(
 							this.whitelist.stream()
 							.map( biome -> new BiomeLocationSingle(biome) )
@@ -84,16 +85,18 @@ public class BiomeBuilder implements IBiomeBuilder {
 		}
 
 		if (this.blacklist.size() == 0) {
-			blacklist = new BiomeLocationAcceptAny();
+			blacklistI = new BiomeLocationEmpty();
 		} else {
-			blacklist = new BiomeLocationList(
+			blacklistI = new BiomeLocationList(
 					ImmutableSet.<BiomeLocation>copyOf(
 							this.blacklist.stream()
 							.map( biome -> new BiomeLocationSingle(biome) )
 							.collect(Collectors.toList())));
 		}
 
-		return new BiomeLocationComposition(whitelist, blacklist);
+		
+		BiomeLocation res = new BiomeLocationComposition(whitelistI, blacklistI);
+		return res;
 	}
 
 }
