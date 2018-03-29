@@ -53,7 +53,7 @@ public class BlockList implements IBlockList {
 	public void dump() {
 		this.myBlocks.stream()
 		.map(bd -> bd.getBlock())
-		.forEach(bs -> OreSpawn.LOGGER.fatal("Block %s (with state: %s)", bs.getBlock(), bs));
+		.forEach(bs -> OreSpawn.LOGGER.debug("Block %s (with state: %s)", bs.getBlock(), bs));
 	}
 
 }

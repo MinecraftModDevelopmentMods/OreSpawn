@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn.impl.location;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.data.Constants;
 
@@ -71,8 +72,11 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	@Override
 	public JsonElement serialize() {
 		JsonObject rv = new JsonObject();
+		
 		rv.add(Constants.ConfigNames.BLACKLIST, this.exclusions.serialize());
-		rv.add(Constants.ConfigNames.WHITELIST, this.inclusions.serialize());
+		if (!(this.inclusions instanceof BiomeLocationEmpty)) {
+			rv.add(Constants.ConfigNames.WHITELIST, this.inclusions.serialize());
+		}
 		
 		return rv;
 	}

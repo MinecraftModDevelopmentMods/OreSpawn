@@ -50,7 +50,7 @@ public final class BiomeLocationList implements BiomeLocation {
 	public JsonElement serialize() {
 		JsonArray rv = new JsonArray();
 		this.locations.stream()
-		.filter(bl -> (!(bl instanceof BiomeLocationEmpty) && (!(bl instanceof BiomeLocationAcceptAny))))
+		.filter(bl -> (!(bl instanceof BiomeLocationEmpty)))
 		.forEach(bl -> rv.add(bl.serialize()));
 
 		return rv;

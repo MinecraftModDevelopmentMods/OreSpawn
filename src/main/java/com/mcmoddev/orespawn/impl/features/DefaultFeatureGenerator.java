@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
-import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.block.state.IBlockState;
@@ -28,7 +27,6 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 		    ISpawnEntry spawnData, ChunkPos _pos) {
 		ChunkPos pos = _pos;
-		OreSpawnBlockMatcher replaceMatch = spawnData.getMatcher();
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -37,7 +35,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 		mergeDefaults(params, getDefaultParameters());
 
-		runCache(chunkX, chunkZ, world, replaceMatch);
+		runCache(chunkX, chunkZ, world, spawnData);
 
 		// now to ore spawn
 
@@ -114,9 +112,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int)(radius * radius);
 		if( nextBoolean ) {
-			spawnMungeNE( world, pos, rSqr, radius, spawnData.getMatcher(), count, spawnData.getBlocks() );
+			spawnMungeNE( world, pos, rSqr, radius, spawnData, count );
 		} else {
-			spawnMungeSW( world, pos, rSqr, radius, spawnData.getMatcher(), count, spawnData.getBlocks() );
+			spawnMungeSW( world, pos, rSqr, radius, spawnData, count );
 		}
 	}
 

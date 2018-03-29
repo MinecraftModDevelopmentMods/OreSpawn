@@ -7,7 +7,6 @@ import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
-import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.util.math.BlockPos;
@@ -31,14 +30,13 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
 	    ISpawnEntry spawnData, ChunkPos _pos) {
 		ChunkPos pos = _pos;
-		OreSpawnBlockMatcher replaceMatch = spawnData.getMatcher();
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 		
 		// First, load cached blocks for neighboring chunk ore spawns
 		int chunkX = pos.x;
 		int chunkZ = pos.z;
 
-		runCache(chunkX, chunkZ, world, replaceMatch);
+		runCache(chunkX, chunkZ, world, spawnData);
 		mergeDefaults(params, getDefaultParameters());
 
 		// now to ore spawn
