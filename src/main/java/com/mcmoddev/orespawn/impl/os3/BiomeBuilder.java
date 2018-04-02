@@ -75,7 +75,11 @@ public class BiomeBuilder implements IBiomeBuilder {
 		BiomeLocation whitelistI;
 		BiomeLocation blacklistI;
 		if (this.whitelist.size() == 0) {
-			whitelistI = new BiomeLocationEmpty();
+			if(this.blacklist.size() > 0) {
+				whitelistI = new BiomeLocationAcceptAny();
+			} else {
+				whitelistI = new BiomeLocationEmpty();
+			}
 		} else {
 			whitelistI = new BiomeLocationList(					
 					ImmutableSet.<BiomeLocation>copyOf(
