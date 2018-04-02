@@ -1,1 +1,12 @@
-Version 3.2.1
+Version 3.3.0
+
+* Rewrite the internal API to be a little more flexible
+* Rewrite the loading and saving of the JSON configs - the current form is less flexible but will be easier to extend or replace in the future
+* Fix the Dimension and Biome blacklist/whitelist code
+* Fix the "zombie holes" issue that cropped up if a block was present in a config but not actually present in the game
+* Change the default feature's (features-default.json in previous versions) to be defined in the _features.json in orespawn instead of programatically
+* Change the default replacements (replacements-default.json in previous versions) to be defined in  _replacements.json in orespawn instead of programatically
+* Define the actual format of the replacements files
+* fully define the format of the presets files (need to add, I believe, an _presets.json)
+* remove any loading of any format of config other than those tagged as being version 2.0 (this capability will return at a later date)
+
