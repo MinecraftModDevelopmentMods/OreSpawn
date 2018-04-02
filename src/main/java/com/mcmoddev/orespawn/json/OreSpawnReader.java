@@ -27,6 +27,7 @@ import com.mcmoddev.orespawn.api.exceptions.UnknownNameException;
 import com.mcmoddev.orespawn.api.exceptions.UnknownVersionException;
 import com.mcmoddev.orespawn.api.os3.IBiomeBuilder;
 import com.mcmoddev.orespawn.api.os3.IBlockBuilder;
+import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.IFeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
@@ -245,9 +246,9 @@ public class OreSpawnReader {
 										bl.get(Constants.ConfigNames.CHANCE).getAsInt());
 							} else {
 								block.setFromNameWithChance(bl.get(Constants.ConfigNames.NAME).getAsString(),
-								bl.get(Constants.ConfigNames.CHANCE).getAsInt());
+										bl.get(Constants.ConfigNames.CHANCE).getAsInt());
 							}
-							sb.addBlock(block.create().getBlock());
+							sb.addBlock(block.create());
 						} else {
 							OreSpawn.LOGGER.error("Skipping value %s in blocks list as it is not the correct format", elem.toString());
 						}

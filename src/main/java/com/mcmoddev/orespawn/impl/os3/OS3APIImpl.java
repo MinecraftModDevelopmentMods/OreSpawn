@@ -5,7 +5,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -111,9 +110,11 @@ public class OS3APIImpl implements OS3API {
 	
 	@Override
 	public void addSpawn(ISpawnEntry spawnEntry) {
-		spawns.put(new ResourceLocation(spawnEntry.getSpawnName()), spawnEntry);
+		if (spawnEntry != null) {
+			spawns.put(new ResourceLocation(spawnEntry.getSpawnName()), spawnEntry);
+		}
 	}
-
+	
 	@Override
 	public void addFeature(String featureName, IFeature feature) {
 		features.addFeature(featureName, feature);

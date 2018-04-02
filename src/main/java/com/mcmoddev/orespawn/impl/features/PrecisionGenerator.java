@@ -63,8 +63,6 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			// bit of feedback - if we underproduce or overproduce a node, the next one gets a correction
 			if (sc != thisNode && sc != 0) {
 				thisNode += (nodeSize - sc);
-				OreSpawn.LOGGER.debug("node at %s of size %d instead of %d - modding to %d",
-				    spot, sc, nodeSize, thisNode);
 			} else if (sc == thisNode) {
 				// if we produced exact size, reset the size
 				thisNode = nodeSize;
@@ -88,7 +86,6 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			c = spawnOreNode(act, pos, spawnData, world, nodeSize, heightRange);
 
 			if (c == 0) {
-				OreSpawn.LOGGER.debug("Unable to place block at %s (chunk %s)", spot, pos);
 				act = chooseSpot(Math.floorDiv(spot.getX(), 16), Math.floorDiv(spot.getZ(), 16), heightRange);
 			}
 
@@ -158,7 +155,6 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		}
 
 		BlockPos rVal = spot.add(xmod, ymod, zmod);
-		OreSpawn.LOGGER.debug("rescaled %s to %s", spot, rVal);
 		return rVal;
 	}
 

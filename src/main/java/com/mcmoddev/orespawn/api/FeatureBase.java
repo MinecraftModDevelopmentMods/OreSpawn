@@ -5,6 +5,7 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
 import com.mcmoddev.orespawn.api.os3.OreSpawnBlockMatcher;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
@@ -26,6 +27,10 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		this.random = rand;
 	}
 
+	public boolean isValidBlock(IBlockState oreBlock) {
+		return oreBlock.getBlock() != Blocks.AIR;
+	}
+	
 	protected void runCache(int chunkX, int chunkZ, World world, ISpawnEntry spawnData) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
@@ -44,6 +49,10 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			return false;
 		}
 
+		if(!isValidBlock(oreBlock)) {
+			return false;
+		}
+		
 		Biome thisBiome = world.getBiome(coord);
 
 		if (!spawnData.biomeAllowed(thisBiome.getRegistryName())) {
@@ -71,6 +80,10 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	private boolean spawnOrCache(World world, BlockPos coord, OreSpawnBlockMatcher replacer, IBlockState oreBlock, boolean cacheOverflow, int dimension, ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
+			if(!isValidBlock(oreBlock)) {
+				return false;
+			}
+
 			IBlockState targetBlock = world.getBlockState(coord);
 			Biome thisBiome = world.getBiome(coord);
 

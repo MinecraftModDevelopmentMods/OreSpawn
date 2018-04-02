@@ -56,4 +56,9 @@ public class BlockList implements IBlockList {
 		.forEach(bs -> OreSpawn.LOGGER.debug("Block %s (with state: %s)", bs.getBlock(), bs));
 	}
 
+	@Override
+	public int count() {
+		return this.myBlocks.size();
+	}
+
 }
