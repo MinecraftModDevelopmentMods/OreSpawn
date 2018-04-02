@@ -1,9 +1,11 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.util.StateUtil;
+import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
@@ -171,13 +173,24 @@ public class SpawnBuilder implements ISpawnBuilder {
 	public ISpawnBuilder addBlockWithChance(IBlockState block, int chance) {
 		BlockBuilder bb = new BlockBuilder();
 		bb.setFromBlockStateWithChance(block, chance);
-		this.blocks.addBlock(bb.create());
-		return this;
+		return this.addBlock(bb.create());
 	}
 
+	@Override 
+	public ISpawnBuilder addBlock(IBlockDefinition block) {
+		if(block.isValid()) {
+			this.blocks.addBlock(block);
+		}
+		return this;
+	}
+	
 	@Override
 	public SpawnEntry create() {
-		return new SpawnEntry(this.spawnName, this.enabled, this.retrogen, this.dimensions,
-				this.biomes, this.replacements, this.blocks, this.feature);
+		if(this.blocks.count() > 0) {
+			return new SpawnEntry(this.spawnName, this.enabled, this.retrogen, this.dimensions,
+					this.biomes, this.replacements, this.blocks, this.feature);
+		} else {
+			return null;
+		}
 	}
 }

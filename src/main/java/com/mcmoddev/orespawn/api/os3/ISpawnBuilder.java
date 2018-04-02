@@ -32,4 +32,5 @@ public interface ISpawnBuilder {
 	public ISpawnBuilder addBlockWithChance(final Block block, final int chance);
 	public ISpawnBuilder addBlockWithChance(final IBlockState block, final int chance);
 	public ISpawnEntry create();
+	public ISpawnBuilder addBlock(IBlockDefinition block);
 }
