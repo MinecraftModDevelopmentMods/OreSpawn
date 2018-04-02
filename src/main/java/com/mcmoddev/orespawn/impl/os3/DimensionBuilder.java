@@ -47,7 +47,8 @@ public class DimensionBuilder implements IDimensionBuilder {
 	public IDimensionList create() {
 		if (this.acceptAll ||
 				((this.dimensionWhitelist.size() == 0) &&
-						(this.dimensionBlacklist.size() == 0))) {
+						(this.dimensionBlacklist.size() == 0)) &&
+				!(this.acceptAllOverworld)) {
 			return new DimensionListAcceptAll();
 		} else if (this.denyAll) {
 			return new DimensionListDenyAll();
