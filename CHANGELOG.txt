@@ -9,4 +9,4 @@ Version 3.3.0
 * Define the actual format of the replacements files
 * fully define the format of the presets files (need to add, I believe, an _presets.json)
 * remove any loading of any format of config other than those tagged as being version 2.0 (this capability will return at a later date)
-
+* Fix the Dimension blacklist/whitelist code to make it actually work (there was a missing conditional in the DimensionBuilder create() method)
