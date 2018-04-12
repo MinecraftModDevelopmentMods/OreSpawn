@@ -48,10 +48,10 @@ public class Constants {
 		public static final String NODE_SIZE   = "size";
 		public static final String ATTEMPTS    = "attempts";
 		public static final String LENGTH      = "length";
-		public static final String WANDER      = "wander";
 		public static final String NODE_COUNT  = "numObjects";
 		public static final String ATTEMPTS_MIN = "minAttempts";
 		public static final String ATTEMPTS_MAX = "maxAttempts";
+		public static final String STARTINGFACE = "startFacing";
 	}
 
 	public final class FileBits {
