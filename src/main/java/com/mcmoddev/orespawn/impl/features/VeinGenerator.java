@@ -107,7 +107,14 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			return 1;
 		case "up":
 			return 4;
+		case "random":
+			return this.random.nextInt(5);
+		case "vertical":
+			return this.random.nextBoolean()?4:1;
+		case "horizontal":
+			return this.random.nextBoolean()?(this.random.nextBoolean()?0:5):(this.random.nextBoolean()?2:3);
 		default:
+			OreSpawn.LOGGER.error("Invalid value %s found in parameters for vein spawn, returning \"north\"", direction);
 			return 0;
 		}
 	}
@@ -118,7 +125,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		BlockPos workingPos = new BlockPos(blockPos);
 		
 		if(!spawnData.getMatcher().test(world.getBlockState(blockPos))) {
-			OreSpawn.LOGGER.info("invalid spawn start location %s", blockPos);
 			return;
 		}
 		
@@ -126,7 +132,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		List<Pair<Integer,Integer>> points = Lists.newLinkedList();
 		points.add(Pair.of(face, square));
 		for( int j = 0; j < veinLength; j++ ) {
-			OreSpawn.LOGGER.fatal("spawnVein, face = %d, square = %d", face, square);
 			Map<Integer,Integer> pos = Maps.newHashMap();
 			int[] w = getWeighted(face, square);
 			for( int k = 0; k < w.length; k++ ) {
@@ -137,14 +142,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			int[] fpos = Arrays.stream(Arrays.copyOfRange(t, t.length-5, t.length)).map( it -> pos.get(it)).toArray();
 			int temp = this.random.nextInt(5);
 			face = fpos[temp]%6;
-			square = fpos[temp]%9;
+			square = fpos[temp]%12;
 			points.add(Pair.of(face,square));
 		}
 
 		spawnOre(world, spawnData, blockPos, nodeSize);
-		OreSpawn.LOGGER.info("Spawned node at %s (size %d)", blockPos, nodeSize);
 		for(Pair<Integer,Integer> point : points) {
-			OreSpawn.LOGGER.info("Next node at %s (size %d)", workingPos, nodeSize);
 			spawnOre(world, spawnData, workingPos, nodeSize);
 			int[] nextMunge = getDirectionValues(point.first().intValue(), point.second().intValue());
 			workingPos = workingPos.add(nextMunge[0], nextMunge[1], nextMunge[2]);
@@ -235,7 +238,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		int[] rv = new int[54];
 
 		for( int f = 0; f < 6; f++ ) {
-			for( int s = 0; s < 9; s++ ) {
+			for( int s = 0; s < 12; s++ ) {
 				if(isNeighborFace(face, f)) {
 					rv[f+s] += faceWeights[1];
 				} else if(face == f) {
@@ -245,14 +248,14 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 
 				rv[f+s] += pointWeights[s == square?0:1];
-				if( s != 4 ) {
+				if( s != 4 && s != 7) {
 					int matchFace = 0;
 					int matchSquare = 0;
 					if( s%3 == 0 ) {
 						// left side
 						matchFace = getMatchingFace(f, 0);
 						matchSquare = getMatchingSquare(s, f, 0);
-					} else if( s == 2 || (s-1)%2 == 0 ) {
+					} else if( s == 2 || s == 5 || s == 8 || s == 11 ) {
 						// right side
 						matchFace = getMatchingFace(f, 1);						
 						matchSquare = getMatchingSquare(s, f, 1);
@@ -260,12 +263,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					int addr = matchFace + matchSquare;
 					rv[addr] += faceWeights[1] + pointWeights[1];
 
-					if( s < 3 || s > 5 ) {
+					if( s < 3 || s > 8 ) {
 						if( s < 3 ) {
 							// top row
 							matchFace = getMatchingFace(f, 2);
 							matchSquare = getMatchingSquare(s, f, 2);
-						} else if( s > 5 ) {
+						} else if( s > 8 ) {
 							//bottom row
 							matchFace = getMatchingFace(f, 3);
 							matchSquare = getMatchingSquare(s, f, 3);
@@ -279,16 +282,32 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		return rv;
 	}
 
+	/*
+	 * 0  1  2
+	 * 3  4  5
+	 * 6  7  8
+	 * 9 10 11
+	 * --------
+	 * 0  1  2
+	 * 3  4  5
+	 * 6  7  8
+	 * 9 10 11
+	 * --------
+	 * 0  1  2
+	 * 3  4  5
+	 * 6  7  8
+	 * 9 10 11
+	 */
 	private int getMatchingSquare(int s, int face, int direction) {
 		switch(direction) {
 		case 0: /* LEFT */
 			return (s%3 == 0)? s +2 : s - 1;
 		case 1: /* RIGHT */
-			return ((s+1)%3 == 0)? s - 2: s + 1;
+			return ( s == 2 || s == 5 || s == 8 || s == 11 )? s - 2: s + 1;
 		case 2: /* UP */
-			return (s<3) ? s + 6 : s - 3;
+			return (s<3) ? s + 9 : s - 3;
 		case 3: /* DOWN */
-			return (s>=6) ? s - 6 : s + 3;
+			return (s>8) ? s - 9 : s + 3;
 		}
 		return s;
 	}
