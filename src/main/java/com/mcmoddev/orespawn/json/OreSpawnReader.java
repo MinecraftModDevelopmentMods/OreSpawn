@@ -214,7 +214,7 @@ public class OreSpawnReader {
 			case Constants.ConfigNames.REPLACEMENT:
 				if(!ent.getValue().isJsonArray() && !ent.getValue().getAsJsonPrimitive().isString()) {
 					throw new BadValueException(Constants.ConfigNames.REPLACEMENT, ent.getValue().toString());
-				} else if(ent.getValue().getAsJsonPrimitive().isString()) {
+				} else if(ent.getValue().isJsonPrimitive() && ent.getValue().getAsJsonPrimitive().isString()) {
 					if(OreSpawn.API.hasReplacement(ent.getValue().getAsString())) {
 						sb.setReplacement(OreSpawn.API.getReplacement(ent.getValue().getAsString()));
 					}
@@ -271,7 +271,7 @@ public class OreSpawnReader {
 	}
 
 	private static List<IBlockState> loadBlock(JsonObject json) {
-		String blockName = json.get(Constants.ConfigNames.BLOCK).getAsString();
+		String blockName = json.get(Constants.ConfigNames.NAME).getAsString();
 		if(json.has(Constants.ConfigNames.STATE)) {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName));
 			return Arrays.asList(StateUtil.deserializeState(block, json.get(Constants.ConfigNames.STATE).getAsString()));

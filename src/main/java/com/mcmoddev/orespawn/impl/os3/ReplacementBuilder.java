@@ -11,9 +11,11 @@ import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import org.apache.commons.lang3.RandomStringUtils;
+
 
 public class ReplacementBuilder implements IReplacementBuilder {
-	private String replacementName;
+	private String replacementName = null;
 	private List<IBlockState> entries;
 	
 	public ReplacementBuilder() {
@@ -73,6 +75,10 @@ public class ReplacementBuilder implements IReplacementBuilder {
 
 	@Override
 	public IReplacementEntry create() {
+		if (this.replacementName == null) {
+			this.replacementName = String.format("replacement_%s", RandomStringUtils.randomAlphanumeric(8, 16));
+		}
+		
 		return new ReplacementEntry(this.replacementName, this.entries);
 	}
 
