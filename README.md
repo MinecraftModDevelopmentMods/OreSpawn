@@ -1,5 +1,6 @@
 # OreSpawn
 Minecraft library mod that provides better control over the spawning of ores in Minecraft.
+If you're looking for a place to report bugs for the mod that adds extra mobs, the "DangerZone", etc... go [to the site for that mod](http://www.orespawn.com/) as this is not it.
 
 ## How it works
 Ore Spawn parses all of the .json files found in `orespawn` and adds ore generators to the game based on those files. The JSON structure looks like this:
