@@ -74,6 +74,11 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	}
 
 	@Override
+	public boolean hasEntries() {
+		return this.entries.isEmpty();
+	}
+	
+	@Override
 	public IReplacementEntry create() {
 		if (this.replacementName == null) {
 			this.replacementName = String.format("replacement_%s", RandomStringUtils.randomAlphanumeric(8, 16));

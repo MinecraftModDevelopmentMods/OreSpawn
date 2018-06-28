@@ -15,5 +15,6 @@ public interface IReplacementBuilder {
 	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final String state);
 	@Deprecated
 	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final int metadata);
+	public boolean hasEntries();
 	public IReplacementEntry create();
 }
