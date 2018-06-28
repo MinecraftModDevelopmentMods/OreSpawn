@@ -72,6 +72,11 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	}
 
 	@Override
+	public boolean hasEntries() {
+		return this.entries.isEmpty();
+	}
+	
+	@Override
 	public IReplacementEntry create() {
 		return new ReplacementEntry(this.replacementName, this.entries);
 	}

@@ -212,14 +212,14 @@ public class OreSpawnReader {
 				fb.setFeature(featureName);
 				break;
 			case Constants.ConfigNames.REPLACEMENT:
+				IReplacementBuilder rb = OreSpawn.API.getReplacementBuilder();
 				if(!ent.getValue().isJsonArray() && !ent.getValue().getAsJsonPrimitive().isString()) {
 					throw new BadValueException(Constants.ConfigNames.REPLACEMENT, ent.getValue().toString());
 				} else if(ent.getValue().getAsJsonPrimitive().isString()) {
 					if(OreSpawn.API.hasReplacement(ent.getValue().getAsString())) {
-						sb.setReplacement(OreSpawn.API.getReplacement(ent.getValue().getAsString()));
+						rb.setFromName(ent.getValue().getAsString());
 					}
 				} else {
-					IReplacementBuilder rb = OreSpawn.API.getReplacementBuilder();
 					for( JsonElement e : ent.getValue().getAsJsonArray() ) {
 						if(e.isJsonObject()) {
 							loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
@@ -227,8 +227,12 @@ public class OreSpawnReader {
 							OreSpawn.LOGGER.error("Skipping value %s in replacements list as it is not the correct format", e.toString());
 						}
 					}
+				}
+				
+				if(rb.hasEntries()) {
 					sb.setReplacement(rb.create());
 				}
+				
 				break;
 			case Constants.ConfigNames.BLOCK:
 				if (ent.getValue().isJsonArray()) {
