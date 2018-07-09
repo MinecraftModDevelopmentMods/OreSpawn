@@ -165,7 +165,10 @@ public class EventHandlers {
 		if (ev.phase == Phase.END) {
 			Deque<ChunkPos> keys = Queues.newArrayDeque(chunks.keySet());
 
-			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
+			// if 'chunks' is empty, exit
+			// if 'keys' is empty, exit
+			// exit after 5 items, regardless
+			for (int c = 0; c < 5 && !chunks.isEmpty() && !keys.isEmpty(); c++) {
 				ChunkPos p = keys.pop();
 				List<String> spawns = chunks.remove(p);
 				
