@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn;
 
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -19,6 +20,7 @@ import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -38,11 +40,12 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 public class EventHandlers {
 	private Deque<ChunkPos> retroChunks;
-	private Map<ChunkPos, List<String>> chunks;
+	private Deque<Tuple<ChunkPos, List<String>>> chunks;
+//	private Map<ChunkPos, List<String>> chunks;
 
 	EventHandlers() {
 		retroChunks = new ConcurrentLinkedDeque<>();
-		chunks = new ConcurrentHashMap<>();
+		chunks = new ConcurrentLinkedDeque<>();
 	}
 
 	private List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL, EventType.DIAMOND, EventType.DIORITE, EventType.DIRT,
@@ -78,6 +81,10 @@ public class EventHandlers {
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 
+	private boolean dequeContains(ChunkPos cc) {
+		return chunks.stream().map(tup -> tup.getFirst().equals(cc)).collect(Collectors.toList()).contains(true);
+	}
+	
 	@SubscribeEvent
 	public void onChunkLoad(ChunkDataEvent.Load ev) {
 		World world = ev.getWorld();
@@ -85,7 +92,7 @@ public class EventHandlers {
 
 		doBedrockRetrogen(chunkCoords);
 
-		if (chunks.containsKey(chunkCoords)) {
+		if (dequeContains(chunkCoords)) {
 			return;
 		}
 
@@ -96,7 +103,7 @@ public class EventHandlers {
 			Biome thisBiome = ev.getChunk().getBiome(thisPos, world.getBiomeProvider());
 
 			if (featuresAreDifferent(chunkTag, thisDimension, thisBiome) || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
-				chunks.put(chunkCoords, getDifferingTags(chunkTag, thisDimension, thisBiome));
+				chunks.addLast(new Tuple<>(chunkCoords, getDifferingTags(chunkTag, thisDimension, thisBiome)));
 			}
 		}
 	}
@@ -154,34 +161,56 @@ public class EventHandlers {
 		}
 	}
 
+	private static World world;
+	private static ChunkProviderServer chunkProvider;
+	private static IChunkGenerator chunkGenerator;
+	private static Random random;
+	
+	private static void setupData(World nw) {
+		if (world == null || !world.equals(nw)) {
+			world = nw;
+		}
+		
+		if (chunkProvider == null || !chunkProvider.equals(nw.getChunkProvider())) {
+			chunkProvider = (ChunkProviderServer) nw.getChunkProvider();
+		}
+
+		if (chunkGenerator == null) {
+			chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
+		}
+		
+		if (random == null) {
+			random = new Random(world.getSeed());
+		}
+		
+	}
+	
+	private void runBits(Tuple<ChunkPos, List<String>> tup) {
+		ChunkPos p = tup.getFirst();
+		List<String> spawns = tup.getSecond();
+		
+		// re-seed with something totally new :P
+		random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z)) ^ world.getSeed());
+		spawns.stream().forEach( s -> OreSpawn.API.getSpawn(s).generate(random, world, chunkGenerator, chunkProvider, p) );						
+	}
+	
 	@SubscribeEvent
 	public void worldTick(WorldTickEvent ev) {
+		setupData(ev.world);
+		
 		if (ev.side != Side.SERVER) {
 			return;
 		}
 
-		World world = ev.world;
 		
 		if (ev.phase == Phase.END) {
-			Deque<ChunkPos> keys = Queues.newArrayDeque(chunks.keySet());
-
-			// if 'chunks' is empty, exit
-			// if 'keys' is empty, exit
-			// exit after 5 items, regardless
-			for (int c = 0; c < 5 && !chunks.isEmpty() && !keys.isEmpty(); c++) {
-				ChunkPos p = keys.pop();
-				List<String> spawns = chunks.remove(p);
-				
-				Random random = new Random(world.getSeed());
-				// re-seed with something totally new :P
-				random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z)) ^ world.getSeed());
-				ChunkProviderServer chunkProvider = (ChunkProviderServer) world.getChunkProvider();
-				IChunkGenerator chunkGenerator = ObfuscationReflectionHelper.getPrivateValue(ChunkProviderServer.class, chunkProvider, "field_186029_c", "chunkGenerator");
-				for(String s : spawns) {
-					OreSpawn.API.getSpawn(s).generate(random, world, chunkGenerator, chunkProvider, p);
-				}
+			Deque<Tuple<ChunkPos,List<String>>> b = new LinkedList<>();
+			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
+				b.push(chunks.pop());
 			}
-
+			
+			b.forEach(this::runBits);
+			
 			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {
 				ChunkPos p = retroChunks.pop();
 				OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
