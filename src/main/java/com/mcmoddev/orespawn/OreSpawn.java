@@ -3,17 +3,16 @@ package com.mcmoddev.orespawn;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
-import com.mcmoddev.orespawn.json.OS3Reader;
-import com.mcmoddev.orespawn.json.OS3Writer;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
 import com.mcmoddev.orespawn.commands.ClearChunkCommand;
 import com.mcmoddev.orespawn.commands.WriteConfigsCommand;
 import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.api.os3.OS3API;
-import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
+import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 import com.mcmoddev.orespawn.worldgen.FlatBedrock;
+import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
 
 import java.util.HashMap;
 import java.util.List;
@@ -51,14 +50,13 @@ public class OreSpawn {
 
 	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
 	public static final OS3API API = new OS3APIImpl();
-	public static final OS3Writer writer = new OS3Writer();
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();
-	protected static final Map<Integer, List<SpawnBuilder>> spawns = new HashMap<>();
+	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
 
 	static final FlatBedrock flatBedrock = new FlatBedrock();
 
-	public static Map<Integer, List<SpawnBuilder>> getSpawns() {
+	public static Map<Integer, List<ISpawnBuilder>> getSpawns() {
 		return spawns;
 	}
 
@@ -77,6 +75,8 @@ public class OreSpawn {
 			GameRegistry.registerWorldGenerator(flatBedrock, 100);
 		}
 
+		GameRegistry.registerWorldGenerator(new OreSpawnWorldGen(), 100);
+
 		if (Config.getBoolean(Constants.RETROGEN_KEY) || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN) || Config.getBoolean(Constants.RETRO_BEDROCK)) {
 			MinecraftForge.EVENT_BUS.register(eventHandlers);
 			MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
@@ -87,9 +87,7 @@ public class OreSpawn {
 	public void init(FMLInitializationEvent ev) {
 		PluginLoader.INSTANCE.register();
 
-		OS3Reader.loadEntries();
-		writer.writeSysconfIfNonexistent();
-		API.registerSpawns();
+		API.loadConfigFiles();		
 	}
 
 	@EventHandler

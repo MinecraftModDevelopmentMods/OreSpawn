@@ -1,8 +1,12 @@
 package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.data.Constants;
+
 import net.minecraft.world.biome.Biome;
 
 import java.util.Objects;
@@ -10,27 +14,23 @@ import java.util.List;
 import java.util.LinkedList;
 
 public final class BiomeLocationComposition implements BiomeLocation {
-	private final ImmutableSet<BiomeLocation> inclusions;
+	private final BiomeLocation inclusions;
 
-	private final ImmutableSet<BiomeLocation> exclusions;
+	private final BiomeLocation exclusions;
 
 	private final int hash;
 
-	public BiomeLocationComposition(ImmutableSet<BiomeLocation> inclusions, ImmutableSet<BiomeLocation> exclusions) {
+	public BiomeLocationComposition(BiomeLocation inclusions, BiomeLocation exclusions) {
 		this.inclusions = inclusions;
 		this.exclusions = exclusions;
 		this.hash = Objects.hash(inclusions, exclusions);
 	}
 
-	private boolean matchBiome(Biome biome, BiomeLocation loc) {
-		return (loc.getBiomes().stream().filter(b -> b.equals(biome)).distinct().count() > 0);
-	}
-
 	@Override
 	public boolean matches(Biome biome) {
-		boolean inWhite = this.inclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
-		boolean inBlack = this.exclusions.asList().stream().anyMatch(bl -> matchBiome(biome, bl));
-
+		boolean inWhite = this.inclusions.matches(biome);
+		boolean inBlack = this.exclusions.matches(biome);
+		
 		return !inBlack && inWhite;
 	}
 
@@ -56,17 +56,29 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	@Override
 	public ImmutableList<Biome> getBiomes() {
 		List<Biome> temp = new LinkedList<>();
-		this.inclusions.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
-		this.exclusions.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
+		temp.addAll(this.inclusions.getBiomes());
+		temp.addAll(this.exclusions.getBiomes());
 		return ImmutableList.copyOf(temp);
 	}
 
-	public ImmutableSet<BiomeLocation> getInclusions() {
+	public BiomeLocation getInclusions() {
 		return this.inclusions;
 	}
 
-	public ImmutableSet<BiomeLocation> getExclusions() {
+	public BiomeLocation getExclusions() {
 		return this.exclusions;
+	}
+
+	@Override
+	public JsonElement serialize() {
+		JsonObject rv = new JsonObject();
+		
+		rv.add(Constants.ConfigNames.BLACKLIST, this.exclusions.serialize());
+		if (!(this.inclusions instanceof BiomeLocationEmpty)) {
+			rv.add(Constants.ConfigNames.WHITELIST, this.inclusions.serialize());
+		}
+		
+		return rv;
 	}
 
 }

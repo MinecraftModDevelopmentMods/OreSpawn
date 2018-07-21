@@ -2,6 +2,8 @@ package com.mcmoddev.orespawn.impl.location;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import net.minecraft.world.biome.Biome;
 
@@ -42,5 +44,15 @@ public final class BiomeLocationList implements BiomeLocation {
 
 	public ImmutableSet<BiomeLocation> getLocations() {
 		return this.locations;
+	}
+
+	@Override
+	public JsonElement serialize() {
+		JsonArray rv = new JsonArray();
+		this.locations.stream()
+		.filter(bl -> (!(bl instanceof BiomeLocationEmpty)))
+		.forEach(bl -> rv.add(bl.serialize()));
+
+		return rv;
 	}
 }

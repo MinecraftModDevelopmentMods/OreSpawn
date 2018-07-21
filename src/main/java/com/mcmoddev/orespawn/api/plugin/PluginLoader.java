@@ -85,6 +85,11 @@ public enum PluginLoader {
 		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
 		URL resURL = getClass().getClassLoader().getResource(base);
 
+		if(resURL == null) {
+			OreSpawn.LOGGER.warn("Unable to access file %s: got 'null' when trying to resolve it", base);
+			return;
+		}
+		
 		URI uri;
 
 		try {

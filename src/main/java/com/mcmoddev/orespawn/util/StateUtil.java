@@ -18,7 +18,7 @@ public class StateUtil {
 			string = "normal";
 		}
 		
-		OreSpawn.LOGGER.fatal("State is %s (for block %s)", string, state.getBlock().getRegistryName());
+		OreSpawn.LOGGER.debug("State is %s (for block %s)", string, state.getBlock().getRegistryName());
 		return string;
 	}
 
