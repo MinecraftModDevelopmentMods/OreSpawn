@@ -62,7 +62,7 @@ public class ReplacementsRegistry {
 	 * @deprecated
 	 */
 	@Deprecated
-	public List<IBlockState> getDimensionDefault(int dimension) {
+	public List<IBlockState> getDimensionDefault(final int dimension) {
 		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
 		List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
 				.filter(iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
@@ -84,7 +84,7 @@ public class ReplacementsRegistry {
 		return baseRv;
 	}
 
-	public IReplacementEntry getReplacement(String name) {
+	public IReplacementEntry getReplacement(final String name) {
 		ResourceLocation act = new ResourceLocation(
 				name.contains(":") ? name : String.format("orespawn:%s", name));
 		if (registry.containsKey(act)) {
@@ -94,7 +94,7 @@ public class ReplacementsRegistry {
 		}
 	}
 
-	public void addBlock(String name, String blockName, String blockState) {
+	public void addBlock(final String name, final String blockName, final String blockState) {
 		IBlockState b = StateUtil.deserializeState(
 				ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
 		addBlock(name, b);
@@ -108,11 +108,11 @@ public class ReplacementsRegistry {
 		return Collections.unmodifiableMap(tempMap);
 	}
 
-	public void addReplacement(IReplacementEntry replacement) {
+	public void addReplacement(final IReplacementEntry replacement) {
 		registry.register(replacement);
 	}
 
-	public void addBlock(String name, IBlockState state) {
+	public void addBlock(final String name, final IBlockState state) {
 		ResourceLocation regName = new ResourceLocation(name);
 		if (registry.containsKey(regName)) {
 			IReplacementEntry old = registry.getValue(regName);
@@ -131,7 +131,7 @@ public class ReplacementsRegistry {
 	}
 
 	@SuppressWarnings("deprecation")
-	public void loadFile(Path file) {
+	public void loadFile(final Path file) {
 		JsonParser parser = new JsonParser();
 		JsonObject elements;
 		String rawJson;
@@ -192,7 +192,7 @@ public class ReplacementsRegistry {
 		});
 	}
 
-	public void saveFile(String modName) {
+	public void saveFile(final String modName) {
 		JsonObject outs = new JsonObject();
 
 		registry.getEntries().stream().filter(ent -> ent.getKey().getNamespace().equals(modName))
@@ -225,7 +225,7 @@ public class ReplacementsRegistry {
 		}
 	}
 
-	public boolean has(ResourceLocation resourceLocation) {
+	public boolean has(final ResourceLocation resourceLocation) {
 		return registry.containsKey(resourceLocation);
 	}
 }

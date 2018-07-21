@@ -4,15 +4,15 @@ import com.mcmoddev.orespawn.api.IDimensionList;
 
 public interface IDimensionBuilder {
 
-	public IDimensionBuilder addWhitelistEntry(final int dimensionID);
+	IDimensionBuilder addWhitelistEntry(int dimensionID);
 
-	public IDimensionBuilder addBlacklistEntry(final int dimensionID);
+	IDimensionBuilder addBlacklistEntry(int dimensionID);
 
-	public IDimensionBuilder setAcceptAll();
+	IDimensionBuilder setAcceptAll();
 
-	public IDimensionBuilder setDenyAll();
+	IDimensionBuilder setDenyAll();
 
-	public IDimensionBuilder setAcceptAllOverworld();
+	IDimensionBuilder setAcceptAllOverworld();
 
-	public IDimensionList create();
+	IDimensionList create();
 }

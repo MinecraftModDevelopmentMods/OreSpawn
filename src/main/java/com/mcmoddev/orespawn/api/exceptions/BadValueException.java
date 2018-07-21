@@ -6,7 +6,7 @@ public class BadValueException extends Exception {
 	private final String keyName;
 	private final String keyValue;
 
-	public BadValueException(String keyName, String keyValue) {
+	public BadValueException(final String keyName, final String keyValue) {
 		super();
 		this.keyName = keyName;
 		this.keyValue = keyValue;

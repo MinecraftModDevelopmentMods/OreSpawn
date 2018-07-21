@@ -28,14 +28,14 @@ public class PresetsStorage {
 		storage = new TreeMap<>();
 	}
 
-	public void setSymbolSection(String sectionName, String itemName, JsonElement value) {
+	public void setSymbolSection(final String sectionName, final String itemName, final JsonElement value) {
 		Map<String, JsonElement> temp = storage.getOrDefault(sectionName,
 				new HashMap<String, JsonElement>());
 		temp.put(itemName, value);
 		storage.put(sectionName, temp);
 	}
 
-	public JsonElement getSymbolSection(String sectionName, String itemName) {
+	public JsonElement getSymbolSection(final String sectionName, final String itemName) {
 		if (storage.containsKey(sectionName) && storage.get(sectionName).containsKey(itemName)) {
 			return storage.get(sectionName).get(itemName);
 		} else {
@@ -43,7 +43,7 @@ public class PresetsStorage {
 		}
 	}
 
-	public void copy(PresetsStorage dest) {
+	public void copy(final PresetsStorage dest) {
 		storage.entrySet().stream().forEach(ensm -> {
 			String section = ensm.getKey();
 			ensm.getValue().entrySet().forEach(
@@ -55,7 +55,7 @@ public class PresetsStorage {
 		this.storage.clear();
 	}
 
-	public void load(Path inputFile) {
+	public void load(final Path inputFile) {
 		JsonParser p = new JsonParser();
 		JsonElement parsed = null;
 
@@ -82,7 +82,7 @@ public class PresetsStorage {
 		}
 	}
 
-	public JsonElement get(String asString) {
+	public JsonElement get(final String asString) {
 		Pattern p = Pattern.compile("\\$\\.(\\w+)\\.(\\w+)");
 		Matcher m = p.matcher(asString);
 		if (m.matches()) {

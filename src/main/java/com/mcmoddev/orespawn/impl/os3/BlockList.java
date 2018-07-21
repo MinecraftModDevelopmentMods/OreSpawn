@@ -21,12 +21,12 @@ public class BlockList implements IBlockList {
 	}
 
 	@Override
-	public void addBlock(IBlockDefinition block) {
+	public void addBlock(final IBlockDefinition block) {
 		this.myBlocks.add(block);
 	}
 
 	@Override
-	public IBlockState getRandomBlock(Random rand) {
+	public IBlockState getRandomBlock(final Random rand) {
 		if (this.workingList.isEmpty()) {
 			this.startNewSpawn();
 		}

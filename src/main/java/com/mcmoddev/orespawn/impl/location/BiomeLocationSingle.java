@@ -13,13 +13,13 @@ public final class BiomeLocationSingle implements BiomeLocation {
 
 	private final int hash;
 
-	public BiomeLocationSingle(Biome biome) {
+	public BiomeLocationSingle(final Biome biome) {
 		this.biome = biome;
 		this.hash = biome.hashCode();
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		return this.biome.equals(biome);
 	}
 
@@ -34,7 +34,7 @@ public final class BiomeLocationSingle implements BiomeLocation {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		return (obj == this) || ((obj instanceof BiomeLocationSingle)
 				&& this.biome.equals(((BiomeLocationSingle) obj).biome));
 	}

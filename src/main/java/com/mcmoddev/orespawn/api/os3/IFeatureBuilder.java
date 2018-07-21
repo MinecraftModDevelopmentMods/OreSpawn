@@ -7,24 +7,24 @@ import net.minecraft.util.ResourceLocation;
 
 public interface IFeatureBuilder {
 
-	public IFeatureBuilder setFeature(final String featureName);
+	IFeatureBuilder setFeature(String featureName);
 
-	public IFeatureBuilder setFeature(final ResourceLocation featureResourceLocation);
+	IFeatureBuilder setFeature(ResourceLocation featureResourceLocation);
 
-	public IFeatureBuilder setFeature(final IFeature feature);
+	IFeatureBuilder setFeature(IFeature feature);
 
-	public IFeatureBuilder setParameter(final String parameterName, final String parameterValue);
+	IFeatureBuilder setParameter(String parameterName, String parameterValue);
 
-	public IFeatureBuilder setParameter(final String parameterName, final int parameterValue);
+	IFeatureBuilder setParameter(String parameterName, int parameterValue);
 
-	public IFeatureBuilder setParameter(final String parameterName, final float parameterValue);
+	IFeatureBuilder setParameter(String parameterName, float parameterValue);
 
-	public IFeatureBuilder setParameter(final String parameterName, final boolean parameterValue);
+	IFeatureBuilder setParameter(String parameterName, boolean parameterValue);
 
-	public IFeatureBuilder setParameter(final String parameterName,
-			final JsonElement parameterValue);
+	IFeatureBuilder setParameter(String parameterName,
+			JsonElement parameterValue);
 
-	public IFeatureBuilder setUseFeatureDefaults();
+	IFeatureBuilder setUseFeatureDefaults();
 
-	public IFeatureEntry create();
+	IFeatureEntry create();
 }

@@ -9,7 +9,7 @@ public class FeatureEntry implements IFeatureEntry {
 	private final IFeature feature;
 	private final JsonObject parameters;
 
-	public FeatureEntry(IFeature feature) {
+	public FeatureEntry(final IFeature feature) {
 		this.feature = feature;
 		this.parameters = new JsonObject();
 	}
@@ -32,22 +32,22 @@ public class FeatureEntry implements IFeatureEntry {
 	}
 
 	@Override
-	public void setParameter(String parameterName, String parameterValue) {
+	public void setParameter(final String parameterName, final String parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
-	public void setParameter(String parameterName, int parameterValue) {
+	public void setParameter(final String parameterName, final int parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
-	public void setParameter(String parameterName, boolean parameterValue) {
+	public void setParameter(final String parameterName, final boolean parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 	}
 
 	@Override
-	public void setParameter(String parameterName, float parameterValue) {
+	public void setParameter(final String parameterName, final float parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 	}
 

@@ -29,34 +29,34 @@ public class BiomeBuilder implements IBiomeBuilder {
 	}
 
 	@Override
-	public IBiomeBuilder addWhitelistEntry(Biome biome) {
+	public IBiomeBuilder addWhitelistEntry(final Biome biome) {
 		this.whitelist.add(biome);
 		return this;
 	}
 
 	@Override
-	public IBiomeBuilder addWhitelistEntry(String biomeName) {
+	public IBiomeBuilder addWhitelistEntry(final String biomeName) {
 		return this.addWhitelistEntry(new ResourceLocation(biomeName));
 	}
 
 	@Override
-	public IBiomeBuilder addWhitelistEntry(ResourceLocation biomeResourceLocation) {
+	public IBiomeBuilder addWhitelistEntry(final ResourceLocation biomeResourceLocation) {
 		return this.addWhitelistEntry(ForgeRegistries.BIOMES.getValue(biomeResourceLocation));
 	}
 
 	@Override
-	public IBiomeBuilder addBlacklistEntry(Biome biome) {
+	public IBiomeBuilder addBlacklistEntry(final Biome biome) {
 		this.blacklist.add(biome);
 		return this;
 	}
 
 	@Override
-	public IBiomeBuilder addBlacklistEntry(String biomeName) {
+	public IBiomeBuilder addBlacklistEntry(final String biomeName) {
 		return this.addBlacklistEntry(new ResourceLocation(biomeName));
 	}
 
 	@Override
-	public IBiomeBuilder addBlacklistEntry(ResourceLocation biomeResourceLocation) {
+	public IBiomeBuilder addBlacklistEntry(final ResourceLocation biomeResourceLocation) {
 		return this.addBlacklistEntry(ForgeRegistries.BIOMES.getValue(biomeResourceLocation));
 	}
 

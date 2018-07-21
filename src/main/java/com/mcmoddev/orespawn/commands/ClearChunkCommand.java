@@ -46,12 +46,12 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getUsage(final ICommandSender sender) {
 		return "/clearchunk <viewores|dirtandgravel|classic>";
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args)
+	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
 			throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
@@ -59,10 +59,10 @@ public class ClearChunkCommand extends CommandBase {
 
 		EntityPlayer player = (EntityPlayer) sender;
 		Chunk chunk = player.getEntityWorld().getChunk(player.getPosition());
-		ChunkPos chunkPos = chunk.getPos();
+		final ChunkPos chunkPos = chunk.getPos();
 		List<IBlockState> blocks;
 
-		boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic")
+		final boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic")
 				: false;
 
 		List<String> blockNames = new LinkedList<>();
@@ -88,8 +88,8 @@ public class ClearChunkCommand extends CommandBase {
 				new TextComponentString("chunk " + chunkPos.toString() + " cleared"), true);
 	}
 
-	private void clearBlocks(ChunkPos chunkPos, List<IBlockState> blocks,
-			List<IBlockState> overburden, boolean flagClassic, EntityPlayer player) {
+	private void clearBlocks(final ChunkPos chunkPos, final List<IBlockState> blocks,
+			final List<IBlockState> overburden, final boolean flagClassic, final EntityPlayer player) {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
@@ -102,7 +102,7 @@ public class ClearChunkCommand extends CommandBase {
 		}
 	}
 
-	private void removeIfFluid(BlockPos pos, EntityPlayer player) {
+	private void removeIfFluid(final BlockPos pos, final EntityPlayer player) {
 		if (player.getEntityWorld().getBlockState(pos).getMaterial().isLiquid()) {
 			IBlockState bs = player.getEntityWorld().getBlockState(pos);
 
@@ -112,15 +112,15 @@ public class ClearChunkCommand extends CommandBase {
 		}
 	}
 
-	private void removeIfBlocks(EntityPlayer player, BlockPos pos, IBlockState block,
-			List<IBlockState> blocks, List<IBlockState> overburden, boolean flagClassic) {
+	private void removeIfBlocks(final EntityPlayer player, final BlockPos pos, final IBlockState block,
+			final List<IBlockState> blocks, final List<IBlockState> overburden, final boolean flagClassic) {
 		if (blocks.contains(block)
 				|| ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
 			player.getEntityWorld().setBlockToAir(pos);
 		}
 	}
 
-	private void getBlocks(String[] args, List<String> blockNames) {
+	private void getBlocks(final String[] args, final List<String> blockNames) {
 		if (args.length > 0) {
 			switch (args[0].toLowerCase()) {
 				case "viewores":
@@ -154,7 +154,7 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	@Override
-	public int compareTo(ICommand command) {
+	public int compareTo(final ICommand command) {
 		return this.getName().compareTo(command.getName());
 	}
 }

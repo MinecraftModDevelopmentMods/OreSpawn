@@ -17,13 +17,13 @@ public final class BiomeLocationList implements BiomeLocation {
 
 	private final int hash;
 
-	public BiomeLocationList(ImmutableSet<BiomeLocation> locations) {
+	public BiomeLocationList(final ImmutableSet<BiomeLocation> locations) {
 		this.locations = locations;
 		this.hash = locations.hashCode();
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		return this.locations.stream().anyMatch(loc -> loc.matches(biome));
 	}
 
@@ -33,7 +33,7 @@ public final class BiomeLocationList implements BiomeLocation {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		return (obj == this) || ((obj instanceof BiomeLocationList)
 				&& this.locations.equals(((BiomeLocationList) obj).locations));
 	}

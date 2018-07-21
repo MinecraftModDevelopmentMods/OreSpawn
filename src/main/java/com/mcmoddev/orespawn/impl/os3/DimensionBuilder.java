@@ -19,14 +19,14 @@ public class DimensionBuilder implements IDimensionBuilder {
 	}
 
 	@Override
-	public IDimensionBuilder addWhitelistEntry(int dimensionID) {
+	public IDimensionBuilder addWhitelistEntry(final int dimensionID) {
 		this.acceptAllOverworld = false;
 		this.dimensionWhitelist.add(dimensionID);
 		return this;
 	}
 
 	@Override
-	public IDimensionBuilder addBlacklistEntry(int dimensionID) {
+	public IDimensionBuilder addBlacklistEntry(final int dimensionID) {
 		this.acceptAllOverworld = false;
 		this.dimensionBlacklist.add(dimensionID);
 		return this;
@@ -34,16 +34,18 @@ public class DimensionBuilder implements IDimensionBuilder {
 
 	@Override
 	public IDimensionBuilder setAcceptAll() {
-		if (this.denyAll)
+		if (this.denyAll) {
 			this.denyAll = false;
+		}
 		this.acceptAll = true;
 		return this;
 	}
 
 	@Override
 	public IDimensionBuilder setDenyAll() {
-		if (this.acceptAll)
+		if (this.acceptAll) {
 			this.acceptAll = false;
+		}
 		this.denyAll = true;
 		return this;
 	}

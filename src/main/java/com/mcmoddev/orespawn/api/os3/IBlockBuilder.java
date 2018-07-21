@@ -11,21 +11,21 @@ public interface IBlockBuilder {
 	 * @param blockState
 	 * @return
 	 */
-	public IBlockBuilder setFromBlockState(final IBlockState blockState);
+	IBlockBuilder setFromBlockState(IBlockState blockState);
 
 	/**
 	 *
 	 * @param block
 	 * @return
 	 */
-	public IBlockBuilder setFromBlock(final Block block);
+	IBlockBuilder setFromBlock(Block block);
 
 	/**
 	 *
 	 * @param blockName
 	 * @return
 	 */
-	public IBlockBuilder setFromName(final String blockName);
+	IBlockBuilder setFromName(String blockName);
 
 	/**
 	 *
@@ -33,7 +33,7 @@ public interface IBlockBuilder {
 	 * @param state
 	 * @return
 	 */
-	public IBlockBuilder setFromName(final String blockName, final String state);
+	IBlockBuilder setFromName(String blockName, String state);
 
 	/**
 	 *
@@ -43,14 +43,14 @@ public interface IBlockBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IBlockBuilder setFromName(final String blockName, final int metadata);
+	IBlockBuilder setFromName(String blockName, int metadata);
 
 	/**
 	 *
 	 * @param blockResourceLocation
 	 * @return
 	 */
-	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation);
+	IBlockBuilder setFromName(ResourceLocation blockResourceLocation);
 
 	/**
 	 *
@@ -58,8 +58,8 @@ public interface IBlockBuilder {
 	 * @param state
 	 * @return
 	 */
-	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation,
-			final String state);
+	IBlockBuilder setFromName(ResourceLocation blockResourceLocation,
+			String state);
 
 	/**
 	 *
@@ -69,8 +69,8 @@ public interface IBlockBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation,
-			final int metadata);
+	IBlockBuilder setFromName(ResourceLocation blockResourceLocation,
+			int metadata);
 
 	/**
 	 *
@@ -78,8 +78,8 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromBlockStateWithChance(final IBlockState blockState,
-			final int chance);
+	IBlockBuilder setFromBlockStateWithChance(IBlockState blockState,
+			int chance);
 
 	/**
 	 *
@@ -87,7 +87,7 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromBlockWithChance(final Block block, final int chance);
+	IBlockBuilder setFromBlockWithChance(Block block, int chance);
 
 	/**
 	 *
@@ -95,7 +95,7 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromNameWithChance(final String blockName, final int chance);
+	IBlockBuilder setFromNameWithChance(String blockName, int chance);
 
 	/**
 	 *
@@ -104,8 +104,8 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromNameWithChance(final String blockName, final String state,
-			final int chance);
+	IBlockBuilder setFromNameWithChance(String blockName, String state,
+			int chance);
 
 	/**
 	 *
@@ -116,8 +116,8 @@ public interface IBlockBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IBlockBuilder setFromNameWithChance(final String blockName, final int metadata,
-			final int chance);
+	IBlockBuilder setFromNameWithChance(String blockName, int metadata,
+			int chance);
 
 	/**
 	 *
@@ -125,8 +125,8 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
-			final int chance);
+	IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation,
+			int chance);
 
 	/**
 	 *
@@ -135,8 +135,8 @@ public interface IBlockBuilder {
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
-			final String state, final int chance);
+	IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation,
+			String state, int chance);
 
 	/**
 	 *
@@ -147,19 +147,19 @@ public interface IBlockBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
-			final int metadata, final int chance);
+	IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation,
+			int metadata, int chance);
 
 	/**
 	 *
 	 * @param chance
 	 * @return
 	 */
-	public IBlockBuilder setChance(int chance);
+	IBlockBuilder setChance(int chance);
 
 	/**
 	 *
 	 * @return
 	 */
-	public IBlockDefinition create();
+	IBlockDefinition create();
 }

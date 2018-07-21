@@ -5,7 +5,7 @@ public class UnknownFieldException extends Exception {
 	private static final long serialVersionUID = 1L;
 	private final String message;
 
-	public UnknownFieldException(String theField) {
+	public UnknownFieldException(final String theField) {
 		super();
 		this.message = String.format("Unkown field %s in config", theField);
 	}

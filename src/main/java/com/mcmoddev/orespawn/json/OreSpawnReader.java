@@ -48,7 +48,7 @@ public class OreSpawnReader {
 
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 
-	public static void tryReadFile(Path conf, OS3APIImpl os3apiImpl) throws MissingVersionException,
+	public static void tryReadFile(final Path conf, final OS3APIImpl os3apiImpl) throws MissingVersionException,
 			NotAProperConfigException, OldVersionException, UnknownVersionException {
 		JsonParser parser = new JsonParser();
 
@@ -101,7 +101,7 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static JsonObject doHandlePresets(JsonObject spawnData) {
+	private static JsonObject doHandlePresets(final JsonObject spawnData) {
 		PresetsStorage configPresets = OreSpawn.API.copyPresets();
 		if (spawnData.has(Constants.ConfigNames.PRESETS)) {
 			spawnData.get(Constants.ConfigNames.PRESETS).getAsJsonObject().entrySet().stream()
@@ -121,7 +121,7 @@ public class OreSpawnReader {
 		return spawnData;
 	}
 
-	private static JsonElement doPresetFix(JsonElement value, PresetsStorage configPresets) {
+	private static JsonElement doPresetFix(final JsonElement value, final PresetsStorage configPresets) {
 		if (value.isJsonObject()) {
 			return doPresetForObject(value.getAsJsonObject(), configPresets);
 		} else if (value.isJsonArray()) {
@@ -139,13 +139,13 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static JsonElement doPresetForArray(JsonArray value, PresetsStorage configPresets) {
+	private static JsonElement doPresetForArray(final JsonArray value, final PresetsStorage configPresets) {
 		JsonArray rv = new JsonArray();
 		value.forEach(it -> rv.add(doPresetFix(it, configPresets)));
 		return rv;
 	}
 
-	private static JsonElement doPresetForObject(JsonObject value, PresetsStorage configPresets) {
+	private static JsonElement doPresetForObject(final JsonObject value, final PresetsStorage configPresets) {
 		JsonObject rv = new JsonObject();
 
 		value.entrySet().stream().forEach(
@@ -153,7 +153,7 @@ public class OreSpawnReader {
 		return rv;
 	}
 
-	public static void loadFromJson(String name, JsonElement json) {
+	public static void loadFromJson(final String name, final JsonElement json) {
 		Entry<String, JsonElement> t = new AbstractMap.SimpleEntry<>(name, json);
 		try {
 			loadSingleEntry(t);
@@ -165,7 +165,7 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static void loadSingleEntry(Entry<String, JsonElement> entry)
+	private static void loadSingleEntry(final Entry<String, JsonElement> entry)
 			throws UnknownFieldException, BadValueException, UnknownNameException {
 		ISpawnBuilder sb = OreSpawn.API.getSpawnBuilder();
 		IFeatureBuilder fb = OreSpawn.API.getFeatureBuilder();
@@ -297,7 +297,7 @@ public class OreSpawnReader {
 		OreSpawn.API.addSpawn(sb.create());
 	}
 
-	private static List<IBlockState> loadBlock(JsonObject json) {
+	private static List<IBlockState> loadBlock(final JsonObject json) {
 		String blockName = json.get(Constants.ConfigNames.NAME).getAsString();
 		if (json.has(Constants.ConfigNames.STATE)) {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName));
@@ -320,7 +320,7 @@ public class OreSpawnReader {
 		return Arrays.asList(block.getDefaultState());
 	}
 
-	private static void loadBiomes(IBiomeBuilder bb, JsonObject biomeList) {
+	private static void loadBiomes(final IBiomeBuilder bb, final JsonObject biomeList) {
 		boolean emptyWhitelist = false;
 
 		if (biomeList.has(Constants.ConfigNames.WHITELIST)
@@ -369,7 +369,7 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static void loadDimensions(IDimensionBuilder db, JsonObject dimensionList) {
+	private static void loadDimensions(final IDimensionBuilder db, final JsonObject dimensionList) {
 		boolean emptyWhitelist = false;
 
 		if (dimensionList.has(Constants.ConfigNames.WHITELIST)

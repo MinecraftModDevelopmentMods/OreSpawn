@@ -7,19 +7,19 @@ import net.minecraft.world.biome.Biome;
 
 public interface IBiomeBuilder {
 
-	public IBiomeBuilder addWhitelistEntry(final Biome biome);
+	IBiomeBuilder addWhitelistEntry(Biome biome);
 
-	public IBiomeBuilder addWhitelistEntry(final String biomeName);
+	IBiomeBuilder addWhitelistEntry(String biomeName);
 
-	public IBiomeBuilder addWhitelistEntry(final ResourceLocation biomeResourceLocation);
+	IBiomeBuilder addWhitelistEntry(ResourceLocation biomeResourceLocation);
 
-	public IBiomeBuilder addBlacklistEntry(Biome biome);
+	IBiomeBuilder addBlacklistEntry(Biome biome);
 
-	public IBiomeBuilder addBlacklistEntry(final String biomeName);
+	IBiomeBuilder addBlacklistEntry(String biomeName);
 
-	public IBiomeBuilder addBlacklistEntry(final ResourceLocation biomeResourceLocation);
+	IBiomeBuilder addBlacklistEntry(ResourceLocation biomeResourceLocation);
 
-	public IBiomeBuilder setAcceptAll();
+	IBiomeBuilder setAcceptAll();
 
-	public BiomeLocation create();
+	BiomeLocation create();
 }

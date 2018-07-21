@@ -4,11 +4,11 @@ import net.minecraft.block.state.IBlockState;
 
 public interface IBlockDefinition {
 
-	public IBlockState getBlock();
+	IBlockState getBlock();
 
-	public int getChance();
+	int getChance();
 
-	public default boolean isValid() {
+	default boolean isValid() {
 		return true;
 	}
 }

@@ -15,8 +15,8 @@ import net.minecraftforge.fml.common.IWorldGenerator;
 public class OreSpawnWorldGen implements IWorldGenerator {
 
 	@Override
-	public void generate(Random random, int chunkX, int chunkZ, World world,
-			IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+	public void generate(final Random random, final int chunkX, final int chunkZ, final World world,
+			final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider) {
 
 		int thisDim = world.provider.getDimension();
 

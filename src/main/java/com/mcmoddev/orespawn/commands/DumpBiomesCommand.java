@@ -29,12 +29,12 @@ public class DumpBiomesCommand extends CommandBase {
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getUsage(final ICommandSender sender) {
 		return "/dumpbiomes";
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args)
+	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
 			throws CommandException {
 		JsonArray array = new JsonArray();
 
@@ -56,7 +56,7 @@ public class DumpBiomesCommand extends CommandBase {
 	}
 
 	@Override
-	public int compareTo(ICommand command) {
+	public int compareTo(final ICommand command) {
 		return this.getName().compareTo(command.getName());
 	}
 }

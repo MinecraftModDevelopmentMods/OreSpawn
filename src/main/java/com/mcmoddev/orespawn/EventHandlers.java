@@ -53,7 +53,7 @@ public class EventHandlers {
 			EventType.REDSTONE, EventType.QUARTZ, EventType.SILVERFISH);
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
-	public void onGenerateMinable(OreGenEvent.GenerateMinable event) {
+	public void onGenerateMinable(final OreGenEvent.GenerateMinable event) {
 		if (Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
 				&& vanillaEvents.contains(event.getType())) {
 			event.setResult(Event.Result.DENY);
@@ -61,7 +61,7 @@ public class EventHandlers {
 	}
 
 	@SubscribeEvent
-	public void onChunkSave(ChunkDataEvent.Save ev) {
+	public void onChunkSave(final ChunkDataEvent.Save ev) {
 		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
 		NBTTagCompound features = new NBTTagCompound();
 
@@ -83,13 +83,13 @@ public class EventHandlers {
 		ev.getData().setTag(Constants.CHUNK_TAG_NAME, dataTag);
 	}
 
-	private boolean dequeContains(ChunkPos cc) {
+	private boolean dequeContains(final ChunkPos cc) {
 		return chunks.stream().map(tup -> tup.getFirst().equals(cc)).collect(Collectors.toList())
 				.contains(true);
 	}
 
 	@SubscribeEvent
-	public void onChunkLoad(ChunkDataEvent.Load ev) {
+	public void onChunkLoad(final ChunkDataEvent.Load ev) {
 		World world = ev.getWorld();
 		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
 
@@ -113,7 +113,7 @@ public class EventHandlers {
 		}
 	}
 
-	private List<String> getDifferingTags(NBTTagCompound chunkTag, int dim, Biome biome) {
+	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
 		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		Map<String, String> currentBits = new TreeMap<>();
 		Map<String, String> oldBits = new TreeMap<>();
@@ -135,7 +135,7 @@ public class EventHandlers {
 		return ImmutableList.copyOf(stuff);
 	}
 
-	private boolean featuresAreDifferent(NBTTagCompound chunkTag, int dim, Biome biome) {
+	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
 		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		Map<String, String> currentBits = new TreeMap<>();
 		Map<String, String> oldBits = new TreeMap<>();
@@ -153,7 +153,7 @@ public class EventHandlers {
 				&& diff.entriesOnlyOnRight().size() == 0;
 	}
 
-	private void doBedrockRetrogen(ChunkPos chunkCoords) {
+	private void doBedrockRetrogen(final ChunkPos chunkCoords) {
 		if (retroChunks.contains(chunkCoords)) {
 			return;
 		}
@@ -168,7 +168,7 @@ public class EventHandlers {
 	private static IChunkGenerator chunkGenerator;
 	private static Random random;
 
-	private static void setupData(World nw) {
+	private static void setupData(final World nw) {
 		if (world == null || !world.equals(nw)) {
 			world = nw;
 		}
@@ -188,7 +188,7 @@ public class EventHandlers {
 
 	}
 
-	private void runBits(Tuple<ChunkPos, List<String>> tup) {
+	private void runBits(final Tuple<ChunkPos, List<String>> tup) {
 		ChunkPos p = tup.getFirst();
 		List<String> spawns = tup.getSecond();
 
@@ -200,7 +200,7 @@ public class EventHandlers {
 	}
 
 	@SubscribeEvent
-	public void worldTick(WorldTickEvent ev) {
+	public void worldTick(final WorldTickEvent ev) {
 		setupData(ev.world);
 
 		if (ev.side != Side.SERVER) {

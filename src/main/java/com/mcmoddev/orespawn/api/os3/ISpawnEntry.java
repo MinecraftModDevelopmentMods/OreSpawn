@@ -15,32 +15,32 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public interface ISpawnEntry {
 
-	public default boolean isEnabled() {
+	default boolean isEnabled() {
 		return false;
 	}
 
-	public default boolean isRetrogen() {
+	default boolean isRetrogen() {
 		return false;
 	}
 
-	public String getSpawnName();
+	String getSpawnName();
 
-	public boolean dimensionAllowed(final int dimension);
+	boolean dimensionAllowed(int dimension);
 
-	public boolean biomeAllowed(final ResourceLocation biomeName);
+	boolean biomeAllowed(ResourceLocation biomeName);
 
-	public boolean biomeAllowed(final Biome biome);
+	boolean biomeAllowed(Biome biome);
 
-	public IFeatureEntry getFeature();
+	IFeatureEntry getFeature();
 
-	public OreSpawnBlockMatcher getMatcher();
+	OreSpawnBlockMatcher getMatcher();
 
-	public IBlockList getBlocks();
+	IBlockList getBlocks();
 
-	public void generate(Random random, World world, IChunkGenerator chunkGenerator,
+	void generate(Random random, World world, IChunkGenerator chunkGenerator,
 			IChunkProvider chunkProvider, ChunkPos pos);
 
-	public IDimensionList getDimensions();
+	IDimensionList getDimensions();
 
-	public BiomeLocation getBiomes();
+	BiomeLocation getBiomes();
 }

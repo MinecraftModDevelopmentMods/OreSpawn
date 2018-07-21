@@ -6,57 +6,57 @@ import net.minecraft.util.ResourceLocation;
 public interface IReplacementBuilder {
 
 	/**
-	 * 
+	 *
 	 * @param entryName
 	 * @return
 	 */
-	public IReplacementBuilder setFromName(final String entryName);
+	IReplacementBuilder setFromName(String entryName);
 
 	/**
-	 * 
+	 *
 	 * @param name
 	 * @return
 	 */
-	public IReplacementBuilder setName(final String name);
+	IReplacementBuilder setName(String name);
 
 	/**
-	 * 
+	 *
 	 * @param blockState
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final IBlockState blockState);
+	IReplacementBuilder addEntry(IBlockState blockState);
 
 	/**
-	 * 
+	 *
 	 * @param blockName
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final String blockName);
+	IReplacementBuilder addEntry(String blockName);
 
 	/**
-	 * 
+	 *
 	 * @param blockName
 	 * @param state
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final String blockName, final String state);
+	IReplacementBuilder addEntry(String blockName, String state);
 
 	/**
-	 * 
+	 *
 	 * @param blockName
 	 * @param metadata
 	 * @return
 	 * @deprecated
 	 */
 	@Deprecated
-	public IReplacementBuilder addEntry(final String blockName, final int metadata);
+	IReplacementBuilder addEntry(String blockName, int metadata);
 
 	/**
-	 * 
+	 *
 	 * @param blockResourceLocation
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation);
+	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation);
 
 	/**
 	 *
@@ -64,8 +64,8 @@ public interface IReplacementBuilder {
 	 * @param state
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
-			final String state);
+	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation,
+			String state);
 
 	/**
 	 *
@@ -75,10 +75,10 @@ public interface IReplacementBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
-			final int metadata);
+	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation,
+			int metadata);
 
-	public boolean hasEntries();
+	boolean hasEntries();
 
-	public IReplacementEntry create();
+	IReplacementEntry create();
 }

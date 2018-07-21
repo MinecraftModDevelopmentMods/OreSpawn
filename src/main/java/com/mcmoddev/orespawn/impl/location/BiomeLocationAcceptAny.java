@@ -11,7 +11,7 @@ import net.minecraft.world.biome.Biome;
 public class BiomeLocationAcceptAny implements BiomeLocation {
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		return true;
 	}
 

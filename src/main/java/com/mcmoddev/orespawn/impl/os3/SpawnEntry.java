@@ -58,17 +58,17 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public boolean dimensionAllowed(int dimension) {
+	public boolean dimensionAllowed(final int dimension) {
 		return this.dimensions.matches(dimension);
 	}
 
 	@Override
-	public boolean biomeAllowed(ResourceLocation biomeName) {
+	public boolean biomeAllowed(final ResourceLocation biomeName) {
 		return this.biomeAllowed(ForgeRegistries.BIOMES.getValue(biomeName));
 	}
 
 	@Override
-	public boolean biomeAllowed(Biome biome) {
+	public boolean biomeAllowed(final Biome biome) {
 		return this.biomes.matches(biome);
 	}
 
@@ -88,8 +88,8 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public void generate(Random random, World world, IChunkGenerator chunkGenerator,
-			IChunkProvider chunkProvider, ChunkPos pos) {
+	public void generate(final Random random, final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ChunkPos pos) {
 		this.feature.getFeature().setRandom(random);
 		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}

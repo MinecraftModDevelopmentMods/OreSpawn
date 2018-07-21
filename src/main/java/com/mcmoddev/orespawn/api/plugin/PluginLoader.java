@@ -39,7 +39,7 @@ public enum PluginLoader {
 		public final String resourcePath;
 		public final IOreSpawnPlugin plugin;
 
-		public PluginData(String modId, String resourcePath, IOreSpawnPlugin plugin) {
+		PluginData(final String modId, final String resourcePath, final IOreSpawnPlugin plugin) {
 			this.modId = modId;
 			this.resourcePath = resourcePath;
 			this.plugin = plugin;
@@ -48,7 +48,7 @@ public enum PluginLoader {
 
 	private static List<PluginData> dataStore = new ArrayList<>();
 
-	private String getAnnotationItem(String item, final ASMData asmData) {
+	private String getAnnotationItem(final String item, final ASMData asmData) {
 		if (asmData.getAnnotationInfo().get(item) != null) {
 			return asmData.getAnnotationInfo().get(item).toString();
 		} else {
@@ -56,7 +56,7 @@ public enum PluginLoader {
 		}
 	}
 
-	public void load(FMLPreInitializationEvent event) {
+	public void load(final FMLPreInitializationEvent event) {
 		for (final ASMData asmDataItem : event.getAsmData()
 				.getAll(OreSpawnPlugin.class.getCanonicalName())) {
 			final String modId = getAnnotationItem("modid", asmDataItem);
@@ -81,7 +81,7 @@ public enum PluginLoader {
 		});
 	}
 
-	public void scanResources(PluginData pd) {
+	public void scanResources(final PluginData pd) {
 		if (Config.getKnownMods().contains(pd.modId)) {
 			return;
 		}
@@ -124,7 +124,7 @@ public enum PluginLoader {
 		Config.addKnownMod(pd.modId);
 	}
 
-	private void copyout(Path myPath, String modId) {
+	private void copyout(final Path myPath, final String modId) {
 		try (Stream<Path> walk = Files.walk(myPath, 1)) {
 			for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
 				Path p = it.next();

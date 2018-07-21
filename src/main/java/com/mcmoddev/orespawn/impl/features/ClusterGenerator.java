@@ -19,7 +19,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class ClusterGenerator extends FeatureBase implements IFeature {
 
-	private ClusterGenerator(Random rand) {
+	private ClusterGenerator(final Random rand) {
 		super(rand);
 	}
 
@@ -28,8 +28,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			ISpawnEntry spawnData, ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
+			final ISpawnEntry spawnData, final ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -81,8 +81,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnCluster(int clusterSize, int variance, int clusterCount, int maxSpread,
-			int minHeight, int maxHeight, ISpawnEntry spawnData, World world, BlockPos pos) {
+	private void spawnCluster(final int clusterSize, final int variance, final int clusterCount, final int maxSpread,
+			final int minHeight, final int maxHeight, final ISpawnEntry spawnData, final World world, final BlockPos pos) {
 		// spawn a cluster at the center, then a bunch around the outside...
 		int r = clusterSize - variance;
 
@@ -119,7 +119,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnChunk(World world, BlockPos pos, ISpawnEntry spawnData, int quantity) {
+	private void spawnChunk(final World world, final BlockPos pos, final ISpawnEntry spawnData, final int quantity) {
 		int count = quantity;
 		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
@@ -159,8 +159,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, spawnData, world, pos);
 	}
 
-	private void doSpawnFill(boolean nextBoolean, int quantity, ISpawnEntry spawnData, World world,
-			BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final ISpawnEntry spawnData, final World world,
+			final BlockPos pos) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int) (radius * radius);
@@ -172,7 +172,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void setRandom(Random rand) {
+	public void setRandom(final Random rand) {
 		this.random = rand;
 	}
 

@@ -17,7 +17,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
-	private NormalCloudGenerator(Random rand) {
+	private NormalCloudGenerator(final Random rand) {
 		super(rand);
 	}
 
@@ -26,8 +26,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			ISpawnEntry spawnData, ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
+			final ISpawnEntry spawnData, final ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -115,8 +115,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private boolean spawnCloud(int size, int maxSpread, int minHeight, int maxHeight, BlockPos pos,
-			ISpawnEntry spawnData, World world) {
+	private boolean spawnCloud(final int size, final int maxSpread, final int minHeight, final int maxHeight, final BlockPos pos,
+			final ISpawnEntry spawnData, final World world) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 
 		if (!spawn(spawnData.getBlocks().getRandomBlock(random), world, pos,
@@ -161,7 +161,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void setRandom(Random rand) {
+	public void setRandom(final Random rand) {
 		this.random = rand;
 	}
 

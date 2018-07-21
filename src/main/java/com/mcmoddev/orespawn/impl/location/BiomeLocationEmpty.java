@@ -9,7 +9,7 @@ import net.minecraft.world.biome.Biome;
 public class BiomeLocationEmpty implements BiomeLocation {
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		return false;
 	}
 

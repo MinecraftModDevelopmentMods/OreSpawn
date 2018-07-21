@@ -20,7 +20,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromBlockState(IBlockState blockState) {
+	public IBlockBuilder setFromBlockState(final IBlockState blockState) {
 		ResourceLocation key = blockState.getBlock().getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
@@ -29,7 +29,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromBlock(Block block) {
+	public IBlockBuilder setFromBlock(final Block block) {
 		ResourceLocation key = block.getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
@@ -38,22 +38,22 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromName(String blockName) {
+	public IBlockBuilder setFromName(final String blockName) {
 		return this.setFromName(new ResourceLocation(blockName));
 	}
 
 	@Override
-	public IBlockBuilder setFromName(String blockName, String state) {
+	public IBlockBuilder setFromName(final String blockName, final String state) {
 		return this.setFromName(new ResourceLocation(blockName), state);
 	}
 
 	@Override
-	public IBlockBuilder setFromName(String blockName, int metadata) {
+	public IBlockBuilder setFromName(final String blockName, final int metadata) {
 		return this.setFromName(new ResourceLocation(blockName), metadata);
 	}
 
 	@Override
-	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation) {
+	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -61,7 +61,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation, String state) {
+	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation, final String state) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -70,12 +70,12 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	/**
-	 * 
+	 *
 	 * @deprecated
 	 */
 	@Override
 	@Deprecated
-	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation, int metadata) {
+	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation, final int metadata) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -84,7 +84,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromBlockStateWithChance(IBlockState blockState, int chance) {
+	public IBlockBuilder setFromBlockStateWithChance(final IBlockState blockState, final int chance) {
 		ResourceLocation key = blockState.getBlock().getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
@@ -95,7 +95,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromBlockWithChance(Block block, int chance) {
+	public IBlockBuilder setFromBlockWithChance(final Block block, final int chance) {
 		ResourceLocation key = block.getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
@@ -104,22 +104,22 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(String blockName, int chance) {
+	public IBlockBuilder setFromNameWithChance(final String blockName, final int chance) {
 		return this.setFromNameWithChance(new ResourceLocation(blockName), chance);
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(String blockName, String state, int chance) {
+	public IBlockBuilder setFromNameWithChance(final String blockName, final String state, final int chance) {
 		return this.setFromNameWithChance(new ResourceLocation(blockName), state, chance);
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(String blockName, int metadata, int chance) {
+	public IBlockBuilder setFromNameWithChance(final String blockName, final int metadata, final int chance) {
 		return this.setFromNameWithChance(new ResourceLocation(blockName), metadata, chance);
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -128,8 +128,8 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, String state,
-			int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final String state,
+			final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -139,13 +139,13 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	/**
-	 * 
+	 *
 	 * @deprecated
 	 */
 	@Override
 	@Deprecated
-	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, int metadata,
-			int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final int metadata,
+			final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -154,7 +154,7 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setChance(int chance) {
+	public IBlockBuilder setChance(final int chance) {
 		this.chance = chance;
 		return this;
 	}

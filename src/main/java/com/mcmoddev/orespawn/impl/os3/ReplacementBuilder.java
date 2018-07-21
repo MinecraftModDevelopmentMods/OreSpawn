@@ -24,31 +24,31 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	}
 
 	@Override
-	public IReplacementBuilder setFromName(String entryName) {
+	public IReplacementBuilder setFromName(final String entryName) {
 		this.replacementName = entryName;
 		this.entries.addAll(OreSpawn.API.getReplacement(entryName).getEntries());
 		return this;
 	}
 
 	@Override
-	public IReplacementBuilder setName(String name) {
+	public IReplacementBuilder setName(final String name) {
 		this.replacementName = name;
 		return this;
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(IBlockState blockState) {
+	public IReplacementBuilder addEntry(final IBlockState blockState) {
 		this.entries.add(blockState);
 		return this;
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(String blockName) {
+	public IReplacementBuilder addEntry(final String blockName) {
 		return this.addEntry(new ResourceLocation(blockName));
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(String blockName, String state) {
+	public IReplacementBuilder addEntry(final String blockName, final String state) {
 		return this.addEntry(new ResourceLocation(blockName), state);
 	}
 
@@ -58,18 +58,18 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	 */
 	@Override
 	@Deprecated
-	public IReplacementBuilder addEntry(String blockName, int metadata) {
+	public IReplacementBuilder addEntry(final String blockName, final int metadata) {
 		return this.addEntry(new ResourceLocation(blockName), metadata);
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation) {
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation) {
 		return this
 				.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState());
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, String state) {
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final String state) {
 		return this.addEntry(StateUtil
 				.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
 	}
@@ -80,7 +80,7 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	 */
 	@Override
 	@Deprecated
-	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, int metadata) {
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final int metadata) {
 		return this.addEntry(
 				ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(metadata));
 	}

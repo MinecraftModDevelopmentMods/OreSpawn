@@ -32,12 +32,12 @@ public class AddOreCommand extends CommandBase {
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getUsage(final ICommandSender sender) {
 		return "/addore <file> <options - json data>";
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args)
+	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
 			throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
@@ -66,27 +66,34 @@ public class AddOreCommand extends CommandBase {
 		OreSpawnWriter.saveSingle(FilenameUtils.getBaseName(file));
 	}
 
-	private JsonElement mergeDefaults(JsonElement parse, IBlockState state) {
+	private JsonElement mergeDefaults(final JsonElement parse, final IBlockState state) {
 		JsonObject work = parse.getAsJsonObject();
 		JsonObject emptyBlacklist = new JsonObject();
 		emptyBlacklist.add("excludes", new JsonArray());
 
-		if (!work.has(ConfigNames.ENABLED))
+		if (!work.has(ConfigNames.ENABLED)) {
 			work.addProperty(ConfigNames.ENABLED, true);
-		if (!work.has(ConfigNames.RETROGEN))
+		}
+		if (!work.has(ConfigNames.RETROGEN)) {
 			work.addProperty(ConfigNames.RETROGEN, false);
-		if (!work.has(ConfigNames.FEATURE))
+		}
+		if (!work.has(ConfigNames.FEATURE)) {
 			work.addProperty(ConfigNames.FEATURE, "default");
-		if (!work.has(ConfigNames.REPLACEMENT))
+		}
+		if (!work.has(ConfigNames.REPLACEMENT)) {
 			work.addProperty(ConfigNames.REPLACEMENT, "default");
-		if (!work.has(ConfigNames.PARAMETERS))
+		}
+		if (!work.has(ConfigNames.PARAMETERS)) {
 			work.add(ConfigNames.PARAMETERS,
 					OreSpawn.API.getFeature(work.get(ConfigNames.FEATURE).getAsString())
 							.getDefaultParameters());
-		if (!work.has(ConfigNames.DIMENSIONS))
+		}
+		if (!work.has(ConfigNames.DIMENSIONS)) {
 			work.add(ConfigNames.DIMENSIONS, emptyBlacklist);
-		if (!work.has(ConfigNames.BIOMES))
+		}
+		if (!work.has(ConfigNames.BIOMES)) {
 			work.add(ConfigNames.BIOMES, emptyBlacklist);
+		}
 
 		JsonObject block = new JsonObject();
 		block.addProperty(ConfigNames.CHANCE, 100);
@@ -98,7 +105,7 @@ public class AddOreCommand extends CommandBase {
 	}
 
 	@Override
-	public int compareTo(ICommand command) {
+	public int compareTo(final ICommand command) {
 		return this.getName().compareTo(command.getName());
 	}
 }

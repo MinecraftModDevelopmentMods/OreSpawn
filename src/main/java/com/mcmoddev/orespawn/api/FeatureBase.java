@@ -26,22 +26,22 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	private static final int MAX_CACHE_SIZE = 2048;
 	/**
 	 * overflow cache so that ores that spawn at edge of chunk can appear in the neighboring chunk
-	 * without triggering a chunk-load
+	 * without triggering a chunk-load.
 	 */
 	private static final Map<Vec3i, Map<BlockPos, IBlockState>> overflowCache = new HashMap<>(
 			MAX_CACHE_SIZE);
 	private static final Deque<Vec3i> cacheOrder = new LinkedList<>();
 	protected Random random;
 
-	public FeatureBase(Random rand) {
+	public FeatureBase(final Random rand) {
 		this.random = rand;
 	}
 
-	public boolean isValidBlock(IBlockState oreBlock) {
+	public boolean isValidBlock(final IBlockState oreBlock) {
 		return oreBlock.getBlock() != Blocks.AIR;
 	}
 
-	protected void runCache(int chunkX, int chunkZ, World world, ISpawnEntry spawnData) {
+	protected void runCache(final int chunkX, final int chunkZ, final World world, final ISpawnEntry spawnData) {
 		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
 		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
 
@@ -53,8 +53,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	protected boolean spawn(IBlockState oreBlock, World world, BlockPos coord, int dimension,
-			boolean cacheOverflow, ISpawnEntry spawnData) {
+	protected boolean spawn(final IBlockState oreBlock, final World world, final BlockPos coord, final int dimension,
+			final boolean cacheOverflow, final ISpawnEntry spawnData) {
 		if (oreBlock == null) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return false;
@@ -81,7 +81,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 				spawnData);
 	}
 
-	private BlockPos mungeFixYcoord(BlockPos coord) {
+	private BlockPos mungeFixYcoord(final BlockPos coord) {
 		if (coord.getY() < 0) {
 			int newYCoord = coord.getY() * -1;
 			return new BlockPos(coord.getX(), newYCoord, coord.getZ());
@@ -90,8 +90,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	private boolean spawnOrCache(World world, BlockPos coord, OreSpawnBlockMatcher replacer,
-			IBlockState oreBlock, boolean cacheOverflow, int dimension, ISpawnEntry spawnData) {
+	private boolean spawnOrCache(final World world, final BlockPos coord, final OreSpawnBlockMatcher replacer,
+			final IBlockState oreBlock, final boolean cacheOverflow, final int dimension, final ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
 			if (!isValidBlock(oreBlock)) {
 				return false;
@@ -114,8 +114,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		return false;
 	}
 
-	private void spawnNoCheck(IBlockState oreBlock, World world, BlockPos coord, int dimension,
-			ISpawnEntry spawnData) {
+	private void spawnNoCheck(final IBlockState oreBlock, final World world, final BlockPos coord, final int dimension,
+			final ISpawnEntry spawnData) {
 		if (oreBlock == null) {
 			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
 			return;
@@ -131,7 +131,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		spawnOrCache(world, np, spawnData.getMatcher(), oreBlock, false, dimension, spawnData);
 	}
 
-	private void cacheOverflowBlock(IBlockState bs, BlockPos coord, int dimension) {
+	private void cacheOverflowBlock(final IBlockState bs, final BlockPos coord, final int dimension) {
 		Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
 
 		if (overflowCache.containsKey(chunkCoord)) {
@@ -150,7 +150,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		cache.put(coord, bs);
 	}
 
-	private Map<BlockPos, IBlockState> retrieveCache(Vec3i chunkCoord) {
+	private Map<BlockPos, IBlockState> retrieveCache(final Vec3i chunkCoord) {
 		if (overflowCache.containsKey(chunkCoord)) {
 			Map<BlockPos, IBlockState> cache = overflowCache.get(chunkCoord);
 			cacheOrder.remove(chunkCoord);
@@ -161,7 +161,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	protected void scramble(int[] target, Random prng) {
+	protected void scramble(final int[] target, final Random prng) {
 		for (int i = target.length - 1; i > 0; i--) {
 			int n = prng.nextInt(i);
 			int temp = target[i];
@@ -191,14 +191,15 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 };
 	protected static final int[] offsetIndexRef_small = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-	protected static void mergeDefaults(JsonObject parameters, JsonObject defaultParameters) {
+	protected static void mergeDefaults(final JsonObject parameters, final JsonObject defaultParameters) {
 		defaultParameters.entrySet().forEach(entry -> {
-			if (!parameters.has(entry.getKey()))
+			if (!parameters.has(entry.getKey())) {
 				parameters.add(entry.getKey(), entry.getValue());
+			}
 		});
 	}
 
-	private double triangularDistribution(double a, double b, double c) {
+	private double triangularDistribution(final double a, final double b, final double c) {
 		double base = (c - a) / (b - a);
 		double rand = this.random.nextDouble();
 
@@ -209,14 +210,14 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	protected int getPoint(int lowerBound, int upperBound, int median) {
+	protected int getPoint(final int lowerBound, final int upperBound, final int median) {
 		int t = (int) Math.round(
 				triangularDistribution((float) lowerBound, (float) upperBound, (float) median));
 		return t - median;
 	}
 
-	protected void spawnMungeSW(World world, BlockPos blockPos, int rSqr, double radius,
-			ISpawnEntry spawnData, int count) {
+	protected void spawnMungeSW(final World world, final BlockPos blockPos, final int rSqr, final double radius,
+			final ISpawnEntry spawnData, final int count) {
 		Random prng = this.random;
 		int quantity = count;
 		IBlockList possibleOres = spawnData.getBlocks();
@@ -238,8 +239,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	protected void spawnMungeNE(World world, BlockPos blockPos, int rSqr, double radius,
-			ISpawnEntry spawnData, int count) {
+	protected void spawnMungeNE(final World world, final BlockPos blockPos, final int rSqr, final double radius,
+			final ISpawnEntry spawnData, final int count) {
 		Random prng = this.random;
 		int quantity = count;
 		IBlockList possibleOres = spawnData.getBlocks();
@@ -261,19 +262,19 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		}
 	}
 
-	protected int getABC(int dx, int dy, int dz) {
+	protected int getABC(final int dx, final int dy, final int dz) {
 		return (dx * dx + dy * dy + dz * dz);
 	}
 
-	protected int countItem(int dx, boolean toPositive) {
+	protected int countItem(final int dx, final boolean toPositive) {
 		return toPositive ? dx + 1 : dx - 1;
 	}
 
-	protected boolean endCheck(boolean toPositive, int dx, double radius) {
+	protected boolean endCheck(final boolean toPositive, final int dx, final double radius) {
 		return toPositive ? (dx >= getStart(toPositive, radius)) : (dx < radius);
 	}
 
-	protected int getStart(boolean toPositive, double radius) {
+	protected int getStart(final boolean toPositive, final double radius) {
 		return ((int) (radius * (toPositive ? 1 : -1)));
 	}
 }

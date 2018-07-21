@@ -23,8 +23,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			ISpawnEntry spawnData, ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
+			final ISpawnEntry spawnData, final ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -80,7 +80,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 	}
 
-	private void spawnOre(World world, ISpawnEntry spawnData, BlockPos pos, int quantity) {
+	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos, final int quantity) {
 		int count = quantity;
 		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
@@ -105,8 +105,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
 	}
 
-	private void doSpawnFill(boolean nextBoolean, int quantity, World world, ISpawnEntry spawnData,
-			BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world, final ISpawnEntry spawnData,
+			final BlockPos pos) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int) (radius * radius);
@@ -129,7 +129,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void setRandom(Random rand) {
+	public void setRandom(final Random rand) {
 		this.random = rand;
 	}
 

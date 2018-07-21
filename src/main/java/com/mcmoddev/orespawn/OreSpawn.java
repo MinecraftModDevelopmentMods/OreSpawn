@@ -33,7 +33,7 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 /**
- * Main entry point for the mod, everything runs through this
+ * Main entry point for the mod, everything runs through this.
  *
  * @author DShadowWolf &lt;dshadowwolf@gmail.com&gt;
  */
@@ -58,12 +58,12 @@ public class OreSpawn {
 	}
 
 	@EventHandler
-	public void onFingerprintViolation(FMLFingerprintViolationEvent event) {
+	public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
 		LOGGER.warn("Invalid fingerprint detected!");
 	}
 
 	@EventHandler
-	public void preInit(FMLPreInitializationEvent ev) {
+	public void preInit(final FMLPreInitializationEvent ev) {
 		Config.loadConfig();
 
 		PluginLoader.INSTANCE.load(ev);
@@ -83,19 +83,19 @@ public class OreSpawn {
 	}
 
 	@EventHandler
-	public void init(FMLInitializationEvent ev) {
+	public void init(final FMLInitializationEvent ev) {
 		PluginLoader.INSTANCE.register();
 
 		API.loadConfigFiles();
 	}
 
 	@EventHandler
-	public void postInit(FMLPostInitializationEvent ev) {
+	public void postInit(final FMLPostInitializationEvent ev) {
 		Config.saveConfig();
 	}
 
 	@EventHandler
-	public void onServerStarting(FMLServerStartingEvent ev) {
+	public void onServerStarting(final FMLServerStartingEvent ev) {
 		ev.registerServerCommand(new ClearChunkCommand());
 		ev.registerServerCommand(new DumpBiomesCommand());
 		ev.registerServerCommand(new AddOreCommand());

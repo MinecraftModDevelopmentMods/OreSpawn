@@ -12,55 +12,55 @@ import net.minecraft.util.ResourceLocation;
 
 public interface OS3API {
 
-	public void addSpawn(ISpawnEntry spawnEntry);
+	void addSpawn(ISpawnEntry spawnEntry);
 
-	public void addFeature(String featureName, IFeature feature);
+	void addFeature(String featureName, IFeature feature);
 
-	public void addReplacement(IReplacementEntry replacementEntry);
+	void addReplacement(IReplacementEntry replacementEntry);
 
-	public Map<String, IReplacementEntry> getReplacements();
+	Map<String, IReplacementEntry> getReplacements();
 
-	public IReplacementEntry getReplacement(String replacementName);
+	IReplacementEntry getReplacement(String replacementName);
 
-	public List<ISpawnEntry> getSpawns(int dimensionID);
+	List<ISpawnEntry> getSpawns(int dimensionID);
 
-	public ISpawnEntry getSpawn(String spawnName);
+	ISpawnEntry getSpawn(String spawnName);
 
-	public Map<String, ISpawnEntry> getAllSpawns();
+	Map<String, ISpawnEntry> getAllSpawns();
 
-	public List<IBlockState> getDimensionDefaultReplacements(int dimensionID);
+	List<IBlockState> getDimensionDefaultReplacements(int dimensionID);
 
-	public ISpawnBuilder getSpawnBuilder();
+	ISpawnBuilder getSpawnBuilder();
 
-	public IDimensionBuilder getDimensionBuilder();
+	IDimensionBuilder getDimensionBuilder();
 
-	public IFeatureBuilder getFeatureBuilder();
+	IFeatureBuilder getFeatureBuilder();
 
-	public IBlockBuilder getBlockBuilder();
+	IBlockBuilder getBlockBuilder();
 
-	public IBiomeBuilder getBiomeBuilder();
+	IBiomeBuilder getBiomeBuilder();
 
-	public IReplacementBuilder getReplacementBuilder();
+	IReplacementBuilder getReplacementBuilder();
 
-	public boolean featureExists(String featureName);
+	boolean featureExists(String featureName);
 
-	public boolean featureExists(ResourceLocation featureName);
+	boolean featureExists(ResourceLocation featureName);
 
-	public IFeature getFeature(String featureName);
+	IFeature getFeature(String featureName);
 
-	public IFeature getFeature(ResourceLocation featureName);
+	IFeature getFeature(ResourceLocation featureName);
 
-	public PresetsStorage copyPresets();
+	PresetsStorage copyPresets();
 
-	public void loadConfigFiles();
+	void loadConfigFiles();
 
-	public boolean hasReplacement(ResourceLocation resourceLocation);
+	boolean hasReplacement(ResourceLocation resourceLocation);
 
-	public boolean hasReplacement(String name);
+	boolean hasReplacement(String name);
 
-	public void mapEntryToFile(Path p, String entryName);
+	void mapEntryToFile(Path p, String entryName);
 
-	public List<String> getSpawnsForFile(String fileName);
+	List<String> getSpawnsForFile(String fileName);
 
-	public Map<Path, List<String>> getSpawnsByFile();
+	Map<Path, List<String>> getSpawnsByFile();
 }

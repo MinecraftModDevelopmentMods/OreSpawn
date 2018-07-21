@@ -37,54 +37,54 @@ public class SpawnBuilder implements ISpawnBuilder {
 	}
 
 	@Override
-	public ISpawnBuilder setName(String name) {
+	public ISpawnBuilder setName(final String name) {
 		this.spawnName = name;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setDimensions(IDimensionList dimensions) {
+	public ISpawnBuilder setDimensions(final IDimensionList dimensions) {
 		this.dimensions = dimensions;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setBiomes(BiomeLocation biomes) {
+	public ISpawnBuilder setBiomes(final BiomeLocation biomes) {
 		this.biomes = biomes;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setEnabled(boolean enabled) {
+	public ISpawnBuilder setEnabled(final boolean enabled) {
 		this.enabled = enabled;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setRetrogen(boolean retrogen) {
+	public ISpawnBuilder setRetrogen(final boolean retrogen) {
 		this.retrogen = retrogen;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setReplacement(IReplacementEntry replacements) {
+	public ISpawnBuilder setReplacement(final IReplacementEntry replacements) {
 		this.replacements = replacements;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder setFeature(IFeatureEntry feature) {
+	public ISpawnBuilder setFeature(final IFeatureEntry feature) {
 		this.feature = feature;
 		return this;
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(String blockName) {
+	public ISpawnBuilder addBlock(final String blockName) {
 		return this.addBlock(new ResourceLocation(blockName));
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(String blockName, String blockState) {
+	public ISpawnBuilder addBlock(final String blockName, final String blockState) {
 		return this.addBlock(new ResourceLocation(blockName), blockState);
 	}
 
@@ -94,17 +94,17 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlock(String blockName, int blockMetadata) {
+	public ISpawnBuilder addBlock(final String blockName, final int blockMetadata) {
 		return this.addBlock(new ResourceLocation(blockName), blockMetadata);
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation) {
+	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, String blockState) {
+	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation, final String blockState) {
 		return this.addBlockWithChance(blockResourceLocation, blockState, 100);
 	}
 
@@ -114,27 +114,27 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, int blockMetadata) {
+	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation, final int blockMetadata) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(Block block) {
+	public ISpawnBuilder addBlock(final Block block) {
 		return this.addBlockWithChance(block, 100);
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(IBlockState block) {
+	public ISpawnBuilder addBlock(final IBlockState block) {
 		return this.addBlockWithChance(block, 100);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(String blockName, int chance) {
+	public ISpawnBuilder addBlockWithChance(final String blockName, final int chance) {
 		return this.addBlockWithChance(new ResourceLocation(blockName), chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(String blockName, String blockState, int chance) {
+	public ISpawnBuilder addBlockWithChance(final String blockName, final String blockState, final int chance) {
 		return this.addBlockWithChance(new ResourceLocation(blockName), blockState, chance);
 	}
 
@@ -144,20 +144,20 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata, int chance) {
+	public ISpawnBuilder addBlockWithChance(final String blockName, final int blockMetadata, final int chance) {
 		return this.addBlockWithChance(blockName, blockMetadata, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation, int chance) {
+	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation, final int chance) {
 		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
 				.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			String blockState, int chance) {
+	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
+			final String blockState, final int chance) {
 		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		IBlockState tempVar = StateUtil.deserializeState(tempBlock, blockState);
 		return this.addBlockWithChance(tempVar, chance);
@@ -169,28 +169,28 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			int blockMetadata, int chance) {
+	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
+			final int blockMetadata, final int chance) {
 		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
 				.getStateFromMeta(blockMetadata);
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(Block block, int chance) {
+	public ISpawnBuilder addBlockWithChance(final Block block, final int chance) {
 		IBlockState tempVar = block.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(IBlockState block, int chance) {
+	public ISpawnBuilder addBlockWithChance(final IBlockState block, final int chance) {
 		BlockBuilder bb = new BlockBuilder();
 		bb.setFromBlockStateWithChance(block, chance);
 		return this.addBlock(bb.create());
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(IBlockDefinition block) {
+	public ISpawnBuilder addBlock(final IBlockDefinition block) {
 		if (block.isValid()) {
 			this.blocks.addBlock(block);
 		}

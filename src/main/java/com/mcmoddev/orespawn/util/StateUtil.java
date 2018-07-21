@@ -11,7 +11,7 @@ public class StateUtil {
 		throw new InstantiationError("This class cannot be instantiated!");
 	}
 
-	public static String serializeState(IBlockState state) {
+	public static String serializeState(final IBlockState state) {
 		String string = state.toString();
 		string = string.substring(string.indexOf('[') + 1,
 				string.length() - (string.endsWith("]") ? 1 : 0));
@@ -25,7 +25,7 @@ public class StateUtil {
 		return string;
 	}
 
-	public static IBlockState deserializeState(Block block, String state) {
+	public static IBlockState deserializeState(final Block block, final String state) {
 		for (IBlockState validState : block.getBlockState().getValidStates()) {
 			String string = validState.toString();
 			string = string.substring(string.indexOf('[') + 1,

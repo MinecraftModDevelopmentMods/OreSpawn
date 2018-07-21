@@ -14,13 +14,13 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 
 	private final int hash;
 
-	public BiomeLocationDictionary(BiomeDictionary.Type type) {
+	public BiomeLocationDictionary(final BiomeDictionary.Type type) {
 		this.type = type;
 		this.hash = type.hashCode();
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		return BiomeDictionary.hasType(biome, this.type);
 	}
 
@@ -30,7 +30,7 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		return (obj == this) || ((obj instanceof BiomeLocationDictionary)
 				&& this.type.equals(((BiomeLocationDictionary) obj).type));
 	}

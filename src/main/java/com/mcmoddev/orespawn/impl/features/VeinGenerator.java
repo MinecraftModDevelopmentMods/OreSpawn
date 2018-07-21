@@ -25,7 +25,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class VeinGenerator extends FeatureBase implements IFeature {
 
-	private VeinGenerator(Random rand) {
+	private VeinGenerator(final Random rand) {
 		super(rand);
 	}
 
@@ -34,8 +34,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			ISpawnEntry spawnData, ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
+			final ISpawnEntry spawnData, final ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -94,7 +94,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private int getFaceFromString(String direction) {
+	private int getFaceFromString(final String direction) {
 		String work = direction.toLowerCase();
 		switch (work) {
 			case "north":
@@ -124,8 +124,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnVein(int veinLength, int nodeSize, int startingFace, BlockPos blockPos,
-			ISpawnEntry spawnData, World world) {
+	private void spawnVein(final int veinLength, final int nodeSize, final int startingFace, final BlockPos blockPos,
+			final ISpawnEntry spawnData, final World world) {
 		int face = startingFace;
 		int square = this.random.nextInt(8);
 		BlockPos workingPos = new BlockPos(blockPos);
@@ -162,7 +162,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnOre(World world, ISpawnEntry spawnData, BlockPos pos, int quantity) {
+	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos, final int quantity) {
 		int count = quantity;
 		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
@@ -187,8 +187,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
 	}
 
-	private void doSpawnFill(boolean nextBoolean, int quantity, World world, ISpawnEntry spawnData,
-			BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world, final ISpawnEntry spawnData,
+			final BlockPos pos) {
 		int count = quantity;
 		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		int rSqr = (int) (radius * radius);
@@ -199,7 +199,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private int[] getDirectionValues(int face, int square) {
+	private int[] getDirectionValues(final int face, final int square) {
 		int x = 0;
 		int y = 0;
 		int z = 0;
@@ -228,12 +228,13 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			x = (square == 0 || square % 3 == 0) ? -1 : (((square + 1) % 3 == 0) ? 1 : 0);
 		}
 
-		if (square < 3 || face == 4)
+		if (square < 3 || face == 4) {
 			y = 1;
-		else if (square <= 5)
+		} else if (square <= 5) {
 			y = 0;
-		else if (square <= 8 || face == 1)
+		} else if (square <= 8 || face == 1) {
 			y = -1;
+		}
 
 		return new int[] { x, y, z };
 	}
@@ -245,7 +246,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	private int[] faceWeights = new int[] { /* self */ 2, /* other */ 1 };
 	private int[] pointWeights = Arrays.stream(faceWeights).map(a -> a * 2).toArray();
 
-	private int[] getWeighted(int face, int square) {
+	private int[] getWeighted(final int face, final int square) {
 		int[] rv = new int[54];
 
 		for (int f = 0; f < 6; f++) {
@@ -297,7 +298,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	 * 0 1 2 3 4 5 6 7 8 9 10 11 -------- 0 1 2 3 4 5 6 7 8 9 10 11 -------- 0 1 2 3 4 5 6 7 8 9 10
 	 * 11
 	 */
-	private int getMatchingSquare(int s, int face, int direction) {
+	private int getMatchingSquare(final int s, final int face, final int direction) {
 		switch (direction) {
 			case 0: /* LEFT */
 				return (s % 3 == 0) ? s + 2 : s - 1;
@@ -314,11 +315,11 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	private int[][] faceMap = new int[][] { { 3, 2, 1, 4 }, { 3, 2, 5, 0 }, { 1, 4, 5, 0 },
 			{ 4, 1, 5, 0 }, { 2, 3, 5, 0 }, { 3, 2, 4, 1 } };
 
-	private int getMatchingFace(int f, int i) {
+	private int getMatchingFace(final int f, final int i) {
 		return faceMap[f][i];
 	}
 
-	private boolean isNeighborFace(int face, int f) {
+	private boolean isNeighborFace(final int face, final int f) {
 		return Arrays.stream(faceMap[face]).anyMatch(a -> a == f);
 	}
 
@@ -338,7 +339,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void setRandom(Random rand) {
+	public void setRandom(final Random rand) {
 		this.random = rand;
 	}
 }

@@ -16,12 +16,12 @@ public class WriteConfigsCommand extends CommandBase {
 	}
 
 	@Override
-	public String getUsage(ICommandSender sender) {
+	public String getUsage(final ICommandSender sender) {
 		return "/osSaveConfigs";
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args)
+	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
 			throws CommandException {
 		sender.sendMessage(new TextComponentString(
 				"Forcing configs as OreSpawn sees them to be written to disk"));

@@ -21,7 +21,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 	}
 
 	@Override
-	public IFeatureBuilder setFeature(String featureName) {
+	public IFeatureBuilder setFeature(final String featureName) {
 		String actName = featureName;
 		if (!actName.contains(":")) {
 			actName = String.format("orespawn:%s", featureName);
@@ -30,7 +30,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 	}
 
 	@Override
-	public IFeatureBuilder setFeature(ResourceLocation featureResourceLocation) {
+	public IFeatureBuilder setFeature(final ResourceLocation featureResourceLocation) {
 		if (!OreSpawn.API.featureExists(featureResourceLocation)) {
 			OreSpawn.LOGGER.warn(
 					"Feature %s is not known, feature for this will be set to the default feature",
@@ -40,43 +40,43 @@ public class FeatureBuilder implements IFeatureBuilder {
 	}
 
 	@Override
-	public IFeatureBuilder setFeature(IFeature feature) {
+	public IFeatureBuilder setFeature(final IFeature feature) {
 		this.feature = feature;
 		return this;
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(String parameterName, String parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName, final String parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 		return this;
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(String parameterName, int parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName, final int parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 		return this;
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(String parameterName, float parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName, final float parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 		return this;
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(String parameterName, boolean parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName, final boolean parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 		return this;
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(String parameterName, JsonElement parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName, final JsonElement parameterValue) {
 		this.parameters.add(parameterName, parameterValue);
 		return this;
 	}
 
-	private void setFeatureParameter(String parameterName, JsonElement parameterValue,
-			FeatureEntry feat) {
+	private void setFeatureParameter(final String parameterName, final JsonElement parameterValue,
+			final FeatureEntry feat) {
 		if (parameterValue.getAsJsonPrimitive().isBoolean()) {
 			feat.setParameter(parameterName, parameterValue.getAsBoolean());
 		} else if (parameterValue.getAsJsonPrimitive().isString()) {

@@ -18,8 +18,8 @@ import net.minecraftforge.fml.common.IWorldGenerator;
 public class FlatBedrock implements IWorldGenerator {
 
 	@Override
-	public void generate(Random random, int chunkX, int chunkZ, World world,
-			IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+	public void generate(final Random random, final int chunkX, final int chunkZ, final World world,
+			final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider) {
 		// no need to do flat-bedrock on a "FLAT" world
 		if (world.getWorldType() != WorldType.FLAT) {
 			if (world.provider.getDimension() == -1) {
@@ -31,7 +31,7 @@ public class FlatBedrock implements IWorldGenerator {
 		}
 	}
 
-	public void retrogen(World world, int chunkX, int chunkZ) {
+	public void retrogen(final World world, final int chunkX, final int chunkZ) {
 		if (world.getWorldType() != WorldType.FLAT) {
 			if (world.provider.getDimension() == -1) {
 				genTopPlate(world, new ChunkPos(chunkX, chunkZ), Blocks.NETHERRACK);
@@ -42,7 +42,7 @@ public class FlatBedrock implements IWorldGenerator {
 		}
 	}
 
-	private void genBottomPlate(World world, ChunkPos chunkPos, Block repBlock) {
+	private void genBottomPlate(final World world, final ChunkPos chunkPos, final Block repBlock) {
 		int plateThickness = Config.getInt(Constants.BEDROCK_LAYERS);
 
 		for (int xP = 0; xP < 16; xP++) {
@@ -62,7 +62,7 @@ public class FlatBedrock implements IWorldGenerator {
 		}
 	}
 
-	private void genTopPlate(World world, ChunkPos chunkPos, Block repBlock) {
+	private void genTopPlate(final World world, final ChunkPos chunkPos, final Block repBlock) {
 		int plateThickness = Config.getInt(Constants.BEDROCK_LAYERS);
 		int thickness = 127 - plateThickness; // layer where the flat for the top starts
 

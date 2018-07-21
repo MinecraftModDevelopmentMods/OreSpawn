@@ -20,14 +20,14 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 	private final int hash;
 
-	public BiomeLocationComposition(BiomeLocation inclusions, BiomeLocation exclusions) {
+	public BiomeLocationComposition(final BiomeLocation inclusions, final BiomeLocation exclusions) {
 		this.inclusions = inclusions;
 		this.exclusions = exclusions;
 		this.hash = Objects.hash(inclusions, exclusions);
 	}
 
 	@Override
-	public boolean matches(Biome biome) {
+	public boolean matches(final Biome biome) {
 		boolean inWhite = this.inclusions.matches(biome);
 		boolean inBlack = this.exclusions.matches(biome);
 
@@ -40,7 +40,7 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		if (obj == this) {
 			return true;
 		}

@@ -46,15 +46,15 @@ public class FeatureRegistry {
 		return Collections.unmodifiableMap(tempMap);
 	}
 
-	public String getFeatureName(IFeature feature) {
+	public String getFeatureName(final IFeature feature) {
 		return feature.getRegistryName().toString();
 	}
 
-	public IFeature getFeature(String name) {
+	public IFeature getFeature(final String name) {
 		return getFeature(new ResourceLocation(name));
 	}
 
-	public IFeature getFeature(ResourceLocation featureResourceLocation) {
+	public IFeature getFeature(final ResourceLocation featureResourceLocation) {
 		ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
 		if (registry.containsKey(featureResourceLocation)) {
 			return registry.getValue(featureResourceLocation);
@@ -63,28 +63,28 @@ public class FeatureRegistry {
 		}
 	}
 
-	public boolean hasFeature(String name) {
+	public boolean hasFeature(final String name) {
 		return hasFeature(new ResourceLocation(name));
 	}
 
-	public boolean hasFeature(ResourceLocation featureResourceLocation) {
+	public boolean hasFeature(final ResourceLocation featureResourceLocation) {
 		return registry.containsKey(featureResourceLocation);
 	}
 
-	public boolean hasFeature(IFeature feature) {
+	public boolean hasFeature(final IFeature feature) {
 		return registry.containsKey(feature.getRegistryName());
 	}
 
-	public void addFeature(String name, IFeature feature) {
+	public void addFeature(final String name, final IFeature feature) {
 		feature.setRegistryName(new ResourceLocation("orespawn", name));
 		registry.register(feature);
 	}
 
-	public void addFeature(JsonObject entry) {
+	public void addFeature(final JsonObject entry) {
 		addFeature(entry.get("name").getAsString(), entry.get("class").getAsString());
 	}
 
-	public void addFeature(String name, String className) {
+	public void addFeature(final String name, final String className) {
 		IFeature feature = getInstance(className);
 
 		if (feature != null && !hasFeature(name)) {
@@ -92,7 +92,7 @@ public class FeatureRegistry {
 		}
 	}
 
-	private static IFeature getInstance(String className) {
+	private static IFeature getInstance(final String className) {
 		Class<?> featureClazz;
 		Constructor<?> featureCons;
 		IFeature feature;
@@ -113,7 +113,7 @@ public class FeatureRegistry {
 		return feature;
 	}
 
-	public void loadFeaturesFile(File file) {
+	public void loadFeaturesFile(final File file) {
 		JsonParser parser = new JsonParser();
 		String rawJson;
 		JsonArray elements;
@@ -135,7 +135,7 @@ public class FeatureRegistry {
 		}
 	}
 
-	public void writeFeatures(File file) {
+	public void writeFeatures(final File file) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		JsonArray root = new JsonArray();

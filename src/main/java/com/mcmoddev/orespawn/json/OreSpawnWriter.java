@@ -29,7 +29,7 @@ public class OreSpawnWriter {
 		configs.entrySet().stream().forEach(ent -> saveSingle(ent.getKey(), gson));
 	}
 
-	private static void saveSingle(Path filePath, Gson gson) {
+	private static void saveSingle(final Path filePath, final Gson gson) {
 		JsonObject root = new JsonObject();
 		root.addProperty(ConfigNames.FILE_VERSION, "2.0");
 		JsonObject spawns = new JsonObject();
@@ -66,7 +66,7 @@ public class OreSpawnWriter {
 
 	}
 
-	public static void saveSingle(String fileName) {
+	public static void saveSingle(final String fileName) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		saveSingle(Constants.CONFDIR.resolve(fileName), gson);
 	}

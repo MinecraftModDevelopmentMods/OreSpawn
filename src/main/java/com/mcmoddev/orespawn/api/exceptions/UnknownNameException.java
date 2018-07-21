@@ -6,7 +6,7 @@ public class UnknownNameException extends Exception {
 	private final String fieldName;
 	private final String fieldValue;
 
-	public UnknownNameException(String fieldName, String fieldValue) {
+	public UnknownNameException(final String fieldName, final String fieldValue) {
 		super();
 		this.fieldName = fieldName;
 		this.fieldValue = fieldValue;

@@ -115,19 +115,19 @@ public class OS3APIImpl implements OS3API {
 	}
 
 	@Override
-	public void addSpawn(ISpawnEntry spawnEntry) {
+	public void addSpawn(final ISpawnEntry spawnEntry) {
 		if (spawnEntry != null) {
 			spawns.put(new ResourceLocation(spawnEntry.getSpawnName()), spawnEntry);
 		}
 	}
 
 	@Override
-	public void addFeature(String featureName, IFeature feature) {
+	public void addFeature(final String featureName, final IFeature feature) {
 		features.addFeature(featureName, feature);
 	}
 
 	@Override
-	public void addReplacement(IReplacementEntry replacementEntry) {
+	public void addReplacement(final IReplacementEntry replacementEntry) {
 		replacements.addReplacement(replacementEntry);
 	}
 
@@ -170,19 +170,19 @@ public class OS3APIImpl implements OS3API {
 	}
 
 	@Override
-	public IReplacementEntry getReplacement(String replacementName) {
+	public IReplacementEntry getReplacement(final String replacementName) {
 		return replacements.getReplacement(replacementName);
 	}
 
 	@Override
-	public List<ISpawnEntry> getSpawns(int dimensionID) {
+	public List<ISpawnEntry> getSpawns(final int dimensionID) {
 		return ImmutableList.copyOf(
 				spawns.entrySet().stream().filter(e -> e.getValue().dimensionAllowed(dimensionID))
 						.map(e -> e.getValue()).collect(Collectors.toList()));
 	}
 
 	@Override
-	public ISpawnEntry getSpawn(String spawnName) {
+	public ISpawnEntry getSpawn(final String spawnName) {
 		return spawns.get(new ResourceLocation(spawnName));
 	}
 
@@ -194,23 +194,23 @@ public class OS3APIImpl implements OS3API {
 	}
 
 	@Override
-	public boolean featureExists(String featureName) {
+	public boolean featureExists(final String featureName) {
 		return this.featureExists(new ResourceLocation(featureName.contains(":") ? featureName
 				: String.format("orespawn:%s", featureName)));
 	}
 
 	@Override
-	public boolean featureExists(ResourceLocation featureName) {
+	public boolean featureExists(final ResourceLocation featureName) {
 		return features.hasFeature(featureName);
 	}
 
 	@Override
-	public IFeature getFeature(String featureName) {
+	public IFeature getFeature(final String featureName) {
 		return this.getFeature(new ResourceLocation(featureName));
 	}
 
 	@Override
-	public IFeature getFeature(ResourceLocation featureName) {
+	public IFeature getFeature(final ResourceLocation featureName) {
 		return features.getFeature(featureName);
 	}
 
@@ -222,28 +222,28 @@ public class OS3APIImpl implements OS3API {
 	}
 
 	@Override
-	public List<IBlockState> getDimensionDefaultReplacements(int dimensionID) {
+	public List<IBlockState> getDimensionDefaultReplacements(final int dimensionID) {
 		return replacements.getDimensionDefault(dimensionID);
 	}
 
 	@Override
-	public boolean hasReplacement(ResourceLocation resourceLocation) {
+	public boolean hasReplacement(final ResourceLocation resourceLocation) {
 		return replacements.has(resourceLocation);
 	}
 
 	@Override
-	public boolean hasReplacement(String name) {
+	public boolean hasReplacement(final String name) {
 		return this.hasReplacement(new ResourceLocation(
 				name.contains(":") ? name : String.format("orespawn:%s", name)));
 	}
 
 	@Override
-	public void mapEntryToFile(Path p, String entryName) {
+	public void mapEntryToFile(final Path p, final String entryName) {
 		spawnsToSourceFiles.put(entryName, p);
 	}
 
 	@Override
-	public List<String> getSpawnsForFile(String fileName) {
+	public List<String> getSpawnsForFile(final String fileName) {
 		Path p = Constants.CONFDIR.resolve(fileName);
 		List<String> values = spawnsToSourceFiles.entrySet().stream()
 				.filter(ent -> ent.getValue().equals(p)).map(ent -> ent.getKey())

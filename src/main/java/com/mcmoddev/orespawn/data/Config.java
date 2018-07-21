@@ -91,11 +91,11 @@ public class Config {
 		return ImmutableList.copyOf(extractedConfigs);
 	}
 
-	public static void addKnownMod(String modId) {
+	public static void addKnownMod(final String modId) {
 		extractedConfigs.add(modId);
 	}
 
-	public static boolean getBoolean(String keyname) {
+	public static boolean getBoolean(final String keyname) {
 		if (knownKeys.contains(keyname) && boolVals.containsKey(keyname)) {
 			return boolVals.get(keyname);
 		}
@@ -103,7 +103,7 @@ public class Config {
 		return false;
 	}
 
-	public static String getString(String keyname) {
+	public static String getString(final String keyname) {
 		if (knownKeys.contains(keyname) && stringVals.containsKey(keyname)) {
 			return stringVals.get(keyname);
 		}
@@ -111,7 +111,7 @@ public class Config {
 		return "";
 	}
 
-	public static int getInt(String keyname) {
+	public static int getInt(final String keyname) {
 		if (knownKeys.contains(keyname) && intVals.containsKey(keyname)) {
 			return intVals.get(keyname);
 		}
@@ -119,7 +119,7 @@ public class Config {
 		return 0;
 	}
 
-	public static float getFloat(String keyname) {
+	public static float getFloat(final String keyname) {
 		if (knownKeys.contains(keyname) && floatVals.containsKey(keyname)) {
 			return floatVals.get(keyname);
 		}

@@ -9,60 +9,60 @@ import net.minecraft.util.ResourceLocation;
 
 public interface ISpawnBuilder {
 
-	public ISpawnBuilder setName(final String name);
+	ISpawnBuilder setName(String name);
 
-	public ISpawnBuilder setDimensions(final IDimensionList dimensions);
+	ISpawnBuilder setDimensions(IDimensionList dimensions);
 
-	public ISpawnBuilder setBiomes(final BiomeLocation biomes);
+	ISpawnBuilder setBiomes(BiomeLocation biomes);
 
-	public ISpawnBuilder setEnabled(final boolean enabled);
+	ISpawnBuilder setEnabled(boolean enabled);
 
-	public ISpawnBuilder setRetrogen(final boolean retrogen);
+	ISpawnBuilder setRetrogen(boolean retrogen);
 
-	public ISpawnBuilder setReplacement(final IReplacementEntry replacements);
+	ISpawnBuilder setReplacement(IReplacementEntry replacements);
 
-	public ISpawnBuilder setFeature(final IFeatureEntry feature);
+	ISpawnBuilder setFeature(IFeatureEntry feature);
 
-	public ISpawnBuilder addBlock(final String blockName);
+	ISpawnBuilder addBlock(String blockName);
 
-	public ISpawnBuilder addBlock(final String blockName, final String blockState);
+	ISpawnBuilder addBlock(String blockName, String blockState);
 
-	public ISpawnBuilder addBlock(final String blockName, final int blockMetadata);
+	ISpawnBuilder addBlock(String blockName, int blockMetadata);
 
-	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation);
+	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation);
 
-	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation,
-			final String blockState);
+	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
+			String blockState);
 
-	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation,
-			final int blockMetadata);
+	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
+			int blockMetadata);
 
-	public ISpawnBuilder addBlock(final Block block);
+	ISpawnBuilder addBlock(Block block);
 
-	public ISpawnBuilder addBlock(final IBlockState block);
+	ISpawnBuilder addBlock(IBlockState block);
 
-	public ISpawnBuilder addBlockWithChance(final String blockName, final int chance);
+	ISpawnBuilder addBlockWithChance(String blockName, int chance);
 
-	public ISpawnBuilder addBlockWithChance(final String blockName, final String blockState,
-			final int chance);
+	ISpawnBuilder addBlockWithChance(String blockName, String blockState,
+			int chance);
 
-	public ISpawnBuilder addBlockWithChance(final String blockName, final int blockMetadata,
-			final int chance);
+	ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
+			int chance);
 
-	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
-			final int chance);
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+			int chance);
 
-	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
-			final String blockState, final int chance);
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+			String blockState, int chance);
 
-	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
-			final int blockMetadata, final int chance);
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
+			int blockMetadata, int chance);
 
-	public ISpawnBuilder addBlockWithChance(final Block block, final int chance);
+	ISpawnBuilder addBlockWithChance(Block block, int chance);
 
-	public ISpawnBuilder addBlockWithChance(final IBlockState block, final int chance);
+	ISpawnBuilder addBlockWithChance(IBlockState block, int chance);
 
-	public ISpawnEntry create();
+	ISpawnEntry create();
 
-	public ISpawnBuilder addBlock(IBlockDefinition block);
+	ISpawnBuilder addBlock(IBlockDefinition block);
 }
