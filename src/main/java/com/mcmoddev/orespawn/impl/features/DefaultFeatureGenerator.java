@@ -13,9 +13,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
-
+import net.minecraft.world.gen.IChunkGenerator;
 
 public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
@@ -25,7 +24,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-		    ISpawnEntry spawnData, ChunkPos _pos) {
+			ISpawnEntry spawnData, ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -97,8 +96,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			while (count > 0) {
 				IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
 				BlockPos target = pos.add(offs[scrambledLUT[--count]]);
-				spawn(oreBlock, world, target,
-				    world.provider.getDimension(), true, spawnData);
+				spawn(oreBlock, world, target, world.provider.getDimension(), true, spawnData);
 			}
 
 			return;
@@ -107,14 +105,15 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
 	}
 
-	private void doSpawnFill(boolean nextBoolean, int quantity, World world, ISpawnEntry spawnData, BlockPos pos) {
+	private void doSpawnFill(boolean nextBoolean, int quantity, World world, ISpawnEntry spawnData,
+			BlockPos pos) {
 		int count = quantity;
-		double radius = Math.pow(quantity, 1.0/3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int)(radius * radius);
-		if( nextBoolean ) {
-			spawnMungeNE( world, pos, rSqr, radius, spawnData, count );
+		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		int rSqr = (int) (radius * radius);
+		if (nextBoolean) {
+			spawnMungeNE(world, pos, rSqr, radius, spawnData, count);
 		} else {
-			spawnMungeSW( world, pos, rSqr, radius, spawnData, count );
+			spawnMungeSW(world, pos, rSqr, radius, spawnData, count);
 		}
 	}
 
@@ -128,7 +127,6 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 8);
 		return defParams;
 	}
-
 
 	@Override
 	public void setRandom(Random rand) {

@@ -27,7 +27,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-		    ISpawnEntry spawnData, ChunkPos _pos) {
+			ISpawnEntry spawnData, ChunkPos _pos) {
 		ChunkPos pos = _pos;
 		JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -45,14 +45,14 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int blockX = chunkX * 16;
 		int blockZ = chunkZ * 16;
 
-		int maxSpread  = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		int maxSpread = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
 		int medianSize = params.get(Constants.FormatBits.MEDIAN_SIZE).getAsInt();
-		int minHeight  = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxHeight  = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int variance   = params.get(Constants.FormatBits.VARIATION).getAsInt();
-		int frequency  = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int triesMin   = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
-		int triesMax   = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
+		int minHeight = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		int maxHeight = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		int variance = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		int frequency = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 
 		// on the X and Z you have a possible 2-chunk range - 32 blocks - subtract the spread to get
 		// a size that will let us insert by the radius
@@ -64,7 +64,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		int offsetY = sizeY - maxSpread;
 		int radiusXZ = offsetXZ / 2;
 
-		// actual radius for placement is the size minus the spread to center it in the space and keep
+		// actual radius for placement is the size minus the spread to center it in the space and
+		// keep
 		// from overflowing
 		int radiusY = offsetY / 2;
 
@@ -86,7 +87,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			if (this.random.nextInt(100) <= frequency) {
 				frequency = fSave;
 				int x = blockX + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
-				// this should, hopefully, keep us centered between minHeight and maxHeight with nothing going above/below those values
+				// this should, hopefully, keep us centered between minHeight and maxHeight with
+				// nothing going above/below those values
 				int y = blockY + getPoint(0, offsetY, radiusY);
 				int z = blockZ + getPoint(0, offsetXZ, radiusXZ) + radiusXZ;
 
@@ -98,7 +100,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
 				BlockPos p = new BlockPos(x, y, z);
 
-				if (!spawnCloud(r, maxSpread, minHeight, maxHeight, p, spawnData, world) && tryCount < 5) {
+				if (!spawnCloud(r, maxSpread, minHeight, maxHeight, p, spawnData, world)
+						&& tryCount < 5) {
 					// make another try!
 					tries++;
 					frequency = 100;
@@ -112,17 +115,18 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private boolean spawnCloud(int size, int maxSpread, int minHeight, int maxHeight, BlockPos pos, ISpawnEntry spawnData, World world) {
+	private boolean spawnCloud(int size, int maxSpread, int minHeight, int maxHeight, BlockPos pos,
+			ISpawnEntry spawnData, World world) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 
 		if (!spawn(spawnData.getBlocks().getRandomBlock(random), world, pos,
-		        world.provider.getDimension(), true, spawnData)) {
+				world.provider.getDimension(), true, spawnData)) {
 			return false;
 		}
 
 		int radius = maxSpread / 2;
 		boolean alreadySpewed = false;
-		int count = Math.min(size, (int)Math.round(Math.PI * Math.pow(radius, 2)));
+		int count = Math.min(size, (int) Math.round(Math.PI * Math.pow(radius, 2)));
 
 		while (count > 0) {
 			int xp = getPoint(0, maxSpread, radius);
@@ -134,7 +138,7 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			int z = 0;
 
 			while (z < 5 && !spawn(spawnData.getBlocks().getRandomBlock(random), world, p,
-			        world.provider.getDimension(), true, spawnData)) {
+					world.provider.getDimension(), true, spawnData)) {
 				xp = getPoint(0, maxSpread, radius);
 				yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
 				zp = getPoint(0, maxSpread, radius);
@@ -145,7 +149,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 			}
 
 			if (z >= 5 && !alreadySpewed) {
-				OreSpawn.LOGGER.info("unable to achieve requested cloud density for cloud centered at %s", pos);
+				OreSpawn.LOGGER.info(
+						"unable to achieve requested cloud density for cloud centered at %s", pos);
 				alreadySpewed = true;
 			}
 

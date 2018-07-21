@@ -6,6 +6,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 public interface IReplacementEntry extends IForgeRegistryEntry<IReplacementEntry> {
+
 	public OreSpawnBlockMatcher getMatcher();
+
 	public List<IBlockState> getEntries();
 }

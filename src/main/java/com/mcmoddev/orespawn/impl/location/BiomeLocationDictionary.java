@@ -4,10 +4,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
 
 public final class BiomeLocationDictionary implements BiomeLocation {
+
 	private final BiomeDictionary.Type type;
 
 	private final int hash;
@@ -29,7 +31,8 @@ public final class BiomeLocationDictionary implements BiomeLocation {
 
 	@Override
 	public boolean equals(Object obj) {
-		return (obj == this) || ((obj instanceof BiomeLocationDictionary) && this.type.equals(((BiomeLocationDictionary) obj).type));
+		return (obj == this) || ((obj instanceof BiomeLocationDictionary)
+				&& this.type.equals(((BiomeLocationDictionary) obj).type));
 	}
 
 	public BiomeDictionary.Type getType() {

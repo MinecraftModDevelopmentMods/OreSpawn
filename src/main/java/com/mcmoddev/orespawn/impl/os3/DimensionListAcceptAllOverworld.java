@@ -6,6 +6,7 @@ import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.data.Constants;
 
 public class DimensionListAcceptAllOverworld implements IDimensionList {
+
 	@Override
 	public boolean matches(final int dimensionID) {
 		return dimensionID != -1 && dimensionID != 1;

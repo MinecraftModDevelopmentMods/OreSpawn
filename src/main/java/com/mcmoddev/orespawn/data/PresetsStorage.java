@@ -20,6 +20,7 @@ import com.mcmoddev.orespawn.OreSpawn;
 import net.minecraft.crash.CrashReport;
 
 public class PresetsStorage {
+
 	private final Map<String, Map<String, JsonElement>> storage;
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 
@@ -28,7 +29,8 @@ public class PresetsStorage {
 	}
 
 	public void setSymbolSection(String sectionName, String itemName, JsonElement value) {
-		Map<String, JsonElement> temp = storage.getOrDefault(sectionName, new HashMap<String, JsonElement>());
+		Map<String, JsonElement> temp = storage.getOrDefault(sectionName,
+				new HashMap<String, JsonElement>());
 		temp.put(itemName, value);
 		storage.put(sectionName, temp);
 	}
@@ -42,10 +44,10 @@ public class PresetsStorage {
 	}
 
 	public void copy(PresetsStorage dest) {
-		storage.entrySet().stream()
-		.forEach(ensm -> {
+		storage.entrySet().stream().forEach(ensm -> {
 			String section = ensm.getKey();
-			ensm.getValue().entrySet().forEach(ensje -> dest.setSymbolSection(section, ensje.getKey(), ensje.getValue()));
+			ensm.getValue().entrySet().forEach(
+					ensje -> dest.setSymbolSection(section, ensje.getKey(), ensje.getValue()));
 		});
 	}
 
@@ -56,36 +58,37 @@ public class PresetsStorage {
 	public void load(Path inputFile) {
 		JsonParser p = new JsonParser();
 		JsonElement parsed = null;
-		
-		try( BufferedReader r = Files.newBufferedReader(inputFile)) {
+
+		try (BufferedReader r = Files.newBufferedReader(inputFile)) {
 			parsed = p.parse(r);
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading presets from" + inputFile.toString());
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"Failed reading presets from" + inputFile.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
-		} catch(JsonIOException | JsonSyntaxException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "JSON Parsing Error in " + inputFile.toString());
+		} catch (JsonIOException | JsonSyntaxException e) {
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"JSON Parsing Error in " + inputFile.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
-		
-		if(parsed != null) {
-			parsed.getAsJsonObject().entrySet().stream()
-			.forEach( entry -> {
+
+		if (parsed != null) {
+			parsed.getAsJsonObject().entrySet().stream().forEach(entry -> {
 				String section = entry.getKey();
-				entry.getValue().getAsJsonObject().entrySet().stream()
-				.forEach( sect -> this.setSymbolSection(section, sect.getKey(), sect.getValue()));
+				entry.getValue().getAsJsonObject().entrySet().stream().forEach(
+						sect -> this.setSymbolSection(section, sect.getKey(), sect.getValue()));
 			});
-		}		
+		}
 	}
 
 	public JsonElement get(String asString) {
 		Pattern p = Pattern.compile("\\$\\.(\\w+)\\.(\\w+)");
 		Matcher m = p.matcher(asString);
-		if(m.matches()) {
+		if (m.matches()) {
 			return this.getSymbolSection(m.group(1), m.group(2));
 		}
-		return new JsonPrimitive("Unknown Variable "+asString);
+		return new JsonPrimitive("Unknown Variable " + asString);
 	}
 
 }

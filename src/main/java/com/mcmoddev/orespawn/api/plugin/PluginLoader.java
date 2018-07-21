@@ -16,14 +16,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.FileUtils;
 
-import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.OreSpawn;
 
 import net.minecraft.crash.CrashReport;
 import net.minecraft.util.ResourceLocation;
@@ -35,6 +34,7 @@ public enum PluginLoader {
 	INSTANCE;
 
 	private class PluginData {
+
 		public final String modId;
 		public final String resourcePath;
 		public final IOreSpawnPlugin plugin;
@@ -57,7 +57,8 @@ public enum PluginLoader {
 	}
 
 	public void load(FMLPreInitializationEvent event) {
-		for (final ASMData asmDataItem : event.getAsmData().getAll(OreSpawnPlugin.class.getCanonicalName())) {
+		for (final ASMData asmDataItem : event.getAsmData()
+				.getAll(OreSpawnPlugin.class.getCanonicalName())) {
 			final String modId = getAnnotationItem("modid", asmDataItem);
 			final String resourceBase = getAnnotationItem("resourcePath", asmDataItem);
 			final String clazz = asmDataItem.getClassName();
@@ -74,7 +75,10 @@ public enum PluginLoader {
 	}
 
 	public void register() {
-		dataStore.forEach(pd -> { scanResources(pd); pd.plugin.register(OreSpawn.API); });
+		dataStore.forEach(pd -> {
+			scanResources(pd);
+			pd.plugin.register(OreSpawn.API);
+		});
 	}
 
 	public void scanResources(PluginData pd) {
@@ -85,27 +89,31 @@ public enum PluginLoader {
 		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
 		URL resURL = getClass().getClassLoader().getResource(base);
 
-		if(resURL == null) {
-			OreSpawn.LOGGER.warn("Unable to access file %s: got 'null' when trying to resolve it", base);
+		if (resURL == null) {
+			OreSpawn.LOGGER.warn("Unable to access file %s: got 'null' when trying to resolve it",
+					base);
 			return;
 		}
-		
+
 		URI uri;
 
 		try {
 			uri = resURL.toURI();
 		} catch (URISyntaxException ex) {
-			CrashReport report = CrashReport.makeCrashReport(ex, String.format("Failed to get URI for %s", (new ResourceLocation(pd.modId, pd.resourcePath)).toString()));
+			CrashReport report = CrashReport.makeCrashReport(ex,
+					String.format("Failed to get URI for %s",
+							(new ResourceLocation(pd.modId, pd.resourcePath)).toString()));
 			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 			return;
 		}
 
 		if (uri.getScheme().equals("jar")) {
-			try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
+			try (FileSystem fileSystem = FileSystems.newFileSystem(uri,
+					Collections.<String, Object>emptyMap())) {
 				copyout(fileSystem.getPath(base), pd.modId);
 			} catch (IOException exc) {
-				CrashReport report = CrashReport.makeCrashReport(exc,
-				        String.format("Failed in getting FileSystem handler set up for %s", uri.getPath()));
+				CrashReport report = CrashReport.makeCrashReport(exc, String.format(
+						"Failed in getting FileSystem handler set up for %s", uri.getPath()));
 				report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 				OreSpawn.LOGGER.info(report.getCompleteReport());
 			}
@@ -117,7 +125,7 @@ public enum PluginLoader {
 	}
 
 	private void copyout(Path myPath, String modId) {
-		try(Stream<Path> walk = Files.walk(myPath, 1)) {
+		try (Stream<Path> walk = Files.walk(myPath, 1)) {
 			for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
 				Path p = it.next();
 				String name = p.getFileName().toString();
@@ -127,11 +135,16 @@ public enum PluginLoader {
 					Path target;
 
 					if ("_features".equals(FilenameUtils.getBaseName(name))) {
-						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF, String.format("features-%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
+								Constants.FileBits.SYSCONF,
+								String.format("features-%s.json", modId));
 					} else if ("_replacements".equals(FilenameUtils.getBaseName(name))) {
-						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, Constants.FileBits.SYSCONF, String.format("replacements-%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
+								Constants.FileBits.SYSCONF,
+								String.format("replacements-%s.json", modId));
 					} else {
-						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3, String.format("%s.json", modId));
+						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
+								String.format("%s.json", modId));
 					}
 
 					if (!target.toFile().exists()) {
@@ -142,7 +155,8 @@ public enum PluginLoader {
 				}
 			}
 		} catch (IOException exc) {
-			CrashReport report = CrashReport.makeCrashReport(exc, String.format("Faulted while iterating %s for config files or copying them out", myPath));
+			CrashReport report = CrashReport.makeCrashReport(exc, String.format(
+					"Faulted while iterating %s for config files or copying them out", myPath));
 			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 			OreSpawn.LOGGER.error(report.getCompleteReport());
 		}

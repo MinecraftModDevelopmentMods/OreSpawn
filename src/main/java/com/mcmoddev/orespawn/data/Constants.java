@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Constants {
+
 	public static final String MODID = "orespawn";
 	public static final String NAME = "MMD OreSpawn";
 	public static final String VERSION = "3.3.0";
@@ -34,28 +35,31 @@ public class Constants {
 	public static final String PRECISION = "precision";
 	public static final Path CONFDIR = Paths.get("config", "orespawn3");
 	public static final Path SYSCONF = Paths.get("config", "orespawn3", "sysconf");
-	
+
 	public final class FormatBits {
 
-		private FormatBits() {}
+		private FormatBits() {
+		}
 
-		public static final String MAX_SPREAD  = "maxSpread";
+		public static final String MAX_SPREAD = "maxSpread";
 		public static final String MEDIAN_SIZE = "medianSize";
-		public static final String MIN_HEIGHT  = "minHeight";
-		public static final String MAX_HEIGHT  = "maxHeight";
-		public static final String VARIATION   = "variation";
-		public static final String FREQUENCY   = "frequency";
-		public static final String NODE_SIZE   = "size";
-		public static final String ATTEMPTS    = "attempts";
-		public static final String LENGTH      = "length";
-		public static final String NODE_COUNT  = "numObjects";
+		public static final String MIN_HEIGHT = "minHeight";
+		public static final String MAX_HEIGHT = "maxHeight";
+		public static final String VARIATION = "variation";
+		public static final String FREQUENCY = "frequency";
+		public static final String NODE_SIZE = "size";
+		public static final String ATTEMPTS = "attempts";
+		public static final String LENGTH = "length";
+		public static final String NODE_COUNT = "numObjects";
 		public static final String ATTEMPTS_MIN = "minAttempts";
 		public static final String ATTEMPTS_MAX = "maxAttempts";
 		public static final String STARTINGFACE = "startFacing";
 	}
 
 	public final class FileBits {
-		private FileBits() {}
+
+		private FileBits() {
+		}
 
 		public static final String CONFIG_DIR = "config";
 		public static final String OS3 = "orespawn3";
@@ -64,7 +68,10 @@ public class Constants {
 	}
 
 	public final class ConfigNames {
-		private ConfigNames() {}
+
+		private ConfigNames() {
+		}
+
 		public static final String DEFAULT = "default";
 		public static final String STATE_NORMAL = "normal";
 		public static final String DIMENSIONS = "dimensions";
@@ -84,9 +91,12 @@ public class Constants {
 		public static final String WHITELIST = "includes";
 		public static final String BLACKLIST = "excludes";
 		public static final String PRESETS = "presets";
-		
+
 		public final class DefaultFeatureProperties {
-			private DefaultFeatureProperties() {}
+
+			private DefaultFeatureProperties() {
+			}
+
 			public static final String SIZE = "size";
 			public static final String VARIATION = "variation";
 			public static final String FREQUENCY = "frequency";

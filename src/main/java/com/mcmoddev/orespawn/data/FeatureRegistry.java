@@ -8,9 +8,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.commons.codec.CharEncoding;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -27,11 +27,11 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 
 public class FeatureRegistry {
+
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 	private static final IForgeRegistry<IFeature> registry = new RegistryBuilder<IFeature>()
-			.setName(new ResourceLocation("orespawn", "feature_registry"))
-			.setType(IFeature.class)
-			.setMaxID(4096)  // 12 bits should be enough... hell, 8 bits would be, IMNSHO
+			.setName(new ResourceLocation("orespawn", "feature_registry")).setType(IFeature.class)
+			.setMaxID(4096) // 12 bits should be enough... hell, 8 bits would be, IMNSHO
 			.create();
 
 	public FeatureRegistry() {
@@ -39,10 +39,10 @@ public class FeatureRegistry {
 	}
 
 	public Map<String, IFeature> getFeatures() {
-		Map<String,IFeature> tempMap = new TreeMap<>();
+		Map<String, IFeature> tempMap = new TreeMap<>();
 		registry.getEntries().stream()
-		.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue()));
-		
+				.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue()));
+
 		return Collections.unmodifiableMap(tempMap);
 	}
 
@@ -53,7 +53,7 @@ public class FeatureRegistry {
 	public IFeature getFeature(String name) {
 		return getFeature(new ResourceLocation(name));
 	}
-	
+
 	public IFeature getFeature(ResourceLocation featureResourceLocation) {
 		ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
 		if (registry.containsKey(featureResourceLocation)) {
@@ -70,6 +70,7 @@ public class FeatureRegistry {
 	public boolean hasFeature(ResourceLocation featureResourceLocation) {
 		return registry.containsKey(featureResourceLocation);
 	}
+
 	public boolean hasFeature(IFeature feature) {
 		return registry.containsKey(feature.getRegistryName());
 	}
@@ -99,9 +100,11 @@ public class FeatureRegistry {
 		try {
 			featureClazz = Class.forName(className);
 			featureCons = featureClazz.getConstructor();
-			feature = (IFeature)featureCons.newInstance();
+			feature = (IFeature) featureCons.newInstance();
 		} catch (Exception e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed to load and instantiate an instance of the feature generator named " + className + " that was specified as a feature generator");
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"Failed to load and instantiate an instance of the feature generator named "
+							+ className + " that was specified as a feature generator");
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return null;
@@ -118,7 +121,8 @@ public class FeatureRegistry {
 		try {
 			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + file.getName());
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"Failed reading config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 			return;
@@ -128,7 +132,7 @@ public class FeatureRegistry {
 
 		for (JsonElement elem : elements) {
 			addFeature(elem.getAsJsonObject());
-		}		
+		}
 	}
 
 	public void writeFeatures(File file) {
@@ -136,21 +140,21 @@ public class FeatureRegistry {
 
 		JsonArray root = new JsonArray();
 
-		registry.getEntries().stream()
-		.map( ent -> { 
-			JsonObject e = new JsonObject(); 
+		registry.getEntries().stream().map(ent -> {
+			JsonObject e = new JsonObject();
 			e.addProperty("name", ent.getKey().getPath());
 			e.addProperty("class", ent.getValue().getClass().getName());
 			return e;
-		})
-		.forEach( root::add );
+		}).forEach(root::add);
 
 		String json = gson.toJson(root);
 
 		try {
-			FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
+			FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json),
+					CharEncoding.UTF_8);
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed writing config " + file.getName());
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"Failed writing config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}

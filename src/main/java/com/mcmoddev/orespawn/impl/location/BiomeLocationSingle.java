@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+
 import net.minecraft.world.biome.Biome;
 
 public final class BiomeLocationSingle implements BiomeLocation {
+
 	private final Biome biome;
 
 	private final int hash;
@@ -33,7 +35,8 @@ public final class BiomeLocationSingle implements BiomeLocation {
 
 	@Override
 	public boolean equals(Object obj) {
-		return (obj == this) || ((obj instanceof BiomeLocationSingle) && this.biome.equals(((BiomeLocationSingle) obj).biome));
+		return (obj == this) || ((obj instanceof BiomeLocationSingle)
+				&& this.biome.equals(((BiomeLocationSingle) obj).biome));
 	}
 
 	public Biome getBiome() {

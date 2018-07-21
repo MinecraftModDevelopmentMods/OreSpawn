@@ -18,8 +18,8 @@ import net.minecraftforge.fml.common.IWorldGenerator;
 public class FlatBedrock implements IWorldGenerator {
 
 	@Override
-	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
-	    IChunkProvider chunkProvider) {
+	public void generate(Random random, int chunkX, int chunkZ, World world,
+			IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
 		// no need to do flat-bedrock on a "FLAT" world
 		if (world.getWorldType() != WorldType.FLAT) {
 			if (world.provider.getDimension() == -1) {
@@ -50,9 +50,11 @@ public class FlatBedrock implements IWorldGenerator {
 				for (int yP = 5; yP > 0; yP--) {
 					BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP, chunkPos.z * 16 + zP);
 
-					if (yP < plateThickness && !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
+					if (yP < plateThickness
+							&& !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
 						world.setBlockState(target, Blocks.BEDROCK.getDefaultState(), 26);
-					} else if (yP >= plateThickness && world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
+					} else if (yP >= plateThickness
+							&& world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
 						world.setBlockState(target, repBlock.getDefaultState(), 26);
 					}
 				}
@@ -69,9 +71,11 @@ public class FlatBedrock implements IWorldGenerator {
 				for (int yP = 126; yP > 121; yP--) {
 					BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP, chunkPos.z * 16 + zP);
 
-					if (yP > thickness && !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
+					if (yP > thickness
+							&& !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
 						world.setBlockState(target, Blocks.BEDROCK.getDefaultState(), 26);
-					} else if (yP <= thickness && world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
+					} else if (yP <= thickness
+							&& world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
 						world.setBlockState(target, repBlock.getDefaultState(), 26);
 					}
 				}

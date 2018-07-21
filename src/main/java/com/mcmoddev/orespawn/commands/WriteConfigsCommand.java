@@ -21,8 +21,10 @@ public class WriteConfigsCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-		sender.sendMessage(new TextComponentString("Forcing configs as OreSpawn sees them to be written to disk"));
+	public void execute(MinecraftServer server, ICommandSender sender, String[] args)
+			throws CommandException {
+		sender.sendMessage(new TextComponentString(
+				"Forcing configs as OreSpawn sees them to be written to disk"));
 		OreSpawnWriter.saveConfigs();
 	}
 

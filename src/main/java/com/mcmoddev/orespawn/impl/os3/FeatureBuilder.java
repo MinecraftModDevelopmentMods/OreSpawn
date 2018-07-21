@@ -10,6 +10,7 @@ import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import net.minecraft.util.ResourceLocation;
 
 public class FeatureBuilder implements IFeatureBuilder {
+
 	private IFeature feature;
 	private JsonObject parameters;
 	private boolean useDefaults;
@@ -18,11 +19,11 @@ public class FeatureBuilder implements IFeatureBuilder {
 		this.useDefaults = false;
 		this.parameters = new JsonObject();
 	}
-	
+
 	@Override
 	public IFeatureBuilder setFeature(String featureName) {
 		String actName = featureName;
-		if(!actName.contains(":")) {
+		if (!actName.contains(":")) {
 			actName = String.format("orespawn:%s", featureName);
 		}
 		return this.setFeature(new ResourceLocation(actName));
@@ -31,7 +32,9 @@ public class FeatureBuilder implements IFeatureBuilder {
 	@Override
 	public IFeatureBuilder setFeature(ResourceLocation featureResourceLocation) {
 		if (!OreSpawn.API.featureExists(featureResourceLocation)) {
-			OreSpawn.LOGGER.warn("Feature %s is not known, feature for this will be set to the default feature", featureResourceLocation.getPath());
+			OreSpawn.LOGGER.warn(
+					"Feature %s is not known, feature for this will be set to the default feature",
+					featureResourceLocation.getPath());
 		}
 		return this.setFeature(OreSpawn.API.getFeature(featureResourceLocation));
 	}
@@ -72,21 +75,22 @@ public class FeatureBuilder implements IFeatureBuilder {
 		return this;
 	}
 
-	private void setFeatureParameter(String parameterName, JsonElement parameterValue, FeatureEntry feat) {
+	private void setFeatureParameter(String parameterName, JsonElement parameterValue,
+			FeatureEntry feat) {
 		if (parameterValue.getAsJsonPrimitive().isBoolean()) {
-			feat.setParameter(parameterName,parameterValue.getAsBoolean());
+			feat.setParameter(parameterName, parameterValue.getAsBoolean());
 		} else if (parameterValue.getAsJsonPrimitive().isString()) {
 			feat.setParameter(parameterName, parameterValue.getAsString());
 		} else {
 			float paramAsFloat = parameterValue.getAsFloat();
-			if ( (paramAsFloat - Math.floor(paramAsFloat)) > 0 ) {
+			if ((paramAsFloat - Math.floor(paramAsFloat)) > 0) {
 				feat.setParameter(parameterName, parameterValue.getAsFloat());
 			} else {
 				feat.setParameter(parameterName, parameterValue.getAsInt());
 			}
 		}
 	}
-	
+
 	@Override
 	public IFeatureBuilder setUseFeatureDefaults() {
 		this.useDefaults = true;
@@ -99,17 +103,17 @@ public class FeatureBuilder implements IFeatureBuilder {
 		if (!this.useDefaults) {
 			// only copy in the parameters we need
 			this.feature.getDefaultParameters().entrySet().stream()
-			.filter(ent -> !this.parameters.has(ent.getKey()))
-			.forEach(ent -> this.parameters.add(ent.getKey(), ent.getValue()));
+					.filter(ent -> !this.parameters.has(ent.getKey()))
+					.forEach(ent -> this.parameters.add(ent.getKey(), ent.getValue()));
 		} else {
 			// overwrite - they've said to just use the defaults
 			this.feature.getDefaultParameters().entrySet().stream()
-			.forEach(ent -> this.parameters.add(ent.getKey(), ent.getValue()));
+					.forEach(ent -> this.parameters.add(ent.getKey(), ent.getValue()));
 		}
-		
+
 		this.parameters.entrySet().stream()
-		.forEach(ent -> this.setFeatureParameter(ent.getKey(), ent.getValue(), res));
-		
+				.forEach(ent -> this.setFeatureParameter(ent.getKey(), ent.getValue(), res));
+
 		return res;
 	}
 

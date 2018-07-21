@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -16,13 +18,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import net.minecraft.crash.CrashReport;
 import net.minecraftforge.common.config.Configuration;
 
 public class Config {
+
 	private static Configuration configuration;
 
 	private Config() {
@@ -32,12 +32,25 @@ public class Config {
 		configuration = new Configuration(new File(Constants.CONFIG_FILE));
 
 		// Load our Boolean Values
-		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
-		boolVals.put(Constants.FORCE_RETROGEN_KEY, configuration.getBoolean(Constants.FORCE_RETROGEN_KEY, Configuration.CATEGORY_GENERAL, false, "Force all chunks to retrogen regardless of anything else"));
-		boolVals.put(Constants.REPLACE_VANILLA_OREGEN,  configuration.getBoolean(Constants.REPLACE_VANILLA_OREGEN, Configuration.CATEGORY_GENERAL, false, "Replace vanilla ore-generation entirely"));
-		boolVals.put(Constants.FLAT_BEDROCK,  configuration.getBoolean(Constants.FLAT_BEDROCK, Configuration.CATEGORY_GENERAL, false, "Flatten the bedrock during world generation"));
-		boolVals.put(Constants.RETRO_BEDROCK,  configuration.getBoolean(Constants.RETRO_BEDROCK, Configuration.CATEGORY_GENERAL, false, "Retroactively flatten bedrock"));
-		intVals.put(Constants.BEDROCK_LAYERS, configuration.getInt(Constants.BEDROCK_LAYERS, Configuration.CATEGORY_GENERAL, 1, 1, 4, "How thick should the shell of bedrock be?"));
+		boolVals.put(Constants.RETROGEN_KEY, configuration.getBoolean(Constants.RETROGEN_KEY,
+				Configuration.CATEGORY_GENERAL, false,
+				"Do we have Retrogen active and generating anything different from the last run in already existing chunks ?"));
+		boolVals.put(Constants.FORCE_RETROGEN_KEY,
+				configuration.getBoolean(Constants.FORCE_RETROGEN_KEY,
+						Configuration.CATEGORY_GENERAL, false,
+						"Force all chunks to retrogen regardless of anything else"));
+		boolVals.put(Constants.REPLACE_VANILLA_OREGEN,
+				configuration.getBoolean(Constants.REPLACE_VANILLA_OREGEN,
+						Configuration.CATEGORY_GENERAL, false,
+						"Replace vanilla ore-generation entirely"));
+		boolVals.put(Constants.FLAT_BEDROCK,
+				configuration.getBoolean(Constants.FLAT_BEDROCK, Configuration.CATEGORY_GENERAL,
+						false, "Flatten the bedrock during world generation"));
+		boolVals.put(Constants.RETRO_BEDROCK, configuration.getBoolean(Constants.RETRO_BEDROCK,
+				Configuration.CATEGORY_GENERAL, false, "Retroactively flatten bedrock"));
+		intVals.put(Constants.BEDROCK_LAYERS,
+				configuration.getInt(Constants.BEDROCK_LAYERS, Configuration.CATEGORY_GENERAL, 1, 1,
+						4, "How thick should the shell of bedrock be?"));
 		knownKeys.add(Constants.RETROGEN_KEY);
 		knownKeys.add(Constants.FORCE_RETROGEN_KEY);
 		knownKeys.add(Constants.REPLACE_VANILLA_OREGEN);
@@ -50,7 +63,8 @@ public class Config {
 	}
 
 	private static void loadExtractedConfigs() {
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
+				"known-configs.json");
 
 		if (!p.toFile().exists()) {
 			return;
@@ -123,7 +137,8 @@ public class Config {
 
 	private static void saveKnownConfigs() {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf", "known-configs.json");
+		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
+				"known-configs.json");
 
 		if (!p.toFile().getParentFile().exists()) {
 			p.toFile().mkdirs();
@@ -138,7 +153,8 @@ public class Config {
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset());
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed saving list of already extracted mod configs");
+			CrashReport report = CrashReport.makeCrashReport(e,
+					"Failed saving list of already extracted mod configs");
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}

@@ -50,6 +50,7 @@ public interface IReplacementBuilder {
 	 */
 	@Deprecated
 	public IReplacementBuilder addEntry(final String blockName, final int metadata);
+
 	/**
 	 * 
 	 * @param blockResourceLocation
@@ -63,7 +64,8 @@ public interface IReplacementBuilder {
 	 * @param state
 	 * @return
 	 */
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final String state);
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
+			final String state);
 
 	/**
 	 *
@@ -73,7 +75,10 @@ public interface IReplacementBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final int metadata);
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
+			final int metadata);
+
 	public boolean hasEntries();
+
 	public IReplacementEntry create();
 }

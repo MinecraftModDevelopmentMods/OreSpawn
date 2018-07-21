@@ -2,20 +2,22 @@ package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.LinkedList;
 import java.util.List;
-import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
+
 import com.mcmoddev.orespawn.api.IDimensionList;
+import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 
 public class DimensionBuilder implements IDimensionBuilder {
+
 	private final List<Integer> dimensionWhitelist = new LinkedList<>();
 	private final List<Integer> dimensionBlacklist = new LinkedList<>();
 	private boolean acceptAll = false;
 	private boolean denyAll = false;
 	private boolean acceptAllOverworld = true;
-	
+
 	public DimensionBuilder() {
 		//
 	}
-	
+
 	@Override
 	public IDimensionBuilder addWhitelistEntry(int dimensionID) {
 		this.acceptAllOverworld = false;
@@ -32,24 +34,25 @@ public class DimensionBuilder implements IDimensionBuilder {
 
 	@Override
 	public IDimensionBuilder setAcceptAll() {
-		if (this.denyAll) this.denyAll = false;
+		if (this.denyAll)
+			this.denyAll = false;
 		this.acceptAll = true;
 		return this;
 	}
 
 	@Override
 	public IDimensionBuilder setDenyAll() {
-		if (this.acceptAll) this.acceptAll = false;
+		if (this.acceptAll)
+			this.acceptAll = false;
 		this.denyAll = true;
 		return this;
 	}
 
 	@Override
 	public IDimensionList create() {
-		if (this.acceptAll ||
-				((this.dimensionWhitelist.isEmpty()) &&
-						(this.dimensionBlacklist.isEmpty())) &&
-				!(this.acceptAllOverworld)) {
+		if (this.acceptAll
+				|| ((this.dimensionWhitelist.isEmpty()) && (this.dimensionBlacklist.isEmpty()))
+						&& !(this.acceptAllOverworld)) {
 			return new DimensionListAcceptAll();
 		} else if (this.denyAll) {
 			return new DimensionListDenyAll();

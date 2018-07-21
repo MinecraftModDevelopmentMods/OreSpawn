@@ -38,85 +38,89 @@ import com.mcmoddev.orespawn.data.PresetsStorage;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.json.OreSpawnReader;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.block.state.IBlockState;
 
 public class OS3APIImpl implements OS3API {
-	private static final Map<ResourceLocation,ISpawnEntry> spawns;
+
+	private static final Map<ResourceLocation, ISpawnEntry> spawns;
 	private static final FeatureRegistry features;
 	private static final ReplacementsRegistry replacements;
 	private static final PresetsStorage presets;
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 	private static final Map<String, Path> spawnsToSourceFiles = new TreeMap<>();
-	
+
 	static {
 		spawns = new ConcurrentHashMap<>();
 		features = new FeatureRegistry();
 		replacements = new ReplacementsRegistry();
 		presets = new PresetsStorage();
 	}
-	
+
 	public OS3APIImpl() {
 		//
 	}
-	
+
 	public void loadConfigFiles() {
 		final String failedReadingConfigsFrom = "Failed reading configs from ";
-		PathMatcher featuresFiles = FileSystems.getDefault().getPathMatcher("glob:**/features-*.json");
-		PathMatcher replacementsFiles = FileSystems.getDefault().getPathMatcher("glob:**/replacements-*.json");
+		PathMatcher featuresFiles = FileSystems.getDefault()
+				.getPathMatcher("glob:**/features-*.json");
+		PathMatcher replacementsFiles = FileSystems.getDefault()
+				.getPathMatcher("glob:**/replacements-*.json");
 		PathMatcher jsonMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
-		
+
 		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
-			stream.filter(featuresFiles::matches)
-			.map(Path::toFile)
-			.forEach(features::loadFeaturesFile);
-		}  catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.SYSCONF.toString());
-			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
-			OreSpawn.LOGGER.info(report.getCompleteReport());
-		}
-		
-		// have to do this twice or we have issues	
-		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
-			stream.filter(replacementsFiles::matches)
-			.forEach(replacements::loadFile);
-		}  catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.SYSCONF.toString());
+			stream.filter(featuresFiles::matches).map(Path::toFile)
+					.forEach(features::loadFeaturesFile);
+		} catch (IOException e) {
+			CrashReport report = CrashReport.makeCrashReport(e,
+					failedReadingConfigsFrom + Constants.SYSCONF.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
 
-		if(Constants.SYSCONF.resolve("presets-default.json").toFile().exists()) {
+		// have to do this twice or we have issues
+		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
+			stream.filter(replacementsFiles::matches).forEach(replacements::loadFile);
+		} catch (IOException e) {
+			CrashReport report = CrashReport.makeCrashReport(e,
+					failedReadingConfigsFrom + Constants.SYSCONF.toString());
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
+			OreSpawn.LOGGER.info(report.getCompleteReport());
+		}
+
+		if (Constants.SYSCONF.resolve("presets-default.json").toFile().exists()) {
 			presets.load(Constants.SYSCONF.resolve("presets-default.json"));
 		}
-		
-		try(Stream<Path> stream = Files.walk(Constants.CONFDIR, 1)) {
-			stream.filter(jsonMatcher::matches)
-			.forEach(conf -> {
+
+		try (Stream<Path> stream = Files.walk(Constants.CONFDIR, 1)) {
+			stream.filter(jsonMatcher::matches).forEach(conf -> {
 				try {
 					OreSpawnReader.tryReadFile(conf, this);
 				} catch (MissingVersionException | NotAProperConfigException | OldVersionException
 						| UnknownVersionException e) {
-					CrashReport report = CrashReport.makeCrashReport(e, "Failed reading config " + conf.toString());
+					CrashReport report = CrashReport.makeCrashReport(e,
+							"Failed reading config " + conf.toString());
 					report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 					OreSpawn.LOGGER.info(report.getCompleteReport());
 				}
 			});
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.CONFDIR.toString());
+			CrashReport report = CrashReport.makeCrashReport(e,
+					failedReadingConfigsFrom + Constants.CONFDIR.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
 	}
-	
+
 	@Override
 	public void addSpawn(ISpawnEntry spawnEntry) {
 		if (spawnEntry != null) {
 			spawns.put(new ResourceLocation(spawnEntry.getSpawnName()), spawnEntry);
 		}
 	}
-	
+
 	@Override
 	public void addFeature(String featureName, IFeature feature) {
 		features.addFeature(featureName, feature);
@@ -156,12 +160,12 @@ public class OS3APIImpl implements OS3API {
 	public IReplacementBuilder getReplacementBuilder() {
 		return new ReplacementBuilder();
 	}
-	
+
 	@Override
 	public Map<String, IReplacementEntry> getReplacements() {
 		Map<String, IReplacementEntry> temp = new HashMap<>();
 		replacements.getReplacements().entrySet().stream()
-		.forEach(e -> temp.put(e.getKey().getPath(), e.getValue()));
+				.forEach(e -> temp.put(e.getKey().getPath(), e.getValue()));
 		return ImmutableMap.copyOf(temp);
 	}
 
@@ -172,10 +176,9 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public List<ISpawnEntry> getSpawns(int dimensionID) {
-		return ImmutableList.copyOf(spawns.entrySet().stream()
-		.filter(e -> e.getValue().dimensionAllowed(dimensionID))
-		.map(e -> e.getValue())
-		.collect(Collectors.toList()));
+		return ImmutableList.copyOf(
+				spawns.entrySet().stream().filter(e -> e.getValue().dimensionAllowed(dimensionID))
+						.map(e -> e.getValue()).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -192,9 +195,10 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public boolean featureExists(String featureName) {
-		return this.featureExists(new ResourceLocation(featureName.contains(":")?featureName:String.format("orespawn:%s", featureName)));
+		return this.featureExists(new ResourceLocation(featureName.contains(":") ? featureName
+				: String.format("orespawn:%s", featureName)));
 	}
-	
+
 	@Override
 	public boolean featureExists(ResourceLocation featureName) {
 		return features.hasFeature(featureName);
@@ -229,7 +233,8 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public boolean hasReplacement(String name) {
-		return this.hasReplacement(new ResourceLocation(name.contains(":")?name:String.format("orespawn:%s", name)));
+		return this.hasReplacement(new ResourceLocation(
+				name.contains(":") ? name : String.format("orespawn:%s", name)));
 	}
 
 	@Override
@@ -241,8 +246,7 @@ public class OS3APIImpl implements OS3API {
 	public List<String> getSpawnsForFile(String fileName) {
 		Path p = Constants.CONFDIR.resolve(fileName);
 		List<String> values = spawnsToSourceFiles.entrySet().stream()
-				.filter(ent -> ent.getValue().equals(p))
-				.map(ent -> ent.getKey())
+				.filter(ent -> ent.getValue().equals(p)).map(ent -> ent.getKey())
 				.collect(Collectors.toList());
 		return ImmutableList.copyOf(values);
 	}
@@ -250,15 +254,14 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public Map<Path, List<String>> getSpawnsByFile() {
 		Map<Path, List<String>> temp = new HashMap<>();
-		spawnsToSourceFiles.entrySet().stream()
-		.forEach(ent -> {
-			if(temp.containsKey(ent.getValue())) {
+		spawnsToSourceFiles.entrySet().stream().forEach(ent -> {
+			if (temp.containsKey(ent.getValue())) {
 				temp.get(ent.getValue()).add(ent.getKey());
 			} else {
 				temp.put(ent.getValue(), Lists.newLinkedList(Arrays.asList(ent.getKey())));
 			}
 		});
-		
+
 		return ImmutableMap.copyOf(temp);
 	}
 

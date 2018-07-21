@@ -3,6 +3,8 @@ package com.mcmoddev.orespawn.impl.os3;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.RandomStringUtils;
+
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
@@ -11,17 +13,16 @@ import com.mcmoddev.orespawn.util.StateUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import org.apache.commons.lang3.RandomStringUtils;
-
 
 public class ReplacementBuilder implements IReplacementBuilder {
+
 	private String replacementName = null;
 	private List<IBlockState> entries;
-	
+
 	public ReplacementBuilder() {
 		this.entries = new LinkedList<>();
 	}
-	
+
 	@Override
 	public IReplacementBuilder setFromName(String entryName) {
 		this.replacementName = entryName;
@@ -63,12 +64,14 @@ public class ReplacementBuilder implements IReplacementBuilder {
 
 	@Override
 	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation) {
-		return this.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState());
+		return this
+				.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState());
 	}
 
 	@Override
 	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, String state) {
-		return this.addEntry(StateUtil.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
+		return this.addEntry(StateUtil
+				.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
 	}
 
 	/**
@@ -78,20 +81,22 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	@Override
 	@Deprecated
 	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, int metadata) {
-		return this.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(metadata));
+		return this.addEntry(
+				ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(metadata));
 	}
 
 	@Override
 	public boolean hasEntries() {
 		return this.entries.isEmpty();
 	}
-	
+
 	@Override
 	public IReplacementEntry create() {
 		if (this.replacementName == null) {
-			this.replacementName = String.format("replacement_%s", RandomStringUtils.randomAlphanumeric(8, 16));
+			this.replacementName = String.format("replacement_%s",
+					RandomStringUtils.randomAlphanumeric(8, 16));
 		}
-		
+
 		return new ReplacementEntry(this.replacementName, this.entries);
 	}
 

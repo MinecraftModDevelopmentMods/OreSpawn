@@ -6,11 +6,12 @@ import com.mcmoddev.orespawn.api.IDimensionList;
 import com.mcmoddev.orespawn.data.Constants;
 
 public class DimensionListDenyAll implements IDimensionList {
+
 	@Override
 	public boolean matches(final int dimensionID) {
 		return false;
 	}
-	
+
 	@Override
 	public JsonObject serialize() {
 		JsonObject rv = new JsonObject();

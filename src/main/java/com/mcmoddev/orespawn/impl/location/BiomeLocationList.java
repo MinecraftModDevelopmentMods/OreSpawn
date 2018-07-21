@@ -1,16 +1,18 @@
 package com.mcmoddev.orespawn.impl.location;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.mcmoddev.orespawn.api.BiomeLocation;
+
 import net.minecraft.world.biome.Biome;
 
-import java.util.List;
-import java.util.LinkedList;
-
 public final class BiomeLocationList implements BiomeLocation {
+
 	private final ImmutableSet<BiomeLocation> locations;
 
 	private final int hash;
@@ -32,7 +34,8 @@ public final class BiomeLocationList implements BiomeLocation {
 
 	@Override
 	public boolean equals(Object obj) {
-		return (obj == this) || ((obj instanceof BiomeLocationList) && this.locations.equals(((BiomeLocationList) obj).locations));
+		return (obj == this) || ((obj instanceof BiomeLocationList)
+				&& this.locations.equals(((BiomeLocationList) obj).locations));
 	}
 
 	@Override
@@ -49,9 +52,8 @@ public final class BiomeLocationList implements BiomeLocation {
 	@Override
 	public JsonElement serialize() {
 		JsonArray rv = new JsonArray();
-		this.locations.stream()
-		.filter(bl -> (!(bl instanceof BiomeLocationEmpty)))
-		.forEach(bl -> rv.add(bl.serialize()));
+		this.locations.stream().filter(bl -> (!(bl instanceof BiomeLocationEmpty)))
+				.forEach(bl -> rv.add(bl.serialize()));
 
 		return rv;
 	}

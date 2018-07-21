@@ -3,11 +3,11 @@ package com.mcmoddev.orespawn.impl.os3;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
-import com.mcmoddev.orespawn.util.StateUtil;
 import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
+import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -15,6 +15,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class SpawnBuilder implements ISpawnBuilder {
+
 	private String spawnName;
 	private boolean enabled;
 	private boolean retrogen;
@@ -23,18 +24,18 @@ public class SpawnBuilder implements ISpawnBuilder {
 	private BiomeLocation biomes;
 	private IDimensionList dimensions;
 	private IReplacementEntry replacements;
-	
+
 	public SpawnBuilder() {
 		this.enabled = false;
 		this.retrogen = false;
 		this.blocks = new BlockList();
 	}
-	
+
 	public SpawnBuilder(final String spawnName) {
 		this();
 		this.spawnName = spawnName;
 	}
-	
+
 	@Override
 	public ISpawnBuilder setName(String name) {
 		this.spawnName = name;
@@ -103,8 +104,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
-			String blockState) {
+	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, String blockState) {
 		return this.addBlockWithChance(blockResourceLocation, blockState, 100);
 	}
 
@@ -114,8 +114,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
-			int blockMetadata) {
+	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, int blockMetadata) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
@@ -131,12 +130,11 @@ public class SpawnBuilder implements ISpawnBuilder {
 
 	@Override
 	public ISpawnBuilder addBlockWithChance(String blockName, int chance) {
-		return this.addBlockWithChance( new ResourceLocation(blockName), chance);
+		return this.addBlockWithChance(new ResourceLocation(blockName), chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(String blockName, String blockState,
-			int chance) {
+	public ISpawnBuilder addBlockWithChance(String blockName, String blockState, int chance) {
 		return this.addBlockWithChance(new ResourceLocation(blockName), blockState, chance);
 	}
 
@@ -146,15 +144,14 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
-			int chance) {
+	public ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata, int chance) {
 		return this.addBlockWithChance(blockName, blockMetadata, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			int chance) {
-		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState();
+	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation, int chance) {
+		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
+				.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
@@ -174,7 +171,8 @@ public class SpawnBuilder implements ISpawnBuilder {
 	@Deprecated
 	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
 			int blockMetadata, int chance) {
-		IBlockState tempVar =  ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(blockMetadata);
+		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
+				.getStateFromMeta(blockMetadata);
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
@@ -191,17 +189,17 @@ public class SpawnBuilder implements ISpawnBuilder {
 		return this.addBlock(bb.create());
 	}
 
-	@Override 
+	@Override
 	public ISpawnBuilder addBlock(IBlockDefinition block) {
-		if(block.isValid()) {
+		if (block.isValid()) {
 			this.blocks.addBlock(block);
 		}
 		return this;
 	}
-	
+
 	@Override
 	public SpawnEntry create() {
-		if(this.blocks.count() > 0) {
+		if (this.blocks.count() > 0) {
 			return new SpawnEntry(this.spawnName, this.enabled, this.retrogen, this.dimensions,
 					this.biomes, this.replacements, this.blocks, this.feature);
 		} else {

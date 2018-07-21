@@ -1,19 +1,19 @@
 package com.mcmoddev.orespawn.impl.location;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.world.biome.Biome;
 
-import java.util.Objects;
-import java.util.List;
-import java.util.LinkedList;
-
 public final class BiomeLocationComposition implements BiomeLocation {
+
 	private final BiomeLocation inclusions;
 
 	private final BiomeLocation exclusions;
@@ -30,7 +30,7 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	public boolean matches(Biome biome) {
 		boolean inWhite = this.inclusions.matches(biome);
 		boolean inBlack = this.exclusions.matches(biome);
-		
+
 		return !inBlack && inWhite;
 	}
 
@@ -47,7 +47,8 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 		if (obj instanceof BiomeLocationComposition) {
 			BiomeLocationComposition other = (BiomeLocationComposition) obj;
-			return this.inclusions.equals(other.inclusions) && this.exclusions.equals(other.exclusions);
+			return this.inclusions.equals(other.inclusions)
+					&& this.exclusions.equals(other.exclusions);
 		}
 
 		return false;
@@ -72,12 +73,12 @@ public final class BiomeLocationComposition implements BiomeLocation {
 	@Override
 	public JsonElement serialize() {
 		JsonObject rv = new JsonObject();
-		
+
 		rv.add(Constants.ConfigNames.BLACKLIST, this.exclusions.serialize());
 		if (!(this.inclusions instanceof BiomeLocationEmpty)) {
 			rv.add(Constants.ConfigNames.WHITELIST, this.inclusions.serialize());
 		}
-		
+
 		return rv;
 	}
 

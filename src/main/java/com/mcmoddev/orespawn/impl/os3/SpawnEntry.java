@@ -18,6 +18,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
+
 	private final String spawnName;
 	private final IDimensionList dimensions;
 	private final IReplacementEntry replacements;
@@ -26,10 +27,10 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	private final IFeatureEntry feature;
 	private final boolean enabled;
 	private final boolean retrogen;
-	
+
 	public SpawnEntry(final String spawnName, final boolean enabled, final boolean retrogen,
 			final IDimensionList dimensions, final BiomeLocation biomes,
-			final IReplacementEntry replacements, final IBlockList blocks, 
+			final IReplacementEntry replacements, final IBlockList blocks,
 			final IFeatureEntry feature) {
 		this.spawnName = spawnName;
 		this.enabled = enabled;
@@ -40,17 +41,17 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 		this.blocks = blocks;
 		this.feature = feature;
 	}
-	
+
 	@Override
 	public boolean isRetrogen() {
 		return this.retrogen;
 	}
-	
-	@Override 
+
+	@Override
 	public boolean isEnabled() {
 		return this.enabled;
 	}
-	
+
 	@Override
 	public String getSpawnName() {
 		return this.spawnName;
@@ -87,7 +88,8 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public void generate(Random random, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider, ChunkPos pos) {
+	public void generate(Random random, World world, IChunkGenerator chunkGenerator,
+			IChunkProvider chunkProvider, ChunkPos pos) {
 		this.feature.getFeature().setRandom(random);
 		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}
