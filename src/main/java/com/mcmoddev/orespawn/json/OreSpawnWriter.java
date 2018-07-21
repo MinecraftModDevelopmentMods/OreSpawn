@@ -26,9 +26,9 @@ public class OreSpawnWriter {
 		Map<Path, List<String>> configs = OreSpawn.API.getSpawnsByFile();
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		configs.entrySet().stream()
-		.forEach( ent -> {
-			saveSingle(ent.getKey(), gson);
-		});
+		.forEach( ent ->
+			saveSingle(ent.getKey(), gson)
+		);
 	}
 	
 	private static void saveSingle(Path filePath, Gson gson) {

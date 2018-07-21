@@ -27,7 +27,6 @@ import com.mcmoddev.orespawn.api.exceptions.UnknownNameException;
 import com.mcmoddev.orespawn.api.exceptions.UnknownVersionException;
 import com.mcmoddev.orespawn.api.os3.IBiomeBuilder;
 import com.mcmoddev.orespawn.api.os3.IBlockBuilder;
-import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 import com.mcmoddev.orespawn.api.os3.IFeatureBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
@@ -148,7 +147,7 @@ public class OreSpawnReader {
 	}
 
 	public static void loadFromJson(String name, JsonElement json) {
-		Entry<String, JsonElement> t = new AbstractMap.SimpleEntry<String,JsonElement>(name, json);
+		Entry<String, JsonElement> t = new AbstractMap.SimpleEntry<>(name, json);
 		try {
 			loadSingleEntry(t);
 		} catch (UnknownFieldException | BadValueException | UnknownNameException e) {

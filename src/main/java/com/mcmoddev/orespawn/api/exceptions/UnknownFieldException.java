@@ -2,7 +2,7 @@ package com.mcmoddev.orespawn.api.exceptions;
 
 public class UnknownFieldException extends Exception {
 	private static final long serialVersionUID = 1L;
-	private String message;
+	private final String message;
 
 	public UnknownFieldException(String theField) {
 		super();
@@ -12,6 +12,6 @@ public class UnknownFieldException extends Exception {
 	@Override
 	public String getMessage() {
 		String baseMessage = super.getMessage();
-		return String.format("%s\n%s", this.message, baseMessage);
+		return String.format("%s%n%s", this.message, baseMessage);
 	}
 }

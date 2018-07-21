@@ -85,8 +85,7 @@ public class PresetsStorage {
 		if(m.matches()) {
 			return this.getSymbolSection(m.group(1), m.group(2));
 		}
-		JsonPrimitive pm = new JsonPrimitive("Unknown Variable "+asString);
-		return pm;
+		return new JsonPrimitive("Unknown Variable "+asString);
 	}
 
 }

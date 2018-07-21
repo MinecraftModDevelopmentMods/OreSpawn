@@ -12,7 +12,8 @@ public class DimensionBuilder implements IDimensionBuilder {
 	private boolean denyAll = false;
 	private boolean acceptAllOverworld = true;
 	
-	public DimensionBuilder() {		
+	public DimensionBuilder() {
+		//
 	}
 	
 	@Override
@@ -46,8 +47,8 @@ public class DimensionBuilder implements IDimensionBuilder {
 	@Override
 	public IDimensionList create() {
 		if (this.acceptAll ||
-				((this.dimensionWhitelist.size() == 0) &&
-						(this.dimensionBlacklist.size() == 0)) &&
+				((this.dimensionWhitelist.isEmpty()) &&
+						(this.dimensionBlacklist.isEmpty())) &&
 				!(this.acceptAllOverworld)) {
 			return new DimensionListAcceptAll();
 		} else if (this.denyAll) {

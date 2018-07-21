@@ -58,9 +58,11 @@ public class OS3APIImpl implements OS3API {
 	}
 	
 	public OS3APIImpl() {
+		//
 	}
 	
 	public void loadConfigFiles() {
+		final String failedReadingConfigsFrom = "Failed reading configs from ";
 		PathMatcher featuresFiles = FileSystems.getDefault().getPathMatcher("glob:**/features-*.json");
 		PathMatcher replacementsFiles = FileSystems.getDefault().getPathMatcher("glob:**/replacements-*.json");
 		PathMatcher jsonMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
@@ -70,7 +72,7 @@ public class OS3APIImpl implements OS3API {
 			.map(Path::toFile)
 			.forEach(features::loadFeaturesFile);
 		}  catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading configs from " + Constants.SYSCONF.toString());
+			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.SYSCONF.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
@@ -80,7 +82,7 @@ public class OS3APIImpl implements OS3API {
 			stream.filter(replacementsFiles::matches)
 			.forEach(replacements::loadFile);
 		}  catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading configs from " + Constants.SYSCONF.toString());
+			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.SYSCONF.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
@@ -102,7 +104,7 @@ public class OS3APIImpl implements OS3API {
 				}
 			});
 		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e, "Failed reading configs from " + Constants.CONFDIR.toString());
+			CrashReport report = CrashReport.makeCrashReport(e, failedReadingConfigsFrom + Constants.CONFDIR.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
@@ -159,7 +161,7 @@ public class OS3APIImpl implements OS3API {
 	public Map<String, IReplacementEntry> getReplacements() {
 		Map<String, IReplacementEntry> temp = new HashMap<>();
 		replacements.getReplacements().entrySet().stream()
-		.forEach(e -> temp.put(e.getKey().getResourcePath(), e.getValue()));
+		.forEach(e -> temp.put(e.getKey().getPath(), e.getValue()));
 		return ImmutableMap.copyOf(temp);
 	}
 
@@ -184,7 +186,7 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public Map<String, ISpawnEntry> getAllSpawns() {
 		Map<String, ISpawnEntry> sp = new HashMap<>();
-		spawns.entrySet().forEach(ent -> sp.put(ent.getKey().getResourcePath(), ent.getValue()));
+		spawns.entrySet().forEach(ent -> sp.put(ent.getKey().getPath(), ent.getValue()));
 		return ImmutableMap.copyOf(sp);
 	}
 

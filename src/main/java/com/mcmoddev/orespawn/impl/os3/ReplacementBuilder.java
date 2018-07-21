@@ -51,6 +51,10 @@ public class ReplacementBuilder implements IReplacementBuilder {
 		return this.addEntry(new ResourceLocation(blockName), state);
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public IReplacementBuilder addEntry(String blockName, int metadata) {
@@ -67,6 +71,10 @@ public class ReplacementBuilder implements IReplacementBuilder {
 		return this.addEntry(StateUtil.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, int metadata) {

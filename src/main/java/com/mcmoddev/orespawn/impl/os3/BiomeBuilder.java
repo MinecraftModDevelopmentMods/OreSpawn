@@ -25,7 +25,7 @@ public class BiomeBuilder implements IBiomeBuilder {
 	private boolean acceptAll = false;
 	
 	public BiomeBuilder() {
-		
+		//
 	}
 	
 	@Override
@@ -74,8 +74,8 @@ public class BiomeBuilder implements IBiomeBuilder {
 
 		BiomeLocation whitelistI;
 		BiomeLocation blacklistI;
-		if (this.whitelist.size() == 0) {
-			if(this.blacklist.size() > 0) {
+		if (this.whitelist.isEmpty()) {
+			if(!this.blacklist.isEmpty()) {
 				whitelistI = new BiomeLocationAcceptAny();
 			} else {
 				whitelistI = new BiomeLocationEmpty();
@@ -88,7 +88,7 @@ public class BiomeBuilder implements IBiomeBuilder {
 							.collect(Collectors.toList())) );
 		}
 
-		if (this.blacklist.size() == 0) {
+		if (this.blacklist.isEmpty()) {
 			blacklistI = new BiomeLocationEmpty();
 		} else {
 			blacklistI = new BiomeLocationList(
@@ -99,8 +99,7 @@ public class BiomeBuilder implements IBiomeBuilder {
 		}
 
 		
-		BiomeLocation res = new BiomeLocationComposition(whitelistI, blacklistI);
-		return res;
+		return new BiomeLocationComposition(whitelistI, blacklistI);
 	}
 
 }

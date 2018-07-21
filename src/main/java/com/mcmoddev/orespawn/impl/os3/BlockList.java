@@ -26,7 +26,7 @@ public class BlockList implements IBlockList {
 
 	@Override
 	public IBlockState getRandomBlock(Random rand) {
-		if (this.workingList.size() == 0) {
+		if (this.workingList.isEmpty()) {
 			this.startNewSpawn();
 		}
 		

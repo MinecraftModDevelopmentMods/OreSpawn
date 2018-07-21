@@ -7,7 +7,6 @@ import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 
 public class DimensionListAcceptAll implements IDimensionList {
 	@Override
-	@SuppressWarnings("unused")
 	public boolean matches(final int dimensionID) {
 		return true;
 	}

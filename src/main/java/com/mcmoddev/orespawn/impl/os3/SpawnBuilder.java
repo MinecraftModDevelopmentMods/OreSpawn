@@ -1,6 +1,5 @@
 package com.mcmoddev.orespawn.impl.os3;
 
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
@@ -88,6 +87,10 @@ public class SpawnBuilder implements ISpawnBuilder {
 		return this.addBlock(new ResourceLocation(blockName), blockState);
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public ISpawnBuilder addBlock(String blockName, int blockMetadata) {
@@ -105,6 +108,10 @@ public class SpawnBuilder implements ISpawnBuilder {
 		return this.addBlockWithChance(blockResourceLocation, blockState, 100);
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
@@ -133,6 +140,10 @@ public class SpawnBuilder implements ISpawnBuilder {
 		return this.addBlockWithChance(new ResourceLocation(blockName), blockState, chance);
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
@@ -155,6 +166,10 @@ public class SpawnBuilder implements ISpawnBuilder {
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
+	/**
+	 *
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,

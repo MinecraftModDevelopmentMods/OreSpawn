@@ -12,6 +12,6 @@ public interface BiomeLocation {
 	public JsonElement serialize();
 	
 	default ImmutableList<Biome> getBiomes() {
-		return ForgeRegistries.BIOMES.getValues().stream().filter(this::matches).collect(Collectors2.toImmutableList());
+		return ForgeRegistries.BIOMES.getValuesCollection().stream().filter(this::matches).collect(Collectors2.toImmutableList());
 	}
 }

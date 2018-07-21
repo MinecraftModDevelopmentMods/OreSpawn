@@ -31,7 +31,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 	@Override
 	public IFeatureBuilder setFeature(ResourceLocation featureResourceLocation) {
 		if (!OreSpawn.API.featureExists(featureResourceLocation)) {
-			OreSpawn.LOGGER.warn("Feature %s is not known, feature for this will be set to the default feature", featureResourceLocation.getResourcePath());
+			OreSpawn.LOGGER.warn("Feature %s is not known, feature for this will be set to the default feature", featureResourceLocation.getPath());
 		}
 		return this.setFeature(OreSpawn.API.getFeature(featureResourceLocation));
 	}

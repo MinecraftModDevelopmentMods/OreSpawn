@@ -20,7 +20,7 @@ public class FeatureEntry implements IFeatureEntry {
 
 	@Override
 	public String getFeatureName() {
-		return this.feature.getRegistryName().getResourcePath();
+		return this.feature.getRegistryName().getPath();
 	}
 
 	@Override

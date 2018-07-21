@@ -68,6 +68,10 @@ public class BlockBuilder implements IBlockBuilder {
 		return this.setFromBlockState(StateUtil.deserializeState(tempBlock, state));
 	}
 
+	/**
+	 * 
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public IBlockBuilder setFromName(ResourceLocation blockResourceLocation, int metadata) {
@@ -130,6 +134,10 @@ public class BlockBuilder implements IBlockBuilder {
 		return this.setFromBlockStateWithChance(StateUtil.deserializeState(tempBlock, state), chance);
 	}
 
+	/**
+	 * 
+	 * @deprecated
+	 */
 	@Override
 	@Deprecated
 	public IBlockBuilder setFromNameWithChance(ResourceLocation blockResourceLocation, int metadata, int chance) {

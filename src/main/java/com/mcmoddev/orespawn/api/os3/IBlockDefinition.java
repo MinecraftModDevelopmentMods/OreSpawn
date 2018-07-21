@@ -5,7 +5,7 @@ import net.minecraft.block.state.IBlockState;
 public interface IBlockDefinition {
 	public IBlockState getBlock();
 	public int getChance();
-	default public boolean isValid() {
+	public default boolean isValid() {
 		return true;
 	}
 }

@@ -35,6 +35,7 @@ public class FeatureRegistry {
 			.create();
 
 	public FeatureRegistry() {
+		//
 	}
 
 	public Map<String, IFeature> getFeatures() {
@@ -138,7 +139,7 @@ public class FeatureRegistry {
 		registry.getEntries().stream()
 		.map( ent -> { 
 			JsonObject e = new JsonObject(); 
-			e.addProperty("name", ent.getKey().getResourcePath());
+			e.addProperty("name", ent.getKey().getPath());
 			e.addProperty("class", ent.getValue().getClass().getName());
 			return e;
 		})

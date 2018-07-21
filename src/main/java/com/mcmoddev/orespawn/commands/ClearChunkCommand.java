@@ -50,7 +50,7 @@ public class ClearChunkCommand extends CommandBase {
 		}
 
 		EntityPlayer player = (EntityPlayer) sender;
-		Chunk chunk = player.getEntityWorld().getChunkFromBlockCoords(player.getPosition());
+		Chunk chunk = player.getEntityWorld().getChunk(player.getPosition());
 		ChunkPos chunkPos = chunk.getPos();
 		List<IBlockState> blocks;
 

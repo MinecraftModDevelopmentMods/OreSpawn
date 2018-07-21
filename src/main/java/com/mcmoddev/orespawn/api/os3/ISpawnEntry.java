@@ -14,11 +14,11 @@ import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
 
 public interface ISpawnEntry {
-	default public boolean isEnabled() {
+	public default boolean isEnabled() {
 		return false;
 	}
 	
-	default public boolean isRetrogen() {
+	public default boolean isRetrogen() {
 		return false;
 	}
 	

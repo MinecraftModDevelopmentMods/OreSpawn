@@ -50,16 +50,24 @@ public class ReplacementsRegistry {
 			.create();
 
 	public ReplacementsRegistry() {
+		//
 	}
 
 	public Map<ResourceLocation,IReplacementEntry> getReplacements() {
 		return ImmutableMap.copyOf(registry.getEntries());
 	}
+
+	/**
+	 *
+	 * @param dimension
+	 * @return
+	 * @deprecated
+	 */
 	@Deprecated
 	public List<IBlockState> getDimensionDefault(int dimension) {
 		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
 		List<IBlockState> mineralogyOres = 	OreDictionary.getOres("cobblestone").stream()
-				.filter( iS -> iS.getItem().getRegistryName().getResourceDomain().equals("mineralogy"))
+				.filter( iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
 				.map( iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
 				.collect(Collectors.toList());
 		List<IBlockState> baseRv = new ArrayList<>();
@@ -186,7 +194,7 @@ public class ReplacementsRegistry {
 		JsonObject outs = new JsonObject();
 		
 		registry.getEntries().stream()
-		.filter(ent -> ent.getKey().getResourceDomain().equals(modName))
+		.filter(ent -> ent.getKey().getNamespace().equals(modName))
 		.forEach(ent -> {
 			JsonArray entry = new JsonArray();
 			IReplacementEntry workVal = ent.getValue();
@@ -208,7 +216,7 @@ public class ReplacementsRegistry {
 			w.write(ov);
 		} catch (IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String.format("Failed writing replacements file  %s", p.toAbsolutePath().toString()));
-			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
+			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}
 	}

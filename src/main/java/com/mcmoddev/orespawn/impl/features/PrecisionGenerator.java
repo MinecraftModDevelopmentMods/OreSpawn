@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
@@ -154,8 +153,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			zmod = rescaleOffset(zmod, spot.getZ(), zMin, zMax);
 		}
 
-		BlockPos rVal = spot.add(xmod, ymod, zmod);
-		return rVal;
+		return spot.add(xmod, ymod, zmod);
 	}
 
 	private int rescaleOffset(final int offsetIn, final int centerIn, final int minimumIn, final int maximumIn) {

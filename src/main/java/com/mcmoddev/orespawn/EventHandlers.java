@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
@@ -15,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
@@ -41,7 +39,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 public class EventHandlers {
 	private Deque<ChunkPos> retroChunks;
 	private Deque<Tuple<ChunkPos, List<String>>> chunks;
-//	private Map<ChunkPos, List<String>> chunks;
+//	private Map<ChunkPos, List<String>> chunks
 
 	EventHandlers() {
 		retroChunks = new ConcurrentLinkedDeque<>();
