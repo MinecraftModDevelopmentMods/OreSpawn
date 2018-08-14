@@ -12,7 +12,7 @@ public class UnknownFieldException extends Exception {
 
 	@Override
 	public String getMessage() {
-		String baseMessage = super.getMessage();
+		final String baseMessage = super.getMessage();
 		return String.format("%s%n%s", this.message, baseMessage);
 	}
 }

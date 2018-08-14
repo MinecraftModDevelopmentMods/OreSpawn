@@ -38,8 +38,8 @@ import net.minecraftforge.fml.relauncher.Side;
 
 public class EventHandlers {
 
-	private Deque<ChunkPos> retroChunks;
-	private Deque<Tuple<ChunkPos, List<String>>> chunks;
+	private final Deque<ChunkPos> retroChunks;
+	private final Deque<Tuple<ChunkPos, List<String>>> chunks;
 	// private Map<ChunkPos, List<String>> chunks
 
 	EventHandlers() {
@@ -47,7 +47,7 @@ public class EventHandlers {
 		chunks = new ConcurrentLinkedDeque<>();
 	}
 
-	private List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL,
+	private final List<EventType> vanillaEvents = Arrays.asList(EventType.ANDESITE, EventType.COAL,
 			EventType.DIAMOND, EventType.DIORITE, EventType.DIRT, EventType.EMERALD, EventType.GOLD,
 			EventType.GRANITE, EventType.GRAVEL, EventType.IRON, EventType.LAPIS,
 			EventType.REDSTONE, EventType.QUARTZ, EventType.SILVERFISH);
@@ -62,17 +62,17 @@ public class EventHandlers {
 
 	@SubscribeEvent
 	public void onChunkSave(final ChunkDataEvent.Save ev) {
-		NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
-		NBTTagCompound features = new NBTTagCompound();
+		final NBTTagCompound dataTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
+		final NBTTagCompound features = new NBTTagCompound();
 
 		// save a list of the spawns that were configured and available - in this dimension - when
 		// the chunk
 		// was first generated.
 
 		// collect that data
-		int thisDimension = ev.getWorld().provider.getDimension();
-		BlockPos thisPos = new BlockPos(ev.getChunk().x + 8, 128, ev.getChunk().z + 8);
-		Biome thisBiome = ev.getChunk().getBiome(thisPos, ev.getWorld().getBiomeProvider());
+		final int thisDimension = ev.getWorld().provider.getDimension();
+		final BlockPos thisPos = new BlockPos(ev.getChunk().x + 8, 128, ev.getChunk().z + 8);
+		final Biome thisBiome = ev.getChunk().getBiome(thisPos, ev.getWorld().getBiomeProvider());
 
 		OreSpawn.API.getAllSpawns().entrySet().stream()
 				.filter(ent -> ent.getValue().dimensionAllowed(thisDimension))
@@ -90,8 +90,8 @@ public class EventHandlers {
 
 	@SubscribeEvent
 	public void onChunkLoad(final ChunkDataEvent.Load ev) {
-		World world = ev.getWorld();
-		ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
+		final World clWorld = ev.getWorld();
+		final ChunkPos chunkCoords = new ChunkPos(ev.getChunk().x, ev.getChunk().z);
 
 		doBedrockRetrogen(chunkCoords);
 
@@ -100,10 +100,10 @@ public class EventHandlers {
 		}
 
 		if (Config.getBoolean(Constants.RETROGEN_KEY)) {
-			NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
-			int thisDimension = world.provider.getDimension();
-			BlockPos thisPos = new BlockPos(ev.getChunk().x + 8, 128, ev.getChunk().z + 8);
-			Biome thisBiome = ev.getChunk().getBiome(thisPos, world.getBiomeProvider());
+			final NBTTagCompound chunkTag = ev.getData().getCompoundTag(Constants.CHUNK_TAG_NAME);
+			final int thisDimension = clWorld.provider.getDimension();
+			final BlockPos thisPos = new BlockPos(ev.getChunk().x + 8, 128, ev.getChunk().z + 8);
+			final Biome thisBiome = ev.getChunk().getBiome(thisPos, clWorld.getBiomeProvider());
 
 			if (featuresAreDifferent(chunkTag, thisDimension, thisBiome)
 					|| Config.getBoolean(Constants.FORCE_RETROGEN_KEY)) {
@@ -114,9 +114,9 @@ public class EventHandlers {
 	}
 
 	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
-		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
-		Map<String, String> currentBits = new TreeMap<>();
-		Map<String, String> oldBits = new TreeMap<>();
+		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
+		final Map<String, String> currentBits = new TreeMap<>();
+		final Map<String, String> oldBits = new TreeMap<>();
 
 		OreSpawn.API.getAllSpawns().entrySet().stream()
 				.filter(ent -> ent.getValue().dimensionAllowed(dim))
@@ -125,9 +125,9 @@ public class EventHandlers {
 
 		tagList.getKeySet().stream().forEach(tag -> oldBits.put(tag, tagList.getString(tag)));
 
-		MapDifference<String, String> diff = Maps.difference(oldBits, currentBits);
+		final MapDifference<String, String> diff = Maps.difference(oldBits, currentBits);
 
-		List<String> stuff = Lists.newLinkedList();
+		final List<String> stuff = Lists.newLinkedList();
 		stuff.addAll(diff.entriesDiffering().entrySet().stream().map(ent -> ent.getKey())
 				.collect(Collectors.toList()));
 		stuff.addAll(diff.entriesOnlyOnRight().entrySet().stream().map(ent -> ent.getKey())
@@ -136,9 +136,9 @@ public class EventHandlers {
 	}
 
 	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
-		NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
-		Map<String, String> currentBits = new TreeMap<>();
-		Map<String, String> oldBits = new TreeMap<>();
+		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
+		final Map<String, String> currentBits = new TreeMap<>();
+		final Map<String, String> oldBits = new TreeMap<>();
 
 		OreSpawn.API.getAllSpawns().entrySet().stream()
 				.filter(ent -> ent.getValue().dimensionAllowed(dim))
@@ -147,7 +147,7 @@ public class EventHandlers {
 
 		tagList.getKeySet().stream().forEach(tag -> oldBits.put(tag, tagList.getString(tag)));
 
-		MapDifference<String, String> diff = Maps.difference(oldBits, currentBits);
+		final MapDifference<String, String> diff = Maps.difference(oldBits, currentBits);
 
 		return diff.entriesDiffering().size() == 0 && diff.entriesOnlyOnLeft().size() == 0
 				&& diff.entriesOnlyOnRight().size() == 0;
@@ -189,8 +189,8 @@ public class EventHandlers {
 	}
 
 	private void runBits(final Tuple<ChunkPos, List<String>> tup) {
-		ChunkPos p = tup.getFirst();
-		List<String> spawns = tup.getSecond();
+		final ChunkPos p = tup.getFirst();
+		final List<String> spawns = tup.getSecond();
 
 		// re-seed with something totally new :P
 		random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z))
@@ -208,7 +208,7 @@ public class EventHandlers {
 		}
 
 		if (ev.phase == Phase.END) {
-			Deque<Tuple<ChunkPos, List<String>>> b = new LinkedList<>();
+			final Deque<Tuple<ChunkPos, List<String>>> b = new LinkedList<>();
 			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
 				b.push(chunks.pop());
 			}
@@ -216,7 +216,7 @@ public class EventHandlers {
 			b.forEach(this::runBits);
 
 			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {
-				ChunkPos p = retroChunks.pop();
+				final ChunkPos p = retroChunks.pop();
 				OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
 			}
 		}

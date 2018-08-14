@@ -14,7 +14,7 @@ public class DimensionListAcceptAll implements IDimensionList {
 
 	@Override
 	public JsonObject serialize() {
-		JsonObject rv = new JsonObject();
+		final JsonObject rv = new JsonObject();
 		rv.add(ConfigNames.BLACKLIST, new JsonArray());
 		return rv;
 	}

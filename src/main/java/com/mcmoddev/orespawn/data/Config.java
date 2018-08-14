@@ -63,14 +63,14 @@ public class Config {
 	}
 
 	private static void loadExtractedConfigs() {
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
+		final Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
 				"known-configs.json");
 
 		if (!p.toFile().exists()) {
 			return;
 		}
 
-		File in = p.toFile();
+		final File in = p.toFile();
 		String rawData;
 
 		try {
@@ -83,7 +83,7 @@ public class Config {
 			return;
 		}
 
-		JsonArray data = new JsonParser().parse(rawData).getAsJsonArray();
+		final JsonArray data = new JsonParser().parse(rawData).getAsJsonArray();
 		data.forEach(item -> addKnownMod(item.getAsString()));
 	}
 
@@ -136,23 +136,23 @@ public class Config {
 	}
 
 	private static void saveKnownConfigs() {
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
+		final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		final Path p = FileSystems.getDefault().getPath("config", "orespawn3", "sysconf",
 				"known-configs.json");
 
 		if (!p.toFile().getParentFile().exists()) {
 			p.toFile().mkdirs();
 		}
 
-		File in = p.toFile();
+		final File in = p.toFile();
 
-		JsonArray data = new JsonArray();
+		final JsonArray data = new JsonArray();
 
 		extractedConfigs.forEach(data::add);
 
 		try {
 			FileUtils.writeStringToFile(in, gson.toJson(data), Charset.defaultCharset());
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed saving list of already extracted mod configs");
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);

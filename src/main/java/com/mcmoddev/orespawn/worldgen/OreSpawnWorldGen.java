@@ -18,7 +18,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 	public void generate(final Random random, final int chunkX, final int chunkZ, final World world,
 			final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider) {
 
-		int thisDim = world.provider.getDimension();
+		final int thisDim = world.provider.getDimension();
 
 		OreSpawn.API.getSpawns(thisDim).stream().filter(spawn -> spawn.isEnabled())
 				.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY)

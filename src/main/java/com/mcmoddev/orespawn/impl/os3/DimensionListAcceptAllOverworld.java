@@ -14,13 +14,12 @@ public class DimensionListAcceptAllOverworld implements IDimensionList {
 
 	@Override
 	public JsonObject serialize() {
-		JsonObject rv = new JsonObject();
-		JsonArray bl = new JsonArray();
+		final JsonObject rv = new JsonObject();
+		final JsonArray bl = new JsonArray();
 		bl.add(-1);
 		bl.add(1);
 		rv.add(Constants.ConfigNames.BLACKLIST, bl);
 
 		return rv;
 	}
-
 }

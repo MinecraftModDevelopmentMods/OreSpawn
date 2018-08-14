@@ -99,5 +99,4 @@ public class ReplacementBuilder implements IReplacementBuilder {
 
 		return new ReplacementEntry(this.replacementName, this.entries);
 	}
-
 }

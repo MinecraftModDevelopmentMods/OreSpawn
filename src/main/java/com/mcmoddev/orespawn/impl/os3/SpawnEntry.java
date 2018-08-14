@@ -103,5 +103,4 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	public BiomeLocation getBiomes() {
 		return this.biomes;
 	}
-
 }

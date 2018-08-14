@@ -42,11 +42,11 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	protected void runCache(final int chunkX, final int chunkZ, final World world, final ISpawnEntry spawnData) {
-		Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
-		Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
+		final Vec3i chunkCoord = new Vec3i(chunkX, chunkZ, world.provider.getDimension());
+		final Map<BlockPos, IBlockState> cache = retrieveCache(chunkCoord);
 
 		if (!cache.isEmpty()) { // if there is something in the cache, try to spawn it
-			for (Entry<BlockPos, IBlockState> ent : cache.entrySet()) {
+			for (final Entry<BlockPos, IBlockState> ent : cache.entrySet()) {
 				spawnNoCheck(cache.get(ent.getKey()), world, ent.getKey(),
 						world.provider.getDimension(), spawnData);
 			}
@@ -64,13 +64,13 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			return false;
 		}
 
-		Biome thisBiome = world.getBiome(coord);
+		final Biome thisBiome = world.getBiome(coord);
 
 		if (!spawnData.biomeAllowed(thisBiome.getRegistryName())) {
 			return false;
 		}
 
-		BlockPos np = mungeFixYcoord(coord);
+		final BlockPos np = mungeFixYcoord(coord);
 
 		if (coord.getY() >= world.getHeight()) {
 			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
@@ -83,7 +83,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	private BlockPos mungeFixYcoord(final BlockPos coord) {
 		if (coord.getY() < 0) {
-			int newYCoord = coord.getY() * -1;
+			final int newYCoord = coord.getY() * -1;
 			return new BlockPos(coord.getX(), newYCoord, coord.getZ());
 		} else {
 			return new BlockPos(coord);
@@ -97,8 +97,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 				return false;
 			}
 
-			IBlockState targetBlock = world.getBlockState(coord);
-			Biome thisBiome = world.getBiome(coord);
+			final IBlockState targetBlock = world.getBlockState(coord);
+			final Biome thisBiome = world.getBiome(coord);
 
 			if (replacer.test(targetBlock) && spawnData.biomeAllowed(thisBiome.getRegistryName())) {
 				world.setBlockState(coord, oreBlock);
@@ -121,7 +121,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			return;
 		}
 
-		BlockPos np = mungeFixYcoord(coord);
+		final BlockPos np = mungeFixYcoord(coord);
 
 		if (coord.getY() >= world.getHeight()) {
 			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
@@ -132,13 +132,13 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	private void cacheOverflowBlock(final IBlockState bs, final BlockPos coord, final int dimension) {
-		Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
+		final Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
 
 		if (overflowCache.containsKey(chunkCoord)) {
 			cacheOrder.addLast(chunkCoord);
 
 			if (cacheOrder.size() > MAX_CACHE_SIZE) {
-				Vec3i drop = cacheOrder.removeFirst();
+				final Vec3i drop = cacheOrder.removeFirst();
 				overflowCache.get(drop).clear();
 				overflowCache.remove(drop);
 			}
@@ -146,13 +146,13 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			overflowCache.put(chunkCoord, new HashMap<>());
 		}
 
-		Map<BlockPos, IBlockState> cache = overflowCache.getOrDefault(chunkCoord, new HashMap<>());
+		final Map<BlockPos, IBlockState> cache = overflowCache.getOrDefault(chunkCoord, new HashMap<>());
 		cache.put(coord, bs);
 	}
 
 	private Map<BlockPos, IBlockState> retrieveCache(final Vec3i chunkCoord) {
 		if (overflowCache.containsKey(chunkCoord)) {
-			Map<BlockPos, IBlockState> cache = overflowCache.get(chunkCoord);
+			final Map<BlockPos, IBlockState> cache = overflowCache.get(chunkCoord);
 			cacheOrder.remove(chunkCoord);
 			overflowCache.remove(chunkCoord);
 			return cache;
@@ -163,8 +163,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	protected void scramble(final int[] target, final Random prng) {
 		for (int i = target.length - 1; i > 0; i--) {
-			int n = prng.nextInt(i);
-			int temp = target[i];
+			final int n = prng.nextInt(i);
+			final int temp = target[i];
 			target[i] = target[n];
 			target[n] = temp;
 		}
@@ -200,8 +200,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	private double triangularDistribution(final double a, final double b, final double c) {
-		double base = (c - a) / (b - a);
-		double rand = this.random.nextDouble();
+		final double base = (c - a) / (b - a);
+		final double rand = this.random.nextDouble();
 
 		if (rand < base) {
 			return a + Math.sqrt(rand * (b - a) * (c - a));
@@ -211,22 +211,22 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	}
 
 	protected int getPoint(final int lowerBound, final int upperBound, final int median) {
-		int t = (int) Math.round(
+		final int t = (int) Math.round(
 				triangularDistribution((float) lowerBound, (float) upperBound, (float) median));
 		return t - median;
 	}
 
 	protected void spawnMungeSW(final World world, final BlockPos blockPos, final int rSqr, final double radius,
 			final ISpawnEntry spawnData, final int count) {
-		Random prng = this.random;
+		final Random prng = this.random;
 		int quantity = count;
-		IBlockList possibleOres = spawnData.getBlocks();
-		OreSpawnBlockMatcher replacer = spawnData.getMatcher();
+		final IBlockList possibleOres = spawnData.getBlocks();
+		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dx = (int) (radius); dx >= (int) (-1 * radius); dx--) {
 				for (int dz = (int) (radius); dz >= (int) (-1 * radius); dz--) {
 					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
 						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
 								world.provider.getDimension(), spawnData);
 						quantity--;
@@ -241,15 +241,15 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	protected void spawnMungeNE(final World world, final BlockPos blockPos, final int rSqr, final double radius,
 			final ISpawnEntry spawnData, final int count) {
-		Random prng = this.random;
+		final Random prng = this.random;
 		int quantity = count;
-		IBlockList possibleOres = spawnData.getBlocks();
-		OreSpawnBlockMatcher replacer = spawnData.getMatcher();
+		final IBlockList possibleOres = spawnData.getBlocks();
+		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dz = (int) (-1 * radius); dz < radius; dz++) {
 				for (int dx = (int) (-1 * radius); dx < radius; dx++) {
 					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
 						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
 								world.provider.getDimension(), spawnData);
 						quantity--;

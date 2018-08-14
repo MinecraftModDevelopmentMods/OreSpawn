@@ -28,8 +28,8 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 	@Override
 	public boolean matches(final Biome biome) {
-		boolean inWhite = this.inclusions.matches(biome);
-		boolean inBlack = this.exclusions.matches(biome);
+		final boolean inWhite = this.inclusions.matches(biome);
+		final boolean inBlack = this.exclusions.matches(biome);
 
 		return !inBlack && inWhite;
 	}
@@ -46,7 +46,7 @@ public final class BiomeLocationComposition implements BiomeLocation {
 		}
 
 		if (obj instanceof BiomeLocationComposition) {
-			BiomeLocationComposition other = (BiomeLocationComposition) obj;
+			final BiomeLocationComposition other = (BiomeLocationComposition) obj;
 			return this.inclusions.equals(other.inclusions)
 					&& this.exclusions.equals(other.exclusions);
 		}
@@ -56,7 +56,7 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 	@Override
 	public ImmutableList<Biome> getBiomes() {
-		List<Biome> temp = new LinkedList<>();
+		final List<Biome> temp = new LinkedList<>();
 		temp.addAll(this.inclusions.getBiomes());
 		temp.addAll(this.exclusions.getBiomes());
 		return ImmutableList.copyOf(temp);
@@ -72,7 +72,7 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 	@Override
 	public JsonElement serialize() {
-		JsonObject rv = new JsonObject();
+		final JsonObject rv = new JsonObject();
 
 		rv.add(Constants.ConfigNames.BLACKLIST, this.exclusions.serialize());
 		if (!(this.inclusions instanceof BiomeLocationEmpty)) {

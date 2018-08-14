@@ -36,31 +36,31 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
 			final ISpawnEntry spawnData, final ChunkPos _pos) {
-		ChunkPos pos = _pos;
-		JsonObject params = spawnData.getFeature().getFeatureParameters();
+		final ChunkPos pos = _pos;
+		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		final int chunkX = pos.x;
+		final int chunkZ = pos.z;
 
 		runCache(chunkX, chunkZ, world, spawnData);
 		mergeDefaults(params, getDefaultParameters());
 
 		// now to ore spawn
 
-		int blockX = chunkX * 16 + 8;
-		int blockZ = chunkZ * 16 + 8;
+		final int blockX = chunkX * 16 + 8;
+		final int blockZ = chunkZ * 16 + 8;
 
-		int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
-		int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
-		int startingFace = getFaceFromString(
+		final int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		final int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		final int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		final int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		final int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
+		final int startingFace = getFaceFromString(
 				params.get(Constants.FormatBits.STARTINGFACE).getAsString());
-		int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
-		int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
+		final int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		final int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		final int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 
 		OreSpawn.LOGGER.fatal("parameters: %s", params);
 		int tries;
@@ -74,9 +74,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		// we have an offset into the chunk but actually need something more
 		while (tries > 0) {
 			if (this.random.nextInt(100) <= freq) {
-				int x = blockX + random.nextInt(16);
-				int y = random.nextInt(maxY - minY) + minY;
-				int z = blockZ + random.nextInt(16);
+				final int x = blockX + random.nextInt(16);
+				final int y = random.nextInt(maxY - minY) + minY;
+				final int z = blockZ + random.nextInt(16);
 
 				final int r;
 
@@ -95,7 +95,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	private int getFaceFromString(final String direction) {
-		String work = direction.toLowerCase();
+		final String work = direction.toLowerCase();
 		switch (work) {
 			case "north":
 				return 0;
@@ -135,28 +135,28 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 
 		// build vein
-		List<Pair<Integer, Integer>> points = Lists.newLinkedList();
+		final List<Pair<Integer, Integer>> points = Lists.newLinkedList();
 		points.add(Pair.of(face, square));
 		for (int j = 0; j < veinLength; j++) {
-			Map<Integer, Integer> pos = Maps.newHashMap();
-			int[] w = getWeighted(face, square);
+			final Map<Integer, Integer> pos = Maps.newHashMap();
+			final int[] w = getWeighted(face, square);
 			for (int k = 0; k < w.length; k++) {
 				pos.put(w[k], k);
 			}
 
-			int[] t = Arrays.stream(w).distinct().sorted().toArray();
-			int[] fpos = Arrays.stream(Arrays.copyOfRange(t, t.length - 5, t.length))
+			final int[] t = Arrays.stream(w).distinct().sorted().toArray();
+			final int[] fpos = Arrays.stream(Arrays.copyOfRange(t, t.length - 5, t.length))
 					.map(it -> pos.get(it)).toArray();
-			int temp = this.random.nextInt(5);
+			final int temp = this.random.nextInt(5);
 			face = fpos[temp] % 6;
 			square = fpos[temp] % 12;
 			points.add(Pair.of(face, square));
 		}
 
 		spawnOre(world, spawnData, blockPos, nodeSize);
-		for (Pair<Integer, Integer> point : points) {
+		for (final Pair<Integer, Integer> point : points) {
 			spawnOre(world, spawnData, workingPos, nodeSize);
-			int[] nextMunge = getDirectionValues(point.first().intValue(),
+			final int[] nextMunge = getDirectionValues(point.first().intValue(),
 					point.second().intValue());
 			workingPos = workingPos.add(nextMunge[0], nextMunge[1], nextMunge[2]);
 		}
@@ -164,20 +164,20 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos, final int quantity) {
 		int count = quantity;
-		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
-		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
-		Vec3i[] offs = new Vec3i[lutType];
+		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
+		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
+		final Vec3i[] offs = new Vec3i[lutType];
 
 		System.arraycopy((quantity < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
 
 		if (quantity < 27) {
-			int[] scrambledLUT = new int[lutType];
+			final int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
 
 			while (count > 0) {
-				IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
-				BlockPos target = pos.add(offs[scrambledLUT[--count]]);
+				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				final BlockPos target = pos.add(offs[scrambledLUT[--count]]);
 				spawn(oreBlock, world, target, world.provider.getDimension(), true, spawnData);
 			}
 
@@ -189,9 +189,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world, final ISpawnEntry spawnData,
 			final BlockPos pos) {
-		int count = quantity;
-		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int) (radius * radius);
+		final int count = quantity;
+		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		final int rSqr = (int) (radius * radius);
 		if (nextBoolean) {
 			spawnMungeNE(world, pos, rSqr, radius, spawnData, count);
 		} else {
@@ -243,11 +243,11 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	 * To keep things heading the correct direction, we weight the faces and the "points" of the
 	 * face so that we can choose a semi-intelligent direction to continue in.
 	 */
-	private int[] faceWeights = new int[] { /* self */ 2, /* other */ 1 };
-	private int[] pointWeights = Arrays.stream(faceWeights).map(a -> a * 2).toArray();
+	private final int[] faceWeights = new int[] { /* self */ 2, /* other */ 1 };
+	private final int[] pointWeights = Arrays.stream(faceWeights).map(a -> a * 2).toArray();
 
 	private int[] getWeighted(final int face, final int square) {
-		int[] rv = new int[54];
+		final int[] rv = new int[54];
 
 		for (int f = 0; f < 6; f++) {
 			for (int s = 0; s < 12; s++) {
@@ -272,7 +272,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 						matchFace = getMatchingFace(f, 1);
 						matchSquare = getMatchingSquare(s, f, 1);
 					}
-					int addr = matchFace + matchSquare;
+					final int addr = matchFace + matchSquare;
 					rv[addr] += faceWeights[1] + pointWeights[1];
 
 					if (s < 3 || s > 8) {
@@ -325,7 +325,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public JsonObject getDefaultParameters() {
-		JsonObject defParams = new JsonObject();
+		final JsonObject defParams = new JsonObject();
 		defParams.addProperty(Constants.FormatBits.MIN_HEIGHT, 0);
 		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 256);
 		defParams.addProperty(Constants.FormatBits.VARIATION, 16);

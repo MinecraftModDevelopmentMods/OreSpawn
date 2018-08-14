@@ -24,26 +24,26 @@ public class OreSpawnWriter {
 	 * Write out the configs as the system knows them to the 'forced-saves' directory
 	 */
 	public static void saveConfigs() {
-		Map<Path, List<String>> configs = OreSpawn.API.getSpawnsByFile();
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		final Map<Path, List<String>> configs = OreSpawn.API.getSpawnsByFile();
+		final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		configs.entrySet().stream().forEach(ent -> saveSingle(ent.getKey(), gson));
 	}
 
 	private static void saveSingle(final Path filePath, final Gson gson) {
-		JsonObject root = new JsonObject();
+		final JsonObject root = new JsonObject();
 		root.addProperty(ConfigNames.FILE_VERSION, "2.0");
-		JsonObject spawns = new JsonObject();
-		String k = filePath.getFileName().toString();
-		Path saveDir = Constants.CONFDIR.resolve("forced-saves");
-		Path conf = saveDir.resolve(k);
+		final JsonObject spawns = new JsonObject();
+		final String k = filePath.getFileName().toString();
+		final Path saveDir = Constants.CONFDIR.resolve("forced-saves");
+		final Path conf = saveDir.resolve(k);
 		if (!saveDir.toFile().exists()) {
 			saveDir.toFile().mkdirs();
 		}
-		try (BufferedWriter p = Files.newBufferedWriter(conf, StandardOpenOption.CREATE,
+		try (final BufferedWriter p = Files.newBufferedWriter(conf, StandardOpenOption.CREATE,
 				StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 			OreSpawn.API.getSpawnsForFile(k).stream().forEach(spawnName -> {
-				JsonObject thisSpawn = new JsonObject();
-				ISpawnEntry spawnEntry = OreSpawn.API.getSpawn(spawnName);
+				final JsonObject thisSpawn = new JsonObject();
+				final ISpawnEntry spawnEntry = OreSpawn.API.getSpawn(spawnName);
 				thisSpawn.addProperty(ConfigNames.ENABLED, spawnEntry.isEnabled());
 				thisSpawn.addProperty(ConfigNames.RETROGEN, spawnEntry.isRetrogen());
 				thisSpawn.addProperty(ConfigNames.FEATURE,
@@ -57,7 +57,7 @@ public class OreSpawnWriter {
 			});
 			root.add(ConfigNames.SPAWNS, spawns);
 			p.write(gson.toJson(root));
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed writing config data " + conf.toString());
 			report.getCategory().addCrashSection("OreSpawn Version", Constants.VERSION);
@@ -67,7 +67,7 @@ public class OreSpawnWriter {
 	}
 
 	public static void saveSingle(final String fileName) {
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		saveSingle(Constants.CONFDIR.resolve(fileName), gson);
 	}
 }

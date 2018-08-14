@@ -43,8 +43,8 @@ public class AddOreCommand extends CommandBase {
 			throw new CommandException("Only players can use this command");
 		}
 
-		EntityPlayer player = (EntityPlayer) sender;
-		ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+		final EntityPlayer player = (EntityPlayer) sender;
+		final ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
 
 		if (stack == null) {
 			throw new CommandException("You have no item in your main hand");
@@ -54,21 +54,21 @@ public class AddOreCommand extends CommandBase {
 			throw new CommandException(this.getUsage(sender));
 		}
 
-		String file = args[0];
+		final String file = args[0];
 		@SuppressWarnings("deprecation")
-		IBlockState state = Block.getBlockFromItem(stack.getItem())
+		final IBlockState state = Block.getBlockFromItem(stack.getItem())
 				.getStateFromMeta(stack.getItemDamage());
 
-		String rawData = getChatComponentFromNthArg(sender, args, 1).getUnformattedText();
-		JsonParser p = new JsonParser();
-		JsonElement parsed = mergeDefaults(p.parse(rawData), state);
+		final String rawData = getChatComponentFromNthArg(sender, args, 1).getUnformattedText();
+		final JsonParser p = new JsonParser();
+		final JsonElement parsed = mergeDefaults(p.parse(rawData), state);
 		OreSpawnReader.loadFromJson(FilenameUtils.getBaseName(file), parsed);
 		OreSpawnWriter.saveSingle(FilenameUtils.getBaseName(file));
 	}
 
 	private JsonElement mergeDefaults(final JsonElement parse, final IBlockState state) {
-		JsonObject work = parse.getAsJsonObject();
-		JsonObject emptyBlacklist = new JsonObject();
+		final JsonObject work = parse.getAsJsonObject();
+		final JsonObject emptyBlacklist = new JsonObject();
 		emptyBlacklist.add("excludes", new JsonArray());
 
 		if (!work.has(ConfigNames.ENABLED)) {
@@ -95,7 +95,7 @@ public class AddOreCommand extends CommandBase {
 			work.add(ConfigNames.BIOMES, emptyBlacklist);
 		}
 
-		JsonObject block = new JsonObject();
+		final JsonObject block = new JsonObject();
 		block.addProperty(ConfigNames.CHANCE, 100);
 		block.addProperty(ConfigNames.NAME, state.getBlock().getRegistryName().toString());
 		block.addProperty(ConfigNames.STATE, StateUtil.serializeState(state));

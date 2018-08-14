@@ -26,7 +26,7 @@ public class StateUtil {
 	}
 
 	public static IBlockState deserializeState(final Block block, final String state) {
-		for (IBlockState validState : block.getBlockState().getValidStates()) {
+		for (final IBlockState validState : block.getBlockState().getValidStates()) {
 			String string = validState.toString();
 			string = string.substring(string.indexOf('[') + 1,
 					string.length() - (string.endsWith("]") ? 1 : 0));

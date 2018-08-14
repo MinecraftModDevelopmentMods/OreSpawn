@@ -39,15 +39,15 @@ public class DimensionList implements com.mcmoddev.orespawn.api.IDimensionList {
 
 	@Override
 	public JsonObject serialize() {
-		JsonObject rv = new JsonObject();
+		final JsonObject rv = new JsonObject();
 		if (!this.whitelist.isEmpty()) {
-			JsonArray wl = new JsonArray();
+			final JsonArray wl = new JsonArray();
 			whitelist.stream().forEach(wl::add);
 			rv.add(Constants.ConfigNames.WHITELIST, wl);
 		}
 
 		if (!this.blacklist.isEmpty()) {
-			JsonArray bl = new JsonArray();
+			final JsonArray bl = new JsonArray();
 			blacklist.stream().forEach(bl::add);
 			rv.add(Constants.ConfigNames.WHITELIST, bl);
 		} else if (this.whitelist.isEmpty()) {

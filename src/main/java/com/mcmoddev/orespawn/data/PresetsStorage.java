@@ -29,7 +29,7 @@ public class PresetsStorage {
 	}
 
 	public void setSymbolSection(final String sectionName, final String itemName, final JsonElement value) {
-		Map<String, JsonElement> temp = storage.getOrDefault(sectionName,
+		final Map<String, JsonElement> temp = storage.getOrDefault(sectionName,
 				new HashMap<String, JsonElement>());
 		temp.put(itemName, value);
 		storage.put(sectionName, temp);
@@ -45,7 +45,7 @@ public class PresetsStorage {
 
 	public void copy(final PresetsStorage dest) {
 		storage.entrySet().stream().forEach(ensm -> {
-			String section = ensm.getKey();
+			final String section = ensm.getKey();
 			ensm.getValue().entrySet().forEach(
 					ensje -> dest.setSymbolSection(section, ensje.getKey(), ensje.getValue()));
 		});
@@ -56,17 +56,17 @@ public class PresetsStorage {
 	}
 
 	public void load(final Path inputFile) {
-		JsonParser p = new JsonParser();
+		final JsonParser p = new JsonParser();
 		JsonElement parsed = null;
 
 		try (BufferedReader r = Files.newBufferedReader(inputFile)) {
 			parsed = p.parse(r);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed reading presets from" + inputFile.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
-		} catch (JsonIOException | JsonSyntaxException e) {
+		} catch (final JsonIOException | JsonSyntaxException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					"JSON Parsing Error in " + inputFile.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -75,7 +75,7 @@ public class PresetsStorage {
 
 		if (parsed != null) {
 			parsed.getAsJsonObject().entrySet().stream().forEach(entry -> {
-				String section = entry.getKey();
+				final String section = entry.getKey();
 				entry.getValue().getAsJsonObject().entrySet().stream().forEach(
 						sect -> this.setSymbolSection(section, sect.getKey(), sect.getValue()));
 			});
@@ -83,8 +83,8 @@ public class PresetsStorage {
 	}
 
 	public JsonElement get(final String asString) {
-		Pattern p = Pattern.compile("\\$\\.(\\w+)\\.(\\w+)");
-		Matcher m = p.matcher(asString);
+		final Pattern p = Pattern.compile("\\$\\.(\\w+)\\.(\\w+)");
+		final Matcher m = p.matcher(asString);
 		if (m.matches()) {
 			return this.getSymbolSection(m.group(1), m.group(2));
 		}

@@ -31,30 +31,30 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
 			final ISpawnEntry spawnData, final ChunkPos _pos) {
-		ChunkPos pos = _pos;
-		JsonObject params = spawnData.getFeature().getFeatureParameters();
+		final ChunkPos pos = _pos;
+		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		final int chunkX = pos.x;
+		final int chunkZ = pos.z;
 
 		mergeDefaults(params, getDefaultParameters());
 
 		runCache(chunkX, chunkZ, world, spawnData);
 
 		// extract parameters
-		int nodeCount = params.get(FormatBits.NODE_COUNT).getAsInt();
-		int maxHeight = params.get(FormatBits.MAX_HEIGHT).getAsInt();
-		int minHeight = params.get(FormatBits.MIN_HEIGHT).getAsInt();
-		int nodeSize = params.get(FormatBits.NODE_SIZE).getAsInt();
+		final int nodeCount = params.get(FormatBits.NODE_COUNT).getAsInt();
+		final int maxHeight = params.get(FormatBits.MAX_HEIGHT).getAsInt();
+		final int minHeight = params.get(FormatBits.MIN_HEIGHT).getAsInt();
+		final int nodeSize = params.get(FormatBits.NODE_SIZE).getAsInt();
 
 		int thisNode = nodeSize;
 
 		// now to use them
 		for (int c = nodeCount; c > 0; c--) {
 			int sc;
-			HeightRange hr = new HeightRange(minHeight, maxHeight);
-			BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
+			final HeightRange hr = new HeightRange(minHeight, maxHeight);
+			final BlockPos spot = chooseSpot(chunkX, chunkZ, hr);
 
 			sc = spawnAtSpot(thisNode, hr, spot, new ChunkPos(chunkX, chunkZ), spawnData, world);
 
@@ -101,24 +101,24 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 			final int nodeSize, final HeightRange heightRange) {
 
 		int count = nodeSize;
-		int lutType = (nodeSize < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
-		int[] lut = (nodeSize < 8) ? offsetIndexRef_small : offsetIndexRef;
-		Vec3i[] offs = new Vec3i[lutType];
+		final int lutType = (nodeSize < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
+		final int[] lut = (nodeSize < 8) ? offsetIndexRef_small : offsetIndexRef;
+		final Vec3i[] offs = new Vec3i[lutType];
 
 		System.arraycopy((nodeSize < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
 
 		if (nodeSize < 27) {
-			int[] scrambledLUT = new int[lutType];
+			final int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
 
 			int nc = 0;
 
 			for (; count > 0 && nc <= nodeSize; count--) {
-				IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(this.random);
-				Vec3i offset = offs[scrambledLUT[--count]];
-				BlockPos p = fixMungeOffset(offset, loc, heightRange, pos);
-				int dimension = world.provider.getDimension();
+				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(this.random);
+				final Vec3i offset = offs[scrambledLUT[--count]];
+				final BlockPos p = fixMungeOffset(offset, loc, heightRange, pos);
+				final int dimension = world.provider.getDimension();
 
 				if (spawn(oreBlock, world, p, dimension, true, spawnData)) {
 					nc++;
@@ -133,12 +133,12 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private BlockPos fixMungeOffset(final Vec3i offset, final BlockPos spot, final HeightRange heightRange,
 			final ChunkPos pos) {
-		BlockPos p = spot.add(offset);
-		ChunkPos x1z1 = new ChunkPos(pos.x + 1, pos.z + 1);
-		int xMax = x1z1.getXEnd();
-		int zMax = x1z1.getZEnd();
-		int xMin = pos.getXStart();
-		int zMin = pos.getZStart();
+		final BlockPos p = spot.add(offset);
+		final ChunkPos x1z1 = new ChunkPos(pos.x + 1, pos.z + 1);
+		final int xMax = x1z1.getXEnd();
+		final int zMax = x1z1.getZEnd();
+		final int xMin = pos.getXStart();
+		final int zMin = pos.getZStart();
 
 		int xmod = offset.getX();
 		int ymod = offset.getY();
@@ -163,9 +163,9 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	private int rescaleOffset(final int offsetIn, final int centerIn, final int minimumIn,
 			final int maximumIn) {
-		int actual = centerIn + offsetIn;
+		final int actual = centerIn + offsetIn;
 		int wrapDistance;
-		int range = maximumIn - minimumIn;
+		final int range = maximumIn - minimumIn;
 		int workingPoint;
 
 		if (actual < minimumIn) {
@@ -192,8 +192,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	private int spawnFill(final ISpawnEntry spawnData, final World world, final ChunkPos pos, final BlockPos loc,
 			final int nodeSize, final HeightRange heightRange) {
 
-		double radius = Math.pow(nodeSize, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int) Math.ceil(radius * radius);
+		final double radius = Math.pow(nodeSize, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		final int rSqr = (int) Math.ceil(radius * radius);
 
 		if (this.random.nextBoolean()) {
 			return spawnPrecise(spawnData, world, pos, loc, heightRange, false, radius, rSqr,
@@ -233,8 +233,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	private int doCheckSpawn(final int dx, final int dy, final int dz, final int rSqr, final HeightRange heightRange,
 			final ISpawnEntry spawnData, final World world, final ChunkPos pos, final BlockPos loc) {
 		if (getABC(dx, dy, dz) <= rSqr) {
-			BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), loc, heightRange, pos);
-			IBlockState bl = spawnData.getBlocks().getRandomBlock(this.random);
+			final BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), loc, heightRange, pos);
+			final IBlockState bl = spawnData.getBlocks().getRandomBlock(this.random);
 			return spawn(bl, world, p, world.provider.getDimension(), true, spawnData) ? 1 : 0;
 		}
 
@@ -242,7 +242,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	}
 
 	private int getPoint(final int lowerBound, final int upperBound) {
-		List<Integer> arr = new ArrayList<>();
+		final List<Integer> arr = new ArrayList<>();
 
 		for (int i = lowerBound; i <= upperBound; i++) {
 			arr.add(i);
@@ -252,9 +252,9 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 	}
 
 	private BlockPos chooseSpot(final int xPosition, final int zPosition, final HeightRange heightRange) {
-		int xRet = getPoint(0, 15) + (xPosition * 16);
-		int zRet = getPoint(0, 15) + (zPosition * 16);
-		int yRet = getPoint(heightRange.getMin(), heightRange.getMax());
+		final int xRet = getPoint(0, 15) + (xPosition * 16);
+		final int zRet = getPoint(0, 15) + (zPosition * 16);
+		final int yRet = getPoint(heightRange.getMin(), heightRange.getMax());
 
 		return new BlockPos(xRet, yRet, zRet);
 	}
@@ -266,7 +266,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public JsonObject getDefaultParameters() {
-		JsonObject defaults = new JsonObject();
+		final JsonObject defaults = new JsonObject();
 		defaults.addProperty(FormatBits.NODE_COUNT, 4);
 		defaults.addProperty(FormatBits.MIN_HEIGHT, 16);
 		defaults.addProperty(FormatBits.MAX_HEIGHT, 80);

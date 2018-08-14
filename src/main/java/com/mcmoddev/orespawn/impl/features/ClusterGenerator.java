@@ -30,12 +30,12 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
 			final ISpawnEntry spawnData, final ChunkPos _pos) {
-		ChunkPos pos = _pos;
-		JsonObject params = spawnData.getFeature().getFeatureParameters();
+		final ChunkPos pos = _pos;
+		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		final int chunkX = pos.x;
+		final int chunkZ = pos.z;
 
 		mergeDefaults(params, getDefaultParameters());
 
@@ -43,18 +43,18 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 		// now to ore spawn
 
-		int blockX = chunkX * 16 + 8;
-		int blockZ = chunkZ * 16 + 8;
+		final int blockX = chunkX * 16 + 8;
+		final int blockZ = chunkZ * 16 + 8;
 
-		int maxSpread = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
-		int minHeight = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxHeight = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int variance = params.get(Constants.FormatBits.VARIATION).getAsInt();
-		int frequency = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
-		int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
-		int clusterSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		int clusterCount = params.get(Constants.FormatBits.NODE_COUNT).getAsInt();
+		final int maxSpread = params.get(Constants.FormatBits.MAX_SPREAD).getAsInt();
+		final int minHeight = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		final int maxHeight = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		final int variance = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		final int frequency = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		final int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		final int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
+		final int clusterSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		final int clusterCount = params.get(Constants.FormatBits.NODE_COUNT).getAsInt();
 
 		int tries;
 
@@ -66,12 +66,12 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 		while (tries > 0) {
 			if (this.random.nextInt(100) <= frequency) {
-				int xRand = random.nextInt(16);
-				int zRand = random.nextInt(16);
+				final int xRand = random.nextInt(16);
+				final int zRand = random.nextInt(16);
 
-				int x = blockX + xRand - (maxSpread / 2);
-				int y = random.nextInt(maxHeight - minHeight) + minHeight;
-				int z = blockZ + zRand - (maxSpread / 2);
+				final int x = blockX + xRand - (maxSpread / 2);
+				final int y = random.nextInt(maxHeight - minHeight) + minHeight;
+				final int z = blockZ + zRand - (maxSpread / 2);
 
 				spawnCluster(clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight,
 						spawnData, world, new BlockPos(x, y, z));
@@ -106,13 +106,13 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				r += this.random.nextInt(2 * variance) - variance;
 			}
 
-			int radius = maxSpread / 2;
+			final int radius = maxSpread / 2;
 
-			int xp = getPoint(-radius, radius, 0);
-			int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
-			int zp = getPoint(-radius, radius, 0);
+			final int xp = getPoint(-radius, radius, 0);
+			final int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
+			final int zp = getPoint(-radius, radius, 0);
 
-			BlockPos p = pos.add(xp, yp, zp);
+			final BlockPos p = pos.add(xp, yp, zp);
 			spawnChunk(world, p, spawnData, r);
 
 			count -= r;
@@ -120,23 +120,23 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	private void spawnChunk(final World world, final BlockPos pos, final ISpawnEntry spawnData, final int quantity) {
-		int count = quantity;
-		int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
-		int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
-		Vec3i[] offs = new Vec3i[lutType];
+		 int count = quantity;
+		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
+		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
+		final Vec3i[] offs = new Vec3i[lutType];
 
 		System.arraycopy((quantity < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
 
-		int dimension = world.provider.getDimension();
+		final int dimension = world.provider.getDimension();
 
 		if (quantity < 27) {
-			int[] scrambledLUT = new int[lutType];
+			final int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
 			int z = 0;
 
 			while (count > 0) {
-				IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
 
 				if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
 						spawnData)) {
@@ -161,9 +161,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 	private void doSpawnFill(final boolean nextBoolean, final int quantity, final ISpawnEntry spawnData, final World world,
 			final BlockPos pos) {
-		int count = quantity;
-		double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
-		int rSqr = (int) (radius * radius);
+		final int count = quantity;
+		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		final int rSqr = (int) (radius * radius);
 		if (nextBoolean) {
 			spawnMungeNE(world, pos, rSqr, radius, spawnData, count);
 		} else {
@@ -178,7 +178,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public JsonObject getDefaultParameters() {
-		JsonObject defParams = new JsonObject();
+		final JsonObject defParams = new JsonObject();
 		defParams.addProperty(Constants.FormatBits.MAX_SPREAD, 16);
 		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 8);
 		defParams.addProperty(Constants.FormatBits.NODE_COUNT, 8);
@@ -190,5 +190,4 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MAX, 8);
 		return defParams;
 	}
-
 }

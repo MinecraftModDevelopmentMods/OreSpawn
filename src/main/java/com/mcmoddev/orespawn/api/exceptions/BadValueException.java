@@ -14,7 +14,7 @@ public class BadValueException extends Exception {
 
 	@Override
 	public String getMessage() {
-		String baseMessage = super.getMessage();
+		final String baseMessage = super.getMessage();
 		return String.format("Unknown value %s for key %s%n%s", this.keyValue, this.keyName,
 				baseMessage);
 	}

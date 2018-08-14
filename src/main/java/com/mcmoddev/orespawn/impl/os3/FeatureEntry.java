@@ -26,7 +26,7 @@ public class FeatureEntry implements IFeatureEntry {
 
 	@Override
 	public JsonObject getFeatureParameters() {
-		JsonObject defs = feature.getDefaultParameters();
+		final JsonObject defs = feature.getDefaultParameters();
 		this.parameters.entrySet().stream().forEach(ent -> defs.add(ent.getKey(), ent.getValue()));
 		return defs;
 	}
@@ -50,5 +50,4 @@ public class FeatureEntry implements IFeatureEntry {
 	public void setParameter(final String parameterName, final float parameterValue) {
 		this.parameters.addProperty(parameterName, parameterValue);
 	}
-
 }

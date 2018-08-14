@@ -70,10 +70,10 @@ public class OS3APIImpl implements OS3API {
 				.getPathMatcher("glob:**/replacements-*.json");
 		PathMatcher jsonMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
 
-		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
+		try (final Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
 			stream.filter(featuresFiles::matches).map(Path::toFile)
 					.forEach(features::loadFeaturesFile);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					failedReadingConfigsFrom + Constants.SYSCONF.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -81,9 +81,9 @@ public class OS3APIImpl implements OS3API {
 		}
 
 		// have to do this twice or we have issues
-		try (Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
+		try (final Stream<Path> stream = Files.walk(Constants.SYSCONF, 1)) {
 			stream.filter(replacementsFiles::matches).forEach(replacements::loadFile);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					failedReadingConfigsFrom + Constants.SYSCONF.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -94,11 +94,11 @@ public class OS3APIImpl implements OS3API {
 			presets.load(Constants.SYSCONF.resolve("presets-default.json"));
 		}
 
-		try (Stream<Path> stream = Files.walk(Constants.CONFDIR, 1)) {
+		try (final Stream<Path> stream = Files.walk(Constants.CONFDIR, 1)) {
 			stream.filter(jsonMatcher::matches).forEach(conf -> {
 				try {
 					OreSpawnReader.tryReadFile(conf, this);
-				} catch (MissingVersionException | NotAProperConfigException | OldVersionException
+				} catch (final MissingVersionException | NotAProperConfigException | OldVersionException
 						| UnknownVersionException e) {
 					CrashReport report = CrashReport.makeCrashReport(e,
 							"Failed reading config " + conf.toString());
@@ -106,7 +106,7 @@ public class OS3APIImpl implements OS3API {
 					OreSpawn.LOGGER.info(report.getCompleteReport());
 				}
 			});
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e,
 					failedReadingConfigsFrom + Constants.CONFDIR.toString());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -163,7 +163,7 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public Map<String, IReplacementEntry> getReplacements() {
-		Map<String, IReplacementEntry> temp = new HashMap<>();
+		final Map<String, IReplacementEntry> temp = new HashMap<>();
 		replacements.getReplacements().entrySet().stream()
 				.forEach(e -> temp.put(e.getKey().getPath(), e.getValue()));
 		return ImmutableMap.copyOf(temp);
@@ -188,7 +188,7 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public Map<String, ISpawnEntry> getAllSpawns() {
-		Map<String, ISpawnEntry> sp = new HashMap<>();
+		final Map<String, ISpawnEntry> sp = new HashMap<>();
 		spawns.entrySet().forEach(ent -> sp.put(ent.getKey().getPath(), ent.getValue()));
 		return ImmutableMap.copyOf(sp);
 	}
@@ -216,7 +216,7 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public PresetsStorage copyPresets() {
-		PresetsStorage copy = new PresetsStorage();
+		final PresetsStorage copy = new PresetsStorage();
 		presets.copy(copy);
 		return copy;
 	}
@@ -244,8 +244,8 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public List<String> getSpawnsForFile(final String fileName) {
-		Path p = Constants.CONFDIR.resolve(fileName);
-		List<String> values = spawnsToSourceFiles.entrySet().stream()
+		final Path p = Constants.CONFDIR.resolve(fileName);
+		final List<String> values = spawnsToSourceFiles.entrySet().stream()
 				.filter(ent -> ent.getValue().equals(p)).map(ent -> ent.getKey())
 				.collect(Collectors.toList());
 		return ImmutableList.copyOf(values);
@@ -253,7 +253,7 @@ public class OS3APIImpl implements OS3API {
 
 	@Override
 	public Map<Path, List<String>> getSpawnsByFile() {
-		Map<Path, List<String>> temp = new HashMap<>();
+		final Map<Path, List<String>> temp = new HashMap<>();
 		spawnsToSourceFiles.entrySet().stream().forEach(ent -> {
 			if (temp.containsKey(ent.getValue())) {
 				temp.get(ent.getValue()).add(ent.getKey());
@@ -264,5 +264,4 @@ public class OS3APIImpl implements OS3API {
 
 		return ImmutableMap.copyOf(temp);
 	}
-
 }

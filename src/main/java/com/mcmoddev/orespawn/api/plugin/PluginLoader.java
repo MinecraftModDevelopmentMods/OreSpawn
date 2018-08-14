@@ -66,7 +66,7 @@ public enum PluginLoader {
 
 			try {
 				integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
-				PluginData pd = new PluginData(modId, resourceBase, integration);
+				final PluginData pd = new PluginData(modId, resourceBase, integration);
 				dataStore.add(pd);
 			} catch (final Exception ex) {
 				OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
@@ -86,8 +86,8 @@ public enum PluginLoader {
 			return;
 		}
 
-		String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
-		URL resURL = getClass().getClassLoader().getResource(base);
+		final String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
+		final URL resURL = getClass().getClassLoader().getResource(base);
 
 		if (resURL == null) {
 			OreSpawn.LOGGER.warn("Unable to access file %s: got 'null' when trying to resolve it",
@@ -126,9 +126,9 @@ public enum PluginLoader {
 
 	private void copyout(final Path myPath, final String modId) {
 		try (Stream<Path> walk = Files.walk(myPath, 1)) {
-			for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
-				Path p = it.next();
-				String name = p.getFileName().toString();
+			for (final Iterator<Path> it = walk.iterator(); it.hasNext();) {
+				final Path p = it.next();
+				final String name = p.getFileName().toString();
 
 				if ("json".equals(FilenameUtils.getExtension(name))) {
 					InputStream reader = null;

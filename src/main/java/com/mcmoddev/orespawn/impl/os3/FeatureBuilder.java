@@ -99,7 +99,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 
 	@Override
 	public IFeatureEntry create() {
-		FeatureEntry res = new FeatureEntry(this.feature);
+		final FeatureEntry res = new FeatureEntry(this.feature);
 		if (!this.useDefaults) {
 			// only copy in the parameters we need
 			this.feature.getDefaultParameters().entrySet().stream()
@@ -116,5 +116,4 @@ public class FeatureBuilder implements IFeatureBuilder {
 
 		return res;
 	}
-
 }

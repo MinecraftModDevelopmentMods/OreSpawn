@@ -21,7 +21,7 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromBlockState(final IBlockState blockState) {
-		ResourceLocation key = blockState.getBlock().getRegistryName();
+		final ResourceLocation key = blockState.getBlock().getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
 		}
@@ -30,7 +30,7 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromBlock(final Block block) {
-		ResourceLocation key = block.getRegistryName();
+		final ResourceLocation key = block.getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
 		}
@@ -65,7 +65,7 @@ public class BlockBuilder implements IBlockBuilder {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
-		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
+		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockState(StateUtil.deserializeState(tempBlock, state));
 	}
 
@@ -79,13 +79,13 @@ public class BlockBuilder implements IBlockBuilder {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
-		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
+		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockState(tempBlock.getStateFromMeta(metadata));
 	}
 
 	@Override
 	public IBlockBuilder setFromBlockStateWithChance(final IBlockState blockState, final int chance) {
-		ResourceLocation key = blockState.getBlock().getRegistryName();
+		final ResourceLocation key = blockState.getBlock().getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
 		}
@@ -96,7 +96,7 @@ public class BlockBuilder implements IBlockBuilder {
 
 	@Override
 	public IBlockBuilder setFromBlockWithChance(final Block block, final int chance) {
-		ResourceLocation key = block.getRegistryName();
+		final ResourceLocation key = block.getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
 		}
@@ -133,7 +133,7 @@ public class BlockBuilder implements IBlockBuilder {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
-		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
+		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockStateWithChance(StateUtil.deserializeState(tempBlock, state),
 				chance);
 	}
@@ -149,7 +149,7 @@ public class BlockBuilder implements IBlockBuilder {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
-		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
+		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
 		return this.setFromBlockStateWithChance(tempBlock.getStateFromMeta(metadata), chance);
 	}
 

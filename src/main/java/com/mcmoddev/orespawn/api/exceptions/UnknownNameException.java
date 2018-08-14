@@ -14,7 +14,7 @@ public class UnknownNameException extends Exception {
 
 	@Override
 	public String getMessage() {
-		String baseMessage = super.getMessage();
+		final String baseMessage = super.getMessage();
 		return String.format("Unknown %s name %s%n%s", this.fieldName, this.fieldValue,
 				baseMessage);
 	}

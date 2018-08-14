@@ -14,10 +14,9 @@ public class DimensionListDenyAll implements IDimensionList {
 
 	@Override
 	public JsonObject serialize() {
-		JsonObject rv = new JsonObject();
+		final JsonObject rv = new JsonObject();
 		rv.add(Constants.ConfigNames.WHITELIST, new JsonArray());
 
 		return rv;
 	}
-
 }

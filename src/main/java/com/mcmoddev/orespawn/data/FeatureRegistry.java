@@ -39,7 +39,7 @@ public class FeatureRegistry {
 	}
 
 	public Map<String, IFeature> getFeatures() {
-		Map<String, IFeature> tempMap = new TreeMap<>();
+		final Map<String, IFeature> tempMap = new TreeMap<>();
 		registry.getEntries().stream()
 				.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue()));
 
@@ -55,7 +55,7 @@ public class FeatureRegistry {
 	}
 
 	public IFeature getFeature(final ResourceLocation featureResourceLocation) {
-		ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
+		final ResourceLocation defaultGen = new ResourceLocation(Constants.DEFAULT_GEN);
 		if (registry.containsKey(featureResourceLocation)) {
 			return registry.getValue(featureResourceLocation);
 		} else {
@@ -85,7 +85,7 @@ public class FeatureRegistry {
 	}
 
 	public void addFeature(final String name, final String className) {
-		IFeature feature = getInstance(className);
+		final IFeature feature = getInstance(className);
 
 		if (feature != null && !hasFeature(name)) {
 			addFeature(name, feature);
@@ -101,8 +101,8 @@ public class FeatureRegistry {
 			featureClazz = Class.forName(className);
 			featureCons = featureClazz.getConstructor();
 			feature = (IFeature) featureCons.newInstance();
-		} catch (Exception e) {
-			CrashReport report = CrashReport.makeCrashReport(e,
+		} catch (final Exception e) {
+			final CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed to load and instantiate an instance of the feature generator named "
 							+ className + " that was specified as a feature generator");
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
@@ -114,14 +114,14 @@ public class FeatureRegistry {
 	}
 
 	public void loadFeaturesFile(final File file) {
-		JsonParser parser = new JsonParser();
+		final JsonParser parser = new JsonParser();
 		String rawJson;
 		JsonArray elements;
 
 		try {
 			rawJson = FileUtils.readFileToString(file, Charset.defaultCharset());
-		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e,
+		} catch (final IOException e) {
+			final CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed reading config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
@@ -130,30 +130,30 @@ public class FeatureRegistry {
 
 		elements = parser.parse(rawJson).getAsJsonArray();
 
-		for (JsonElement elem : elements) {
+		for (final JsonElement elem : elements) {
 			addFeature(elem.getAsJsonObject());
 		}
 	}
 
 	public void writeFeatures(final File file) {
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-		JsonArray root = new JsonArray();
+		final JsonArray root = new JsonArray();
 
 		registry.getEntries().stream().map(ent -> {
-			JsonObject e = new JsonObject();
+			final JsonObject e = new JsonObject();
 			e.addProperty("name", ent.getKey().getPath());
 			e.addProperty("class", ent.getValue().getClass().getName());
 			return e;
 		}).forEach(root::add);
 
-		String json = gson.toJson(root);
+		final String json = gson.toJson(root);
 
 		try {
 			FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json),
 					CharEncoding.UTF_8);
-		} catch (IOException e) {
-			CrashReport report = CrashReport.makeCrashReport(e,
+		} catch (final IOException e) {
+			final CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed writing config " + file.getName());
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());

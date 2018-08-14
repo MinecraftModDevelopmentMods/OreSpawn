@@ -150,7 +150,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 
 	@Override
 	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation, final int chance) {
-		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
+		final IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
 				.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
@@ -158,8 +158,8 @@ public class SpawnBuilder implements ISpawnBuilder {
 	@Override
 	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
 			final String blockState, final int chance) {
-		Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
-		IBlockState tempVar = StateUtil.deserializeState(tempBlock, blockState);
+		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
+		final IBlockState tempVar = StateUtil.deserializeState(tempBlock, blockState);
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
@@ -171,20 +171,20 @@ public class SpawnBuilder implements ISpawnBuilder {
 	@Deprecated
 	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
 			final int blockMetadata, final int chance) {
-		IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
+		final IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
 				.getStateFromMeta(blockMetadata);
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
 	public ISpawnBuilder addBlockWithChance(final Block block, final int chance) {
-		IBlockState tempVar = block.getDefaultState();
+		final IBlockState tempVar = block.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
 	@Override
 	public ISpawnBuilder addBlockWithChance(final IBlockState block, final int chance) {
-		BlockBuilder bb = new BlockBuilder();
+		final BlockBuilder bb = new BlockBuilder();
 		bb.setFromBlockStateWithChance(block, chance);
 		return this.addBlock(bb.create());
 	}

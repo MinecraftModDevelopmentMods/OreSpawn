@@ -57,15 +57,15 @@ public class ClearChunkCommand extends CommandBase {
 			throw new CommandException("Only players can use this command");
 		}
 
-		EntityPlayer player = (EntityPlayer) sender;
-		Chunk chunk = player.getEntityWorld().getChunk(player.getPosition());
+		final EntityPlayer player = (EntityPlayer) sender;
+		final Chunk chunk = player.getEntityWorld().getChunk(player.getPosition());
 		final ChunkPos chunkPos = chunk.getPos();
-		List<IBlockState> blocks;
+		final List<IBlockState> blocks;
 
 		final boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic")
 				: false;
 
-		List<String> blockNames = new LinkedList<>();
+		final List<String> blockNames = new LinkedList<>();
 		getBlocks(args, blockNames);
 
 		blocks = blockNames.stream()
@@ -75,7 +75,7 @@ public class ClearChunkCommand extends CommandBase {
 		blocks.addAll(OreSpawn.API
 				.getDimensionDefaultReplacements(player.getEntityWorld().provider.getDimension())
 				.stream().collect(Collectors.toList()));
-		List<IBlockState> overburden = Arrays
+		final List<IBlockState> overburden = Arrays
 				.asList("minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:grass",
 						"minecraft:sandstone", "minecraft:red_sandstone")
 				.stream()
@@ -93,8 +93,8 @@ public class ClearChunkCommand extends CommandBase {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
-					BlockPos pos = new BlockPos(x, y, z);
-					IBlockState block = player.getEntityWorld().getBlockState(pos);
+					final BlockPos pos = new BlockPos(x, y, z);
+					final IBlockState block = player.getEntityWorld().getBlockState(pos);
 					removeIfBlocks(player, pos, block, blocks, overburden, !flagClassic);
 					removeIfFluid(pos, player);
 				}
@@ -104,7 +104,7 @@ public class ClearChunkCommand extends CommandBase {
 
 	private void removeIfFluid(final BlockPos pos, final EntityPlayer player) {
 		if (player.getEntityWorld().getBlockState(pos).getMaterial().isLiquid()) {
-			IBlockState bs = player.getEntityWorld().getBlockState(pos);
+			final IBlockState bs = player.getEntityWorld().getBlockState(pos);
 
 			if (bs.getMaterial().isLiquid()) {
 				player.getEntityWorld().setBlockToAir(pos);

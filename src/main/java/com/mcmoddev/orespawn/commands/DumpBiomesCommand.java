@@ -38,17 +38,17 @@ public class DumpBiomesCommand extends CommandBase {
 			throws CommandException {
 		JsonArray array = new JsonArray();
 
-		for (Biome biome : ForgeRegistries.BIOMES) {
+		for (final Biome biome : ForgeRegistries.BIOMES) {
 			array.add(new JsonPrimitive(biome.getRegistryName().toString()));
 		}
 
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String json = gson.toJson(array);
+		final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		final String json = gson.toJson(array);
 
 		try {
 			FileUtils.writeStringToFile(new File(".", "biome_dump.json"),
 					StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new CommandException("Failed to save the json file");
 		}
 

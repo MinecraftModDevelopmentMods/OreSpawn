@@ -13,7 +13,7 @@ import net.minecraft.block.state.IBlockState;
 public class BlockList implements IBlockList {
 
 	private final List<IBlockDefinition> myBlocks;
-	private List<IBlockState> workingList;
+	private final List<IBlockState> workingList;
 
 	public BlockList() {
 		this.myBlocks = new LinkedList<>();
@@ -31,8 +31,8 @@ public class BlockList implements IBlockList {
 			this.startNewSpawn();
 		}
 
-		int spot = rand.nextInt(this.workingList.size());
-		IBlockState rv = this.workingList.get(spot);
+		final int spot = rand.nextInt(this.workingList.size());
+		final IBlockState rv = this.workingList.get(spot);
 		this.workingList.remove(spot);
 		return rv;
 	}

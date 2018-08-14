@@ -17,7 +17,7 @@ public class BiomeLocationAcceptAny implements BiomeLocation {
 
 	@Override
 	public JsonElement serialize() {
-		JsonObject rv = new JsonObject();
+		final JsonObject rv = new JsonObject();
 		rv.add(ConfigNames.BLACKLIST, new JsonArray());
 		return rv;
 	}

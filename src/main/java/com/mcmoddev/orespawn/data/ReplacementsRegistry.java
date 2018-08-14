@@ -63,16 +63,16 @@ public class ReplacementsRegistry {
 	 */
 	@Deprecated
 	public List<IBlockState> getDimensionDefault(final int dimension) {
-		String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
-		List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
+		final String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
+		final List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
 				.filter(iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
 				.map(iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
 				.collect(Collectors.toList());
-		List<IBlockState> baseRv = new ArrayList<>();
+		final List<IBlockState> baseRv = new ArrayList<>();
 		baseRv.addAll(mineralogyOres);
 
 		if (dimension < -1 || dimension > 1 || dimension == 0) {
-			for (ItemStack iS : OreDictionary.getOres("stone")) {
+			for (final ItemStack iS : OreDictionary.getOres("stone")) {
 				baseRv.add(Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()));
 			}
 
@@ -85,7 +85,7 @@ public class ReplacementsRegistry {
 	}
 
 	public IReplacementEntry getReplacement(final String name) {
-		ResourceLocation act = new ResourceLocation(
+		final ResourceLocation act = new ResourceLocation(
 				name.contains(":") ? name : String.format("orespawn:%s", name));
 		if (registry.containsKey(act)) {
 			return registry.getValue(act);
@@ -95,13 +95,13 @@ public class ReplacementsRegistry {
 	}
 
 	public void addBlock(final String name, final String blockName, final String blockState) {
-		IBlockState b = StateUtil.deserializeState(
+		final IBlockState b = StateUtil.deserializeState(
 				ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
 		addBlock(name, b);
 	}
 
 	public Map<String, List<IBlockState>> getBlocks() {
-		Map<String, List<IBlockState>> tempMap = new TreeMap<>();
+		final Map<String, List<IBlockState>> tempMap = new TreeMap<>();
 		registry.getEntries().stream()
 				.forEach(e -> tempMap.put(e.getKey().toString(), e.getValue().getEntries()));
 
@@ -115,7 +115,7 @@ public class ReplacementsRegistry {
 	public void addBlock(final String name, final IBlockState state) {
 		ResourceLocation regName = new ResourceLocation(name);
 		if (registry.containsKey(regName)) {
-			IReplacementEntry old = registry.getValue(regName);
+			final IReplacementEntry old = registry.getValue(regName);
 			IReplacementEntry newRE;
 			List<IBlockState> oldList = old.getEntries();
 			oldList.add(state);
@@ -126,13 +126,13 @@ public class ReplacementsRegistry {
 			return;
 		}
 
-		IReplacementEntry r = new ReplacementEntry(name, state);
+		final IReplacementEntry r = new ReplacementEntry(name, state);
 		registry.register(r);
 	}
 
 	@SuppressWarnings("deprecation")
 	public void loadFile(final Path file) {
-		JsonParser parser = new JsonParser();
+		final JsonParser parser = new JsonParser();
 		JsonObject elements;
 		String rawJson;
 
@@ -148,18 +148,18 @@ public class ReplacementsRegistry {
 
 		elements = parser.parse(rawJson).getAsJsonObject();
 		elements.entrySet().stream().forEach(elem -> {
-			String entName = elem.getKey();
-			JsonArray entries = elem.getValue().getAsJsonArray();
-			List<IBlockState> blocks = new LinkedList<>();
-			for (JsonElement e : entries) {
-				JsonObject asObj = e.getAsJsonObject();
-				String blockName = asObj.get(Constants.ConfigNames.NAME).getAsString()
+			final String entName = elem.getKey();
+			final JsonArray entries = elem.getValue().getAsJsonArray();
+			final List<IBlockState> blocks = new LinkedList<>();
+			for (final JsonElement e : entries) {
+				final JsonObject asObj = e.getAsJsonObject();
+				final String blockName = asObj.get(Constants.ConfigNames.NAME).getAsString()
 						.toLowerCase();
 
 				// is this an OreDictionary entry ?
 				if (blockName.startsWith("ore:")) {
 					// yes, it is
-					String oreDictName = blockName.split(":")[1];
+					final String oreDictName = blockName.split(":")[1];
 					OreDictionary.getOres(oreDictName).forEach(iS -> {
 						if (iS.getMetadata() != 0) {
 							blocks.add(Block.getBlockFromItem(iS.getItem())
@@ -170,11 +170,11 @@ public class ReplacementsRegistry {
 					});
 				} else {
 					String state = null;
-					ResourceLocation blockRL = new ResourceLocation(blockName);
-					Block theBlock = ForgeRegistries.BLOCKS.getValue(blockRL);
+					final ResourceLocation blockRL = new ResourceLocation(blockName);
+					final Block theBlock = ForgeRegistries.BLOCKS.getValue(blockRL);
 					if (asObj.has(Constants.ConfigNames.METADATA)) {
 						// has metadata
-						int meta = asObj.get(Constants.ConfigNames.METADATA).getAsInt();
+						final int meta = asObj.get(Constants.ConfigNames.METADATA).getAsInt();
 						blocks.add(theBlock.getStateFromMeta(meta));
 					} else if (asObj.has(Constants.ConfigNames.STATE)) {
 						// has a state
@@ -187,20 +187,20 @@ public class ReplacementsRegistry {
 				}
 			}
 
-			IReplacementEntry replacer = new ReplacementEntry("orespawn:" + entName, blocks);
+			final IReplacementEntry replacer = new ReplacementEntry("orespawn:" + entName, blocks);
 			registry.register(replacer);
 		});
 	}
 
 	public void saveFile(final String modName) {
-		JsonObject outs = new JsonObject();
+		final JsonObject outs = new JsonObject();
 
 		registry.getEntries().stream().filter(ent -> ent.getKey().getNamespace().equals(modName))
 				.forEach(ent -> {
-					JsonArray entry = new JsonArray();
-					IReplacementEntry workVal = ent.getValue();
+					final JsonArray entry = new JsonArray();
+					final IReplacementEntry workVal = ent.getValue();
 					workVal.getEntries().stream().forEach(bs -> {
-						JsonObject block = new JsonObject();
+						final JsonObject block = new JsonObject();
 						block.addProperty(Constants.ConfigNames.BLOCK,
 								bs.getBlock().getRegistryName().toString());
 						if (!bs.toString().matches("\\[normal\\]")) {
@@ -211,13 +211,13 @@ public class ReplacementsRegistry {
 					});
 					outs.add(ent.getKey().toString(), entry);
 				});
-		Path p = Paths.get("config", "orespawn3", "sysconfig",
+		final Path p = Paths.get("config", "orespawn3", "sysconfig",
 				String.format("replacements-%s.json", modName));
-		try (BufferedWriter w = Files.newBufferedWriter(p)) {
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			String ov = gson.toJson(outs);
+		try (final BufferedWriter w = Files.newBufferedWriter(p)) {
+			final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+			final String ov = gson.toJson(outs);
 			w.write(ov);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String
 					.format("Failed writing replacements file  %s", p.toAbsolutePath().toString()));
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);

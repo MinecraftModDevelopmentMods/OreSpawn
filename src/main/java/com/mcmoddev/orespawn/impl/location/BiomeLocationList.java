@@ -40,7 +40,7 @@ public final class BiomeLocationList implements BiomeLocation {
 
 	@Override
 	public ImmutableList<Biome> getBiomes() {
-		List<Biome> temp = new LinkedList<>();
+		final List<Biome> temp = new LinkedList<>();
 		locations.stream().forEach(bl -> temp.addAll(bl.getBiomes()));
 		return ImmutableList.copyOf(temp);
 	}
@@ -51,7 +51,7 @@ public final class BiomeLocationList implements BiomeLocation {
 
 	@Override
 	public JsonElement serialize() {
-		JsonArray rv = new JsonArray();
+		final JsonArray rv = new JsonArray();
 		this.locations.stream().filter(bl -> (!(bl instanceof BiomeLocationEmpty)))
 				.forEach(bl -> rv.add(bl.serialize()));
 

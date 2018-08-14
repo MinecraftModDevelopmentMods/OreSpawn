@@ -35,13 +35,13 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 	}
 
 	public JsonArray serialize() {
-		JsonArray rv = new JsonArray();
+		final JsonArray rv = new JsonArray();
 
 		possibles.stream().forEach(bs -> {
-			JsonObject t = new JsonObject();
+			final JsonObject t = new JsonObject();
 			t.addProperty(Constants.ConfigNames.NAME, bs.getBlock().getRegistryName().toString());
 			if (!bs.equals(bs.getBlock().getDefaultState())) {
-				String state = StateUtil.serializeState(bs);
+				final String state = StateUtil.serializeState(bs);
 				t.addProperty(Constants.ConfigNames.STATE, state);
 			}
 			rv.add(t);

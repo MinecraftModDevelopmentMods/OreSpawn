@@ -96,5 +96,4 @@ public class BiomeBuilder implements IBiomeBuilder {
 
 		return new BiomeLocationComposition(whitelistI, blacklistI);
 	}
-
 }
