@@ -42,13 +42,13 @@ public class DimensionList implements com.mcmoddev.orespawn.api.IDimensionList {
 		JsonObject rv = new JsonObject();
 		if (!this.whitelist.isEmpty()) {
 			JsonArray wl = new JsonArray();
-			whitelist.stream().forEach(i -> wl.add(i.intValue()));
+			whitelist.stream().forEach(wl::add);
 			rv.add(Constants.ConfigNames.WHITELIST, wl);
 		}
 
 		if (!this.blacklist.isEmpty()) {
 			JsonArray bl = new JsonArray();
-			blacklist.stream().forEach(i -> bl.add(i.intValue()));
+			blacklist.stream().forEach(bl::add);
 			rv.add(Constants.ConfigNames.WHITELIST, bl);
 		} else if (this.whitelist.isEmpty()) {
 			return new DimensionListAcceptAllOverworld().serialize();
