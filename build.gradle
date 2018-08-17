@@ -41,7 +41,6 @@ if (System.getenv().BUILD_NUMBER) {
     version += '.' + System.getenv().BUILD_NUMBER
 }
 group = "com.mcmoddev"
-archivesBaseName = "OreSpawn"
 sourceCompatibility = targetCompatibility = "1.8"
 
 class Secrets {
@@ -71,7 +70,7 @@ if (secretFile.exists()) {
 minecraft {
     version = '1.12.2-14.23.4.2705'
     runDir = 'run'
-    mappings = 'snapshot_20180716'
+    mappings = 'stable_39'
 //    coreMod = ''
     makeObfSourceJar = false
 
