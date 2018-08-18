@@ -89,7 +89,7 @@ public class OreSpawner implements IWorldGenerator {
 		
 		
 		if(spawnData.restrictBiomes){
-			Biome biome = world.getBiomeGenForCoords(coord);
+			Biome biome = world.getBiome(coord);
 			if(!(
                     spawnData.biomesByName.contains(biome.getBiomeName())
 					|| spawnData.biomesByName.contains(String.valueOf(Biome.getIdForBiome(biome)))
