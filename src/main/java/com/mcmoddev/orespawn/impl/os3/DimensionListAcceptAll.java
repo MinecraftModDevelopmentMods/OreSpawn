@@ -7,15 +7,15 @@ import com.mcmoddev.orespawn.data.Constants.ConfigNames;
 
 public class DimensionListAcceptAll implements IDimensionList {
 
-    @Override
-    public boolean matches(final int dimensionID) {
-        return true;
-    }
+	@Override
+	public boolean matches(final int dimensionID) {
+		return true;
+	}
 
-    @Override
-    public JsonObject serialize() {
-        final JsonObject rv = new JsonObject();
-        rv.add(ConfigNames.BLACKLIST, new JsonArray());
-        return rv;
-    }
+	@Override
+	public JsonObject serialize() {
+		final JsonObject rv = new JsonObject();
+		rv.add(ConfigNames.BLACKLIST, new JsonArray());
+		return rv;
+	}
 }

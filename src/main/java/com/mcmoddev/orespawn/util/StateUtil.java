@@ -7,39 +7,39 @@ import net.minecraft.block.state.IBlockState;
 
 public class StateUtil {
 
-    private StateUtil() {
-        throw new InstantiationError("This class cannot be instantiated!");
-    }
+	private StateUtil() {
+		throw new InstantiationError("This class cannot be instantiated!");
+	}
 
-    public static String serializeState(final IBlockState state) {
-        String string = state.toString();
-        string = string.substring(string.indexOf('[') + 1,
-                string.length() - (string.endsWith("]") ? 1 : 0));
+	public static String serializeState(final IBlockState state) {
+		String string = state.toString();
+		string = string.substring(string.indexOf('[') + 1,
+				string.length() - (string.endsWith("]") ? 1 : 0));
 
-        if (string.equals(state.getBlock().getRegistryName().toString())) {
-            string = "normal";
-        }
+		if (string.equals(state.getBlock().getRegistryName().toString())) {
+			string = "normal";
+		}
 
-        OreSpawn.LOGGER.debug("State is %s (for block %s)", string,
-                state.getBlock().getRegistryName());
-        return string;
-    }
+		OreSpawn.LOGGER.debug("State is %s (for block %s)", string,
+				state.getBlock().getRegistryName());
+		return string;
+	}
 
-    public static IBlockState deserializeState(final Block block, final String state) {
-        for (final IBlockState validState : block.getBlockState().getValidStates()) {
-            String string = validState.toString();
-            string = string.substring(string.indexOf('[') + 1,
-                    string.length() - (string.endsWith("]") ? 1 : 0));
+	public static IBlockState deserializeState(final Block block, final String state) {
+		for (final IBlockState validState : block.getBlockState().getValidStates()) {
+			String string = validState.toString();
+			string = string.substring(string.indexOf('[') + 1,
+					string.length() - (string.endsWith("]") ? 1 : 0));
 
-            if (string.equals(block.getRegistryName().toString())) {
-                string = "";
-            }
+			if (string.equals(block.getRegistryName().toString())) {
+				string = "";
+			}
 
-            if (state.equals(string)) {
-                return validState;
-            }
-        }
+			if (state.equals(string)) {
+				return validState;
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 }

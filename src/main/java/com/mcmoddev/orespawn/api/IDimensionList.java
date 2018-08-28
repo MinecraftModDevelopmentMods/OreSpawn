@@ -4,9 +4,9 @@ import com.google.gson.JsonObject;
 
 public interface IDimensionList {
 
-    JsonObject serialize();
+	JsonObject serialize();
 
-    default boolean matches(int dimensionId) {
-        return false;
-    }
+	default boolean matches(int dimensionId) {
+		return false;
+	}
 }

@@ -7,19 +7,19 @@ import com.mcmoddev.orespawn.data.Constants;
 
 public class DimensionListAcceptAllOverworld implements IDimensionList {
 
-    @Override
-    public boolean matches(final int dimensionID) {
-        return dimensionID != -1 && dimensionID != 1;
-    }
+	@Override
+	public boolean matches(final int dimensionID) {
+		return dimensionID != -1 && dimensionID != 1;
+	}
 
-    @Override
-    public JsonObject serialize() {
-        final JsonObject rv = new JsonObject();
-        final JsonArray bl = new JsonArray();
-        bl.add(-1);
-        bl.add(1);
-        rv.add(Constants.ConfigNames.BLACKLIST, bl);
+	@Override
+	public JsonObject serialize() {
+		final JsonObject rv = new JsonObject();
+		final JsonArray bl = new JsonArray();
+		bl.add(-1);
+		bl.add(1);
+		rv.add(Constants.ConfigNames.BLACKLIST, bl);
 
-        return rv;
-    }
+		return rv;
+	}
 }

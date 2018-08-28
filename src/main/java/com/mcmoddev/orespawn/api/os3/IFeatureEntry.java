@@ -5,17 +5,17 @@ import com.mcmoddev.orespawn.api.IFeature;
 
 public interface IFeatureEntry {
 
-    IFeature getFeature();
+	IFeature getFeature();
 
-    String getFeatureName();
+	String getFeatureName();
 
-    JsonObject getFeatureParameters();
+	JsonObject getFeatureParameters();
 
-    void setParameter(String parameterName, String parameterValue);
+	void setParameter(String parameterName, String parameterValue);
 
-    void setParameter(String parameterName, int parameterValue);
+	void setParameter(String parameterName, int parameterValue);
 
-    void setParameter(String parameterName, boolean parameterValue);
+	void setParameter(String parameterName, boolean parameterValue);
 
-    void setParameter(String parameterName, float parameterValue);
+	void setParameter(String parameterName, float parameterValue);
 }

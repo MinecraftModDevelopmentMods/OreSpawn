@@ -8,13 +8,13 @@ import net.minecraft.block.state.IBlockState;
 
 public interface IBlockList {
 
-    void addBlock(IBlockDefinition block);
+	void addBlock(IBlockDefinition block);
 
-    IBlockState getRandomBlock(Random rand);
+	IBlockState getRandomBlock(Random rand);
 
-    void startNewSpawn();
+	void startNewSpawn();
 
-    void dump();
+	void dump();
 
-    int count();
+	int count();
 }
