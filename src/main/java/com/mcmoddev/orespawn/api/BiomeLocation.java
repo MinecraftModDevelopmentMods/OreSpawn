@@ -9,12 +9,12 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public interface BiomeLocation {
 
-	boolean matches(Biome biome);
+    boolean matches(Biome biome);
 
-	JsonElement serialize();
+    JsonElement serialize();
 
-	default ImmutableList<Biome> getBiomes() {
-		return ForgeRegistries.BIOMES.getValuesCollection().stream().filter(this::matches)
-				.collect(Collectors2.toImmutableList());
-	}
+    default ImmutableList<Biome> getBiomes() {
+        return ForgeRegistries.BIOMES.getValuesCollection().stream().filter(this::matches)
+                .collect(Collectors2.toImmutableList());
+    }
 }

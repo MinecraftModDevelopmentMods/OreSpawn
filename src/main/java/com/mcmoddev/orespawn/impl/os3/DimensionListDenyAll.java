@@ -7,16 +7,16 @@ import com.mcmoddev.orespawn.data.Constants;
 
 public class DimensionListDenyAll implements IDimensionList {
 
-	@Override
-	public boolean matches(final int dimensionID) {
-		return false;
-	}
+    @Override
+    public boolean matches(final int dimensionID) {
+        return false;
+    }
 
-	@Override
-	public JsonObject serialize() {
-		final JsonObject rv = new JsonObject();
-		rv.add(Constants.ConfigNames.WHITELIST, new JsonArray());
+    @Override
+    public JsonObject serialize() {
+        final JsonObject rv = new JsonObject();
+        rv.add(Constants.ConfigNames.WHITELIST, new JsonArray());
 
-		return rv;
-	}
+        return rv;
+    }
 }

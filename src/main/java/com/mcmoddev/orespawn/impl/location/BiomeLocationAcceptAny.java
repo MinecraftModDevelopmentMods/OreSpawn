@@ -10,16 +10,16 @@ import net.minecraft.world.biome.Biome;
 
 public class BiomeLocationAcceptAny implements BiomeLocation {
 
-	@Override
-	public boolean matches(final Biome biome) {
-		return true;
-	}
+    @Override
+    public boolean matches(final Biome biome) {
+        return true;
+    }
 
-	@Override
-	public JsonElement serialize() {
-		final JsonObject rv = new JsonObject();
-		rv.add(ConfigNames.BLACKLIST, new JsonArray());
-		return rv;
-	}
+    @Override
+    public JsonElement serialize() {
+        final JsonObject rv = new JsonObject();
+        rv.add(ConfigNames.BLACKLIST, new JsonArray());
+        return rv;
+    }
 
 }

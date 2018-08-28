@@ -15,38 +15,38 @@ import net.minecraft.init.Blocks;
 
 public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 
-	private final List<IBlockState> possibles;
+    private final List<IBlockState> possibles;
 
-	public OreSpawnBlockMatcher(final IBlockState... matches) {
-		this.possibles = Arrays.asList(matches);
-	}
+    public OreSpawnBlockMatcher(final IBlockState... matches) {
+        this.possibles = Arrays.asList(matches);
+    }
 
-	public OreSpawnBlockMatcher(final List<IBlockState> matches) {
-		this.possibles = new ArrayList<>();
-		this.possibles.addAll(matches);
-	}
+    public OreSpawnBlockMatcher(final List<IBlockState> matches) {
+        this.possibles = new ArrayList<>();
+        this.possibles.addAll(matches);
+    }
 
-	private boolean has(final IBlockState bs) {
-		return this.possibles.stream().filter(bs::equals).count() > 0;
-	}
+    private boolean has(final IBlockState bs) {
+        return this.possibles.stream().filter(bs::equals).count() > 0;
+    }
 
-	public boolean test(final IBlockState other) {
-		return (other != null) && (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
-	}
+    public boolean test(final IBlockState other) {
+        return (other != null) && (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
+    }
 
-	public JsonArray serialize() {
-		final JsonArray rv = new JsonArray();
+    public JsonArray serialize() {
+        final JsonArray rv = new JsonArray();
 
-		possibles.stream().forEach(bs -> {
-			final JsonObject t = new JsonObject();
-			t.addProperty(Constants.ConfigNames.NAME, bs.getBlock().getRegistryName().toString());
-			if (!bs.equals(bs.getBlock().getDefaultState())) {
-				final String state = StateUtil.serializeState(bs);
-				t.addProperty(Constants.ConfigNames.STATE, state);
-			}
-			rv.add(t);
-		});
+        possibles.stream().forEach(bs -> {
+            final JsonObject t = new JsonObject();
+            t.addProperty(Constants.ConfigNames.NAME, bs.getBlock().getRegistryName().toString());
+            if (!bs.equals(bs.getBlock().getDefaultState())) {
+                final String state = StateUtil.serializeState(bs);
+                t.addProperty(Constants.ConfigNames.STATE, state);
+            }
+            rv.add(t);
+        });
 
-		return rv;
-	}
+        return rv;
+    }
 }

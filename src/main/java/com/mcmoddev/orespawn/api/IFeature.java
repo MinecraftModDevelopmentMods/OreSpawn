@@ -13,10 +13,10 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 
 public interface IFeature extends IForgeRegistryEntry<IFeature> {
 
-	void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-			ISpawnEntry spawn, ChunkPos pos);
+    void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
+            ISpawnEntry spawn, ChunkPos pos);
 
-	void setRandom(Random rand);
+    void setRandom(Random rand);
 
-	JsonObject getDefaultParameters();
+    JsonObject getDefaultParameters();
 }

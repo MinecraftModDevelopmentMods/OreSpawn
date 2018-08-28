@@ -7,7 +7,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 
 public interface IReplacementEntry extends IForgeRegistryEntry<IReplacementEntry> {
 
-	OreSpawnBlockMatcher getMatcher();
+    OreSpawnBlockMatcher getMatcher();
 
-	List<IBlockState> getEntries();
+    List<IBlockState> getEntries();
 }

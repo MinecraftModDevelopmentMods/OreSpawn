@@ -12,55 +12,55 @@ import net.minecraft.util.ResourceLocation;
 
 public interface OS3API {
 
-	void addSpawn(ISpawnEntry spawnEntry);
+    void addSpawn(ISpawnEntry spawnEntry);
 
-	void addFeature(String featureName, IFeature feature);
+    void addFeature(String featureName, IFeature feature);
 
-	void addReplacement(IReplacementEntry replacementEntry);
+    void addReplacement(IReplacementEntry replacementEntry);
 
-	Map<String, IReplacementEntry> getReplacements();
+    Map<String, IReplacementEntry> getReplacements();
 
-	IReplacementEntry getReplacement(String replacementName);
+    IReplacementEntry getReplacement(String replacementName);
 
-	List<ISpawnEntry> getSpawns(int dimensionID);
+    List<ISpawnEntry> getSpawns(int dimensionID);
 
-	ISpawnEntry getSpawn(String spawnName);
+    ISpawnEntry getSpawn(String spawnName);
 
-	Map<String, ISpawnEntry> getAllSpawns();
+    Map<String, ISpawnEntry> getAllSpawns();
 
-	List<IBlockState> getDimensionDefaultReplacements(int dimensionID);
+    List<IBlockState> getDimensionDefaultReplacements(int dimensionID);
 
-	ISpawnBuilder getSpawnBuilder();
+    ISpawnBuilder getSpawnBuilder();
 
-	IDimensionBuilder getDimensionBuilder();
+    IDimensionBuilder getDimensionBuilder();
 
-	IFeatureBuilder getFeatureBuilder();
+    IFeatureBuilder getFeatureBuilder();
 
-	IBlockBuilder getBlockBuilder();
+    IBlockBuilder getBlockBuilder();
 
-	IBiomeBuilder getBiomeBuilder();
+    IBiomeBuilder getBiomeBuilder();
 
-	IReplacementBuilder getReplacementBuilder();
+    IReplacementBuilder getReplacementBuilder();
 
-	boolean featureExists(String featureName);
+    boolean featureExists(String featureName);
 
-	boolean featureExists(ResourceLocation featureName);
+    boolean featureExists(ResourceLocation featureName);
 
-	IFeature getFeature(String featureName);
+    IFeature getFeature(String featureName);
 
-	IFeature getFeature(ResourceLocation featureName);
+    IFeature getFeature(ResourceLocation featureName);
 
-	PresetsStorage copyPresets();
+    PresetsStorage copyPresets();
 
-	void loadConfigFiles();
+    void loadConfigFiles();
 
-	boolean hasReplacement(ResourceLocation resourceLocation);
+    boolean hasReplacement(ResourceLocation resourceLocation);
 
-	boolean hasReplacement(String name);
+    boolean hasReplacement(String name);
 
-	void mapEntryToFile(Path p, String entryName);
+    void mapEntryToFile(Path p, String entryName);
 
-	List<String> getSpawnsForFile(String fileName);
+    List<String> getSpawnsForFile(String fileName);
 
-	Map<Path, List<String>> getSpawnsByFile();
+    Map<Path, List<String>> getSpawnsByFile();
 }

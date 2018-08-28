@@ -39,71 +39,71 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
  */
 
 @Mod(modid = Constants.MODID,
-		name = Constants.NAME,
-		version = Constants.VERSION,
-		acceptedMinecraftVersions = "[1.12,)",
-		certificateFingerprint = "@FINGERPRINT@")
+        name = Constants.NAME,
+        version = Constants.VERSION,
+        acceptedMinecraftVersions = "[1.12,)",
+        certificateFingerprint = "@FINGERPRINT@")
 
 public class OreSpawn {
 
-	@Instance
-	public static OreSpawn instance;
+    @Instance
+    public static OreSpawn instance;
 
-	public static final Logger									LOGGER			= LogManager
-			.getFormatterLogger(Constants.MODID);
-	public static final OS3API									API				= new OS3APIImpl();
-	static final EventHandlers									eventHandlers	= new EventHandlers();
-	public static final FeatureRegistry							FEATURES		= new FeatureRegistry();
-	protected static final Map<Integer, List<ISpawnBuilder>>	spawns			= new HashMap<>();
+    public static final Logger                               LOGGER        = LogManager
+            .getFormatterLogger(Constants.MODID);
+    public static final OS3API                               API           = new OS3APIImpl();
+    static final EventHandlers                               eventHandlers = new EventHandlers();
+    public static final FeatureRegistry                      FEATURES      = new FeatureRegistry();
+    protected static final Map<Integer, List<ISpawnBuilder>> spawns        = new HashMap<>();
 
-	static final FlatBedrock flatBedrock = new FlatBedrock();
+    static final FlatBedrock flatBedrock = new FlatBedrock();
 
-	public static Map<Integer, List<ISpawnBuilder>> getSpawns() {
-		return spawns;
-	}
+    public static Map<Integer, List<ISpawnBuilder>> getSpawns() {
+        return spawns;
+    }
 
-	@EventHandler
-	public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
-		LOGGER.warn("Invalid fingerprint detected!");
-	}
+    @EventHandler
+    public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
+        LOGGER.warn("Invalid fingerprint detected!");
+    }
 
-	@EventHandler
-	public void preInit(final FMLPreInitializationEvent ev) {
-		Config.loadConfig();
+    @EventHandler
+    public void preInit(final FMLPreInitializationEvent ev) {
+        Config.loadConfig();
 
-		PluginLoader.INSTANCE.load(ev);
+        PluginLoader.INSTANCE.load(ev);
 
-		if (Config.getBoolean(Constants.FLAT_BEDROCK)) {
-			GameRegistry.registerWorldGenerator(flatBedrock, 100);
-		}
+        if (Config.getBoolean(Constants.FLAT_BEDROCK)) {
+            GameRegistry.registerWorldGenerator(flatBedrock, 100);
+        }
 
-		GameRegistry.registerWorldGenerator(new OreSpawnWorldGen(), 100);
+        GameRegistry.registerWorldGenerator(new OreSpawnWorldGen(), 100);
 
-		if (Config.getBoolean(Constants.RETROGEN_KEY)
-				|| Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
-				|| Config.getBoolean(Constants.RETRO_BEDROCK)) {
-			MinecraftForge.EVENT_BUS.register(eventHandlers);
-			MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
-		}
-	}
+        if (Config.getBoolean(Constants.RETROGEN_KEY)
+                || Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
+                || Config.getBoolean(Constants.RETRO_BEDROCK)) {
+            MinecraftForge.EVENT_BUS.register(eventHandlers);
+            MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
+        }
+    }
 
-	@EventHandler
-	public void init(final FMLInitializationEvent ev) {
-		PluginLoader.INSTANCE.register();
+    @EventHandler
+    public void init(final FMLInitializationEvent ev) {
+        PluginLoader.INSTANCE.register();
 
-		API.loadConfigFiles();
-	}
+        API.loadConfigFiles();
+    }
 
-	@EventHandler
-	public void postInit(final FMLPostInitializationEvent ev) {
-		Config.saveConfig();
-	}
+    @EventHandler
+    public void postInit(final FMLPostInitializationEvent ev) {
+        Config.saveConfig();
+    }
 
-	@EventHandler
-	public void onServerStarting(final FMLServerStartingEvent ev) {
-		ev.registerServerCommand(new ClearChunkCommand());
-		ev.registerServerCommand(new DumpBiomesCommand());
-		ev.registerServerCommand(new AddOreCommand());
-		ev.registerServerCommand(new WriteConfigsCommand());
-	}
+    @EventHandler
+    public void onServerStarting(final FMLServerStartingEvent ev) {
+        ev.registerServerCommand(new ClearChunkCommand());
+        ev.registerServerCommand(new DumpBiomesCommand());
+        ev.registerServerCommand(new AddOreCommand());
+        ev.registerServerCommand(new WriteConfigsCommand());
+    }
 }

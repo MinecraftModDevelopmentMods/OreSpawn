@@ -9,42 +9,42 @@ import net.minecraft.world.biome.Biome;
 
 public final class BiomeLocationSingle implements BiomeLocation {
 
-	private final Biome biome;
+    private final Biome biome;
 
-	private final int hash;
+    private final int hash;
 
-	public BiomeLocationSingle(final Biome biome) {
-		this.biome = biome;
-		this.hash = biome.hashCode();
-	}
+    public BiomeLocationSingle(final Biome biome) {
+        this.biome = biome;
+        this.hash = biome.hashCode();
+    }
 
-	@Override
-	public boolean matches(final Biome biome) {
-		return this.biome.equals(biome);
-	}
+    @Override
+    public boolean matches(final Biome biome) {
+        return this.biome.equals(biome);
+    }
 
-	@Override
-	public ImmutableList<Biome> getBiomes() {
-		return ImmutableList.of(this.biome);
-	}
+    @Override
+    public ImmutableList<Biome> getBiomes() {
+        return ImmutableList.of(this.biome);
+    }
 
-	@Override
-	public int hashCode() {
-		return this.hash;
-	}
+    @Override
+    public int hashCode() {
+        return this.hash;
+    }
 
-	@Override
-	public boolean equals(final Object obj) {
-		return (obj == this) || ((obj instanceof BiomeLocationSingle)
-				&& this.biome.equals(((BiomeLocationSingle) obj).biome));
-	}
+    @Override
+    public boolean equals(final Object obj) {
+        return (obj == this) || ((obj instanceof BiomeLocationSingle)
+                && this.biome.equals(((BiomeLocationSingle) obj).biome));
+    }
 
-	public Biome getBiome() {
-		return this.biome;
-	}
+    public Biome getBiome() {
+        return this.biome;
+    }
 
-	@Override
-	public JsonElement serialize() {
-		return new JsonPrimitive(this.biome.getRegistryName().toString());
-	}
+    @Override
+    public JsonElement serialize() {
+        return new JsonPrimitive(this.biome.getRegistryName().toString());
+    }
 }
