@@ -15,6 +15,7 @@ import com.mcmoddev.orespawn.data.Constants;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.WeightedRandom;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
@@ -160,7 +161,10 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				nextFaces.clear();
 				points.add(temp);
+			} else {
+				j--;
 			}
+			square = getNextSquare();
 		}
 
 		spawnOre(world, spawnData, blockPos, nodeSize);
@@ -169,83 +173,102 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
+	private class SquareWeight extends WeightedRandom.Item {
+		public EnumSquare item;
+		
+		public SquareWeight(EnumSquare item, int weight) {
+			super(weight);
+			this.item = item;
+		}
+	}
+	
+	private EnumSquare getNextSquare() {
+		float[] weights = new float[] { 0.12f, 0.12f, 0.12f, 0.12f, 0.0475f, 0.0475f, 0.0475f, 0.0475f, 0.33f };
+		List<SquareWeight> items = new ArrayList<>();
+		
+		for (EnumSquare sq : EnumSquare.values()) {
+			items.add(new SquareWeight(sq, (int)(weights[sq.getIndex()] * 10000)));
+		}
+		
+		return ((SquareWeight)WeightedRandom.getRandomItem(this.random, items)).item;
+	}
+
 	private EnumFacing getNextStartingFace(EnumSquare square, EnumFacing face) {
 		EnumFacing[][][] pos = new EnumFacing[][][] {
 			// Index 0 - DOWN
 			new EnumFacing[][] {
-				new EnumFacing[] { EnumFacing.WEST,  EnumFacing.DOWN,     null            },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.DOWN,     null            },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.DOWN,     null            },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.DOWN,     null            },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST,     EnumFacing.DOWN },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST,     EnumFacing.DOWN },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST,     EnumFacing.DOWN },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST,     EnumFacing.DOWN },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  null,                null            }      // FACE
+				new EnumFacing[] { EnumFacing.WEST,  null            },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.NORTH, null            },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.EAST,  null            },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.SOUTH, null            },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST }      // RIGHT_TOP
 			},
 			new EnumFacing[][] {
 				// Index 1 - UP
-				new EnumFacing[] { EnumFacing.WEST,  EnumFacing.UP,     null              },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.UP,     null              },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.UP,     null              },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.UP,     null              },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST,   EnumFacing.UP     },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST,   EnumFacing.UP     },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST,   EnumFacing.UP     },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST,   EnumFacing.UP     },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.UP,    null,              null              }      // FACE
+				new EnumFacing[] { EnumFacing.WEST,  null            },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.NORTH, null            },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.EAST,  null            },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.SOUTH, null            },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST }      // RIGHT_TOP
 			},
 			new EnumFacing[][] {
 				// Index 2 - NORTH
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH, null               },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.WEST,  EnumFacing.NORTH, null               },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH, null               },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.NORTH, null               },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST,  EnumFacing.NORTH   },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST,  EnumFacing.NORTH   },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST,  EnumFacing.NORTH   },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST,  EnumFacing.NORTH   },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.NORTH, null,              null              }      // FACE
+				new EnumFacing[] { EnumFacing.UP,    null            },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.WEST,  null            },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.DOWN,  null            },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.EAST,  null            },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST }      // RIGHT_TOP
 			},
 			new EnumFacing[][] {
 				// Index 3 - SOUTH
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH,  null              },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.SOUTH,  null              },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH,  null              },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.WEST,  EnumFacing.SOUTH,  null              },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST,   EnumFacing.SOUTH  },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST,   EnumFacing.SOUTH  },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST,   EnumFacing.SOUTH  },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST,   EnumFacing.SOUTH  },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.SOUTH, null,              null              }      // FACE
+				new EnumFacing[] { EnumFacing.UP,    null            },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.EAST,  null            },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.DOWN,  null            },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.WEST,  null            },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST }      // RIGHT_TOP
 			},
 			new EnumFacing[][] {
 				// Index 4 - WEST
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST,   null              },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST,   null              },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST,   null              },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST,   null              },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH,  EnumFacing.WEST   },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH,  EnumFacing.WEST   },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH,  EnumFacing.WEST   },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH,  EnumFacing.WEST   },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.WEST,  null,              null              }      // FACE
+				new EnumFacing[] { EnumFacing.UP,    null             },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.SOUTH, null             },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.DOWN,  null             },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.NORTH, null             },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH }      // RIGHT_TOP
 			},
 			new EnumFacing[][] {
 				// Index 5 - EAST
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.UP,     null              },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.NORTH,  null              },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST,   null              },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.EAST,  EnumFacing.SOUTH,  null              },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH,  EnumFacing.EAST   },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST,   EnumFacing.NORTH  },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST,   EnumFacing.SOUTH  },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST,   EnumFacing.SOUTH  },     // RIGHT_TOP
-				new EnumFacing[] { EnumFacing.EAST,  null,              null              }      // FACE
+				new EnumFacing[] { EnumFacing.UP,    null             },     // TOP_EDGE
+				new EnumFacing[] { EnumFacing.NORTH, null             },     // LEFT_EDGE
+				new EnumFacing[] { EnumFacing.DOWN,  null             },     // BOTTOM_EDGE 
+				new EnumFacing[] { EnumFacing.SOUTH, null             },     // RIGHT_EDGE
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH },     // LEFT_TOP
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH },     // LEFT_BOTTOM
+				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH },     // RIGHT_BOTTOM
+				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH }      // RIGHT_TOP
 			}
 		};
+
+		if ((this.random.nextBoolean()) || (square == EnumSquare.FACE)) {
+			return face;
+		}
 		
 		EnumFacing[] possibles = (EnumFacing[])Arrays.asList(pos[face.getIndex()][square.getIndex()]).stream().filter(it -> it != null).toArray();
+		
 		if(possibles.length > 1) {
 			return possibles[this.random.nextInt(possibles.length)];
 		}
