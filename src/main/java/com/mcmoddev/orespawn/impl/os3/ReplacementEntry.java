@@ -14,8 +14,8 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 public class ReplacementEntry extends IForgeRegistryEntry.Impl<IReplacementEntry>
 		implements IReplacementEntry {
 
-	private final List<IBlockState> matchVal;
-	private OreSpawnBlockMatcher matcher = null;
+	private final List<IBlockState>	matchVal;
+	private OreSpawnBlockMatcher	matcher	= null;
 
 	public ReplacementEntry(final String name, final IBlockState... toMatch) {
 		super.setRegistryName(name);

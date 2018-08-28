@@ -28,8 +28,8 @@ import net.minecraftforge.registries.RegistryBuilder;
 
 public class FeatureRegistry {
 
-	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
-	private static final IForgeRegistry<IFeature> registry = new RegistryBuilder<IFeature>()
+	private static final String						ORE_SPAWN_VERSION	= "OreSpawn Version";
+	private static final IForgeRegistry<IFeature>	registry			= new RegistryBuilder<IFeature>()
 			.setName(new ResourceLocation("orespawn", "feature_registry")).setType(IFeature.class)
 			.setMaxID(4096) // 12 bits should be enough... hell, 8 bits would be, IMNSHO
 			.create();

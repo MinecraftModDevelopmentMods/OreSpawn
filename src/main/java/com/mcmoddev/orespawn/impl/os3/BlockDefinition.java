@@ -6,9 +6,9 @@ import net.minecraft.block.state.IBlockState;
 
 public class BlockDefinition implements IBlockDefinition {
 
-	private final IBlockState blockState;
-	private final int blockChance;
-	private final boolean isValid;
+	private final IBlockState	blockState;
+	private final int			blockChance;
+	private final boolean		isValid;
 
 	public BlockDefinition(final IBlockState blockState, final int chance, final boolean isValid) {
 		this.blockState = blockState;

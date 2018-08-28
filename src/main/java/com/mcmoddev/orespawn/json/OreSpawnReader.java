@@ -48,8 +48,9 @@ public class OreSpawnReader {
 
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 
-	public static void tryReadFile(final Path conf, final OS3APIImpl os3apiImpl) throws MissingVersionException,
-			NotAProperConfigException, OldVersionException, UnknownVersionException {
+	public static void tryReadFile(final Path conf, final OS3APIImpl os3apiImpl)
+			throws MissingVersionException, NotAProperConfigException, OldVersionException,
+			UnknownVersionException {
 		final JsonParser parser = new JsonParser();
 
 		try (BufferedReader data = Files.newBufferedReader(conf)) {
@@ -121,7 +122,8 @@ public class OreSpawnReader {
 		return spawnData;
 	}
 
-	private static JsonElement doPresetFix(final JsonElement value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetFix(final JsonElement value,
+			final PresetsStorage configPresets) {
 		if (value.isJsonObject()) {
 			return doPresetForObject(value.getAsJsonObject(), configPresets);
 		} else if (value.isJsonArray()) {
@@ -139,13 +141,15 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static JsonElement doPresetForArray(final JsonArray value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetForArray(final JsonArray value,
+			final PresetsStorage configPresets) {
 		final JsonArray rv = new JsonArray();
 		value.forEach(it -> rv.add(doPresetFix(it, configPresets)));
 		return rv;
 	}
 
-	private static JsonElement doPresetForObject(final JsonObject value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetForObject(final JsonObject value,
+			final PresetsStorage configPresets) {
 		final JsonObject rv = new JsonObject();
 
 		value.entrySet().stream().forEach(
@@ -249,7 +253,6 @@ public class OreSpawnReader {
 					if (rb.hasEntries()) {
 						sb.setReplacement(rb.create());
 					}
-
 					break;
 				case Constants.ConfigNames.BLOCK:
 					if (ent.getValue().isJsonArray()) {

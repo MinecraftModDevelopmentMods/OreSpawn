@@ -48,7 +48,8 @@ public class FlatBedrock implements IWorldGenerator {
 		for (int xP = 0; xP < 16; xP++) {
 			for (int zP = 0; zP < 16; zP++) {
 				for (int yP = 5; yP > 0; yP--) {
-					final BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP, chunkPos.z * 16 + zP);
+					final BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP,
+							chunkPos.z * 16 + zP);
 
 					if (yP < plateThickness
 							&& !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {
@@ -69,7 +70,8 @@ public class FlatBedrock implements IWorldGenerator {
 		for (int xP = 0; xP < 16; xP++) {
 			for (int zP = 0; zP < 16; zP++) {
 				for (int yP = 126; yP > 121; yP--) {
-					final BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP, chunkPos.z * 16 + zP);
+					final BlockPos target = new BlockPos(chunkPos.x * 16 + xP, yP,
+							chunkPos.z * 16 + zP);
 
 					if (yP > thickness
 							&& !world.getBlockState(target).getBlock().equals(Blocks.BEDROCK)) {

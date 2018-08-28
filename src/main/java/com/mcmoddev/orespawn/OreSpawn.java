@@ -38,18 +38,23 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
  * @author DShadowWolf &lt;dshadowwolf@gmail.com&gt;
  */
 
-@Mod(modid = Constants.MODID, name = Constants.NAME, version = Constants.VERSION, acceptedMinecraftVersions = "[1.12,)", certificateFingerprint = "@FINGERPRINT@")
+@Mod(modid = Constants.MODID,
+		name = Constants.NAME,
+		version = Constants.VERSION,
+		acceptedMinecraftVersions = "[1.12,)",
+		certificateFingerprint = "@FINGERPRINT@")
 
 public class OreSpawn {
 
 	@Instance
 	public static OreSpawn instance;
 
-	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
-	public static final OS3API API = new OS3APIImpl();
-	static final EventHandlers eventHandlers = new EventHandlers();
-	public static final FeatureRegistry FEATURES = new FeatureRegistry();
-	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
+	public static final Logger									LOGGER			= LogManager
+			.getFormatterLogger(Constants.MODID);
+	public static final OS3API									API				= new OS3APIImpl();
+	static final EventHandlers									eventHandlers	= new EventHandlers();
+	public static final FeatureRegistry							FEATURES		= new FeatureRegistry();
+	protected static final Map<Integer, List<ISpawnBuilder>>	spawns			= new HashMap<>();
 
 	static final FlatBedrock flatBedrock = new FlatBedrock();
 

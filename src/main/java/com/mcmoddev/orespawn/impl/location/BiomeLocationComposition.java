@@ -20,7 +20,8 @@ public final class BiomeLocationComposition implements BiomeLocation {
 
 	private final int hash;
 
-	public BiomeLocationComposition(final BiomeLocation inclusions, final BiomeLocation exclusions) {
+	public BiomeLocationComposition(final BiomeLocation inclusions,
+			final BiomeLocation exclusions) {
 		this.inclusions = inclusions;
 		this.exclusions = exclusions;
 		this.hash = Objects.hash(inclusions, exclusions);

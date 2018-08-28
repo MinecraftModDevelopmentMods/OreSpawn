@@ -44,12 +44,12 @@ import net.minecraft.util.ResourceLocation;
 
 public class OS3APIImpl implements OS3API {
 
-	private static final Map<ResourceLocation, ISpawnEntry> spawns;
-	private static final FeatureRegistry features;
-	private static final ReplacementsRegistry replacements;
-	private static final PresetsStorage presets;
-	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
-	private static final Map<String, Path> spawnsToSourceFiles = new TreeMap<>();
+	private static final Map<ResourceLocation, ISpawnEntry>	spawns;
+	private static final FeatureRegistry					features;
+	private static final ReplacementsRegistry				replacements;
+	private static final PresetsStorage						presets;
+	private static final String								ORE_SPAWN_VERSION	= "OreSpawn Version";
+	private static final Map<String, Path>					spawnsToSourceFiles	= new TreeMap<>();
 
 	static {
 		spawns = new ConcurrentHashMap<>();
@@ -98,8 +98,8 @@ public class OS3APIImpl implements OS3API {
 			stream.filter(jsonMatcher::matches).forEach(conf -> {
 				try {
 					OreSpawnReader.tryReadFile(conf, this);
-				} catch (final MissingVersionException | NotAProperConfigException | OldVersionException
-						| UnknownVersionException e) {
+				} catch (final MissingVersionException | NotAProperConfigException
+						| OldVersionException | UnknownVersionException e) {
 					CrashReport report = CrashReport.makeCrashReport(e,
 							"Failed reading config " + conf.toString());
 					report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);

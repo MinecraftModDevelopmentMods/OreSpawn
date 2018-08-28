@@ -6,8 +6,8 @@ import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 
 public class FeatureEntry implements IFeatureEntry {
 
-	private final IFeature feature;
-	private final JsonObject parameters;
+	private final IFeature		feature;
+	private final JsonObject	parameters;
 
 	public FeatureEntry(final IFeature feature) {
 		this.feature = feature;

@@ -2,8 +2,8 @@ package com.mcmoddev.orespawn.api.exceptions;
 
 public class UnknownFieldException extends Exception {
 
-	private static final long serialVersionUID = 1L;
-	private final String message;
+	private static final long	serialVersionUID	= 1L;
+	private final String		message;
 
 	public UnknownFieldException(final String theField) {
 		super();

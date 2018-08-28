@@ -11,9 +11,9 @@ import net.minecraft.util.ResourceLocation;
 
 public class FeatureBuilder implements IFeatureBuilder {
 
-	private IFeature feature;
-	private JsonObject parameters;
-	private boolean useDefaults;
+	private IFeature	feature;
+	private JsonObject	parameters;
+	private boolean		useDefaults;
 
 	public FeatureBuilder() {
 		this.useDefaults = false;
@@ -70,7 +70,8 @@ public class FeatureBuilder implements IFeatureBuilder {
 	}
 
 	@Override
-	public IFeatureBuilder setParameter(final String parameterName, final JsonElement parameterValue) {
+	public IFeatureBuilder setParameter(final String parameterName,
+			final JsonElement parameterValue) {
 		this.parameters.add(parameterName, parameterValue);
 		return this;
 	}

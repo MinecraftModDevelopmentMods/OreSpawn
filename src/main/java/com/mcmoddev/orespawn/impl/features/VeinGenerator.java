@@ -34,8 +34,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
-			final ISpawnEntry spawnData, final ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
 		final ChunkPos pos = _pos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -62,7 +62,6 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		final int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
 		final int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 
-		OreSpawn.LOGGER.fatal("parameters: %s", params);
 		int tries;
 
 		if (triesMax == triesMin) {
@@ -114,8 +113,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			case "vertical":
 				return this.random.nextBoolean() ? EnumFacing.UP : EnumFacing.DOWN;
 			case "horizontal":
-				return this.random.nextBoolean() ? (this.random.nextBoolean() ? EnumFacing.EAST : EnumFacing.WEST)
-						: (this.random.nextBoolean() ? EnumFacing.NORTH : EnumFacing.SOUTH);
+				return EnumFacing.HORIZONTALS[this.random.nextInt(EnumFacing.HORIZONTALS.length)];
 			default:
 				OreSpawn.LOGGER.error(
 						"Invalid value %s found in parameters for vein spawn, returning \"north\"",
@@ -125,20 +123,22 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	private enum EnumSquare {
-		TOP_EDGE(0), LEFT_EDGE(1), BOTTOM_EDGE(2), RIGHT_EDGE(3), LEFT_TOP(4), LEFT_BOTTOM(5), RIGHT_TOP(6), RIGHT_BOTTOM(7), FACE(8);
-		
+		TOP_EDGE(0), LEFT_EDGE(1), BOTTOM_EDGE(2), RIGHT_EDGE(3), LEFT_TOP(4), LEFT_BOTTOM(5),
+		RIGHT_TOP(6), RIGHT_BOTTOM(7), FACE(8);
+
 		private int index;
+
 		private EnumSquare(int index) {
 			this.index = index;
 		}
-		
+
 		final public int getIndex() {
 			return this.index;
 		}
 	}
-	
-	private void spawnVein(final int veinLength, final int nodeSize, final EnumFacing startingFace, final BlockPos blockPos,
-			final ISpawnEntry spawnData, final World world) {
+
+	private void spawnVein(final int veinLength, final int nodeSize, final EnumFacing startingFace,
+			final BlockPos blockPos, final ISpawnEntry spawnData, final World world) {
 		EnumFacing face = startingFace;
 		EnumSquare square = EnumSquare.values()[this.random.nextInt(EnumSquare.values().length)];
 		BlockPos workingPos = new BlockPos(blockPos);
@@ -149,21 +149,21 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 		// build vein
 		final List<BlockPos> points = Lists.newLinkedList();
-		for (int j = 0; j < veinLength; j++) {
+		for (; points.size() < veinLength;) {
 			points.add(workingPos);
 			List<EnumFacing> nextFaces = getNextFaceSet(square, face);
-			face = getNextStartingFace(square, face);
-			
-			if(!nextFaces.isEmpty()) {
+
+			if (!nextFaces.isEmpty()) {
 				BlockPos temp = workingPos;
-				for(EnumFacing f : nextFaces) {
+				for (EnumFacing f : nextFaces) {
 					temp = temp.offset(f, 1);
 				}
 				nextFaces.clear();
 				points.add(temp);
-			} else {
-				j--;
+				workingPos = temp;
 			}
+
+			face = getNextStartingFace(square, face);
 			square = getNextSquare();
 		}
 
@@ -174,102 +174,198 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	private class SquareWeight extends WeightedRandom.Item {
+
 		public EnumSquare item;
-		
+
 		public SquareWeight(EnumSquare item, int weight) {
 			super(weight);
 			this.item = item;
 		}
 	}
-	
+
 	private EnumSquare getNextSquare() {
-		float[] weights = new float[] { 0.12f, 0.12f, 0.12f, 0.12f, 0.0475f, 0.0475f, 0.0475f, 0.0475f, 0.33f };
+		float[] weights = new float[] {
+				0.12f, 0.12f, 0.12f, 0.12f, 0.0475f, 0.0475f, 0.0475f, 0.0475f, 0.33f
+		};
 		List<SquareWeight> items = new ArrayList<>();
-		
+
 		for (EnumSquare sq : EnumSquare.values()) {
-			items.add(new SquareWeight(sq, (int)(weights[sq.getIndex()] * 10000)));
+			items.add(new SquareWeight(sq, (int) (weights[sq.getIndex()] * 10000)));
 		}
-		
-		return ((SquareWeight)WeightedRandom.getRandomItem(this.random, items)).item;
+
+		return ((SquareWeight) WeightedRandom.getRandomItem(this.random, items)).item;
 	}
 
-	private EnumFacing getNextStartingFace(EnumSquare square, EnumFacing face) {
-		EnumFacing[][][] pos = new EnumFacing[][][] {
+	private static final EnumFacing[][][] congruentSquares = new EnumFacing[][][] {
 			// Index 0 - DOWN
 			new EnumFacing[][] {
-				new EnumFacing[] { EnumFacing.WEST,  null            },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, null            },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  null            },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.SOUTH, null            },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST }      // RIGHT_TOP
-			},
-			new EnumFacing[][] {
-				// Index 1 - UP
-				new EnumFacing[] { EnumFacing.WEST,  null            },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, null            },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  null            },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.SOUTH, null            },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.WEST },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.EAST },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.SOUTH, EnumFacing.WEST }      // RIGHT_TOP
-			},
-			new EnumFacing[][] {
-				// Index 2 - NORTH
-				new EnumFacing[] { EnumFacing.UP,    null            },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.WEST,  null            },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  null            },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.EAST,  null            },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST }      // RIGHT_TOP
-			},
-			new EnumFacing[][] {
-				// Index 3 - SOUTH
-				new EnumFacing[] { EnumFacing.UP,    null            },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.EAST,  null            },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  null            },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.WEST,  null            },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.EAST },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.EAST },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.WEST },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.WEST }      // RIGHT_TOP
-			},
-			new EnumFacing[][] {
-				// Index 4 - WEST
-				new EnumFacing[] { EnumFacing.UP,    null             },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.SOUTH, null             },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  null             },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.NORTH, null             },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH }      // RIGHT_TOP
-			},
-			new EnumFacing[][] {
-				// Index 5 - EAST
-				new EnumFacing[] { EnumFacing.UP,    null             },     // TOP_EDGE
-				new EnumFacing[] { EnumFacing.NORTH, null             },     // LEFT_EDGE
-				new EnumFacing[] { EnumFacing.DOWN,  null             },     // BOTTOM_EDGE 
-				new EnumFacing[] { EnumFacing.SOUTH, null             },     // RIGHT_EDGE
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.NORTH },     // LEFT_TOP
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.NORTH },     // LEFT_BOTTOM
-				new EnumFacing[] { EnumFacing.DOWN,  EnumFacing.SOUTH },     // RIGHT_BOTTOM
-				new EnumFacing[] { EnumFacing.UP,    EnumFacing.SOUTH }      // RIGHT_TOP
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.NORTH, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 1 - UP
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.NORTH, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 2 - NORTH
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 3 - SOUTH
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.EAST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.EAST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.WEST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.WEST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 4 - WEST
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.SOUTH
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.SOUTH
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.NORTH
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.NORTH
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 5 - EAST
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.NORTH
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.NORTH
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.SOUTH
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.SOUTH
+					}      // RIGHT_TOP
 			}
-		};
+	};
+
+	private EnumFacing getNextStartingFace(EnumSquare square, EnumFacing face) {
 
 		if ((this.random.nextBoolean()) || (square == EnumSquare.FACE)) {
 			return face;
 		}
-		
-		EnumFacing[] possibles = (EnumFacing[])Arrays.asList(pos[face.getIndex()][square.getIndex()]).stream().filter(it -> it != null).toArray();
-		
-		if(possibles.length > 1) {
+
+		EnumFacing[] possibles = Arrays.asList(congruentSquares[face.getIndex()][square.getIndex()])
+				.stream().filter(it -> it != null).toArray(EnumFacing[]::new);
+
+		if (possibles.length > 1) {
 			return possibles[this.random.nextInt(possibles.length)];
 		}
 		return possibles[0];
@@ -280,9 +376,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 		rv.add(face);
 
-		switch(square) {
+		switch (square) {
 			case BOTTOM_EDGE:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -298,7 +394,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case TOP_EDGE:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -314,7 +410,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case LEFT_EDGE:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -330,7 +426,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case RIGHT_EDGE:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -348,7 +444,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			case FACE:
 				break;
 			case LEFT_TOP:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -366,7 +462,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case LEFT_BOTTOM:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -384,7 +480,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case RIGHT_TOP:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -402,7 +498,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 				}
 				break;
 			case RIGHT_BOTTOM:
-				switch(face) {
+				switch (face) {
 					case EAST:
 					case WEST:
 					case NORTH:
@@ -422,11 +518,12 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 			default:
 				break;
 		}
-		
+
 		return rv;
 	}
 
-	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos, final int quantity) {
+	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos,
+			final int quantity) {
 		int count = quantity;
 		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
@@ -451,8 +548,8 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
 	}
 
-	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world, final ISpawnEntry spawnData,
-			final BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world,
+			final ISpawnEntry spawnData, final BlockPos pos) {
 		final int count = quantity;
 		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		final int rSqr = (int) (radius * radius);

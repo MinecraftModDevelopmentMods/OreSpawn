@@ -160,10 +160,10 @@ public class Config {
 		}
 	}
 
-	private static final HashMap<String, Boolean> boolVals = new HashMap<>();
-	private static final HashMap<String, String> stringVals = new HashMap<>();
-	private static final HashMap<String, Integer> intVals = new HashMap<>();
-	private static final HashMap<String, Float> floatVals = new HashMap<>();
-	private static final List<String> knownKeys = new ArrayList<>();
-	private static final List<String> extractedConfigs = new ArrayList<>();
+	private static final HashMap<String, Boolean>	boolVals			= new HashMap<>();
+	private static final HashMap<String, String>	stringVals			= new HashMap<>();
+	private static final HashMap<String, Integer>	intVals				= new HashMap<>();
+	private static final HashMap<String, Float>		floatVals			= new HashMap<>();
+	private static final List<String>				knownKeys			= new ArrayList<>();
+	private static final List<String>				extractedConfigs	= new ArrayList<>();
 }

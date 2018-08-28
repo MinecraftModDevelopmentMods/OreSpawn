@@ -38,8 +38,8 @@ import net.minecraftforge.fml.relauncher.Side;
 
 public class EventHandlers {
 
-	private final Deque<ChunkPos> retroChunks;
-	private final Deque<Tuple<ChunkPos, List<String>>> chunks;
+	private final Deque<ChunkPos>						retroChunks;
+	private final Deque<Tuple<ChunkPos, List<String>>>	chunks;
 	// private Map<ChunkPos, List<String>> chunks
 
 	EventHandlers() {
@@ -113,7 +113,8 @@ public class EventHandlers {
 		}
 	}
 
-	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
+	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim,
+			final Biome biome) {
 		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		final Map<String, String> currentBits = new TreeMap<>();
 		final Map<String, String> oldBits = new TreeMap<>();
@@ -135,7 +136,8 @@ public class EventHandlers {
 		return ImmutableList.copyOf(stuff);
 	}
 
-	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
+	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim,
+			final Biome biome) {
 		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		final Map<String, String> currentBits = new TreeMap<>();
 		final Map<String, String> oldBits = new TreeMap<>();
@@ -163,10 +165,10 @@ public class EventHandlers {
 		}
 	}
 
-	private static World world;
-	private static ChunkProviderServer chunkProvider;
-	private static IChunkGenerator chunkGenerator;
-	private static Random random;
+	private static World				world;
+	private static ChunkProviderServer	chunkProvider;
+	private static IChunkGenerator		chunkGenerator;
+	private static Random				random;
 
 	private static void setupData(final World nw) {
 		if (world == null || !world.equals(nw)) {

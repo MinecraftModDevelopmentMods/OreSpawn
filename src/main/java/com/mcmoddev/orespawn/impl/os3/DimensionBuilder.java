@@ -8,11 +8,11 @@ import com.mcmoddev.orespawn.api.os3.IDimensionBuilder;
 
 public class DimensionBuilder implements IDimensionBuilder {
 
-	private final List<Integer> dimensionWhitelist = new LinkedList<>();
-	private final List<Integer> dimensionBlacklist = new LinkedList<>();
-	private boolean acceptAll = false;
-	private boolean denyAll = false;
-	private boolean acceptAllOverworld = true;
+	private final List<Integer>	dimensionWhitelist	= new LinkedList<>();
+	private final List<Integer>	dimensionBlacklist	= new LinkedList<>();
+	private boolean				acceptAll			= false;
+	private boolean				denyAll				= false;
+	private boolean				acceptAllOverworld	= true;
 
 	public DimensionBuilder() {
 		//

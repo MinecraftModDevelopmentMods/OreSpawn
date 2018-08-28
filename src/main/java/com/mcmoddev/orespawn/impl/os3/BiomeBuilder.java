@@ -19,8 +19,8 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class BiomeBuilder implements IBiomeBuilder {
 
-	private final List<Biome> whitelist = new LinkedList<>();
-	private final List<Biome> blacklist = new LinkedList<>();
+	private final List<Biome>	whitelist	= new LinkedList<>();
+	private final List<Biome>	blacklist	= new LinkedList<>();
 
 	private boolean acceptAll = false;
 

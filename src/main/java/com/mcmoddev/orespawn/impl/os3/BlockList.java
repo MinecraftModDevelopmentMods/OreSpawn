@@ -12,8 +12,8 @@ import net.minecraft.block.state.IBlockState;
 
 public class BlockList implements IBlockList {
 
-	private final List<IBlockDefinition> myBlocks;
-	private final List<IBlockState> workingList;
+	private final List<IBlockDefinition>	myBlocks;
+	private final List<IBlockState>			workingList;
 
 	public BlockList() {
 		this.myBlocks = new LinkedList<>();

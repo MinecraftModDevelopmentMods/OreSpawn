@@ -27,17 +27,17 @@ import net.minecraftforge.oredict.OreDictionary;
 
 public class ClearChunkCommand extends CommandBase {
 
-	private static final String STONE_ID = "minecraft:stone";
-	private static final List<String> stoneVariants = Arrays.asList(STONE_ID, "minecraft:diorite",
-			"minecraft:andesite", "minecraft:granite", "minecraft:sandstone",
+	private static final String			STONE_ID		= "minecraft:stone";
+	private static final List<String>	stoneVariants	= Arrays.asList(STONE_ID,
+			"minecraft:diorite", "minecraft:andesite", "minecraft:granite", "minecraft:sandstone",
 			"minecraft:red_sandstone", "minecraft:netherrack", "minecraft:end_stone");
-	private static final List<String> baseStones = Arrays.asList(STONE_ID, "minecraft:netherrack",
-			"minecraft:end_stone", "minecraft:cobblestone", "minecraft:obsidian", "minecraft:magma",
-			"minecraft:soul_sand");
+	private static final List<String>	baseStones		= Arrays.asList(STONE_ID,
+			"minecraft:netherrack", "minecraft:end_stone", "minecraft:cobblestone",
+			"minecraft:obsidian", "minecraft:magma", "minecraft:soul_sand");
 
-	private static final List<String> dirtVariants = Arrays.asList("minecraft:dirt",
+	private static final List<String>	dirtVariants	= Arrays.asList("minecraft:dirt",
 			"minecraft:grass");
-	private static final List<String> otherVariants = Arrays.asList("minecraft:gravel",
+	private static final List<String>	otherVariants	= Arrays.asList("minecraft:gravel",
 			"minecraft:sand");
 
 	@Override
@@ -51,8 +51,8 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
-			throws CommandException {
+	public void execute(final MinecraftServer server, final ICommandSender sender,
+			final String[] args) throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
 		}
@@ -62,7 +62,8 @@ public class ClearChunkCommand extends CommandBase {
 		final ChunkPos chunkPos = chunk.getPos();
 		final List<IBlockState> blocks;
 
-		final boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic")
+		final boolean flagClassic = args.length > 0
+				? args[0].toLowerCase().equalsIgnoreCase("classic")
 				: false;
 
 		final List<String> blockNames = new LinkedList<>();
@@ -89,7 +90,8 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	private void clearBlocks(final ChunkPos chunkPos, final List<IBlockState> blocks,
-			final List<IBlockState> overburden, final boolean flagClassic, final EntityPlayer player) {
+			final List<IBlockState> overburden, final boolean flagClassic,
+			final EntityPlayer player) {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
@@ -112,8 +114,9 @@ public class ClearChunkCommand extends CommandBase {
 		}
 	}
 
-	private void removeIfBlocks(final EntityPlayer player, final BlockPos pos, final IBlockState block,
-			final List<IBlockState> blocks, final List<IBlockState> overburden, final boolean flagClassic) {
+	private void removeIfBlocks(final EntityPlayer player, final BlockPos pos,
+			final IBlockState block, final List<IBlockState> blocks,
+			final List<IBlockState> overburden, final boolean flagClassic) {
 		if (blocks.contains(block)
 				|| ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
 			player.getEntityWorld().setBlockToAir(pos);

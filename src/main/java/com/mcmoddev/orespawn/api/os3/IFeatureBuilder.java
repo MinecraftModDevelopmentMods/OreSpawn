@@ -21,8 +21,7 @@ public interface IFeatureBuilder {
 
 	IFeatureBuilder setParameter(String parameterName, boolean parameterValue);
 
-	IFeatureBuilder setParameter(String parameterName,
-			JsonElement parameterValue);
+	IFeatureBuilder setParameter(String parameterName, JsonElement parameterValue);
 
 	IFeatureBuilder setUseFeatureDefaults();
 

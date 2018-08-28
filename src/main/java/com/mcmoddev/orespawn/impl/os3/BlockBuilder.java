@@ -11,9 +11,9 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class BlockBuilder implements IBlockBuilder {
 
-	private IBlockState blockState;
-	private int chance;
-	private boolean isValid = true;
+	private IBlockState	blockState;
+	private int			chance;
+	private boolean		isValid	= true;
 
 	public BlockBuilder() {
 		// nothing to do here
@@ -61,7 +61,8 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation, final String state) {
+	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation,
+			final String state) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -75,7 +76,8 @@ public class BlockBuilder implements IBlockBuilder {
 	 */
 	@Override
 	@Deprecated
-	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation, final int metadata) {
+	public IBlockBuilder setFromName(final ResourceLocation blockResourceLocation,
+			final int metadata) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -84,7 +86,8 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromBlockStateWithChance(final IBlockState blockState, final int chance) {
+	public IBlockBuilder setFromBlockStateWithChance(final IBlockState blockState,
+			final int chance) {
 		final ResourceLocation key = blockState.getBlock().getRegistryName();
 		if (!ForgeRegistries.BLOCKS.containsKey(key)) {
 			this.isValid = false;
@@ -109,17 +112,20 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(final String blockName, final String state, final int chance) {
+	public IBlockBuilder setFromNameWithChance(final String blockName, final String state,
+			final int chance) {
 		return this.setFromNameWithChance(new ResourceLocation(blockName), state, chance);
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(final String blockName, final int metadata, final int chance) {
+	public IBlockBuilder setFromNameWithChance(final String blockName, final int metadata,
+			final int chance) {
 		return this.setFromNameWithChance(new ResourceLocation(blockName), metadata, chance);
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
+			final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -128,8 +134,8 @@ public class BlockBuilder implements IBlockBuilder {
 	}
 
 	@Override
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final String state,
-			final int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
+			final String state, final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}
@@ -144,8 +150,8 @@ public class BlockBuilder implements IBlockBuilder {
 	 */
 	@Override
 	@Deprecated
-	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation, final int metadata,
-			final int chance) {
+	public IBlockBuilder setFromNameWithChance(final ResourceLocation blockResourceLocation,
+			final int metadata, final int chance) {
 		if (!ForgeRegistries.BLOCKS.containsKey(blockResourceLocation)) {
 			this.isValid = false;
 		}

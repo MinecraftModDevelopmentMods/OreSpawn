@@ -34,8 +34,8 @@ public class DumpBiomesCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
-			throws CommandException {
+	public void execute(final MinecraftServer server, final ICommandSender sender,
+			final String[] args) throws CommandException {
 		JsonArray array = new JsonArray();
 
 		for (final Biome biome : ForgeRegistries.BIOMES) {

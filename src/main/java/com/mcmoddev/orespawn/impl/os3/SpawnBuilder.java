@@ -16,14 +16,14 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class SpawnBuilder implements ISpawnBuilder {
 
-	private String spawnName;
-	private boolean enabled;
-	private boolean retrogen;
-	private IBlockList blocks;
-	private IFeatureEntry feature;
-	private BiomeLocation biomes;
-	private IDimensionList dimensions;
-	private IReplacementEntry replacements;
+	private String				spawnName;
+	private boolean				enabled;
+	private boolean				retrogen;
+	private IBlockList			blocks;
+	private IFeatureEntry		feature;
+	private BiomeLocation		biomes;
+	private IDimensionList		dimensions;
+	private IReplacementEntry	replacements;
 
 	public SpawnBuilder() {
 		this.enabled = false;
@@ -104,7 +104,8 @@ public class SpawnBuilder implements ISpawnBuilder {
 	}
 
 	@Override
-	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation, final String blockState) {
+	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation,
+			final String blockState) {
 		return this.addBlockWithChance(blockResourceLocation, blockState, 100);
 	}
 
@@ -114,7 +115,8 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation, final int blockMetadata) {
+	public ISpawnBuilder addBlock(final ResourceLocation blockResourceLocation,
+			final int blockMetadata) {
 		return this.addBlockWithChance(blockResourceLocation, 100);
 	}
 
@@ -134,7 +136,8 @@ public class SpawnBuilder implements ISpawnBuilder {
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(final String blockName, final String blockState, final int chance) {
+	public ISpawnBuilder addBlockWithChance(final String blockName, final String blockState,
+			final int chance) {
 		return this.addBlockWithChance(new ResourceLocation(blockName), blockState, chance);
 	}
 
@@ -144,12 +147,14 @@ public class SpawnBuilder implements ISpawnBuilder {
 	 */
 	@Override
 	@Deprecated
-	public ISpawnBuilder addBlockWithChance(final String blockName, final int blockMetadata, final int chance) {
+	public ISpawnBuilder addBlockWithChance(final String blockName, final int blockMetadata,
+			final int chance) {
 		return this.addBlockWithChance(blockName, blockMetadata, chance);
 	}
 
 	@Override
-	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation, final int chance) {
+	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
+			final int chance) {
 		final IBlockState tempVar = ForgeRegistries.BLOCKS.getValue(blockResourceLocation)
 				.getDefaultState();
 		return this.addBlockWithChance(tempVar, chance);

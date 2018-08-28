@@ -35,9 +35,9 @@ public enum PluginLoader {
 
 	private class PluginData {
 
-		public final String modId;
-		public final String resourcePath;
-		public final IOreSpawnPlugin plugin;
+		public final String				modId;
+		public final String				resourcePath;
+		public final IOreSpawnPlugin	plugin;
 
 		PluginData(final String modId, final String resourcePath, final IOreSpawnPlugin plugin) {
 			this.modId = modId;

@@ -9,8 +9,8 @@ import com.mcmoddev.orespawn.data.Constants;
 
 public class DimensionList implements com.mcmoddev.orespawn.api.IDimensionList {
 
-	private final List<Integer> whitelist = new ArrayList<>();
-	private final List<Integer> blacklist = new ArrayList<>();
+	private final List<Integer>	whitelist	= new ArrayList<>();
+	private final List<Integer>	blacklist	= new ArrayList<>();
 
 	public DimensionList(final List<Integer> whitelist, final List<Integer> blacklist) {
 		this.whitelist.addAll(whitelist);

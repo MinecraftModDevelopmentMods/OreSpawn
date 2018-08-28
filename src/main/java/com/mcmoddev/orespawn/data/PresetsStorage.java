@@ -21,14 +21,15 @@ import net.minecraft.crash.CrashReport;
 
 public class PresetsStorage {
 
-	private final Map<String, Map<String, JsonElement>> storage;
-	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
+	private final Map<String, Map<String, JsonElement>>	storage;
+	private static final String							ORE_SPAWN_VERSION	= "OreSpawn Version";
 
 	public PresetsStorage() {
 		storage = new TreeMap<>();
 	}
 
-	public void setSymbolSection(final String sectionName, final String itemName, final JsonElement value) {
+	public void setSymbolSection(final String sectionName, final String itemName,
+			final JsonElement value) {
 		final Map<String, JsonElement> temp = storage.getOrDefault(sectionName,
 				new HashMap<String, JsonElement>());
 		temp.put(itemName, value);
