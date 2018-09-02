@@ -4,7 +4,8 @@
 package com.mcmoddev.orespawn.impl.features;
 
 import java.util.Random;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 import com.google.common.collect.Sets;
@@ -24,8 +25,6 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidUtil;
-
 
 /**
  * @author Daniel Hazelton
@@ -36,30 +35,32 @@ public class UnderFluid extends FeatureBase implements IFeature {
 	/**
 	 * @param rand
 	 */
-	public UnderFluid(Random rand) {
-		super(rand);
+	public UnderFluid() {
+		super(new Random());
 	}
 
 	/** 
 	 * Try to generate this feature to the specified parameters in the specified chunk.
-	 * @see com.mcmoddev.orespawn.api.IFeature#generate(net.minecraft.world.World, net.minecraft.world.gen.IChunkGenerator, net.minecraft.world.chunk.IChunkProvider, com.mcmoddev.orespawn.api.os3.ISpawnEntry, net.minecraft.util.math.ChunkPos)
+	 * <div>
 	 * <p>Theory:
 	 * <p style="indent:4em;">For up to 2*maximum_tries pick a random spot in the spawn zone do:
 	 * <p style="indent:8em;">Check the 5x5x5 region around that spot for the fluid:
 	 * <p style="indent:10em;">if found, store the BlockPos of the fluid, if this store has reached maximum_tries entries, stop iteration
 	 * <p style="indent:4em;">For each of the found positions, if any, seek up and down from the position to find the lower bound of the fluid
 	 * <p style="indent:4em;">At the fluids lower bound, generate the node.
+	 * </div>
 	 * 
 	 * @param world {@link net.minecraft.world.World} World this chunk is in
 	 * @param chunkGenerator {@link net.minecraft.world.gen.IChunkGenerator} Chunk generator for this chunk
 	 * @param chunkProvider {@link net.minecraft.world.chunk.IChunkGenerator} Chunk provider for this chunk
 	 * @param spawnData {@link com.mcmoddev.orespawn.api.os3.ISpawnEntry} Parameters and data on this spawn from the configuration file
-	 * @param _pos {@link net.minecraft.util.math.ChunkPos} Absolute in-world coordinates, on the chunk grid, for this chunk (can get lowest value X/Z block coordinates for this chunk by multiplying provided X/Z by 16)
+	 * @param chunkPos {@link net.minecraft.util.math.ChunkPos} Absolute in-world coordinates, on the chunk grid, for this chunk (can get lowest value X/Z block coordinates for this chunk by multiplying provided X/Z by 16)
+	 * @see com.mcmoddev.orespawn.api.IFeature#generate(net.minecraft.world.World, net.minecraft.world.gen.IChunkGenerator, net.minecraft.world.chunk.IChunkProvider, com.mcmoddev.orespawn.api.os3.ISpawnEntry, net.minecraft.util.math.ChunkPos)
 	 */
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator,
-			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos chunkPos) {
+		final ChunkPos pos = chunkPos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -90,12 +91,12 @@ public class UnderFluid extends FeatureBase implements IFeature {
 		BlockPos refBlock = new BlockPos(blockX, minHeight, blockZ);
 		Block fluidBlock = fluid.getBlock();
 		
-		Set<BlockPos> found = Sets.newHashSet();
+		List<BlockPos> found = new ArrayList<>();
 		
 		for (int j = 0; j < surveySize; j++) {
 			BlockPos sampleCenter = refBlock.add(this.random.nextInt(16), this.random.nextInt(ySpan), this.random.nextInt(16));
-			BlockPos lowSide = sampleCenter.add(-2,-2,-2);
-			BlockPos highSide = sampleCenter.add(2,2,2);
+			BlockPos lowSide = sampleCenter.add(-3,-3,-3);
+			BlockPos highSide = sampleCenter.add(3,3,3);
 			StreamSupport.stream(BlockPos.getAllInBoxMutable(lowSide, highSide).spliterator(), false)
 			.filter( bp -> world.getBlockState(bp).getMaterial().isLiquid() &&
 					world.getBlockState(bp).getBlock().equals(fluidBlock) &&
@@ -104,22 +105,28 @@ public class UnderFluid extends FeatureBase implements IFeature {
 			.forEach(found::add);
 		}
 
-		for(int i = 0; i < tries; i++) {
-			BlockPos mp = found.toArray(new BlockPos[found.size()])[this.random.nextInt(found.size())];
-			found.remove(mp);
-			while(world.getBlockState(mp).getMaterial().isLiquid() && mp.getY() >= minHeight) {
-				mp = mp.add(0, -1, 0);
+		int i = 0;
+		
+		if (!found.isEmpty()) {
+			while( i < tries && !found.isEmpty()) {
+				BlockPos mp = found.get(this.random.nextInt(found.size()));
+				found.remove(mp);
+				while(world.getBlockState(mp).getMaterial().isLiquid() && mp.getY() >= minHeight) {
+					mp = mp.down();
+				}
+
+				if (mp.getY() < minHeight || mp.getY() > maxHeight) break;
+
+				// calculate actual size for this node
+				int size = this.random.nextInt(nodeSize - variance + 1) + this.random.nextInt(variance);
+				// try to spawn now, as we do ***NOT*** want the node to wrap, we have to do this different...
+				// so... we copy vanilla spawn logic, to a degree, I think
+				spawnOre(world, spawnData, mp, size);
+				i++;
 			}
-			
-			// calculate actual size for this node
-			int size = this.random.nextInt(nodeSize - variance + 1) + this.random.nextInt(variance);
-			
-			// try to spawn now, as we do ***NOT*** want the node to wrap, we have to do this different...
-			// so... we copy vanilla spawn logic, to a degree, I think
-			spawnOre(world, spawnData, mp, size);
 		}
 	}
-
+	
 	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos,
 			final int quantity) {
 		int count = quantity;
