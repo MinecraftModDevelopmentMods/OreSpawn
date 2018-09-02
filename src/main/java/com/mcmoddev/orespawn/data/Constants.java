@@ -54,6 +54,7 @@ public class Constants {
 		public static final String ATTEMPTS_MIN = "minAttempts";
 		public static final String ATTEMPTS_MAX = "maxAttempts";
 		public static final String STARTINGFACE = "startFacing";
+		public static final String FLUID = "fluid";
 	}
 
 	public final class FileBits {
