@@ -33,8 +33,8 @@ public class Constants {
 	public static final String BEDROCK_LAYERS = "Bedrock Thickness";
 	public static final String ORESPAWN_VERSION_CRASH_MESSAGE = "OreSpawn Version";
 	public static final String PRECISION = "precision";
-	public static final Path CONFDIR = Paths.get("config", "orespawn3");
-	public static final Path SYSCONF = Paths.get("config", "orespawn3", "sysconf");
+	public static final Path CONFDIR = Paths.get(FileBits.CONFIG_DIR, FileBits.OS3);
+	public static final Path SYSCONF = Paths.get(FileBits.CONFIG_DIR, FileBits.OS3, FileBits.SYSCONF);
 
 	public final class FormatBits {
 

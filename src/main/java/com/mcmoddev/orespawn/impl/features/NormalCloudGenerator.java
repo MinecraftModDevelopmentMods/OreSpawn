@@ -27,8 +27,8 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator,
-			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos chunkPos) {
+		final ChunkPos pos = chunkPos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns

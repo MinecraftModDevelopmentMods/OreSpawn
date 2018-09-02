@@ -178,7 +178,7 @@ public class OS3APIImpl implements OS3API {
 	public List<ISpawnEntry> getSpawns(final int dimensionID) {
 		return ImmutableList.copyOf(
 				spawns.entrySet().stream().filter(e -> e.getValue().dimensionAllowed(dimensionID))
-						.map(e -> e.getValue()).collect(Collectors.toList()));
+						.map(Map.Entry::getValue).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -246,7 +246,7 @@ public class OS3APIImpl implements OS3API {
 	public List<String> getSpawnsForFile(final String fileName) {
 		final Path p = Constants.CONFDIR.resolve(fileName);
 		final List<String> values = spawnsToSourceFiles.entrySet().stream()
-				.filter(ent -> ent.getValue().equals(p)).map(ent -> ent.getKey())
+				.filter(ent -> ent.getValue().equals(p)).map(Map.Entry::getKey)
 				.collect(Collectors.toList());
 		return ImmutableList.copyOf(values);
 	}

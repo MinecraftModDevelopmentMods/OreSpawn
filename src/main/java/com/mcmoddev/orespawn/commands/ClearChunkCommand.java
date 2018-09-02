@@ -71,7 +71,7 @@ public class ClearChunkCommand extends CommandBase {
 
 		blocks = blockNames.stream()
 				.map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
-				.map(block -> block.getDefaultState()).collect(Collectors.toList());
+				.map(Block::getDefaultState).collect(Collectors.toList());
 
 		blocks.addAll(OreSpawn.API
 				.getDimensionDefaultReplacements(player.getEntityWorld().provider.getDimension())
@@ -81,7 +81,7 @@ public class ClearChunkCommand extends CommandBase {
 						"minecraft:sandstone", "minecraft:red_sandstone")
 				.stream()
 				.map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
-				.map(bl -> bl.getDefaultState()).collect(Collectors.toList());
+				.map(Block::getDefaultState).collect(Collectors.toList());
 
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
