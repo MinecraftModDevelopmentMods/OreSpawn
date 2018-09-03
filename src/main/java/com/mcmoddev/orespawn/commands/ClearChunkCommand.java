@@ -62,9 +62,7 @@ public class ClearChunkCommand extends CommandBase {
 		final ChunkPos chunkPos = chunk.getPos();
 		final List<IBlockState> blocks;
 
-		final boolean flagClassic = args.length > 0
-				? args[0].toLowerCase().equalsIgnoreCase("classic")
-				: false;
+		final boolean flagClassic = args.length > 0 && args[0].toLowerCase().equalsIgnoreCase("classic");
 
 		final List<String> blockNames = new LinkedList<>();
 		getBlocks(args, blockNames);

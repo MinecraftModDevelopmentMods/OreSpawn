@@ -97,7 +97,7 @@ public class OS3APIImpl implements OS3API {
 		try (final Stream<Path> stream = Files.walk(Constants.CONFDIR, 1)) {
 			stream.filter(jsonMatcher::matches).forEach(conf -> {
 				try {
-					OreSpawnReader.tryReadFile(conf, this);
+					OreSpawnReader.tryReadFile(conf);
 				} catch (final MissingVersionException | NotAProperConfigException
 						| OldVersionException | UnknownVersionException e) {
 					CrashReport report = CrashReport.makeCrashReport(e,
