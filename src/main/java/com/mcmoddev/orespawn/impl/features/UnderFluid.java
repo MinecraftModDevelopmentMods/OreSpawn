@@ -4,9 +4,11 @@
 package com.mcmoddev.orespawn.impl.features;
 
 import java.util.Random;
-import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.api.FeatureBase;
@@ -20,6 +22,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.fluids.Fluid;
@@ -85,47 +88,64 @@ public class UnderFluid extends FeatureBase implements IFeature {
 		final Fluid fluid = FluidRegistry.getFluid(params.get(Constants.FormatBits.FLUID).getAsString());
 		
 		int tries = this.random.nextInt(triesMax - triesMin + 1) + triesMin;
-		int surveySize = triesMax * 2;
 		int ySpan = maxHeight - minHeight;
+		int surveySize = ((256 * (16 * ySpan)) / 4) / 125;
 		BlockPos refBlock = new BlockPos(blockX, minHeight, blockZ);
 		Block fluidBlock = fluid.getBlock();
 		
-		List<BlockPos> found = new ArrayList<>();
+		Set<BlockPos> found = new HashSet<>();
 		
-		for (int j = 0; j < surveySize; j++) {
+		int surveyCount = 0;
+		int spawnCount = 0;
+		
+		while(surveyCount < surveySize && spawnCount < tries) {
 			BlockPos sampleCenter = refBlock.add(this.random.nextInt(16), this.random.nextInt(ySpan), this.random.nextInt(16));
-			BlockPos lowSide = sampleCenter.add(-3,-3,-3);
-			BlockPos highSide = sampleCenter.add(3,3,3);
-			StreamSupport.stream(BlockPos.getAllInBoxMutable(lowSide, highSide).spliterator(), false)
-			.filter( bp -> world.getBlockState(bp).getMaterial().isLiquid() &&
-					world.getBlockState(bp).getBlock().equals(fluidBlock) &&
-					!found.contains(bp) && bp.getY() >= minHeight )
-			.map(BlockPos.MutableBlockPos::toImmutable)
-			.forEach(found::add);
-		}
-
-		int i = 0;
-		
-		if (!found.isEmpty()) {
-			while( i < tries && !found.isEmpty()) {
-				BlockPos mp = found.get(this.random.nextInt(found.size()));
-				found.remove(mp);
-				while(world.getBlockState(mp).getMaterial().isLiquid() && mp.getY() >= minHeight) {
-					mp = mp.down();
+			BlockPos lowSide = sampleCenter.add(-2,-2,-2);
+			BlockPos highSide = sampleCenter.add(2,2,2);
+			Chunk chunk = world.getChunk(sampleCenter);
+			
+			if(!found.contains(sampleCenter)) {
+				found.addAll(findPossibleTargets(chunk, lowSide, highSide, fluidBlock, minHeight));
+				
+				if(!found.isEmpty()) {
+					BlockPos target = found.toArray(new BlockPos[0])[this.random.nextInt(found.size())];
+					spawnCount += maybeSpawn(target, minHeight, maxHeight, nodeSize, variance, world, spawnData);
 				}
-
-				if (mp.getY() < minHeight || mp.getY() > maxHeight) break;
-
-				// calculate actual size for this node
-				int size = this.random.nextInt(nodeSize - variance + 1) + this.random.nextInt(variance);
-				// try to spawn now, as we do ***NOT*** want the node to wrap, we have to do this different...
-				// so... we copy vanilla spawn logic, to a degree, I think
-				spawnOre(world, spawnData, mp, size);
-				i++;
+				surveyCount++;
 			}
 		}
 	}
 	
+	private int maybeSpawn(BlockPos target, int minHeight, int maxHeight, int nodeSize,
+			int variance, World world, ISpawnEntry spawnData) {
+		BlockPos mp = target;
+		while(world.getBlockState(mp).getMaterial().isLiquid() && mp.getY() >= minHeight) {
+			mp = mp.down();
+		}
+
+		if (mp.getY() > minHeight && mp.getY() < maxHeight) {
+			// calculate actual size for this node
+			int size = this.random.nextInt(nodeSize - variance + 1) + this.random.nextInt(variance);
+			// try to spawn now, as we do ***NOT*** want the node to wrap, we have to do this different...
+			// so... we copy vanilla spawn logic, to a degree, I think
+			spawnOre(world, spawnData, mp, size);
+			return 1;
+		}
+
+
+		return 0;
+	}
+
+	private List<BlockPos> findPossibleTargets(Chunk chunk, BlockPos lowSide, BlockPos highSide,
+			Block fluidBlock, int minHeight) {
+		return StreamSupport.stream(BlockPos.getAllInBoxMutable(lowSide, highSide).spliterator(), false)
+		.filter( bp -> chunk.getBlockState(bp).getMaterial().isLiquid() &&
+				chunk.getBlockState(bp).getBlock().equals(fluidBlock) &&
+			    bp.getY() >= minHeight )
+		.map(BlockPos.MutableBlockPos::toImmutable)
+		.collect(Collectors.toList());
+	}
+
 	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos,
 			final int quantity) {
 		int count = quantity;
