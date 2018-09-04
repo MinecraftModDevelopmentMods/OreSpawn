@@ -59,9 +59,11 @@ public class ReplacementsRegistry {
 	 *
 	 * @param dimension
 	 * @return
-	 * @deprecated
 	 */
-	@Deprecated
+	/*
+	 * @deprecated (no, it isn't - why was it flagged this to begin with ?)
+	 */
+	// @Deprecated
 	public List<IBlockState> getDimensionDefault(final int dimension) {
 		final String[] names = {
 				"minecraft:netherrack", "minecraft:stone", "minecraft:end_stone"
