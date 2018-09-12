@@ -28,8 +28,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
-			final ISpawnEntry spawnData, final ChunkPos _pos) {
+	public void generate(final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
 		final ChunkPos pos = _pos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
@@ -81,8 +81,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnCluster(final int clusterSize, final int variance, final int clusterCount, final int maxSpread,
-			final int minHeight, final int maxHeight, final ISpawnEntry spawnData, final World world, final BlockPos pos) {
+	private void spawnCluster(final int clusterSize, final int variance, final int clusterCount,
+			final int maxSpread, final int minHeight, final int maxHeight,
+			final ISpawnEntry spawnData, final World world, final BlockPos pos) {
 		// spawn a cluster at the center, then a bunch around the outside...
 		int r = clusterSize - variance;
 
@@ -93,7 +94,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		spawnChunk(world, pos, spawnData, r);
 
 		int count = this.random.nextInt(clusterCount - 1); // always at least the first, but vary
-															// inside that
+															 // inside that
 
 		if (variance > 0) {
 			count += this.random.nextInt(2 * variance) - variance;
@@ -119,8 +120,9 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnChunk(final World world, final BlockPos pos, final ISpawnEntry spawnData, final int quantity) {
-		 int count = quantity;
+	private void spawnChunk(final World world, final BlockPos pos, final ISpawnEntry spawnData,
+			final int quantity) {
+		int count = quantity;
 		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
 		final Vec3i[] offs = new Vec3i[lutType];
@@ -159,8 +161,8 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, spawnData, world, pos);
 	}
 
-	private void doSpawnFill(final boolean nextBoolean, final int quantity, final ISpawnEntry spawnData, final World world,
-			final BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity,
+			final ISpawnEntry spawnData, final World world, final BlockPos pos) {
 		final int count = quantity;
 		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		final int rSqr = (int) (radius * radius);

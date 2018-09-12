@@ -113,7 +113,8 @@ public class EventHandlers {
 		}
 	}
 
-	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
+	private List<String> getDifferingTags(final NBTTagCompound chunkTag, final int dim,
+			final Biome biome) {
 		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		final Map<String, String> currentBits = new TreeMap<>();
 		final Map<String, String> oldBits = new TreeMap<>();
@@ -128,14 +129,15 @@ public class EventHandlers {
 		final MapDifference<String, String> diff = Maps.difference(oldBits, currentBits);
 
 		final List<String> stuff = Lists.newLinkedList();
-		stuff.addAll(diff.entriesDiffering().entrySet().stream().map(ent -> ent.getKey())
+		stuff.addAll(diff.entriesDiffering().entrySet().stream().map(Map.Entry::getKey)
 				.collect(Collectors.toList()));
-		stuff.addAll(diff.entriesOnlyOnRight().entrySet().stream().map(ent -> ent.getKey())
+		stuff.addAll(diff.entriesOnlyOnRight().entrySet().stream().map(Map.Entry::getKey)
 				.collect(Collectors.toList()));
 		return ImmutableList.copyOf(stuff);
 	}
 
-	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim, final Biome biome) {
+	private boolean featuresAreDifferent(final NBTTagCompound chunkTag, final int dim,
+			final Biome biome) {
 		final NBTTagCompound tagList = chunkTag.getCompoundTag(Constants.FEATURES_TAG);
 		final Map<String, String> currentBits = new TreeMap<>();
 		final Map<String, String> oldBits = new TreeMap<>();

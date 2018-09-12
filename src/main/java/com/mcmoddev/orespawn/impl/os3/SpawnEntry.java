@@ -88,8 +88,9 @@ public class SpawnEntry implements com.mcmoddev.orespawn.api.os3.ISpawnEntry {
 	}
 
 	@Override
-	public void generate(final Random random, final World world, final IChunkGenerator chunkGenerator,
-			final IChunkProvider chunkProvider, final ChunkPos pos) {
+	public void generate(final Random random, final World world,
+			final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
+			final ChunkPos pos) {
 		this.feature.getFeature().setRandom(random);
 		this.feature.getFeature().generate(world, chunkGenerator, chunkProvider, this, pos);
 	}

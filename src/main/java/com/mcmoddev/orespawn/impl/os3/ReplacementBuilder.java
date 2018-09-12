@@ -69,7 +69,8 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	}
 
 	@Override
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final String state) {
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
+			final String state) {
 		return this.addEntry(StateUtil
 				.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
 	}
@@ -80,14 +81,15 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	 */
 	@Override
 	@Deprecated
-	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation, final int metadata) {
+	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
+			final int metadata) {
 		return this.addEntry(
 				ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getStateFromMeta(metadata));
 	}
 
 	@Override
 	public boolean hasEntries() {
-		return this.entries.isEmpty();
+		return !this.entries.isEmpty();
 	}
 
 	@Override

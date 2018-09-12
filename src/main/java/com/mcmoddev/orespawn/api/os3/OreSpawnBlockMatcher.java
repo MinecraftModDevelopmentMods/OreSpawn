@@ -31,7 +31,7 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 	}
 
 	public boolean test(final IBlockState other) {
-		return (other != null) && (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
+		return (!other.getBlock().equals(Blocks.AIR)) && this.has(other);
 	}
 
 	public JsonArray serialize() {

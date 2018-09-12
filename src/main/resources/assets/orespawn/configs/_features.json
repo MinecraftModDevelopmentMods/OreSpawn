@@ -18,5 +18,9 @@
   {
     "name": "clusters",
     "class": "com.mcmoddev.orespawn.impl.features.ClusterGenerator"
+  },
+  {
+    "name": "underfluids",
+    "class": "com.mcmoddev.orespawn.impl.features.UnderFluid"
   }
 ]

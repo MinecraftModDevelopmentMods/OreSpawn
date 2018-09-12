@@ -31,11 +31,9 @@ public interface ISpawnBuilder {
 
 	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation);
 
-	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
-			String blockState);
+	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, String blockState);
 
-	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation,
-			int blockMetadata);
+	ISpawnBuilder addBlock(ResourceLocation blockResourceLocation, int blockMetadata);
 
 	ISpawnBuilder addBlock(Block block);
 
@@ -43,20 +41,17 @@ public interface ISpawnBuilder {
 
 	ISpawnBuilder addBlockWithChance(String blockName, int chance);
 
-	ISpawnBuilder addBlockWithChance(String blockName, String blockState,
+	ISpawnBuilder addBlockWithChance(String blockName, String blockState, int chance);
+
+	ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata, int chance);
+
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation, int chance);
+
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation, String blockState,
 			int chance);
 
-	ISpawnBuilder addBlockWithChance(String blockName, int blockMetadata,
+	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation, int blockMetadata,
 			int chance);
-
-	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			int chance);
-
-	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			String blockState, int chance);
-
-	ISpawnBuilder addBlockWithChance(ResourceLocation blockResourceLocation,
-			int blockMetadata, int chance);
 
 	ISpawnBuilder addBlockWithChance(Block block, int chance);
 

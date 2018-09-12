@@ -37,8 +37,8 @@ public class AddOreCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
-			throws CommandException {
+	public void execute(final MinecraftServer server, final ICommandSender sender,
+			final String[] args) throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
 		}

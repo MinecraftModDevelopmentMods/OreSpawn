@@ -59,11 +59,15 @@ public class ReplacementsRegistry {
 	 *
 	 * @param dimension
 	 * @return
-	 * @deprecated
 	 */
-	@Deprecated
+	/*
+	 * @deprecated (no, it isn't - why was it flagged this to begin with ?)
+	 */
+	// @Deprecated
 	public List<IBlockState> getDimensionDefault(final int dimension) {
-		final String[] names = { "minecraft:netherrack", "minecraft:stone", "minecraft:end_stone" };
+		final String[] names = {
+				"minecraft:netherrack", "minecraft:stone", "minecraft:end_stone"
+		};
 		final List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
 				.filter(iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
 				.map(iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
@@ -87,6 +91,7 @@ public class ReplacementsRegistry {
 	public IReplacementEntry getReplacement(final String name) {
 		final ResourceLocation act = new ResourceLocation(
 				name.contains(":") ? name : String.format("orespawn:%s", name));
+
 		if (registry.containsKey(act)) {
 			return registry.getValue(act);
 		} else {
@@ -136,6 +141,8 @@ public class ReplacementsRegistry {
 		JsonObject elements;
 		String rawJson;
 
+		com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Loading file %s", file);
+
 		try {
 			rawJson = FileUtils.readFileToString(file.toFile(), Charset.defaultCharset());
 		} catch (IOException e) {
@@ -151,6 +158,7 @@ public class ReplacementsRegistry {
 			final String entName = elem.getKey();
 			final JsonArray entries = elem.getValue().getAsJsonArray();
 			final List<IBlockState> blocks = new LinkedList<>();
+			com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Loading replacement entry %s", entName);
 			for (final JsonElement e : entries) {
 				final JsonObject asObj = e.getAsJsonObject();
 				final String blockName = asObj.get(Constants.ConfigNames.NAME).getAsString()
@@ -228,4 +236,5 @@ public class ReplacementsRegistry {
 	public boolean has(final ResourceLocation resourceLocation) {
 		return registry.containsKey(resourceLocation);
 	}
+
 }

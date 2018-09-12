@@ -26,9 +26,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
-			final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+	public void generate(final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos chunkPos) {
+		final ChunkPos pos = chunkPos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -115,8 +115,9 @@ public class NormalCloudGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private boolean spawnCloud(final int size, final int maxSpread, final int minHeight, final int maxHeight, final BlockPos pos,
-			final ISpawnEntry spawnData, final World world) {
+	private boolean spawnCloud(final int size, final int maxSpread, final int minHeight,
+			final int maxHeight, final BlockPos pos, final ISpawnEntry spawnData,
+			final World world) {
 		// spawn one right at the center here, then generate for the cloud and do the math
 
 		if (!spawn(spawnData.getBlocks().getRandomBlock(random), world, pos,

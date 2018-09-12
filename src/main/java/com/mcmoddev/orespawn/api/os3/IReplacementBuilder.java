@@ -64,8 +64,7 @@ public interface IReplacementBuilder {
 	 * @param state
 	 * @return
 	 */
-	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation,
-			String state);
+	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, String state);
 
 	/**
 	 *
@@ -75,8 +74,7 @@ public interface IReplacementBuilder {
 	 * @deprecated
 	 */
 	@Deprecated
-	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation,
-			int metadata);
+	IReplacementBuilder addEntry(ResourceLocation blockResourceLocation, int metadata);
 
 	boolean hasEntries();
 

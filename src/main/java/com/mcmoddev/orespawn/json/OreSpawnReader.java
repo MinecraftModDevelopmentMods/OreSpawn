@@ -33,7 +33,6 @@ import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
 import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.PresetsStorage;
-import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
 import com.mcmoddev.orespawn.util.StateUtil;
 
 import net.minecraft.block.Block;
@@ -48,8 +47,13 @@ public class OreSpawnReader {
 
 	private static final String ORE_SPAWN_VERSION = "OreSpawn Version";
 
-	public static void tryReadFile(final Path conf, final OS3APIImpl os3apiImpl) throws MissingVersionException,
-			NotAProperConfigException, OldVersionException, UnknownVersionException {
+	private OreSpawnReader() {
+		// hiding the default one
+	}
+	
+	public static void tryReadFile(final Path conf)
+			throws MissingVersionException, NotAProperConfigException, OldVersionException,
+			UnknownVersionException {
 		final JsonParser parser = new JsonParser();
 
 		try (BufferedReader data = Files.newBufferedReader(conf)) {
@@ -121,7 +125,8 @@ public class OreSpawnReader {
 		return spawnData;
 	}
 
-	private static JsonElement doPresetFix(final JsonElement value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetFix(final JsonElement value,
+			final PresetsStorage configPresets) {
 		if (value.isJsonObject()) {
 			return doPresetForObject(value.getAsJsonObject(), configPresets);
 		} else if (value.isJsonArray()) {
@@ -139,13 +144,15 @@ public class OreSpawnReader {
 		}
 	}
 
-	private static JsonElement doPresetForArray(final JsonArray value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetForArray(final JsonArray value,
+			final PresetsStorage configPresets) {
 		final JsonArray rv = new JsonArray();
 		value.forEach(it -> rv.add(doPresetFix(it, configPresets)));
 		return rv;
 	}
 
-	private static JsonElement doPresetForObject(final JsonObject value, final PresetsStorage configPresets) {
+	private static JsonElement doPresetForObject(final JsonObject value,
+			final PresetsStorage configPresets) {
 		final JsonObject rv = new JsonObject();
 
 		value.entrySet().stream().forEach(
@@ -181,25 +188,7 @@ public class OreSpawnReader {
 					break;
 				case Constants.ConfigNames.DIMENSIONS:
 					final IDimensionBuilder db = OreSpawn.API.getDimensionBuilder();
-					if (ent.getValue().isJsonArray()) {
-						final JsonArray dims = ent.getValue().getAsJsonArray();
-						if (dims.size() == 0) {
-							// blank list, accept all overworld
-							db.setAcceptAllOverworld();
-						} else {
-							dims.forEach(item -> {
-								if (item.isJsonPrimitive()
-										&& item.getAsJsonPrimitive().isNumber()) {
-									db.addWhitelistEntry(item.getAsInt());
-								}
-							});
-						}
-					} else if (ent.getValue().isJsonObject()) {
-						loadDimensions(db, ent.getValue().getAsJsonObject());
-					} else {
-						throw new BadValueException(Constants.ConfigNames.DIMENSIONS,
-								ent.getValue().toString());
-					}
+					loadDimensionEntry(db, ent);
 					sb.setDimensions(db.create());
 					break;
 				case Constants.ConfigNames.BIOMES:
@@ -212,77 +201,19 @@ public class OreSpawnReader {
 					sb.setBiomes(bb.create());
 					break;
 				case Constants.ConfigNames.FEATURE:
-					if (ent.getValue().isJsonPrimitive()
-							&& !ent.getValue().getAsJsonPrimitive().isString()) {
-						throw new BadValueException(Constants.ConfigNames.FEATURE,
-								ent.getValue().toString());
-					}
-					final String featureName = ent.getValue().getAsString();
-					if (!OreSpawn.API.featureExists(featureName)) {
-						throw new UnknownNameException(Constants.ConfigNames.FEATURE, featureName);
-					}
-					fb.setFeature(featureName);
+					fb.setFeature(loadFeatureEntry(ent));
 					break;
 				case Constants.ConfigNames.REPLACEMENT:
 					final IReplacementBuilder rb = OreSpawn.API.getReplacementBuilder();
-					if (!ent.getValue().isJsonArray()
-							&& !ent.getValue().getAsJsonPrimitive().isString()) {
-						throw new BadValueException(Constants.ConfigNames.REPLACEMENT,
-								ent.getValue().toString());
-					} else if (ent.getValue().isJsonPrimitive()
-							&& ent.getValue().getAsJsonPrimitive().isString()) {
-						if (OreSpawn.API.hasReplacement(ent.getValue().getAsString())) {
-							rb.setFromName(ent.getValue().getAsString());
-						}
-					} else {
-						for (final JsonElement e : ent.getValue().getAsJsonArray()) {
-							if (e.isJsonObject()) {
-								loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
-							} else {
-								OreSpawn.LOGGER.error(
-										"Skipping value %s in replacements list as it is not the correct format",
-										e.toString());
-							}
-						}
-					}
+					loadReplacements(rb, ent);
 
 					if (rb.hasEntries()) {
 						sb.setReplacement(rb.create());
 					}
-
 					break;
 				case Constants.ConfigNames.BLOCK:
-					if (ent.getValue().isJsonArray()) {
-						for (final JsonElement elem : ent.getValue().getAsJsonArray()) {
-							final IBlockBuilder block = OreSpawn.API.getBlockBuilder();
-							if (elem.isJsonObject()) {
-								final JsonObject bl = elem.getAsJsonObject();
-								if (bl.has(Constants.ConfigNames.STATE)) {
-									block.setFromNameWithChance(
-											bl.get(Constants.ConfigNames.NAME).getAsString(),
-											bl.get(Constants.ConfigNames.STATE).getAsString(),
-											bl.get(Constants.ConfigNames.CHANCE).getAsInt());
-								} else if (bl.has(Constants.ConfigNames.METADATA)) {
-									block.setFromNameWithChance(
-											bl.get(Constants.ConfigNames.NAME).getAsString(),
-											bl.get(Constants.ConfigNames.METADATA).getAsInt(),
-											bl.get(Constants.ConfigNames.CHANCE).getAsInt());
-								} else {
-									block.setFromNameWithChance(
-											bl.get(Constants.ConfigNames.NAME).getAsString(),
-											bl.get(Constants.ConfigNames.CHANCE).getAsInt());
-								}
-								sb.addBlock(block.create());
-							} else {
-								OreSpawn.LOGGER.error(
-										"Skipping value %s in blocks list as it is not the correct format",
-										elem.toString());
-							}
-						}
-					} else {
-						throw new BadValueException(Constants.ConfigNames.BLOCK,
-								ent.getValue().toString());
-					}
+					loadBlocks(sb, ent);
+					break;
 				case Constants.ConfigNames.PARAMETERS:
 					if (ent.getValue().isJsonObject()) {
 						ent.getValue().getAsJsonObject().entrySet().stream()
@@ -295,6 +226,98 @@ public class OreSpawnReader {
 		}
 		sb.setFeature(fb.create());
 		OreSpawn.API.addSpawn(sb.create());
+	}
+
+	private static String loadFeatureEntry(Entry<String, JsonElement> ent) throws BadValueException, UnknownNameException {
+		if (ent.getValue().isJsonPrimitive()
+				&& !ent.getValue().getAsJsonPrimitive().isString()) {
+			throw new BadValueException(Constants.ConfigNames.FEATURE,
+					ent.getValue().toString());
+		}
+		final String featureName = ent.getValue().getAsString();
+		if (!OreSpawn.API.featureExists(featureName)) {
+			throw new UnknownNameException(Constants.ConfigNames.FEATURE, featureName);
+		}
+		return featureName;
+	}
+
+	private static void loadBlocks(ISpawnBuilder sb, Entry<String, JsonElement> ent) throws BadValueException {
+		if (ent.getValue().isJsonArray()) {
+			for (final JsonElement elem : ent.getValue().getAsJsonArray()) {
+				final IBlockBuilder block = OreSpawn.API.getBlockBuilder();
+				if (elem.isJsonObject()) {
+					final JsonObject bl = elem.getAsJsonObject();
+					if (bl.has(Constants.ConfigNames.STATE)) {
+						block.setFromNameWithChance(
+								bl.get(Constants.ConfigNames.NAME).getAsString(),
+								bl.get(Constants.ConfigNames.STATE).getAsString(),
+								bl.get(Constants.ConfigNames.CHANCE).getAsInt());
+					} else if (bl.has(Constants.ConfigNames.METADATA)) {
+						block.setFromNameWithChance(
+								bl.get(Constants.ConfigNames.NAME).getAsString(),
+								bl.get(Constants.ConfigNames.METADATA).getAsInt(),
+								bl.get(Constants.ConfigNames.CHANCE).getAsInt());
+					} else {
+						block.setFromNameWithChance(
+								bl.get(Constants.ConfigNames.NAME).getAsString(),
+								bl.get(Constants.ConfigNames.CHANCE).getAsInt());
+					}
+					sb.addBlock(block.create());
+				} else {
+					OreSpawn.LOGGER.error(
+							"Skipping value %s in blocks list as it is not the correct format",
+							elem.toString());
+				}
+			}
+		} else {
+			throw new BadValueException(Constants.ConfigNames.BLOCK,
+					ent.getValue().toString());
+		}
+	}
+
+	private static void loadReplacements(IReplacementBuilder rb, Entry<String, JsonElement> ent) throws BadValueException {
+		if (!ent.getValue().isJsonArray()
+				&& !ent.getValue().getAsJsonPrimitive().isString()) {
+			throw new BadValueException(Constants.ConfigNames.REPLACEMENT,
+					ent.getValue().toString());
+		} else if (ent.getValue().isJsonPrimitive()
+				&& ent.getValue().getAsJsonPrimitive().isString()) {
+			if (OreSpawn.API.hasReplacement(ent.getValue().getAsString())) {
+				rb.setFromName(ent.getValue().getAsString());
+			}
+		} else {
+			for (final JsonElement e : ent.getValue().getAsJsonArray()) {
+				if (e.isJsonObject()) {
+					loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
+				} else {
+					OreSpawn.LOGGER.error(
+							"Skipping value %s in replacements list as it is not the correct format",
+							e.toString());
+				}
+			}
+		}
+	}
+
+	private static void loadDimensionEntry(IDimensionBuilder db, Entry<String, JsonElement> ent) throws BadValueException {
+		if (ent.getValue().isJsonArray()) {
+			final JsonArray dims = ent.getValue().getAsJsonArray();
+			if (dims.size() == 0) {
+				// blank list, accept all overworld
+				db.setAcceptAllOverworld();
+			} else {
+				dims.forEach(item -> {
+					if (item.isJsonPrimitive()
+							&& item.getAsJsonPrimitive().isNumber()) {
+						db.addWhitelistEntry(item.getAsInt());
+					}
+				});
+			}
+		} else if (ent.getValue().isJsonObject()) {
+			loadDimensions(db, ent.getValue().getAsJsonObject());
+		} else {
+			throw new BadValueException(Constants.ConfigNames.DIMENSIONS,
+					ent.getValue().toString());
+		}
 	}
 
 	private static List<IBlockState> loadBlock(final JsonObject json) {
@@ -320,52 +343,58 @@ public class OreSpawnReader {
 		return Arrays.asList(block.getDefaultState());
 	}
 
+	private static final String WHITELIST_ERROR = "Skipping entry (%s) in whitelist, not a proper value";
+	private static final String BLACKLIST_ERROR = "Skipping entry (%s) in blacklist, not a proper value";
 	private static void loadBiomes(final IBiomeBuilder bb, final JsonObject biomeList) {
 		boolean emptyWhitelist = false;
-
+		
 		if (biomeList.has(Constants.ConfigNames.WHITELIST)
 				&& biomeList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray().size() > 0) {
-			for (final JsonElement elem : biomeList.get(Constants.ConfigNames.WHITELIST)
-					.getAsJsonArray()) {
-				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
-					final String xN = elem.getAsString();
-					if (xN.contains(":")) {
-						// not a BiomeDictionary entry (we hope)
-						bb.addWhitelistEntry(xN);
-					} else {
-						BiomeDictionary.getBiomes(BiomeDictionary.Type.getType(xN)).stream()
-								.forEach(bb::addWhitelistEntry);
-					}
-				} else {
-					OreSpawn.LOGGER.error("Skipping entry (%s) in whitelist, not a proper value",
-							elem.getAsString());
-				}
-			}
+			loadBiomeWhitelist(bb, biomeList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray());
 		} else {
 			emptyWhitelist = true;
 		}
 
 		if (biomeList.has(Constants.ConfigNames.BLACKLIST)
 				&& biomeList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray().size() > 0) {
-			for (final JsonElement elem : biomeList.get(Constants.ConfigNames.BLACKLIST)
-					.getAsJsonArray()) {
-				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
-					final String xN = elem.getAsString();
-					if (xN.contains(":")) {
-						// not a BiomeDictionary entry (we hope)
-						bb.addBlacklistEntry(xN);
-					} else {
-						BiomeDictionary.getBiomes(BiomeDictionary.Type.getType(xN)).stream()
-								.forEach(bb::addBlacklistEntry);
-					}
-				} else {
-					OreSpawn.LOGGER.error("Skipping entry (%s) in blacklist, not a proper value",
-							elem.getAsString());
-				}
-			}
+			loadBiomeBlacklist(bb, biomeList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray());
 		} else if (emptyWhitelist) {
 			// empty whitelist and blacklist - accept everything
 			bb.setAcceptAll();
+		}
+	}
+
+	private static void loadBiomeBlacklist(IBiomeBuilder bb, JsonArray blacklist) {
+		for (final JsonElement elem : blacklist) {
+			if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
+				final String xN = elem.getAsString();
+				if (xN.contains(":")) {
+					// not a BiomeDictionary entry (we hope)
+					bb.addBlacklistEntry(xN);
+				} else {
+					BiomeDictionary.getBiomes(BiomeDictionary.Type.getType(xN)).stream()
+							.forEach(bb::addBlacklistEntry);
+				}
+			} else {
+				OreSpawn.LOGGER.error(BLACKLIST_ERROR, elem.getAsString());
+			}
+		}
+	}
+
+	private static void loadBiomeWhitelist(IBiomeBuilder bb, JsonArray whitelist) {
+		for (final JsonElement elem : whitelist) {
+			if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isString()) {
+				final String xN = elem.getAsString();
+				if (xN.contains(":")) {
+					// not a BiomeDictionary entry (we hope)
+					bb.addWhitelistEntry(xN);
+				} else {
+					BiomeDictionary.getBiomes(BiomeDictionary.Type.getType(xN)).stream()
+							.forEach(bb::addWhitelistEntry);
+				}
+			} else {
+				OreSpawn.LOGGER.error(WHITELIST_ERROR, elem.getAsString());
+			}
 		}
 	}
 
@@ -374,32 +403,36 @@ public class OreSpawnReader {
 
 		if (dimensionList.has(Constants.ConfigNames.WHITELIST)
 				&& dimensionList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray().size() > 0) {
-			for (final JsonElement elem : dimensionList.get(Constants.ConfigNames.WHITELIST)
-					.getAsJsonArray()) {
-				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
-					db.addWhitelistEntry(elem.getAsInt());
-				} else {
-					OreSpawn.LOGGER.error("Skipping entry (%s) in whitelist, not a proper value",
-							elem.getAsString());
-				}
-			}
+			loadDimensionWhitelist(db, dimensionList.get(Constants.ConfigNames.WHITELIST).getAsJsonArray());
 		} else {
 			emptyWhitelist = true;
 		}
 
 		if (dimensionList.has(Constants.ConfigNames.BLACKLIST)
 				&& dimensionList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray().size() > 0) {
-			for (final JsonElement elem : dimensionList.get(Constants.ConfigNames.BLACKLIST)
-					.getAsJsonArray()) {
-				if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
-					db.addBlacklistEntry(elem.getAsInt());
-				} else {
-					OreSpawn.LOGGER.error("Skipping entry (%s) in whitelist, not a proper value",
-							elem.getAsString());
-				}
-			}
+			loadDimensionBlacklist(db, dimensionList.get(Constants.ConfigNames.BLACKLIST).getAsJsonArray());
 		} else if (emptyWhitelist) {
 			db.setAcceptAllOverworld();
+		}
+	}
+
+	private static void loadDimensionBlacklist(IDimensionBuilder db, JsonArray blacklist) {
+		for (final JsonElement elem : blacklist) {
+			if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
+				db.addBlacklistEntry(elem.getAsInt());
+			} else {
+				OreSpawn.LOGGER.error(WHITELIST_ERROR, elem.getAsString());
+			}
+		}
+	}
+
+	private static void loadDimensionWhitelist(IDimensionBuilder db, JsonArray whitelist) {
+		for (final JsonElement elem : whitelist) {
+			if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
+				db.addWhitelistEntry(elem.getAsInt());
+			} else {
+				OreSpawn.LOGGER.error(BLACKLIST_ERROR, elem.getAsString());
+			}
 		}
 	}
 }

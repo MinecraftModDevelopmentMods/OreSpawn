@@ -23,9 +23,9 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider,
-			final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+	public void generate(final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos chunkPos) {
+		final ChunkPos pos = chunkPos;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -80,7 +80,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 
 	}
 
-	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos, final int quantity) {
+	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos,
+			final int quantity) {
 		int count = quantity;
 		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
 		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
@@ -105,8 +106,8 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
 	}
 
-	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world, final ISpawnEntry spawnData,
-			final BlockPos pos) {
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world,
+			final ISpawnEntry spawnData, final BlockPos pos) {
 		final int count = quantity;
 		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		final int rSqr = (int) (radius * radius);

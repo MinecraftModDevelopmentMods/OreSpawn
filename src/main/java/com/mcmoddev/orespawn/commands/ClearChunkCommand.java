@@ -51,8 +51,8 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	@Override
-	public void execute(final MinecraftServer server, final ICommandSender sender, final String[] args)
-			throws CommandException {
+	public void execute(final MinecraftServer server, final ICommandSender sender,
+			final String[] args) throws CommandException {
 		if (!(sender instanceof EntityPlayer)) {
 			throw new CommandException("Only players can use this command");
 		}
@@ -62,15 +62,14 @@ public class ClearChunkCommand extends CommandBase {
 		final ChunkPos chunkPos = chunk.getPos();
 		final List<IBlockState> blocks;
 
-		final boolean flagClassic = args.length > 0 ? args[0].toLowerCase().equalsIgnoreCase("classic")
-				: false;
+		final boolean flagClassic = args.length > 0 && args[0].toLowerCase().equalsIgnoreCase("classic");
 
 		final List<String> blockNames = new LinkedList<>();
 		getBlocks(args, blockNames);
 
 		blocks = blockNames.stream()
 				.map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
-				.map(block -> block.getDefaultState()).collect(Collectors.toList());
+				.map(Block::getDefaultState).collect(Collectors.toList());
 
 		blocks.addAll(OreSpawn.API
 				.getDimensionDefaultReplacements(player.getEntityWorld().provider.getDimension())
@@ -80,7 +79,7 @@ public class ClearChunkCommand extends CommandBase {
 						"minecraft:sandstone", "minecraft:red_sandstone")
 				.stream()
 				.map(blockName -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)))
-				.map(bl -> bl.getDefaultState()).collect(Collectors.toList());
+				.map(Block::getDefaultState).collect(Collectors.toList());
 
 		clearBlocks(chunkPos, blocks, overburden, flagClassic, player);
 
@@ -89,7 +88,8 @@ public class ClearChunkCommand extends CommandBase {
 	}
 
 	private void clearBlocks(final ChunkPos chunkPos, final List<IBlockState> blocks,
-			final List<IBlockState> overburden, final boolean flagClassic, final EntityPlayer player) {
+			final List<IBlockState> overburden, final boolean flagClassic,
+			final EntityPlayer player) {
 		for (int x = chunkPos.getXStart(); x <= chunkPos.getXEnd(); x++) {
 			for (int y = 256; y >= 0; y--) {
 				for (int z = chunkPos.getZStart(); z <= chunkPos.getZEnd(); z++) {
@@ -112,8 +112,9 @@ public class ClearChunkCommand extends CommandBase {
 		}
 	}
 
-	private void removeIfBlocks(final EntityPlayer player, final BlockPos pos, final IBlockState block,
-			final List<IBlockState> blocks, final List<IBlockState> overburden, final boolean flagClassic) {
+	private void removeIfBlocks(final EntityPlayer player, final BlockPos pos,
+			final IBlockState block, final List<IBlockState> blocks,
+			final List<IBlockState> overburden, final boolean flagClassic) {
 		if (blocks.contains(block)
 				|| ((pos.getY() >= 64 && overburden.contains(block)) && flagClassic)) {
 			player.getEntityWorld().setBlockToAir(pos);

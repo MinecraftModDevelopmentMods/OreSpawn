@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn.worldgen;
 import java.util.Random;
 
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
 
@@ -20,10 +21,10 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 
 		final int thisDim = world.provider.getDimension();
 
-		OreSpawn.API.getSpawns(thisDim).stream().filter(spawn -> spawn.isEnabled())
+		OreSpawn.API.getSpawns(thisDim).stream().filter(ISpawnEntry::isEnabled)
 				.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY)
 						|| (sb.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
 				.forEach(spawn -> spawn.generate(random, world, chunkGenerator, chunkProvider,
-						new ChunkPos(chunkX, chunkZ)));
+							new ChunkPos(chunkX, chunkZ)));
 	}
 }

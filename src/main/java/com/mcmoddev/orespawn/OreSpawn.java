@@ -38,7 +38,11 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
  * @author DShadowWolf &lt;dshadowwolf@gmail.com&gt;
  */
 
-@Mod(modid = Constants.MODID, name = Constants.NAME, version = Constants.VERSION, acceptedMinecraftVersions = "[1.12,)", certificateFingerprint = "@FINGERPRINT@")
+@Mod(modid = Constants.MODID,
+		name = Constants.NAME,
+		version = Constants.VERSION,
+		acceptedMinecraftVersions = "[1.12,)",
+		certificateFingerprint = "@FINGERPRINT@")
 
 public class OreSpawn {
 
