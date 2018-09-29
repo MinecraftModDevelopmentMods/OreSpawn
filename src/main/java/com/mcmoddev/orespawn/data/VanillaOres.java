@@ -1,7 +1,6 @@
 package com.mcmoddev.orespawn.data;
 
-
-import com.mcmoddev.orespawn.api.os3.*;
+import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.plugin.IOreSpawnPlugin;
 import com.mcmoddev.orespawn.api.plugin.OreSpawnPlugin;
 
@@ -9,7 +8,7 @@ import com.mcmoddev.orespawn.api.plugin.OreSpawnPlugin;
 public class VanillaOres implements IOreSpawnPlugin {
 
 	@Override
-	public void register(OS3API apiInterface) {
+	public void register(final OS3API apiInterface) {
 		// nothing for us to do - all of our ores are in the
 		// jar and the code handles that
 	}

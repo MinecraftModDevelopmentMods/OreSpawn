@@ -9,6 +9,7 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target(TYPE)
 public @interface OreSpawnPlugin {
+
 	// the Mod this is for - will be used for
 	// generating the name of the json the config
 	// will get saved to and should also be the
@@ -19,5 +20,5 @@ public @interface OreSpawnPlugin {
 	// resource location segment to look in
 	// for registered config files
 
-String resourcePath() default "orespawn";
+	String resourcePath() default "orespawn";
 }

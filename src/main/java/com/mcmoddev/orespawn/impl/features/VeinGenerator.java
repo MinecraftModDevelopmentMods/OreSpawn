@@ -1,18 +1,21 @@
 package com.mcmoddev.orespawn.impl.features;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.api.BiomeLocation;
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.FeatureBase;
-import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IFeature;
+import com.mcmoddev.orespawn.api.os3.ISpawnEntry;
 import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.util.OreList;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.WeightedRandom;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
@@ -22,7 +25,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 
 public class VeinGenerator extends FeatureBase implements IFeature {
 
-	private VeinGenerator(Random rand) {
+	private VeinGenerator(final Random rand) {
 		super(rand);
 	}
 
@@ -31,36 +34,33 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 	}
 
 	@Override
-	public void generate(World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider,
-	    GeneratorParameters parameters) {
-		ChunkPos pos = parameters.getChunk();
-		List<IBlockState> blockReplace = new LinkedList<>();
-		blockReplace.addAll(parameters.getReplacements());
-		JsonObject params = parameters.getParameters();
-		OreList ores = parameters.getOres();
-		BiomeLocation biomes = parameters.getBiomes();
+	public void generate(final World world, final IChunkGenerator chunkGenerator,
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
+		final ChunkPos pos = _pos;
+		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
-		int chunkX = pos.x;
-		int chunkZ = pos.z;
+		final int chunkX = pos.x;
+		final int chunkZ = pos.z;
 
-		runCache(chunkX, chunkZ, world, blockReplace);
+		runCache(chunkX, chunkZ, world, spawnData);
 		mergeDefaults(params, getDefaultParameters());
 
 		// now to ore spawn
 
-		int blockX = chunkX * 16 + 8;
-		int blockZ = chunkZ * 16 + 8;
+		final int blockX = chunkX * 16 + 8;
+		final int blockZ = chunkZ * 16 + 8;
 
-		int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
-		int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
-		int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
-		int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
-		int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
-		int wander = params.get(Constants.FormatBits.WANDER).getAsInt();
-		int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
-		int triesMin   = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
-		int triesMax   = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
+		final int minY = params.get(Constants.FormatBits.MIN_HEIGHT).getAsInt();
+		final int maxY = params.get(Constants.FormatBits.MAX_HEIGHT).getAsInt();
+		final int vari = params.get(Constants.FormatBits.VARIATION).getAsInt();
+		final int freq = params.get(Constants.FormatBits.FREQUENCY).getAsInt();
+		final int length = params.get(Constants.FormatBits.LENGTH).getAsInt();
+		final EnumFacing startingFace = getFaceFromString(
+				params.get(Constants.FormatBits.STARTINGFACE).getAsString());
+		final int nodeSize = params.get(Constants.FormatBits.NODE_SIZE).getAsInt();
+		final int triesMin = params.get(Constants.FormatBits.ATTEMPTS_MIN).getAsInt();
+		final int triesMax = params.get(Constants.FormatBits.ATTEMPTS_MAX).getAsInt();
 
 		int tries;
 
@@ -73,9 +73,9 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		// we have an offset into the chunk but actually need something more
 		while (tries > 0) {
 			if (this.random.nextInt(100) <= freq) {
-				int x = blockX + random.nextInt(16);
-				int y = random.nextInt(maxY - minY) + minY;
-				int z = blockZ + random.nextInt(16);
+				final int x = blockX + random.nextInt(16);
+				final int y = random.nextInt(maxY - minY) + minY;
+				final int z = blockZ + random.nextInt(16);
 
 				final int r;
 
@@ -85,178 +85,484 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 					r = 0;
 				}
 
-				FunctionParameterWrapper fp = new FunctionParameterWrapper();
-				fp.setBlockPos(new BlockPos(x, y, z));
-				fp.setWorld(world);
-				fp.setReplacements(blockReplace);
-				fp.setBiomes(biomes);
-				fp.setOres(ores);
-
-				spawnVein(length + r, nodeSize, wander, fp);
+				spawnVein(length + r, nodeSize, startingFace, new BlockPos(x, y, z), spawnData,
+						world);
 			}
 
 			tries--;
 		}
 	}
 
-	// for proper use we need to map these in on the selections later
-	// probability of any given vertex-point of a face being selected, each
-	// row of this is a row on the face, each float is a point
-	private float[][] rowMap = new float[][] {
-		{ 0.5f, 0.75f, 0.5f },
-		{ 0.5f, 1.00f, 0.5f },
-		{ 0.5f, 0.75f, 0.5f }
-	};
-
-	private float[] colMap = new float[] {
-	    0.75f, 1.00f, 0.75f
-	};
-
-	private int triangularDistributionNoRandom(double current) {
-		if (current < 0.5f) {
-			return (int) Math.sqrt(current * 2);
-		} else {
-			return (int)(2 - Math.sqrt((1 - current) * 2));
+	private EnumFacing getFaceFromString(final String direction) {
+		final String work = direction.toLowerCase();
+		switch (work) {
+			case "north":
+				return EnumFacing.NORTH;
+			case "south":
+				return EnumFacing.SOUTH;
+			case "east":
+				return EnumFacing.EAST;
+			case "west":
+				return EnumFacing.WEST;
+			case "down":
+				return EnumFacing.DOWN;
+			case "up":
+				return EnumFacing.UP;
+			case "random":
+				return EnumFacing.VALUES[this.random.nextInt(EnumFacing.VALUES.length)];
+			case "vertical":
+				return this.random.nextBoolean() ? EnumFacing.UP : EnumFacing.DOWN;
+			case "horizontal":
+				return EnumFacing.HORIZONTALS[this.random.nextInt(EnumFacing.HORIZONTALS.length)];
+			default:
+				OreSpawn.LOGGER.error(
+						"Invalid value %s found in parameters for vein spawn, returning \"north\"",
+						direction);
+				return EnumFacing.NORTH;
 		}
 	}
 
-	private enum EnumFace {
-		UP,
-		FRONT,
-		DOWN,
-		BACK,
-		LEFT,
-		RIGHT;
+	private enum EnumSquare {
+		TOP_EDGE(0), LEFT_EDGE(1), BOTTOM_EDGE(2), RIGHT_EDGE(3), LEFT_TOP(4), LEFT_BOTTOM(5),
+		RIGHT_TOP(6), RIGHT_BOTTOM(7), FACE(8);
 
-		public static EnumFace getRandomFace(Random random) {
-			return values()[random.nextInt(values().length)];
+		private int index;
+
+		private EnumSquare(int index) {
+			this.index = index;
 		}
 
-	}
-
-	private int[][][][] facePosMap = new int[][][][] {
-		{
-			// top face
-			//   x   y   z
-			{ { -1,  1,  1 }, {  0,  1,  1 }, {  1,  1,  1 } },  // line vertex 1 to 2
-			{ { -1,  1,  0 }, {  0,  1,  0 }, {  1,  0,  1 } },  // center row, no line
-			{ { -1,  1, -1 }, {  0,  1, -1 }, {  1,  1, -1 } }   // line vertex 3 to 4
-		},
-		{
-			// front face
-			//   x   y   z
-			{ { -1,  1,  1 }, {  0,  1,  1 }, {  1,  1,  1 } },  // line vertex 1 to 2
-			{ { -1,  0,  1 }, {  0,  0,  1 }, {  1,  0,  1 } },  // center row, no line
-			{ { -1, -1,  1 }, {  0, -1,  1 }, {  1, -1,  1 } }   // line vertex 7 to 8
-		},
-		{
-			// down face
-			//   x   y   z
-			{ { -1, -1,  1 }, {  0, -1,  1 }, {  1, -1,  1 } },  // line vertex 7 to 8
-			{ { -1, -1,  0 }, {  0, -1,  0 }, {  1, -1,  0 } },  // center, no line
-			{ { -1, -1, -1 }, {  0, -1, -1 }, {  1, -1, -1 } }   // line vertex 6 to 5
-		},
-		{
-			// back face
-			//   x   y   z
-			{ { -1,  1, -1 }, {  0,  1, -1 }, {  1,  1, -1 } },  // line vertex 3 to 4
-			{ { -1,  0, -1 }, {  0, -1,  0 }, {  1,  0, -1 } },  // center, no line
-			{ { -1, -1, -1 }, {  0, -1, -1 }, {  1, -1, -1 } }   // line vertex 6 to 5
-		},
-		{
-			// left face
-			//   x   y   z
-			{ {  1,  1,  1 }, {  1,  1,  0 }, {  1,  1, -1 } },  // line vertex 2 to 3
-			{ {  1,  0,  1 }, {  1,  0,  0 }, {  1,  0, -1 } },  // line, vertex 2 to 8
-			{ {  1, -1,  1 }, {  1, -1,  0 }, {  1, -1, -1 } }   // line, vertex 3 to 5
-		},
-		{
-			// right face
-			//   x   y   z
-			{ { -1,  1,  1 }, { -1,  1,  0 }, { -1,  1, -1 } },  // line vertex 2 to 3
-			{ { -1,  0,  1 }, { -1,  0,  0 }, { -1,  0, -1 } },  // line, vertex 2 to 8
-			{ { -1, -1,  1 }, { -1, -1,  0 }, { -1, -1, -1 } }   // line, vertex 3 to 5
+		final public int getIndex() {
+			return this.index;
 		}
-	};
-
-	private BlockPos adjustPos(BlockPos pos, int row, int col, EnumFace face) {
-		int faceOrd = face.ordinal();
-		int[] adjust = facePosMap[faceOrd][row][col];
-		return pos.add(adjust[0], adjust[1], adjust[2]);
 	}
 
-	private void spawnVein(int length, int nodeSize, int wander, FunctionParameterWrapper params) {
-		// passed in POS is our start - we start with a weighting favoring straight directions
-		// and three-quarters that to the edges
-		// and one-half to the corners
+	private void spawnVein(final int veinLength, final int nodeSize, final EnumFacing startingFace,
+			final BlockPos blockPos, final ISpawnEntry spawnData, final World world) {
+		EnumFacing face = startingFace;
+		EnumSquare square = EnumSquare.values()[this.random.nextInt(EnumSquare.values().length)];
+		BlockPos workingPos = new BlockPos(blockPos);
 
-		// generate a node here
-		spawnOre(params, nodeSize);
-		// select a direction, decrement length, repeat
-		float curRow = 1.00f;
-		float curCol = 1.00f;
-		int colAdj = 2;
-		int rowAdj = 2;
-		EnumFace faceToUse = EnumFace.getRandomFace(random);
-		int l = length;
-		BlockPos workPos = new BlockPos(params.getBlockPos());
+		if (!spawnData.getMatcher().test(world.getBlockState(blockPos))) {
+			return;
+		}
 
-		while (l > 0) {
-			workPos = adjustPos(workPos, colAdj, rowAdj, faceToUse);
+		// build vein
+		final List<BlockPos> points = Lists.newLinkedList();
+		for (; points.size() < veinLength;) {
+			points.add(workingPos);
+			List<EnumFacing> nextFaces = getNextFaceSet(square, face);
 
-			l--;
-
-			// allow for the "wandering vein" parameter
-			if (random.nextInt(100) <= wander) {
-				colAdj = triangularDistributionNoRandom(curCol);
-				curCol += colMap[colAdj];
-
-				while (curCol > 1) {
-					curCol /= 10;
+			if (!nextFaces.isEmpty()) {
+				BlockPos temp = workingPos;
+				for (EnumFacing f : nextFaces) {
+					temp = temp.offset(f, 1);
 				}
-
-				rowAdj = triangularDistributionNoRandom(curCol);
-				curRow += rowMap[colAdj][rowAdj];
-
-				while (curRow > 1) {
-					curRow /= 10;
-				}
-
-				FunctionParameterWrapper np = new FunctionParameterWrapper(params);
-				np.setBlockPos(workPos);
-				spawnOre(np, nodeSize);
-
-				// when nodes are small, the veins get badly broken if we do face wandering
-				if (nodeSize > 2) {
-					faceToUse = EnumFace.getRandomFace(random);
-				}
+				nextFaces.clear();
+				points.add(temp);
+				workingPos = temp;
 			}
+
+			face = getNextStartingFace(square, face);
+			square = getNextSquare();
+		}
+
+		spawnOre(world, spawnData, blockPos, nodeSize);
+		for (final BlockPos pos : points) {
+			spawnOre(world, spawnData, pos, nodeSize);
 		}
 	}
 
-	private void spawnOre(FunctionParameterWrapper params, int nodeSize) {
-		int count = nodeSize;
-		int lutType = (count < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
-		int[] lut = (count < 8) ? offsetIndexRef_small : offsetIndexRef;
-		Vec3i[] offs = new Vec3i[lutType];
+	private class SquareWeight extends WeightedRandom.Item {
 
-		System.arraycopy((count < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
+		public EnumSquare item;
 
-		int[] scrambledLUT = new int[lutType];
-		System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
-		scramble(scrambledLUT, this.random);
-		int dimension = params.getWorld().provider.getDimension();
+		public SquareWeight(EnumSquare item, int weight) {
+			super(weight);
+			this.item = item;
+		}
+	}
 
-		while (count > 0) {
-			spawn(params.getOres().getRandomOre(random).getOre(), params.getWorld(),
-			    params.getBlockPos().add(offs[scrambledLUT[--count]]), dimension, true,
-			    params.getReplacements(), params.getBiomes());
+	private EnumSquare getNextSquare() {
+		float[] weights = new float[] {
+				0.12f, 0.12f, 0.12f, 0.12f, 0.0475f, 0.0475f, 0.0475f, 0.0475f, 0.33f
+		};
+		List<SquareWeight> items = new ArrayList<>();
+
+		for (EnumSquare sq : EnumSquare.values()) {
+			items.add(new SquareWeight(sq, (int) (weights[sq.getIndex()] * 10000)));
+		}
+
+		return ((SquareWeight) WeightedRandom.getRandomItem(this.random, items)).item;
+	}
+
+	private static final EnumFacing[][][] congruentSquares = new EnumFacing[][][] {
+			// Index 0 - DOWN
+			new EnumFacing[][] {
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.NORTH, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 1 - UP
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.NORTH, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.SOUTH, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 2 - NORTH
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.WEST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.WEST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.EAST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.EAST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 3 - SOUTH
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.EAST, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.WEST, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.EAST
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.EAST
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.WEST
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.WEST
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 4 - WEST
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.SOUTH
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.SOUTH
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.NORTH
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.NORTH
+					}      // RIGHT_TOP
+			}, new EnumFacing[][] {
+					// Index 5 - EAST
+					new EnumFacing[] {
+							EnumFacing.UP, null
+					},     // TOP_EDGE
+					new EnumFacing[] {
+							EnumFacing.NORTH, null
+					},     // LEFT_EDGE
+					new EnumFacing[] {
+							EnumFacing.DOWN, null
+					},     // BOTTOM_EDGE
+					new EnumFacing[] {
+							EnumFacing.SOUTH, null
+					},     // RIGHT_EDGE
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.NORTH
+					},     // LEFT_TOP
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.NORTH
+					},     // LEFT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.DOWN, EnumFacing.SOUTH
+					},     // RIGHT_BOTTOM
+					new EnumFacing[] {
+							EnumFacing.UP, EnumFacing.SOUTH
+					}      // RIGHT_TOP
+			}
+	};
+
+	private EnumFacing getNextStartingFace(EnumSquare square, EnumFacing face) {
+
+		if ((this.random.nextBoolean()) || (square == EnumSquare.FACE)) {
+			return face;
+		}
+
+		EnumFacing[] possibles = Arrays.asList(congruentSquares[face.getIndex()][square.getIndex()])
+				.stream().filter(it -> it != null).toArray(EnumFacing[]::new);
+
+		if (possibles.length > 1) {
+			return possibles[this.random.nextInt(possibles.length)];
+		}
+		return possibles[0];
+	}
+
+	private List<EnumFacing> getNextFaceSet(EnumSquare square, EnumFacing face) {
+		List<EnumFacing> rv = new ArrayList<>();
+
+		rv.add(face);
+
+		switch (square) {
+			case BOTTOM_EDGE:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(EnumFacing.DOWN);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.NORTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			case TOP_EDGE:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(EnumFacing.UP);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.SOUTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			case LEFT_EDGE:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateYCCW());
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.EAST);
+						break;
+					default:
+						break;
+				}
+				break;
+			case RIGHT_EDGE:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateY());
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.WEST);
+						break;
+					default:
+						break;
+				}
+				break;
+			case FACE:
+				break;
+			case LEFT_TOP:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateYCCW());
+						rv.add(EnumFacing.UP);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.EAST);
+						rv.add(EnumFacing.SOUTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			case LEFT_BOTTOM:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateYCCW());
+						rv.add(EnumFacing.DOWN);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.EAST);
+						rv.add(EnumFacing.NORTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			case RIGHT_TOP:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateY());
+						rv.add(EnumFacing.UP);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.EAST);
+						rv.add(EnumFacing.SOUTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			case RIGHT_BOTTOM:
+				switch (face) {
+					case EAST:
+					case WEST:
+					case NORTH:
+					case SOUTH:
+						rv.add(face.rotateY());
+						rv.add(EnumFacing.DOWN);
+						break;
+					case UP:
+					case DOWN:
+						rv.add(EnumFacing.EAST);
+						rv.add(EnumFacing.NORTH);
+						break;
+					default:
+						break;
+				}
+				break;
+			default:
+				break;
+		}
+
+		return rv;
+	}
+
+	private void spawnOre(final World world, final ISpawnEntry spawnData, final BlockPos pos,
+			final int quantity) {
+		int count = quantity;
+		final int lutType = (quantity < 8) ? offsetIndexRef_small.length : offsetIndexRef.length;
+		final int[] lut = (quantity < 8) ? offsetIndexRef_small : offsetIndexRef;
+		final Vec3i[] offs = new Vec3i[lutType];
+
+		System.arraycopy((quantity < 8) ? offsets_small : offsets, 0, offs, 0, lutType);
+
+		if (quantity < 27) {
+			final int[] scrambledLUT = new int[lutType];
+			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
+			scramble(scrambledLUT, this.random);
+
+			while (count > 0) {
+				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				final BlockPos target = pos.add(offs[scrambledLUT[--count]]);
+				spawn(oreBlock, world, target, world.provider.getDimension(), true, spawnData);
+			}
+
+			return;
+		}
+
+		doSpawnFill(this.random.nextBoolean(), count, world, spawnData, pos);
+	}
+
+	private void doSpawnFill(final boolean nextBoolean, final int quantity, final World world,
+			final ISpawnEntry spawnData, final BlockPos pos) {
+		final int count = quantity;
+		final double radius = Math.pow(quantity, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
+		final int rSqr = (int) (radius * radius);
+		if (nextBoolean) {
+			spawnMungeNE(world, pos, rSqr, radius, spawnData, count);
+		} else {
+			spawnMungeSW(world, pos, rSqr, radius, spawnData, count);
 		}
 	}
 
 	@Override
 	public JsonObject getDefaultParameters() {
-		JsonObject defParams = new JsonObject();
+		final JsonObject defParams = new JsonObject();
 		defParams.addProperty(Constants.FormatBits.MIN_HEIGHT, 0);
 		defParams.addProperty(Constants.FormatBits.MAX_HEIGHT, 256);
 		defParams.addProperty(Constants.FormatBits.VARIATION, 16);
@@ -264,15 +570,13 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MAX, 8);
 		defParams.addProperty(Constants.FormatBits.ATTEMPTS_MIN, 4);
 		defParams.addProperty(Constants.FormatBits.LENGTH, 16);
-		defParams.addProperty(Constants.FormatBits.WANDER, 75);
+		defParams.addProperty(Constants.FormatBits.STARTINGFACE, "north");
 		defParams.addProperty(Constants.FormatBits.NODE_SIZE, 3);
 		return defParams;
 	}
 
-
 	@Override
-	public void setRandom(Random rand) {
+	public void setRandom(final Random rand) {
 		this.random = rand;
 	}
-
 }
