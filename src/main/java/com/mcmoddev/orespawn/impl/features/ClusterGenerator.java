@@ -139,6 +139,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 
 			while (count > 0) {
 				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
 
 				if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
 						spawnData)) {

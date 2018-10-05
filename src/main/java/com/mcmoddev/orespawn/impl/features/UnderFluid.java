@@ -162,6 +162,7 @@ public class UnderFluid extends FeatureBase implements IFeature {
 
 			while (count > 0) {
 				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
 				final BlockPos target = pos.add(offs[scrambledLUT[--count]]);
 				spawn(oreBlock, world, target, world.provider.getDimension(), true, spawnData);
 			}
