@@ -239,6 +239,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 				for (int dz = (int) (radius); dz >= (int) (-1 * radius); dz--) {
 					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
 						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
 						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
 								world.provider.getDimension(), spawnData);
 						quantity--;
@@ -262,6 +263,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 				for (int dx = (int) (-1 * radius); dx < radius; dx++) {
 					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
 						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
 						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
 								world.provider.getDimension(), spawnData);
 						quantity--;

@@ -237,6 +237,7 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		if (getABC(dx, dy, dz) <= rSqr) {
 			final BlockPos p = fixMungeOffset(new Vec3i(dx, dy, dz), loc, heightRange, pos);
 			final IBlockState bl = spawnData.getBlocks().getRandomBlock(this.random);
+			if (bl.getBlock().equals(net.minecraft.init.Blocks.AIR)) return -1;
 			return spawn(bl, world, p, world.provider.getDimension(), true, spawnData) ? 1 : 0;
 		}
 

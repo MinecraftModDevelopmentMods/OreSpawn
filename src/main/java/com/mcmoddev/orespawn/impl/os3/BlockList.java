@@ -29,6 +29,9 @@ public class BlockList implements IBlockList {
 	public IBlockState getRandomBlock(final Random rand) {
 		if (this.workingList.isEmpty()) {
 			this.startNewSpawn();
+			if (this.workingList.isEmpty()) {
+				return net.minecraft.init.Blocks.AIR.getDefaultState();
+			}
 		}
 
 		final int spot = rand.nextInt(this.workingList.size());
