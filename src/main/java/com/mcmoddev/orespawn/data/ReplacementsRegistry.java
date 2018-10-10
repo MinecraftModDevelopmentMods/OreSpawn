@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -90,7 +91,7 @@ public class ReplacementsRegistry {
 
 	public IReplacementEntry getReplacement(final String name) {
 		final ResourceLocation act = new ResourceLocation(
-				name.contains(":") ? name : String.format("orespawn:%s", name));
+				name.contains(":") ? name : String.format(Locale.ENGLISH, "orespawn:%s", name));
 
 		if (registry.containsKey(act)) {
 			return registry.getValue(act);
@@ -220,14 +221,14 @@ public class ReplacementsRegistry {
 					outs.add(ent.getKey().toString(), entry);
 				});
 		final Path p = Paths.get("config", "orespawn3", "sysconfig",
-				String.format("replacements-%s.json", modName));
+				String.format(Locale.ENGLISH, "replacements-%s.json", modName));
 		try (final BufferedWriter w = Files.newBufferedWriter(p)) {
 			final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			final String ov = gson.toJson(outs);
 			w.write(ov);
 		} catch (final IOException e) {
 			CrashReport report = CrashReport.makeCrashReport(e, String
-					.format("Failed writing replacements file  %s", p.toAbsolutePath().toString()));
+					.format(Locale.ENGLISH, "Failed writing replacements file  %s", p.toAbsolutePath().toString()));
 			report.getCategory().addCrashSection(ORE_SPAWN_VERSION, Constants.VERSION);
 			OreSpawn.LOGGER.info(report.getCompleteReport());
 		}

@@ -8,6 +8,7 @@ import java.nio.file.PathMatcher;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -196,7 +197,7 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public boolean featureExists(final String featureName) {
 		return this.featureExists(new ResourceLocation(featureName.contains(":") ? featureName
-				: String.format("orespawn:%s", featureName)));
+				: String.format(Locale.ENGLISH, "orespawn:%s", featureName)));
 	}
 
 	@Override
@@ -234,7 +235,7 @@ public class OS3APIImpl implements OS3API {
 	@Override
 	public boolean hasReplacement(final String name) {
 		return this.hasReplacement(new ResourceLocation(
-				name.contains(":") ? name : String.format("orespawn:%s", name)));
+				name.contains(":") ? name : String.format(Locale.ENGLISH, "orespawn:%s", name)));
 	}
 
 	@Override

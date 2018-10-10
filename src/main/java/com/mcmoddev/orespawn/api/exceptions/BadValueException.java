@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.api.exceptions;
 
+import java.util.Locale;
+
 public class BadValueException extends Exception {
 
 	private static final long serialVersionUID = 1143938140559149506L;
@@ -15,7 +17,7 @@ public class BadValueException extends Exception {
 	@Override
 	public String getMessage() {
 		final String baseMessage = super.getMessage();
-		return String.format("Unknown value %s for key %s%n%s", this.keyValue, this.keyName,
+		return String.format(Locale.ENGLISH, "Unknown value %s for key %s%n%s", this.keyValue, this.keyName,
 				baseMessage);
 	}
 }

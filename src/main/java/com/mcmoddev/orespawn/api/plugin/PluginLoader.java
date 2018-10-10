@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -86,7 +87,7 @@ public enum PluginLoader {
 			return;
 		}
 
-		final String base = String.format("assets/%s/%s", pd.modId, pd.resourcePath);
+		final String base = String.format(Locale.ENGLISH, "assets/%s/%s", pd.modId, pd.resourcePath);
 		final URL resURL = getClass().getClassLoader().getResource(base);
 
 		if (resURL == null) {
@@ -101,7 +102,7 @@ public enum PluginLoader {
 			uri = resURL.toURI();
 		} catch (URISyntaxException ex) {
 			CrashReport report = CrashReport.makeCrashReport(ex,
-					String.format("Failed to get URI for %s",
+					String.format(Locale.ENGLISH, "Failed to get URI for %s",
 							(new ResourceLocation(pd.modId, pd.resourcePath)).toString()));
 			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 			return;
@@ -113,7 +114,7 @@ public enum PluginLoader {
 				copyout(fileSystem.getPath(base), pd.modId);
 			} catch (IOException exc) {
 				CrashReport report = CrashReport.makeCrashReport(exc, String.format(
-						"Failed in getting FileSystem handler set up for %s", uri.getPath()));
+						Locale.ENGLISH, "Failed in getting FileSystem handler set up for %s", uri.getPath()));
 				report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 				OreSpawn.LOGGER.info(report.getCompleteReport());
 			}
@@ -137,14 +138,14 @@ public enum PluginLoader {
 					if ("_features".equals(FilenameUtils.getBaseName(name))) {
 						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
 								Constants.FileBits.SYSCONF,
-								String.format("features-%s.json", modId));
+								String.format(Locale.ENGLISH, "features-%s.json", modId));
 					} else if ("_replacements".equals(FilenameUtils.getBaseName(name))) {
 						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
 								Constants.FileBits.SYSCONF,
-								String.format("replacements-%s.json", modId));
+								String.format(Locale.ENGLISH, "replacements-%s.json", modId));
 					} else {
 						target = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS3,
-								String.format("%s.json", modId));
+								String.format(Locale.ENGLISH, "%s.json", modId));
 					}
 
 					if (!target.toFile().exists()) {
@@ -156,7 +157,7 @@ public enum PluginLoader {
 			}
 		} catch (IOException exc) {
 			CrashReport report = CrashReport.makeCrashReport(exc, String.format(
-					"Faulted while iterating %s for config files or copying them out", myPath));
+					Locale.ENGLISH, "Faulted while iterating %s for config files or copying them out", myPath));
 			report.getCategory().addCrashSection(Constants.CRASH_SECTION, Constants.VERSION);
 			OreSpawn.LOGGER.error(report.getCompleteReport());
 		}

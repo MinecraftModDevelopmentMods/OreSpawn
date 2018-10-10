@@ -1,5 +1,7 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import java.util.Locale;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
@@ -24,7 +26,7 @@ public class FeatureBuilder implements IFeatureBuilder {
 	public IFeatureBuilder setFeature(final String featureName) {
 		String actName = featureName;
 		if (!actName.contains(":")) {
-			actName = String.format("orespawn:%s", featureName);
+			actName = String.format(Locale.ENGLISH, "orespawn:%s", featureName);
 		}
 		return this.setFeature(new ResourceLocation(actName));
 	}

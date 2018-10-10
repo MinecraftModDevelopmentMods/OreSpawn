@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.impl.os3;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -95,7 +96,7 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	@Override
 	public IReplacementEntry create() {
 		if (this.replacementName == null) {
-			this.replacementName = String.format("replacement_%s",
+			this.replacementName = String.format(Locale.ENGLISH, "replacement_%s",
 					RandomStringUtils.randomAlphanumeric(8, 16));
 		}
 
