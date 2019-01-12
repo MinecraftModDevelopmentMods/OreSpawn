@@ -103,7 +103,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final Biome thisBiome = world.getBiome(coord);
 
 			if (replacer.test(targetBlock) && spawnData.biomeAllowed(thisBiome.getRegistryName())) {
-				world.setBlockState(coord, oreBlock);
+				// don't send block update, send to client, don't re-render, observers don't see the change
+				world.setBlockState(coord, oreBlock, 0x22);
 				return true;
 			} else {
 				return false;
