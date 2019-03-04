@@ -107,8 +107,9 @@ public class ReplacementsRegistry {
 			b = StateUtil.deserializeState(
 					ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			StringBuilder p = new StringBuilder();
+			for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 			b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)).getDefaultState();
 		}
 		addBlock(name, b);
@@ -200,8 +201,9 @@ public class ReplacementsRegistry {
 						try {
 							b = StateUtil.deserializeState(theBlock, state);
 						} catch (Exception e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
+							StringBuilder p = new StringBuilder();
+							for(StackTraceElement elem1: e1.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem1.getClassName(), elem1.getMethodName(), elem1.getFileName(), elem1.getLineNumber()));
+							OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e1.getMessage(), p.toString()));
 							b = theBlock.getDefaultState();
 						}
 						blocks.add(b);

@@ -2,8 +2,8 @@ package com.mcmoddev.orespawn.commands;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
@@ -47,7 +47,7 @@ public class DumpBiomesCommand extends CommandBase {
 
 		try {
 			FileUtils.writeStringToFile(new File(".", "biome_dump.json"),
-					StringEscapeUtils.unescapeJson(json), CharEncoding.UTF_8);
+					StringEscapeUtils.unescapeJson(json), StandardCharsets.UTF_8);
 		} catch (final IOException e) {
 			throw new CommandException("Failed to save the json file");
 		}

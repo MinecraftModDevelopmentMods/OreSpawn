@@ -29,7 +29,7 @@ public class StateUtil {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static IBlockState deserializeState(final Block block, final String state) throws Exception {
+	public static IBlockState deserializeState(final Block block, final String state) throws BadStateValueException {
 		String bits[];
 		if(state.contains(",")) bits = state.split(",");
 		else bits = new String[] { state };

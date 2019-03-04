@@ -247,22 +247,31 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		return t - median;
 	}
 
+	protected void spawnMungeInner(final Random prng, final int rSqr, int quantity,
+			final Vec3i vals, final ISpawnEntry spawnData, final World world, final BlockPos blockPos) {
+		int dx = vals.getX();
+		int dy = vals.getY();
+		int dz = vals.getZ();
+		final IBlockList possibleOres = spawnData.getBlocks();
+		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
+		
+		if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
+			final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+			if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
+			spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
+					world.provider.getDimension(), spawnData);
+			quantity--;
+		}
+	}
+	
 	protected void spawnMungeSW(final World world, final BlockPos blockPos, final int rSqr,
 			final double radius, final ISpawnEntry spawnData, final int count) {
 		final Random prng = this.random;
 		int quantity = count;
-		final IBlockList possibleOres = spawnData.getBlocks();
-		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dx = (int) (radius); dx >= (int) (-1 * radius); dx--) {
 				for (int dz = (int) (radius); dz >= (int) (-1 * radius); dz--) {
-					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
-								world.provider.getDimension(), spawnData);
-						quantity--;
-					}
+					spawnMungeInner(prng, rSqr, quantity, new Vec3i(dx,dy,dz), spawnData, world, blockPos);
 					if (quantity <= 0) {
 						return;
 					}
@@ -280,13 +289,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dz = (int) (-1 * radius); dz < radius; dz++) {
 				for (int dx = (int) (-1 * radius); dx < radius; dx++) {
-					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
-								world.provider.getDimension(), spawnData);
-						quantity--;
-					}
+					spawnMungeInner(prng, rSqr, quantity, new Vec3i(dx,dy,dz), spawnData, world, blockPos);
 					if (quantity <= 0) {
 						return;
 					}
