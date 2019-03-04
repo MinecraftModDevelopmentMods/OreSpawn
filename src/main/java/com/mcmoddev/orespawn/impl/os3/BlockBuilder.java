@@ -67,7 +67,13 @@ public class BlockBuilder implements IBlockBuilder {
 			this.isValid = false;
 		}
 		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
-		return this.setFromBlockState(StateUtil.deserializeState(tempBlock, state));
+		try {
+			return this.setFromBlockState(StateUtil.deserializeState(tempBlock, state));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return this;
+		}
 	}
 
 	/**
@@ -140,8 +146,14 @@ public class BlockBuilder implements IBlockBuilder {
 			this.isValid = false;
 		}
 		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
-		return this.setFromBlockStateWithChance(StateUtil.deserializeState(tempBlock, state),
-				chance);
+		try {
+			return this.setFromBlockStateWithChance(StateUtil.deserializeState(tempBlock, state),
+					chance);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return this;
+		}
 	}
 
 	/**

@@ -72,8 +72,14 @@ public class ReplacementBuilder implements IReplacementBuilder {
 	@Override
 	public IReplacementBuilder addEntry(final ResourceLocation blockResourceLocation,
 			final String state) {
-		return this.addEntry(StateUtil
-				.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
+		try {
+			return this.addEntry(StateUtil
+					.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return this.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState());
+		}
 	}
 
 	/**

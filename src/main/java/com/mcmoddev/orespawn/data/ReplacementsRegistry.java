@@ -65,6 +65,7 @@ public class ReplacementsRegistry {
 	 * @deprecated (no, it isn't - why was it flagged this to begin with ?)
 	 */
 	// @Deprecated
+	@SuppressWarnings("deprecation")
 	public List<IBlockState> getDimensionDefault(final int dimension) {
 		final String[] names = {
 				"minecraft:netherrack", "minecraft:stone", "minecraft:end_stone"
@@ -101,8 +102,15 @@ public class ReplacementsRegistry {
 	}
 
 	public void addBlock(final String name, final String blockName, final String blockState) {
-		final IBlockState b = StateUtil.deserializeState(
-				ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
+		IBlockState b;
+		try {
+			b = StateUtil.deserializeState(
+					ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)).getDefaultState();
+		}
 		addBlock(name, b);
 	}
 
@@ -188,7 +196,15 @@ public class ReplacementsRegistry {
 					} else if (asObj.has(Constants.ConfigNames.STATE)) {
 						// has a state
 						state = asObj.get(Constants.ConfigNames.STATE).getAsString();
-						blocks.add(StateUtil.deserializeState(theBlock, state));
+						IBlockState b;
+						try {
+							b = StateUtil.deserializeState(theBlock, state);
+						} catch (Exception e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+							b = theBlock.getDefaultState();
+						}
+						blocks.add(b);
 					} else {
 						// use the default state
 						blocks.add(theBlock.getDefaultState());

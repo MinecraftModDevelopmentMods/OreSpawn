@@ -164,7 +164,14 @@ public class SpawnBuilder implements ISpawnBuilder {
 	public ISpawnBuilder addBlockWithChance(final ResourceLocation blockResourceLocation,
 			final String blockState, final int chance) {
 		final Block tempBlock = ForgeRegistries.BLOCKS.getValue(blockResourceLocation);
-		final IBlockState tempVar = StateUtil.deserializeState(tempBlock, blockState);
+		IBlockState tempVar;
+			try {
+				tempVar = StateUtil.deserializeState(tempBlock, blockState);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				tempVar = tempBlock.getDefaultState();
+			}
 		return this.addBlockWithChance(tempVar, chance);
 	}
 
