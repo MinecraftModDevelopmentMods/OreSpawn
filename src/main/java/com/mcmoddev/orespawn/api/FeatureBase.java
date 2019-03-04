@@ -95,6 +95,24 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final OreSpawnBlockMatcher replacer, final IBlockState oreBlock,
 			final boolean cacheOverflow, final int dimension, final ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
+			int m_x = coord.getX() - 1;
+			int p_x = coord.getX() + 1;
+			int x = coord.getX();
+			int m_z = coord.getZ() - 1;
+			int p_z = coord.getZ() + 1;
+			int z = coord.getZ();
+			int min_x = (((int)(x/16))*16)+1; // convert to ChunkPos
+			int max_x = min_x+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int min_z = (((int)(z/16))*16)+1; // convert to ChunkPos
+			int max_z = min_z+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			if(m_x <= min_x || p_x >= max_x || m_z <= min_z || p_z >= max_z) {
+				if(cacheOverflow) {
+					cacheOverflowBlock(oreBlock, coord, dimension);
+					return true;
+				} else {
+					return false;
+				}
+			}
 			if (!isValidBlock(oreBlock)) {
 				return false;
 			}
