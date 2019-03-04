@@ -51,6 +51,25 @@ public class OreSpawnReader {
 		// hiding the default one
 	}
 	
+	private static JsonElement doPresetFix(final JsonElement value,
+			final PresetsStorage configPresets) {
+		if (value.isJsonObject()) {
+			return doPresetForObject(value.getAsJsonObject(), configPresets);
+		} else if (value.isJsonArray()) {
+			return doPresetForArray(value.getAsJsonArray(), configPresets);
+		} else if (value.isJsonPrimitive() && !value.isJsonNull()) {
+			if (value.getAsJsonPrimitive().isString() && value.getAsString().matches("^\\$.*")) {
+				return configPresets.get(value.getAsString());
+			} else {
+				return value;
+			}
+		} else {
+			OreSpawn.LOGGER.error("Error handling presets for config, unknown value type for item "
+					+ value.toString());
+			return value;
+		}
+	}
+
 	public static void tryReadFile(final Path conf)
 			throws MissingVersionException, NotAProperConfigException, OldVersionException,
 			UnknownVersionException {
@@ -123,25 +142,6 @@ public class OreSpawnReader {
 			spawnDataFixed.add(elem.getKey(), doPresetFix(elem.getValue(), configPresets));
 		}
 		return spawnData;
-	}
-
-	private static JsonElement doPresetFix(final JsonElement value,
-			final PresetsStorage configPresets) {
-		if (value.isJsonObject()) {
-			return doPresetForObject(value.getAsJsonObject(), configPresets);
-		} else if (value.isJsonArray()) {
-			return doPresetForArray(value.getAsJsonArray(), configPresets);
-		} else if (value.isJsonPrimitive() && !value.isJsonNull()) {
-			if (value.getAsJsonPrimitive().isString() && value.getAsString().matches("^\\$.*")) {
-				return configPresets.get(value.getAsString());
-			} else {
-				return value;
-			}
-		} else {
-			OreSpawn.LOGGER.error("Error handling presets for config, unknown value type for item "
-					+ value.toString());
-			return value;
-		}
 	}
 
 	private static JsonElement doPresetForArray(final JsonArray value,
@@ -241,6 +241,7 @@ public class OreSpawnReader {
 		return featureName;
 	}
 
+	@SuppressWarnings("deprecation")
 	private static void loadBlocks(ISpawnBuilder sb, Entry<String, JsonElement> ent) throws BadValueException {
 		if (ent.getValue().isJsonArray()) {
 			for (final JsonElement elem : ent.getValue().getAsJsonArray()) {
@@ -320,12 +321,19 @@ public class OreSpawnReader {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private static List<IBlockState> loadBlock(final JsonObject json) {
 		final String blockName = json.get(Constants.ConfigNames.NAME).getAsString();
 		if (json.has(Constants.ConfigNames.STATE)) {
 			final Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName));
-			return Arrays.asList(StateUtil.deserializeState(block,
-					json.get(Constants.ConfigNames.STATE).getAsString()));
+			try {
+				return Arrays.asList(StateUtil.deserializeState(block,
+						json.get(Constants.ConfigNames.STATE).getAsString()));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return Arrays.asList(block.getDefaultState());
+			}
 		} else if (json.has(Constants.ConfigNames.METADATA)) {
 			final Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName));
 			return Arrays.asList(
