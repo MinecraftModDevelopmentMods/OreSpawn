@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.util;
 
 import com.google.common.base.Optional;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.exceptions.BadStateValueException;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
@@ -43,9 +44,9 @@ public class StateUtil {
 				if(propValue.isPresent())
 					rv = rv.withProperty(prop, propValue.get());
 				else
-					throw new Exception(String.format("%s is not a valid value for property %s", kvp[1], kvp[0]));
+					throw new BadStateValueException(String.format("%s is not a valid value for property %s", kvp[1], kvp[0]));
 			} else {
-				throw new Exception(String.format("%s is not a known property of %s", kvp[0], block.getRegistryName()));
+				throw new BadStateValueException(String.format("%s is not a known property of %s", kvp[0], block.getRegistryName()));
 			}
 		}
 		
