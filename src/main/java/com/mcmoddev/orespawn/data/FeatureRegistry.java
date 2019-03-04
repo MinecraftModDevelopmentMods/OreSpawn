@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
@@ -151,7 +151,7 @@ public class FeatureRegistry {
 
 		try {
 			FileUtils.writeStringToFile(file, StringEscapeUtils.unescapeJson(json),
-					CharEncoding.UTF_8);
+					StandardCharsets.UTF_8);
 		} catch (final IOException e) {
 			final CrashReport report = CrashReport.makeCrashReport(e,
 					"Failed writing config " + file.getName());

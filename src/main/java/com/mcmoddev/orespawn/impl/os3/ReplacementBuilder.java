@@ -7,6 +7,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.exceptions.BadStateValueException;
 import com.mcmoddev.orespawn.api.os3.IReplacementBuilder;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.util.StateUtil;
@@ -75,9 +76,10 @@ public class ReplacementBuilder implements IReplacementBuilder {
 		try {
 			return this.addEntry(StateUtil
 					.deserializeState(ForgeRegistries.BLOCKS.getValue(blockResourceLocation), state));
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (BadStateValueException e) {
+			StringBuilder p = new StringBuilder();
+			for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 			return this.addEntry(ForgeRegistries.BLOCKS.getValue(blockResourceLocation).getDefaultState());
 		}
 	}

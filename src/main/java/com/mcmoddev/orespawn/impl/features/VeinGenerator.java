@@ -175,7 +175,7 @@ public class VeinGenerator extends FeatureBase implements IFeature {
 
 	private class SquareWeight extends WeightedRandom.Item {
 
-		public EnumSquare item;
+		private EnumSquare item;
 
 		public SquareWeight(EnumSquare item, int weight) {
 			super(weight);

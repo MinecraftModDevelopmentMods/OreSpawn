@@ -30,8 +30,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator,
-			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos posIn) {
+		final ChunkPos pos = posIn;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -195,13 +195,8 @@ public class PrecisionGenerator extends FeatureBase implements IFeature {
 		final double radius = Math.pow(nodeSize, 1.0 / 3.0) * (3.0 / 4.0 / Math.PI) + 2;
 		final int rSqr = (int) Math.ceil(radius * radius);
 
-		if (this.random.nextBoolean()) {
-			return spawnPrecise(spawnData, world, pos, loc, heightRange, false, radius, rSqr,
-					nodeSize);
-		} else {
-			return spawnPrecise(spawnData, world, pos, loc, heightRange, true, radius, rSqr,
-					nodeSize);
-		}
+		return spawnPrecise(spawnData, world, pos, loc, heightRange, !this.random.nextBoolean(), radius, rSqr,
+				nodeSize);
 	}
 
 	private int spawnPrecise(final ISpawnEntry spawnData, final World world, final ChunkPos pos,

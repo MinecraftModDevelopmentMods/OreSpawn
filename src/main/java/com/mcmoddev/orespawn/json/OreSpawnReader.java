@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.exceptions.BadStateValueException;
 import com.mcmoddev.orespawn.api.exceptions.BadValueException;
 import com.mcmoddev.orespawn.api.exceptions.MissingVersionException;
 import com.mcmoddev.orespawn.api.exceptions.NotAProperConfigException;
@@ -329,9 +330,10 @@ public class OreSpawnReader {
 			try {
 				return Arrays.asList(StateUtil.deserializeState(block,
 						json.get(Constants.ConfigNames.STATE).getAsString()));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (BadStateValueException e) {
+				StringBuilder p = new StringBuilder();
+				for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+				OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 				return Arrays.asList(block.getDefaultState());
 			}
 		} else if (json.has(Constants.ConfigNames.METADATA)) {

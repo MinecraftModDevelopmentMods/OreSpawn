@@ -27,10 +27,28 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		this(new Random());
 	}
 
+	private class SpawnParameters {
+		public final int clusterSize;
+		public final int variance;
+		public final int clusterCount;
+		public final int maxSpread;
+		public final int minHeight;
+		public final int maxHeight;
+		
+		SpawnParameters(final int clusterSize, final int variance, final int clusterCount,
+				final int maxSpread, final int minHeight, final int maxHeight) {
+			this.clusterSize = clusterSize;
+			this.variance = variance;
+			this.clusterCount = clusterCount;
+			this.maxSpread = maxSpread;
+			this.minHeight = minHeight;
+			this.maxHeight = maxHeight;
+		}
+	}
 	@Override
 	public void generate(final World world, final IChunkGenerator chunkGenerator,
-			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos _pos) {
-		final ChunkPos pos = _pos;
+			final IChunkProvider chunkProvider, final ISpawnEntry spawnData, final ChunkPos posIn) {
+		final ChunkPos pos = posIn;
 		final JsonObject params = spawnData.getFeature().getFeatureParameters();
 
 		// First, load cached blocks for neighboring chunk ore spawns
@@ -73,7 +91,7 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 				final int y = random.nextInt(maxHeight - minHeight) + minHeight;
 				final int z = blockZ + zRand - (maxSpread / 2);
 
-				spawnCluster(clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight,
+				spawnCluster(new SpawnParameters(clusterSize, variance, clusterCount, maxSpread, minHeight, maxHeight),
 						spawnData, world, new BlockPos(x, y, z));
 			}
 
@@ -81,36 +99,35 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 		}
 	}
 
-	private void spawnCluster(final int clusterSize, final int variance, final int clusterCount,
-			final int maxSpread, final int minHeight, final int maxHeight,
+	private void spawnCluster(final SpawnParameters params,
 			final ISpawnEntry spawnData, final World world, final BlockPos pos) {
 		// spawn a cluster at the center, then a bunch around the outside...
-		int r = clusterSize - variance;
+		int r = params.clusterSize - params.variance;
 
-		if (variance > 0) {
-			r += this.random.nextInt(2 * variance) - variance;
+		if (params.variance > 0) {
+			r += this.random.nextInt(2 * params.variance) - params.variance;
 		}
 
 		spawnChunk(world, pos, spawnData, r);
 
-		int count = this.random.nextInt(clusterCount - 1); // always at least the first, but vary
+		int count = this.random.nextInt(params.clusterCount - 1); // always at least the first, but vary
 															 // inside that
 
-		if (variance > 0) {
-			count += this.random.nextInt(2 * variance) - variance;
+		if (params.variance > 0) {
+			count += this.random.nextInt(2 * params.variance) - params.variance;
 		}
 
 		while (count >= 0) {
-			r = clusterSize - variance;
+			r = params.clusterSize - params.variance;
 
-			if (variance > 0) {
-				r += this.random.nextInt(2 * variance) - variance;
+			if (params.variance > 0) {
+				r += this.random.nextInt(2 * params.variance) - params.variance;
 			}
 
-			final int radius = maxSpread / 2;
+			final int radius = params.maxSpread / 2;
 
 			final int xp = getPoint(-radius, radius, 0);
-			final int yp = getPoint(minHeight, maxHeight, (maxHeight - minHeight) / 2);
+			final int yp = getPoint(params.minHeight, params.maxHeight, (params.maxHeight - params.minHeight) / 2);
 			final int zp = getPoint(-radius, radius, 0);
 
 			final BlockPos p = pos.add(xp, yp, zp);
@@ -138,28 +155,33 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			int z = 0;
 
 			while (count > 0) {
-				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
-				if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-
-				if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
-						spawnData)) {
-					count++;
-					z++;
-				} else {
-					z = 0;
-				}
-
-				if (z > 5) {
-					count--;
-					z = 0;
-					OreSpawn.LOGGER.warn("Unable to place block for chunk after 5 tries");
-				}
+				trySpawnInner(spawnData, world, pos, dimension, count, z, offs, scrambledLUT);
 			}
 
 			return;
 		}
 
 		doSpawnFill(this.random.nextBoolean(), count, spawnData, world, pos);
+	}
+
+	private void trySpawnInner(ISpawnEntry spawnData, World world, BlockPos pos,
+			int dimension, int count, int z, Vec3i[] offs, int[] scrambledLUT) {
+		final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+		if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
+
+		if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
+				spawnData)) {
+			count++;
+			z++;
+		} else {
+			z = 0;
+		}
+
+		if (z > 5) {
+			count--;
+			z = 0;
+			OreSpawn.LOGGER.warn("Unable to place block for chunk after 5 tries");
+		}
 	}
 
 	private void doSpawnFill(final boolean nextBoolean, final int quantity,

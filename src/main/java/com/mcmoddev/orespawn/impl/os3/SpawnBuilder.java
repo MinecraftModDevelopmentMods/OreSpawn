@@ -1,8 +1,10 @@
 package com.mcmoddev.orespawn.impl.os3;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.IBlockList;
 import com.mcmoddev.orespawn.api.IDimensionList;
+import com.mcmoddev.orespawn.api.exceptions.BadStateValueException;
 import com.mcmoddev.orespawn.api.os3.IBlockDefinition;
 import com.mcmoddev.orespawn.api.os3.IFeatureEntry;
 import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
@@ -167,9 +169,10 @@ public class SpawnBuilder implements ISpawnBuilder {
 		IBlockState tempVar;
 			try {
 				tempVar = StateUtil.deserializeState(tempBlock, blockState);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (BadStateValueException e) {
+				StringBuilder p = new StringBuilder();
+				for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+				OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 				tempVar = tempBlock.getDefaultState();
 			}
 		return this.addBlockWithChance(tempVar, chance);

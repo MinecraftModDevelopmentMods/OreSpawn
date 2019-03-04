@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mcmoddev.orespawn.OreSpawn;
@@ -107,8 +106,9 @@ public class ReplacementsRegistry {
 			b = StateUtil.deserializeState(
 					ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)), blockState);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			StringBuilder p = new StringBuilder();
+			for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 			b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockName)).getDefaultState();
 		}
 		addBlock(name, b);
@@ -168,25 +168,16 @@ public class ReplacementsRegistry {
 			final JsonArray entries = elem.getValue().getAsJsonArray();
 			final List<IBlockState> blocks = new LinkedList<>();
 			com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Loading replacement entry %s", entName);
-			for (final JsonElement e : entries) {
+//			for (final JsonElement e : entries) {
+			entries.forEach( e -> {
 				final JsonObject asObj = e.getAsJsonObject();
 				final String blockName = asObj.get(Constants.ConfigNames.NAME).getAsString()
 						.toLowerCase();
 
 				// is this an OreDictionary entry ?
 				if (blockName.startsWith("ore:")) {
-					// yes, it is
-					final String oreDictName = blockName.split(":")[1];
-					OreDictionary.getOres(oreDictName).forEach(iS -> {
-						if (iS.getMetadata() != 0) {
-							blocks.add(Block.getBlockFromItem(iS.getItem())
-									.getStateFromMeta(iS.getMetadata()));
-						} else {
-							blocks.add(Block.getBlockFromItem(iS.getItem()).getDefaultState());
-						}
-					});
+					loadOreDict(blockName, blocks);
 				} else {
-					String state = null;
 					final ResourceLocation blockRL = new ResourceLocation(blockName);
 					final Block theBlock = ForgeRegistries.BLOCKS.getValue(blockRL);
 					if (asObj.has(Constants.ConfigNames.METADATA)) {
@@ -195,25 +186,46 @@ public class ReplacementsRegistry {
 						blocks.add(theBlock.getStateFromMeta(meta));
 					} else if (asObj.has(Constants.ConfigNames.STATE)) {
 						// has a state
-						state = asObj.get(Constants.ConfigNames.STATE).getAsString();
-						IBlockState b;
-						try {
-							b = StateUtil.deserializeState(theBlock, state);
-						} catch (Exception e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-							b = theBlock.getDefaultState();
-						}
-						blocks.add(b);
+						loadBlockState(blockName, asObj, blocks);
 					} else {
 						// use the default state
 						blocks.add(theBlock.getDefaultState());
 					}
 				}
-			}
+			});
 
 			final IReplacementEntry replacer = new ReplacementEntry("orespawn:" + entName, blocks);
 			registry.register(replacer);
+		});
+	}
+
+	private void loadBlockState(String blockName, JsonObject asObj, List<IBlockState> blocks) {
+		final ResourceLocation blockRL = new ResourceLocation(blockName);
+		final Block theBlock = ForgeRegistries.BLOCKS.getValue(blockRL);
+		final String state = asObj.get(Constants.ConfigNames.STATE).getAsString();
+		IBlockState b;
+		try {
+			b = StateUtil.deserializeState(theBlock, state);
+		} catch (Exception e1) {
+			StringBuilder p = new StringBuilder();
+			for(StackTraceElement elem1: e1.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem1.getClassName(), elem1.getMethodName(), elem1.getFileName(), elem1.getLineNumber()));
+			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e1.getMessage(), p.toString()));
+			b = theBlock.getDefaultState();
+		}
+		blocks.add(b);
+	}
+
+	@SuppressWarnings("deprecation")
+	private void loadOreDict(String blockName, List<IBlockState> blocks) {
+		// yes, it is
+		final String oreDictName = blockName.split(":")[1];
+		OreDictionary.getOres(oreDictName).forEach(iS -> {
+			if (iS.getMetadata() != 0) {
+				blocks.add(Block.getBlockFromItem(iS.getItem())
+						.getStateFromMeta(iS.getMetadata()));
+			} else {
+				blocks.add(Block.getBlockFromItem(iS.getItem()).getDefaultState());
+			}
 		});
 	}
 

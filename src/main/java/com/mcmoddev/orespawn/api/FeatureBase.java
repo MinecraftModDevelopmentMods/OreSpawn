@@ -95,6 +95,24 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final OreSpawnBlockMatcher replacer, final IBlockState oreBlock,
 			final boolean cacheOverflow, final int dimension, final ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
+			int m_x = coord.getX() - 1;
+			int p_x = coord.getX() + 1;
+			int x = coord.getX();
+			int m_z = coord.getZ() - 1;
+			int p_z = coord.getZ() + 1;
+			int z = coord.getZ();
+			int min_x = (((int)(x/16))*16)+1; // convert to ChunkPos
+			int max_x = min_x+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int min_z = (((int)(z/16))*16)+1; // convert to ChunkPos
+			int max_z = min_z+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			if(m_x <= min_x || p_x >= max_x || m_z <= min_z || p_z >= max_z) {
+				if(cacheOverflow) {
+					cacheOverflowBlock(oreBlock, coord, dimension);
+					return true;
+				} else {
+					return false;
+				}
+			}
 			if (!isValidBlock(oreBlock)) {
 				return false;
 			}
@@ -229,22 +247,31 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		return t - median;
 	}
 
+	protected void spawnMungeInner(final Random prng, final int rSqr, int quantity,
+			final Vec3i vals, final ISpawnEntry spawnData, final World world, final BlockPos blockPos) {
+		int dx = vals.getX();
+		int dy = vals.getY();
+		int dz = vals.getZ();
+		final IBlockList possibleOres = spawnData.getBlocks();
+		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
+		
+		if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
+			final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
+			if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
+			spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
+					world.provider.getDimension(), spawnData);
+			quantity--;
+		}
+	}
+	
 	protected void spawnMungeSW(final World world, final BlockPos blockPos, final int rSqr,
 			final double radius, final ISpawnEntry spawnData, final int count) {
 		final Random prng = this.random;
 		int quantity = count;
-		final IBlockList possibleOres = spawnData.getBlocks();
-		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dx = (int) (radius); dx >= (int) (-1 * radius); dx--) {
 				for (int dz = (int) (radius); dz >= (int) (-1 * radius); dz--) {
-					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
-								world.provider.getDimension(), spawnData);
-						quantity--;
-					}
+					spawnMungeInner(prng, rSqr, quantity, new Vec3i(dx,dy,dz), spawnData, world, blockPos);
 					if (quantity <= 0) {
 						return;
 					}
@@ -262,13 +289,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dz = (int) (-1 * radius); dz < radius; dz++) {
 				for (int dx = (int) (-1 * radius); dx < radius; dx++) {
-					if ((dx * dx + dy * dy + dz * dz) <= rSqr) {
-						final IBlockState oreBlock = possibleOres.getRandomBlock(prng);
-						if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-						spawnOrCache(world, blockPos.add(dx, dy, dz), replacer, oreBlock, true,
-								world.provider.getDimension(), spawnData);
-						quantity--;
-					}
+					spawnMungeInner(prng, rSqr, quantity, new Vec3i(dx,dy,dz), spawnData, world, blockPos);
 					if (quantity <= 0) {
 						return;
 					}
