@@ -284,8 +284,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final double radius, final ISpawnEntry spawnData, final int count) {
 		final Random prng = this.random;
 		int quantity = count;
-		final IBlockList possibleOres = spawnData.getBlocks();
-		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
+//		final IBlockList possibleOres = spawnData.getBlocks();
+//		final OreSpawnBlockMatcher replacer = spawnData.getMatcher();
 		for (int dy = (int) (-1 * radius); dy < radius; dy++) {
 			for (int dz = (int) (-1 * radius); dz < radius; dz++) {
 				for (int dx = (int) (-1 * radius); dx < radius; dx++) {
