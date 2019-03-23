@@ -211,7 +211,7 @@ public class EventHandlers {
 
 		if (ev.phase == Phase.END) {
 			final Deque<Tuple<ChunkPos, List<String>>> b = new LinkedList<>();
-			for (int c = 0; c < 5 && !chunks.isEmpty(); c++) {
+			for (int c = 0; c < 25 && !chunks.isEmpty(); c++) {
 				b.push(chunks.pop());
 			}
 
