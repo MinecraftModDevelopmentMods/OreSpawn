@@ -74,7 +74,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		final BlockPos np = mungeFixYcoord(coord);
 
 		if (coord.getY() >= world.getHeight()) {
-			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
+			OreSpawn.LOGGER.warn("Asked to spawn {} above build limit at {}", oreBlock, coord);
 			return false;
 		}
 
@@ -95,17 +95,20 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final OreSpawnBlockMatcher replacer, final IBlockState oreBlock,
 			final boolean cacheOverflow, final int dimension, final ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
-			int m_x = coord.getX() - 1;
-			int p_x = coord.getX() + 1;
-			int x = coord.getX();
-			int m_z = coord.getZ() - 1;
-			int p_z = coord.getZ() + 1;
-			int z = coord.getZ();
-			int min_x = (((int)(x/16))*16)+1; // convert to ChunkPos
-			int max_x = min_x+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
-			int min_z = (((int)(z/16))*16)+1; // convert to ChunkPos
-			int max_z = min_z+30; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
-			if(m_x <= min_x || p_x >= max_x || m_z <= min_z || p_z >= max_z) {
+			int m_x = coord.getX();
+			int p_x = coord.getX();
+			int m_z = coord.getZ();
+			int p_z = coord.getZ();
+			int min_x = world.getChunk(coord).getPos().getXStart()+1; // convert to ChunkPos
+			int max_x = world.getChunk(coord).getPos().getXEnd()+15; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int min_z = world.getChunk(coord).getPos().getZStart()+1; // convert to ChunkPos
+			int max_z = world.getChunk(coord).getPos().getZEnd()+15; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			boolean x_bad = false;
+			boolean z_bad = false;
+			if(m_x < min_x || p_x > max_x) x_bad = true;
+			if(m_z < min_z || p_z > max_z) z_bad = true;
+			
+			if(x_bad || z_bad) {
 				if(cacheOverflow) {
 					cacheOverflowBlock(oreBlock, coord, dimension);
 					return true;
@@ -145,7 +148,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 		final BlockPos np = mungeFixYcoord(coord);
 
 		if (coord.getY() >= world.getHeight()) {
-			OreSpawn.LOGGER.warn("Asked to spawn %s above build limit at %s", oreBlock, coord);
+			OreSpawn.LOGGER.warn("Asked to spawn {} above build limit at {}", oreBlock, coord);
 			return;
 		}
 
@@ -154,7 +157,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	private void cacheOverflowBlock(final IBlockState bs, final BlockPos coord,
 			final int dimension) {
-		final Vec3i chunkCoord = new Vec3i(coord.getX() >> 4, coord.getY() >> 4, dimension);
+		final Vec3i chunkCoord = new Vec3i(coord.getX() / 16, coord.getY() / 16, dimension);
 
 		if (overflowCache.containsKey(chunkCoord)) {
 			cacheOrder.addLast(chunkCoord);

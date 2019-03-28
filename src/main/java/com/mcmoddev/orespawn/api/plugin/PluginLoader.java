@@ -68,6 +68,7 @@ public enum PluginLoader {
 			try {
 				integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
 				final PluginData pd = new PluginData(modId, resourceBase, integration);
+				OreSpawn.LOGGER.fatal("Loading Integration For {}", modId);
 				dataStore.add(pd);
 			} catch (final Exception ex) {
 				OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
@@ -89,9 +90,9 @@ public enum PluginLoader {
 
 		final String base = String.format(Locale.ENGLISH, "assets/%s/%s", pd.modId, pd.resourcePath);
 		final URL resURL = getClass().getClassLoader().getResource(base);
-
+		
 		if (resURL == null) {
-			OreSpawn.LOGGER.warn("Unable to access file %s: got 'null' when trying to resolve it",
+			OreSpawn.LOGGER.warn("Unable to access file {}: got 'null' when trying to resolve it",
 					base);
 			return;
 		}
