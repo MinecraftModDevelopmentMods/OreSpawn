@@ -150,7 +150,6 @@ public class ReplacementsRegistry {
 		JsonObject elements;
 		String rawJson;
 
-		com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Loading file %s", file);
 
 		try {
 			rawJson = FileUtils.readFileToString(file.toFile(), Charset.defaultCharset());
@@ -167,8 +166,6 @@ public class ReplacementsRegistry {
 			final String entName = elem.getKey();
 			final JsonArray entries = elem.getValue().getAsJsonArray();
 			final List<IBlockState> blocks = new LinkedList<>();
-			com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Loading replacement entry %s", entName);
-//			for (final JsonElement e : entries) {
 			entries.forEach( e -> {
 				final JsonObject asObj = e.getAsJsonObject();
 				final String blockName = asObj.get(Constants.ConfigNames.NAME).getAsString()

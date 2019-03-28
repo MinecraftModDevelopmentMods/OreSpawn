@@ -60,7 +60,6 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 				} else {
 					r = 0;
 				}
-
 				spawnOre(world, spawnData, new BlockPos(x, y, z), size + r);
 			}
 		} else if (random.nextFloat() < freq) {

@@ -49,7 +49,7 @@ public class OreSpawn {
 	@Instance
 	public static OreSpawn instance;
 
-	public static final Logger LOGGER = LogManager.getFormatterLogger(Constants.MODID);
+	public static final Logger LOGGER = LogManager.getLogger(Constants.MODID);
 	public static final OS3API API = new OS3APIImpl();
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();

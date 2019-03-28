@@ -178,7 +178,6 @@ public class OreSpawnReader {
 		final ISpawnBuilder sb = OreSpawn.API.getSpawnBuilder();
 		final IFeatureBuilder fb = OreSpawn.API.getFeatureBuilder();
 		sb.setName(entry.getKey());
-
 		for (final Entry<String, JsonElement> ent : entry.getValue().getAsJsonObject().entrySet()) {
 			switch (ent.getKey()) {
 				case Constants.ConfigNames.RETROGEN:
@@ -267,7 +266,7 @@ public class OreSpawnReader {
 					sb.addBlock(block.create());
 				} else {
 					OreSpawn.LOGGER.error(
-							"Skipping value %s in blocks list as it is not the correct format",
+							"Skipping value {} in blocks list as it is not the correct format",
 							elem.toString());
 				}
 			}
@@ -293,7 +292,7 @@ public class OreSpawnReader {
 					loadBlock(e.getAsJsonObject()).stream().forEach(rb::addEntry);
 				} else {
 					OreSpawn.LOGGER.error(
-							"Skipping value %s in replacements list as it is not the correct format",
+							"Skipping value {} in replacements list as it is not the correct format",
 							e.toString());
 				}
 			}
