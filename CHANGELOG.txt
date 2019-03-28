@@ -1,12 +1,8 @@
-Version 3.3.0
+Version 3.3.1
 
-* Rewrite the internal API to be a little more flexible
-* Rewrite the loading and saving of the JSON configs - the current form is less flexible but will be easier to extend or replace in the future
-* Fix the Dimension and Biome blacklist/whitelist code
-* Fix the "zombie holes" issue that cropped up if a block was present in a config but not actually present in the game
-* Change the default feature's (features-default.json in previous versions) to be defined in the _features.json in orespawn instead of programatically
-* Change the default replacements (replacements-default.json in previous versions) to be defined in  _replacements.json in orespawn instead of programatically
-* Define the actual format of the replacements files
-* fully define the format of the presets files (need to add, I believe, an _presets.json)
-* remove any loading of any format of config other than those tagged as being version 2.0 (this capability will return at a later date)
-* Fix the Dimension blacklist/whitelist code to make it actually work (there was a missing conditional in the DimensionBuilder create() method)
+* Cascading World Gen Lag issues that were known have been resolved
+* Vein generator has been fixed to work properly
+* Underfluid generator has been stubbed out and is in testing
+* Various minor bugs fixed
+* Some small performance improvements
+* Most Current Release (something like build 169 or 170) fixes a logic error that saw the system refusing to spawn in any chunk with a negative X or Y coordinate.
