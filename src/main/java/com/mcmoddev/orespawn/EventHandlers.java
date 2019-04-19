@@ -212,7 +212,7 @@ public class EventHandlers {
 		}
 
 		if (ev.phase == Phase.END) {
-			for (int c = 0; c < 13 && !chunks.isEmpty(); c++) {
+			for (int c = 0; c < 25 && !chunks.isEmpty(); c++) {
 				Tuple<ChunkPos, List<String>> pp = chunks.pop();
 				if(ev.world.isBlockLoaded(new BlockPos(pp.getFirst().getXStart(), 128, pp.getFirst().getZStart()))) {
 					runBits(pp, ev.world);
@@ -222,7 +222,7 @@ public class EventHandlers {
 				}
 			}
 
-			for (int c = 0; c < 13 && !retroChunks.isEmpty(); c++) {
+			for (int c = 0; c < 25 && !retroChunks.isEmpty(); c++) {
 				final ChunkPos p = retroChunks.pop();
 				if(ev.world.isBlockLoaded(new BlockPos(p.getXStart(), 128, p.getZStart()))) {
 					OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
