@@ -99,10 +99,10 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			int p_x = coord.getX();
 			int m_z = coord.getZ();
 			int p_z = coord.getZ();
-			int min_x = world.getChunk(coord).getPos().getXStart()+1; // convert to ChunkPos
-			int max_x = world.getChunk(coord).getPos().getXEnd()+15; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
-			int min_z = world.getChunk(coord).getPos().getZStart()+1; // convert to ChunkPos
-			int max_z = world.getChunk(coord).getPos().getZEnd()+15; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int min_x = world.getChunk(coord).getPos().getXStart()+8; // convert to ChunkPos
+			int max_x = world.getChunk(coord).getPos().getXEnd()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int min_z = world.getChunk(coord).getPos().getZStart()+8; // convert to ChunkPos
+			int max_z = world.getChunk(coord).getPos().getZEnd()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
 			boolean x_bad = false;
 			boolean z_bad = false;
 			if(m_x < min_x || p_x > max_x) x_bad = true;
