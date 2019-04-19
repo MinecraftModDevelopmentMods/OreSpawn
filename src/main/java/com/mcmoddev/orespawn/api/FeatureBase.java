@@ -105,7 +105,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			int min_x = chunkLoc.getXStart()+8; // convert to ChunkPos
 			int max_x = endLoc.getXStart()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
 			int min_z = chunkLoc.getZStart()+8; // convert to ChunkPos
-			int max_z = endLoc.getXEnd()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
+			int max_z = endLoc.getZStart()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
 			boolean x_bad = false;
 			boolean z_bad = false;
 			if(m_x < min_x || p_x > max_x) x_bad = true;
