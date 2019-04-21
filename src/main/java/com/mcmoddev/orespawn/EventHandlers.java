@@ -2,7 +2,6 @@ package com.mcmoddev.orespawn;
 
 import java.util.Arrays;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -190,10 +189,13 @@ public class EventHandlers {
 
 	}
 
-	private void runBits(final Tuple<ChunkPos, List<String>> tup) {
+	private void runBits(final Tuple<ChunkPos, List<String>> tup, World world) {
 		final ChunkPos p = tup.getFirst();
 		final List<String> spawns = tup.getSecond();
-
+		if(!world.isBlockLoaded(new BlockPos(p.getXStart(), 128, p.getZStart()))) {
+			chunks.add(tup);
+			return;
+		}
 		// re-seed with something totally new :P
 		random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z))
 				^ world.getSeed());
@@ -210,16 +212,24 @@ public class EventHandlers {
 		}
 
 		if (ev.phase == Phase.END) {
-			final Deque<Tuple<ChunkPos, List<String>>> b = new LinkedList<>();
 			for (int c = 0; c < 25 && !chunks.isEmpty(); c++) {
-				b.push(chunks.pop());
+				Tuple<ChunkPos, List<String>> pp = chunks.pop();
+				if(ev.world.isBlockLoaded(new BlockPos(pp.getFirst().getXStart(), 128, pp.getFirst().getZStart()))) {
+					runBits(pp, ev.world);
+				} else {
+					chunks.add(pp);
+					c--;
+				}
 			}
 
-			b.forEach(this::runBits);
-
-			for (int c = 0; c < 5 && !retroChunks.isEmpty(); c++) {
+			for (int c = 0; c < 25 && !retroChunks.isEmpty(); c++) {
 				final ChunkPos p = retroChunks.pop();
-				OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
+				if(ev.world.isBlockLoaded(new BlockPos(p.getXStart(), 128, p.getZStart()))) {
+					OreSpawn.flatBedrock.retrogen(world, p.x, p.z);
+				} else {
+					c--;
+					retroChunks.add(p);
+				}
 			}
 		}
 	}
