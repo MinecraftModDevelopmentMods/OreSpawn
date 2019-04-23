@@ -153,35 +153,31 @@ public class ClusterGenerator extends FeatureBase implements IFeature {
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
 			int z = 0;
-
+			
 			while (count > 0) {
-				trySpawnInner(spawnData, world, pos, dimension, count, z, offs, scrambledLUT);
+				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
+				if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
+				
+				if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
+						spawnData)) {
+					count++;
+					z++;
+					scramble(scrambledLUT, this.random); // rescramble the LUT
+				} else {
+					z = 0;
+				}
+
+				if (z > 5) {
+					count--;
+					z = 0;
+					OreSpawn.LOGGER.warn("Unable to place block for chunk after 5 tries");
+				}
 			}
 
 			return;
 		}
 
 		doSpawnFill(this.random.nextBoolean(), count, spawnData, world, pos);
-	}
-
-	private void trySpawnInner(ISpawnEntry spawnData, World world, BlockPos pos,
-			int dimension, int count, int z, Vec3i[] offs, int[] scrambledLUT) {
-		final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
-		if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;
-
-		if (!spawn(oreBlock, world, pos.add(offs[scrambledLUT[--count]]), dimension, true,
-				spawnData)) {
-			count++;
-			z++;
-		} else {
-			z = 0;
-		}
-
-		if (z > 5) {
-			count--;
-			z = 0;
-			OreSpawn.LOGGER.warn("Unable to place block for chunk after 5 tries");
-		}
 	}
 
 	private void doSpawnFill(final boolean nextBoolean, final int quantity,
