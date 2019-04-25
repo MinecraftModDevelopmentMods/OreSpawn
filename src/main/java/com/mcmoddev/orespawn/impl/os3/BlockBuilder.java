@@ -154,7 +154,7 @@ public class BlockBuilder implements IBlockBuilder {
 					chance);
 		} catch (BadStateValueException e) {
 			StringBuilder p = new StringBuilder();
-			for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
+			for(StackTraceElement elem: e.getStackTrace()) p.append(String.format("%s.%s (%s:%d)\n", elem.getClassName(), elem.getMethodName(), elem.getFileName(), elem.getLineNumber()));
 			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e.getMessage(), p.toString()));
 			return this;
 		}
