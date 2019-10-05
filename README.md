@@ -1,3 +1,8 @@
+[![](https://img.shields.io/badge/Discord-MMD-green.svg?style=flat&logo=Discord)](https://discord.mcmoddev.com)
+[![](http://cf.way2muchnoise.eu/full_mmd-orespawn_downloads.svg)](http://minecraft.curseforge.com/projects/mmd-orespawn)
+[![](http://cf.way2muchnoise.eu/versions/Minecraft_mmd-orespawn_all.svg)](http://minecraft.curseforge.com/projects/mmd-orespawn)
+[![Build Status](https://ci.mcmoddev.com/job/OreSpawn/job/OreSpawn%201.12/badge/icon)](https://ci.mcmoddev.com/job/OreSpawn/job/OreSpawn%201.12/)
+
 # OreSpawn
 Minecraft library mod that provides better control over the spawning of ores in Minecraft.
 If you're looking for a place to report bugs for the mod that adds extra mobs, the "DangerZone", etc... go [to the site for that mod](http://www.orespawn.com/) as this is not it.
