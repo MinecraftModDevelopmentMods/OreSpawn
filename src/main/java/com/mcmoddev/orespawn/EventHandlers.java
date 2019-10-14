@@ -212,6 +212,7 @@ public class EventHandlers {
 		}
 
 		if (ev.phase == Phase.END) {
+			int chunkCount = chunks.size();
 			for (int c = 0; c < 25 && !chunks.isEmpty(); c++) {
 				Tuple<ChunkPos, List<String>> pp = chunks.pop();
 				if(ev.world.isBlockLoaded(new BlockPos(pp.getFirst().getXStart(), 128, pp.getFirst().getZStart()))) {
@@ -220,8 +221,13 @@ public class EventHandlers {
 					chunks.add(pp);
 					c--;
 				}
+				chunkCount--;
+				if (chunkCount <= 0) {
+					break;
+				}
 			}
 
+			chunkCount = retroChunks.size();
 			for (int c = 0; c < 25 && !retroChunks.isEmpty(); c++) {
 				final ChunkPos p = retroChunks.pop();
 				if(ev.world.isBlockLoaded(new BlockPos(p.getXStart(), 128, p.getZStart()))) {
@@ -229,6 +235,10 @@ public class EventHandlers {
 				} else {
 					c--;
 					retroChunks.add(p);
+				}
+				chunkCount--;
+				if (chunkCount <= 0) {
+					break;
 				}
 			}
 		}
