@@ -92,7 +92,7 @@ public class DefaultFeatureGenerator extends FeatureBase implements IFeature {
 			final int[] scrambledLUT = new int[lutType];
 			System.arraycopy(lut, 0, scrambledLUT, 0, scrambledLUT.length);
 			scramble(scrambledLUT, this.random);
-
+			
 			while (count > 0) {
 				final IBlockState oreBlock = spawnData.getBlocks().getRandomBlock(random);
 				if (oreBlock.getBlock().equals(net.minecraft.init.Blocks.AIR)) return;

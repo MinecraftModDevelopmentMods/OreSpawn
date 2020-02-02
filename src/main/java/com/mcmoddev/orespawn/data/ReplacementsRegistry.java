@@ -205,8 +205,8 @@ public class ReplacementsRegistry {
 			b = StateUtil.deserializeState(theBlock, state);
 		} catch (Exception e1) {
 			StringBuilder p = new StringBuilder();
-			for(StackTraceElement elem1: e1.getStackTrace()) p.append(String.format("%s.%s (%s:%u)\n", elem1.getClassName(), elem1.getMethodName(), elem1.getFileName(), elem1.getLineNumber()));
-			OreSpawn.LOGGER.error(String.format("Exception: %s\n%s", e1.getMessage(), p.toString()));
+			for(StackTraceElement elem1: e1.getStackTrace()) p.append(String.format("%s.%s (%s:%d)\n", elem1.getClassName(), elem1.getMethodName(), elem1.getFileName(), elem1.getLineNumber()));
+			OreSpawn.LOGGER.error(String.format("Exception loading block with state [%s]: %s\n%s", state, e1.getMessage(), p.toString()));
 			b = theBlock.getDefaultState();
 		}
 		blocks.add(b);
