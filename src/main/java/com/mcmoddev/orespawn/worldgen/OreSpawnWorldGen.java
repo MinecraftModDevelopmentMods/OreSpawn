@@ -24,8 +24,7 @@ public class OreSpawnWorldGen implements IWorldGenerator {
 		OreSpawn.API.getSpawns(thisDim).stream().filter(ISpawnEntry::isEnabled)
 				.filter(sb -> !Config.getBoolean(Constants.RETROGEN_KEY)
 						|| (sb.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))
-				.forEach(spawn -> 
-					spawn.generate(random, world, chunkGenerator, chunkProvider,
+				.forEach(spawn -> spawn.generate(random, world, chunkGenerator, chunkProvider,
 							new ChunkPos(chunkX, chunkZ)));
 	}
 }
