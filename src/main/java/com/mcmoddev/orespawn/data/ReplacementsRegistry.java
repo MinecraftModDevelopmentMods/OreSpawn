@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.FileUtils;
 
 import com.google.common.collect.ImmutableMap;
@@ -69,12 +67,8 @@ public class ReplacementsRegistry {
 		final String[] names = {
 				"minecraft:netherrack", "minecraft:stone", "minecraft:end_stone"
 		};
-		final List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
-				.filter(iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
-				.map(iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
-				.collect(Collectors.toList());
+		
 		final List<IBlockState> baseRv = new ArrayList<>();
-		baseRv.addAll(mineralogyOres);
 
 		if (dimension < -1 || dimension > 1 || dimension == 0) {
 			for (final ItemStack iS : OreDictionary.getOres("stone")) {
