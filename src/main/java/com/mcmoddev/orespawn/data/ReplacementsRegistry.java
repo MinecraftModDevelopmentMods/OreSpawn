@@ -29,6 +29,7 @@ import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.impl.os3.ReplacementEntry;
 import com.mcmoddev.orespawn.util.StateUtil;
 
+import akka.event.Logging.Debug;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
@@ -69,12 +70,8 @@ public class ReplacementsRegistry {
 		final String[] names = {
 				"minecraft:netherrack", "minecraft:stone", "minecraft:end_stone"
 		};
-		final List<IBlockState> mineralogyOres = OreDictionary.getOres("cobblestone").stream()
-				.filter(iS -> iS.getItem().getRegistryName().getNamespace().equals("mineralogy"))
-				.map(iS -> Block.getBlockFromItem(iS.getItem()).getStateFromMeta(iS.getMetadata()))
-				.collect(Collectors.toList());
+		
 		final List<IBlockState> baseRv = new ArrayList<>();
-		baseRv.addAll(mineralogyOres);
 
 		if (dimension < -1 || dimension > 1 || dimension == 0) {
 			for (final ItemStack iS : OreDictionary.getOres("stone")) {
