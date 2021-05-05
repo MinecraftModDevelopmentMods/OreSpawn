@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.FileUtils;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +27,6 @@ import com.mcmoddev.orespawn.api.os3.IReplacementEntry;
 import com.mcmoddev.orespawn.impl.os3.ReplacementEntry;
 import com.mcmoddev.orespawn.util.StateUtil;
 
-import akka.event.Logging.Debug;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
