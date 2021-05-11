@@ -1,13 +1,8 @@
 package com.mcmoddev.orespawn;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mcmoddev.orespawn.api.os3.ISpawnBuilder;
 import com.mcmoddev.orespawn.api.os3.OS3API;
 import com.mcmoddev.orespawn.api.plugin.PluginLoader;
 import com.mcmoddev.orespawn.commands.AddOreCommand;
@@ -19,7 +14,7 @@ import com.mcmoddev.orespawn.data.Constants;
 import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
 import com.mcmoddev.orespawn.worldgen.FlatBedrock;
-import com.mcmoddev.orespawn.worldgen.OreSpawnWorldGen;
+import com.mcmoddev.orespawn.worldgen.OreSpawnFeatureGenerator;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -53,14 +48,9 @@ public class OreSpawn {
 	public static final OS3API API = new OS3APIImpl();
 	static final EventHandlers eventHandlers = new EventHandlers();
 	public static final FeatureRegistry FEATURES = new FeatureRegistry();
-	protected static final Map<Integer, List<ISpawnBuilder>> spawns = new HashMap<>();
 
 	static final FlatBedrock flatBedrock = new FlatBedrock();
-
-	public static Map<Integer, List<ISpawnBuilder>> getSpawns() {
-		return spawns;
-	}
-
+	
 	@EventHandler
 	public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
 		LOGGER.warn("Invalid fingerprint detected!");
@@ -76,8 +66,9 @@ public class OreSpawn {
 			GameRegistry.registerWorldGenerator(flatBedrock, 100);
 		}
 
-		GameRegistry.registerWorldGenerator(new OreSpawnWorldGen(), 100);
-
+		API.getAllSpawns().entrySet().parallelStream()
+		           .forEach(ent -> GameRegistry.registerWorldGenerator(new OreSpawnFeatureGenerator(ent.getValue(), ent.getKey()), 100));
+		
 		if (Config.getBoolean(Constants.RETROGEN_KEY)
 				|| Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
 				|| Config.getBoolean(Constants.RETRO_BEDROCK)) {
