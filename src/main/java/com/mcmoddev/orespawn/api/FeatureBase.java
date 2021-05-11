@@ -96,20 +96,12 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			final OreSpawnBlockMatcher replacer, final IBlockState oreBlock,
 			final boolean cacheOverflow, final int dimension, final ISpawnEntry spawnData) {
 		if (world.isBlockLoaded(coord)) {
-			int m_x = coord.getX();
-			int p_x = coord.getX();
-			int m_z = coord.getZ();
-			int p_z = coord.getZ();
-			ChunkPos chunkLoc = world.getChunk(coord).getPos();
-			ChunkPos endLoc = new ChunkPos(chunkLoc.x+1, chunkLoc.z+1);
-			int min_x = chunkLoc.getXStart()+8; // convert to ChunkPos
-			int max_x = endLoc.getXStart()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
-			int min_z = chunkLoc.getZStart()+8; // convert to ChunkPos
-			int max_z = endLoc.getZStart()+8; // two chunks plus is 32 blocks, we are starting 1 block in and running to 1 block shy, thats 30 blocks
 			boolean x_bad = false;
 			boolean z_bad = false;
-			if(m_x < min_x || p_x > max_x) x_bad = true;
-			if(m_z < min_z || p_z > max_z) z_bad = true;
+			ChunkPos start = world.getChunk(coord).getPos();
+			ChunkPos end = new ChunkPos(start.x+1, start.z+1);
+			if (coord.getX() < start.getXStart() || coord.getX() > end.getXEnd()) x_bad = true;
+			if (coord.getZ() < start.getZStart() || coord.getZ() > end.getZEnd()) z_bad = true;
 			
 			if(x_bad || z_bad) {
 				if(cacheOverflow) {
