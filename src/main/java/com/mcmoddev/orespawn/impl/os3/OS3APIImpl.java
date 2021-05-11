@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,6 +39,7 @@ import com.mcmoddev.orespawn.data.FeatureRegistry;
 import com.mcmoddev.orespawn.data.PresetsStorage;
 import com.mcmoddev.orespawn.data.ReplacementsRegistry;
 import com.mcmoddev.orespawn.json.OreSpawnReader;
+import com.mcmoddev.orespawn.worldgen.OreSpawnFeatureGenerator;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.crash.CrashReport;
@@ -46,6 +48,7 @@ import net.minecraft.util.ResourceLocation;
 public class OS3APIImpl implements OS3API {
 
 	private static final Map<ResourceLocation, ISpawnEntry> spawns;
+	private static final List<OreSpawnFeatureGenerator> generators;
 	private static final FeatureRegistry features;
 	private static final ReplacementsRegistry replacements;
 	private static final PresetsStorage presets;
@@ -57,6 +60,7 @@ public class OS3APIImpl implements OS3API {
 		features = new FeatureRegistry();
 		replacements = new ReplacementsRegistry();
 		presets = new PresetsStorage();
+		generators = new LinkedList<>();
 	}
 
 	public OS3APIImpl() {
@@ -115,6 +119,16 @@ public class OS3APIImpl implements OS3API {
 		}
 	}
 
+	@Override
+	public void addGenerator(final OreSpawnFeatureGenerator generator) {
+		generators.add(generator);
+	}
+	
+	@Override
+	public List<OreSpawnFeatureGenerator> getGenerators() {
+		return new LinkedList<OreSpawnFeatureGenerator>(generators);
+	}
+	
 	@Override
 	public void addSpawn(final ISpawnEntry spawnEntry) {
 		if (spawnEntry != null) {

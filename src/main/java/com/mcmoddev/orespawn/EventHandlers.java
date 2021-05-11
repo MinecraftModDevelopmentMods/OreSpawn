@@ -15,6 +15,7 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.mcmoddev.orespawn.data.Config;
 import com.mcmoddev.orespawn.data.Constants;
+import com.mcmoddev.orespawn.worldgen.OreSpawnFeatureGenerator;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Tuple;
@@ -189,6 +190,13 @@ public class EventHandlers {
 
 	}
 
+	private OreSpawnFeatureGenerator findSpawn(final String spawnName) {
+		for (OreSpawnFeatureGenerator ofg : OreSpawn.API.getGenerators()) {
+			if (ofg.getSpawnName().matches(spawnName)) return ofg;
+		}
+		return null;
+	}
+	
 	private void runBits(final Tuple<ChunkPos, List<String>> tup, World world) {
 		final ChunkPos p = tup.getFirst();
 		final List<String> spawns = tup.getSecond();
@@ -199,8 +207,10 @@ public class EventHandlers {
 		// re-seed with something totally new :P
 		random.setSeed((((random.nextLong() >> 4 + 1) + p.x) + ((random.nextLong() >> 2 + 1) + p.z))
 				^ world.getSeed());
-		spawns.stream().forEach(s -> OreSpawn.API.getSpawn(s).generate(random, world,
-				chunkGenerator, chunkProvider, p));
+		spawns.stream().forEach(s -> {
+			OreSpawnFeatureGenerator feature = findSpawn(s);
+			if (feature != null) feature.generate(random, p.x, p.z, world, chunkGenerator, chunkProvider);
+		});
 	}
 
 	@SubscribeEvent

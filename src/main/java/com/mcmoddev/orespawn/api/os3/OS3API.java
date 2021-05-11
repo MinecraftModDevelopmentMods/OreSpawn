@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.data.PresetsStorage;
+import com.mcmoddev.orespawn.worldgen.OreSpawnFeatureGenerator;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
@@ -63,4 +64,8 @@ public interface OS3API {
 	List<String> getSpawnsForFile(String fileName);
 
 	Map<Path, List<String>> getSpawnsByFile();
+	
+	void addGenerator(final OreSpawnFeatureGenerator generator);
+	
+	List<OreSpawnFeatureGenerator> getGenerators();
 }
