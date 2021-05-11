@@ -185,7 +185,12 @@ public class ReplacementsRegistry {
 				}
 			});
 
-			final IReplacementEntry replacer = new ReplacementEntry("orespawn:" + entName, blocks);
+			ResourceLocation checkName= new ResourceLocation("orespawn", entName);
+			if (registry.containsKey(checkName)) {
+				List<IBlockState> existingReps = getReplacement(checkName.toString()).getEntries();
+				blocks.addAll(existingReps);
+			}
+			final IReplacementEntry replacer = new ReplacementEntry(checkName.toString(), blocks);
 			registry.register(replacer);
 		});
 	}
