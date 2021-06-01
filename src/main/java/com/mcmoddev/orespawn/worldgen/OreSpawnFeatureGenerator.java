@@ -27,9 +27,9 @@ public class OreSpawnFeatureGenerator implements IWorldGenerator, OS3FeatureGene
 			IChunkProvider chunkProvider) {
 		final int thisDim = world.provider.getDimension();
 
-		if (((!Config.getBoolean(Constants.RETROGEN_KEY) && 
-				(this.spawn.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))) && 
-				this.spawn.isEnabled() && this.spawn.dimensionAllowed(thisDim)) {
+		if ((Config.getBoolean(Constants.RETROGEN_KEY) && 
+				((this.spawn.isRetrogen() || Config.getBoolean(Constants.FORCE_RETROGEN_KEY)))) || 
+				(this.spawn.isEnabled() && this.spawn.dimensionAllowed(thisDim))) {
 				this.spawn.generate(random, world, chunkGenerator, chunkProvider, new ChunkPos(chunkX, chunkZ));
 		}
 	}

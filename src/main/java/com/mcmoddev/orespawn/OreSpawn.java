@@ -65,9 +65,6 @@ public class OreSpawn {
 		if (Config.getBoolean(Constants.FLAT_BEDROCK)) {
 			GameRegistry.registerWorldGenerator(flatBedrock, 100);
 		}
-
-		API.getAllSpawns().entrySet().parallelStream()
-		           .forEach(ent -> GameRegistry.registerWorldGenerator(new OreSpawnFeatureGenerator(ent.getValue(), ent.getKey()), 100));
 		
 		if (Config.getBoolean(Constants.RETROGEN_KEY)
 				|| Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
@@ -87,6 +84,10 @@ public class OreSpawn {
 	@EventHandler
 	public void postInit(final FMLPostInitializationEvent ev) {
 		Config.saveConfig();
+		API.getAllSpawns().entrySet().stream()
+		           .forEach(ent -> {
+		        	   GameRegistry.registerWorldGenerator(new OreSpawnFeatureGenerator(ent.getValue(), ent.getKey()), 100);
+		           });
 	}
 
 	@EventHandler
