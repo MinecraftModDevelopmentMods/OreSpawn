@@ -35,6 +35,7 @@ public class Constants {
 	public static final String PRECISION = "precision";
 	public static final Path CONFDIR = Paths.get(FileBits.CONFIG_DIR, FileBits.OS3);
 	public static final Path SYSCONF = Paths.get(FileBits.CONFIG_DIR, FileBits.OS3, FileBits.SYSCONF);
+	public static final String REPLACE_ALL = "Replace All Generation";
 
 	public final class FormatBits {
 
