@@ -28,6 +28,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable.EventType;
 import net.minecraftforge.event.world.ChunkDataEvent;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -56,6 +57,8 @@ public class EventHandlers {
 	public void onGenerateMinable(final OreGenEvent.GenerateMinable event) {
 		if (Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
 				&& vanillaEvents.contains(event.getType())) {
+			event.setResult(Event.Result.DENY);
+		} else if(Config.getBoolean(Constants.REPLACE_ALL) && !Loader.instance().activeModContainer().getModId().equals("orespawn")) {
 			event.setResult(Event.Result.DENY);
 		}
 	}
