@@ -48,6 +48,7 @@ public class Config {
 						false, "Flatten the bedrock during world generation"));
 		boolVals.put(Constants.RETRO_BEDROCK, configuration.getBoolean(Constants.RETRO_BEDROCK,
 				Configuration.CATEGORY_GENERAL, false, "Retroactively flatten bedrock"));
+		boolVals.put(Constants.REPLACE_ALL, configuration.getBoolean(Constants.REPLACE_ALL, Configuration.CATEGORY_GENERAL, false, "Replace all ore generation"));
 		intVals.put(Constants.BEDROCK_LAYERS,
 				configuration.getInt(Constants.BEDROCK_LAYERS, Configuration.CATEGORY_GENERAL, 1, 1,
 						4, "How thick should the shell of bedrock be?"));
