@@ -215,6 +215,13 @@ public class SpawnBuilder implements ISpawnBuilder {
 	@Override
 	public SpawnEntry create() {
 		if (this.blocks.count() > 0) {
+			if (this.dimensions == null) this.dimensions = new DimensionBuilder().setAcceptAll().create();
+			if (this.biomes == null) this.biomes = new BiomeBuilder().setAcceptAll().create();
+			if (this.replacements == null) this.replacements = com.mcmoddev.orespawn.OreSpawn.API.getReplacement("default");
+			if (this.feature == null) {
+				com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Spawn entry {} does not have a stated feature, ignoring.", this.spawnName);
+				return null;
+			}
 			return new SpawnEntry(this.spawnName, this.enabled, this.retrogen, this.dimensions,
 					this.biomes, this.replacements, this.blocks, this.feature);
 		} else {
