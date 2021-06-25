@@ -85,6 +85,10 @@ minecraft {
 }
 
 repositories {
+    maven {
+        name 'MMD'
+        url 'https://maven.mcmoddev.com/'
+    }
     maven { // Mantle, TCon, JEI
         name 'DVS1 Maven FS'
         url 'http://dvs1.progwml6.com/files/maven'
@@ -96,10 +100,6 @@ repositories {
     maven { // The One Probe
         name 'tterrag'
         url 'http://maven.tterrag.com/'
-    }
-    maven {
-        name 'MMD'
-        url 'https://maven.mcmoddev.com/'
     }
     maven { // MCMultipart
         name 'amadornes'
