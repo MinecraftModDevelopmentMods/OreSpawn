@@ -1,14 +1,29 @@
-dist: trusty
 language: java
-sudo: false
+os: linux
+dist: trusty
+addons:
+  apt:
+    update: true
+    packages:
+#      - oracle-java8-installer
+git:
+  quiet: true
+arch: amd64
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 cache:
   directories:
-    - $HOME/.gradle
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
 notifications:
   email: false
 jdk:
   - oraclejdk8
-before_install:
+before_install: skip
+install: skip
+before_script:
   - chmod a+x gradlew
-install: ./gradlew setupCIWorkspace -S
-script: ./gradlew clean build -S
+script:
+ - ./gradlew setupCIWorkspace -S
+ - ./gradlew clean build -S
