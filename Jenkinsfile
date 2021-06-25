@@ -26,21 +26,21 @@ pipeline {
         stage('CIWorkspace') {
             steps {
                 withGradle {
-                    sh './gradlew clean setupCiWorkspace'
+                    sh './gradlew clean setupCiWorkspace -S'
                 }
             }
         }
         stage('build') {
             steps {
                 withGradle {
-                    sh './gradlew build'
+                    sh './gradlew build -S'
                 }
             }
         }
         stage('test') {
             steps {
                 withGradle {
-                    sh './gradlew test'
+                    sh './gradlew test -S'
                 }
             }
         }
@@ -48,7 +48,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'secret.json', variable: 'SECRET_FILE')]) {
                     withGradle {
-                        sh './gradlew publish'
+                        sh './gradlew publish -S'
                     }
                 }
             }
@@ -57,7 +57,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'secret.json', variable: 'SECRET_FILE')]) {
                     withGradle {
-                        sh './gradlew -x publish curseforge'
+                        sh './gradlew -x publish curseforge -S'
                     }
                 }
             }
@@ -72,7 +72,7 @@ pipeline {
             steps {
 //              withCredentials([file(credentialsId: 'secret.json', variable: 'SECRET_FILE')]) {
 //                  withGradle {
-//                      sh './gradlew sonarqube'
+//                      sh './gradlew sonarqube -S'
 //                  }
 //              }
                 withSonarQubeEnv(installationName: 'SonarCloud', , envOnly: false) {

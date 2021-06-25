@@ -20,5 +20,5 @@ jobs:
           java-version: 8
       - run: chmod a+x gradlew
       - run: ./gradlew --version --no-daemon
-      - run: ./gradlew setupCIWorkspace
-      - run: ./gradlew clean build
+      - run: ./gradlew setupCIWorkspace -S
+      - run: ./gradlew clean build -S
