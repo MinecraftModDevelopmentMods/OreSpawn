@@ -53,7 +53,7 @@
     have been changes/updates that we have not updated to. - Proxy
  -->
   <module name="LineLength">
-    <property name="fileExtensions" value="java"/>
+    <!--<property name="fileExtensions" value="java"/>-->
     <property name="max" value="120"/>
     <!--<property name="tabWidth" value="4"/>-->
   </module>
