@@ -1,2 +1,33 @@
+// Workaround to make the JUnit Platform Gradle Plugin available using the `plugins` DSL
+// See https://github.com/junit-team/junit5/issues/768
+if (!(GradleVersion.current() <= GradleVersion.version('2.14.1'))) {
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    maven { url = ArtifactRepositoryContainer.MAVEN_CENTRAL_URL }
+  }
+  resolutionStrategy {
+    eachPlugin {
+      if (requested.id.id == 'org.junit.platform.gradle.plugin') {
+        useModule("org.junit.platform:junit-platform-gradle-plugin:${requested.version}")
+//      } else if (requested.id.id == 'org.junit.platform.gradle.plugin') {
+//        useModule("org.junit.platform:junit-platform-gradle-plugin:${requested.version}")
+      }
+    }
+  }
+}
+}
+
 rootProject.name = archivesBaseName
-enableFeaturePreview('STABLE_PUBLISHING')
+import org.gradle.util.GradleVersion
+if ((GradleVersion.current() >= GradleVersion.version('4.8')) && (GradleVersion.current() <= GradleVersion.version('4.10.3'))) {
+  enableFeaturePreview('STABLE_PUBLISHING') // 4.10.3
+}
+
+// TODO: Things which likely don't work with FG yet, but I've not checked.
+/*
+if ((GradleVersion.current() >= GradleVersion.version('4.6')) && (GradleVersion.current() <= GradleVersion.version('4.10.3'))) {
+  enableFeaturePreview('IMPROVED_POM_SUPPORT')	// Previously -Dorg.gradle.advancedpomsupport=true
+  enableFeaturePreview('GRADLE_METADATA')		// Previously -Dorg.gradle.gradlemetadata=true
+}
+*/
