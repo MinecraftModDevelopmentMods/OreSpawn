@@ -34,9 +34,6 @@ import net.minecraftforge.fluids.FluidRegistry;
  */
 public class UnderFluid extends FeatureBase implements IFeature {
 
-	/**
-	 * @param rand
-	 */
 	public UnderFluid() {
 		super(new Random());
 	}
@@ -54,7 +51,7 @@ public class UnderFluid extends FeatureBase implements IFeature {
 	 * 
 	 * @param world {@link net.minecraft.world.World} World this chunk is in
 	 * @param chunkGenerator {@link net.minecraft.world.gen.IChunkGenerator} Chunk generator for this chunk
-	 * @param chunkProvider {@link net.minecraft.world.chunk.IChunkGenerator} Chunk provider for this chunk
+	 * @param chunkProvider {@link net.minecraft.world.chunk.IChunkProvider} Chunk provider for this chunk
 	 * @param spawnData {@link com.mcmoddev.orespawn.api.os3.ISpawnEntry} Parameters and data on this spawn from the configuration file
 	 * @param chunkPos {@link net.minecraft.util.math.ChunkPos} Absolute in-world coordinates, on the chunk grid, for this chunk (can get lowest value X/Z block coordinates for this chunk by multiplying provided X/Z by 16)
 	 * @see com.mcmoddev.orespawn.api.IFeature#generate(net.minecraft.world.World, net.minecraft.world.gen.IChunkGenerator, net.minecraft.world.chunk.IChunkProvider, com.mcmoddev.orespawn.api.os3.ISpawnEntry, net.minecraft.util.math.ChunkPos)
