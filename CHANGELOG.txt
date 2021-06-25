@@ -1,8 +1,4 @@
 Version 3.3.1
 
-* Cascading World Gen Lag issues that were known have been resolved
-* Vein generator has been fixed to work properly
-* Underfluid generator has been stubbed out and is in testing
-* Various minor bugs fixed
-* Some small performance improvements
-* Most Current Release (something like build 169 or 170) fixes a logic error that saw the system refusing to spawn in any chunk with a negative X or Y coordinate.
+* Fix several bugs
+* Add ability to completely replace oregeneration (By popular request)
