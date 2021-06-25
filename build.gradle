@@ -2,7 +2,7 @@ def corePlugin = ''
 
 buildscript {
     repositories {
-        jcenter()
+    mavenCentral()
 //	maven { 
 //	    url 'http://maven.aliyun.com/nexus/content/groups/public/' 
 //	}
@@ -85,6 +85,7 @@ minecraft {
 }
 
 repositories {
+    mavenCentral()
     maven {
         name 'MMD'
         url 'https://maven.mcmoddev.com/'
