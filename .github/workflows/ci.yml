@@ -21,4 +21,4 @@ jobs:
       - run: chmod a+x gradlew
       - run: ./gradlew --version --no-daemon
       - run: ./gradlew setupCIWorkspace
-      - run: ./gradlew clean build
+      - run: ./gradlew clean build -x test
