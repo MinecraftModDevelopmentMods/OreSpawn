@@ -20,9 +20,17 @@ build
 # other
 eclipse
 run
+classes
+*.hprof
 
 /README.txt
 /forge-*-changelog.txt
+
+secret.json
+libs/*
+!/libs/README.txt
+
 .DS_Store
 .DS_Store/*
+.okhttpcache/*
 OS3 API Redesign Notes.txt
