@@ -1,0 +1,5 @@
+1) Toss entire JSON loading and data management system
+2) Implement BiomeMatcher, OS4BlockMatcher and DimensionMatcher with codecs
+3) Each Feature gets a Codec and Configuration unique to it
+4) Register IFeature and IFeatureConfiguration stuff
+5) Fully implement all available features
