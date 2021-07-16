@@ -1,7 +1,6 @@
 package com.mcmoddev.orespawn.utils;
 
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.data.BlockData;
 import com.mcmoddev.orespawn.data.Constants;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -73,15 +72,5 @@ public class Helpers {
 				break;
 		}
 		return result;
-	}
-
-	public static BlockState getBlockFor(BlockData blockData) {
-		try {
-			return new BlockStateParser(new StringReader(blockData.getBlockWithState()), false).parse(false).getState();
-		} catch (CommandSyntaxException e) {
-			OreSpawn.LOGGER.error("Error parsing blockstate for {} -- {}", blockData.getBlockWithState(), e.getMessage());
-			e.printStackTrace();
-			return null;
-		}
 	}
 }
