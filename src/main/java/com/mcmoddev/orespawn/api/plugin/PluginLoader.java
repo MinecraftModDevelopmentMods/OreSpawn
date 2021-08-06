@@ -68,7 +68,7 @@ public enum PluginLoader {
 			try {
 				integration = Class.forName(clazz).asSubclass(IOreSpawnPlugin.class).newInstance();
 				final PluginData pd = new PluginData(modId, resourceBase, integration);
-				OreSpawn.LOGGER.fatal("Loading Integration For {}", modId);
+				OreSpawn.LOGGER.info("Loading Integration For {}", modId);
 				dataStore.add(pd);
 			} catch (final Exception ex) {
 				OreSpawn.LOGGER.error("Couldn't load integrations for " + modId, ex);
