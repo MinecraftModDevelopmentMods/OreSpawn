@@ -58,7 +58,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	protected boolean spawn(final IBlockState oreBlock, final World world, final BlockPos coord,
 			final int dimension, final boolean cacheOverflow, final ISpawnEntry spawnData) {
 		if (oreBlock == null) {
-			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
+			OreSpawn.LOGGER.error("FeatureBase.spawn() called with a null ore!");
 			return false;
 		}
 
@@ -74,8 +74,8 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 		final BlockPos np = mungeFixYcoord(coord);
 
-		if (coord.getY() >= world.getHeight()) {
-			OreSpawn.LOGGER.warn("Asked to spawn {} above build limit at {}", oreBlock, coord);
+		if (world.isValid(coord)) {
+			OreSpawn.LOGGER.warn("Asked to spawn {} outside of world at {}", oreBlock, coord);
 			return false;
 		}
 
@@ -136,7 +136,7 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	private void spawnNoCheck(final IBlockState oreBlock, final World world, final BlockPos coord,
 			final int dimension, final ISpawnEntry spawnData) {
 		if (oreBlock == null) {
-			OreSpawn.LOGGER.fatal("FeatureBase.spawn() called with a null ore!");
+			OreSpawn.LOGGER.error("FeatureBase.spawnNoCheck() called with a null ore!");
 			return;
 		}
 
