@@ -219,7 +219,7 @@ public class SpawnBuilder implements ISpawnBuilder {
 			if (this.biomes == null) this.biomes = new BiomeBuilder().setAcceptAll().create();
 			if (this.replacements == null) this.replacements = com.mcmoddev.orespawn.OreSpawn.API.getReplacement("default");
 			if (this.feature == null) {
-				com.mcmoddev.orespawn.OreSpawn.LOGGER.fatal("Spawn entry {} does not have a stated feature, ignoring.", this.spawnName);
+				com.mcmoddev.orespawn.OreSpawn.LOGGER.error("Spawn entry {} does not have a stated feature, ignoring.", this.spawnName);
 				return null;
 			}
 			return new SpawnEntry(this.spawnName, this.enabled, this.retrogen, this.dimensions,
