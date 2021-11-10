@@ -13,6 +13,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.pattern.BlockMatcher;
 import net.minecraft.util.WeightedList;
 import net.minecraft.world.gen.feature.IFeatureConfig;
+import org.lwjgl.system.Pointer;
 
 public class DefaultFeatureConfig implements IFeatureConfig {
 	public static final Codec<DefaultFeatureConfig> CODEC = RecordCodecBuilder.create((codec) -> {
@@ -21,21 +22,21 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 			BlockMatcherConfig.CODEC.fieldOf("replaces").forGetter((config) -> config.replacer),
 			DefaultFeatureParametersConfig.CODEC.fieldOf("parameters").forGetter((config) -> config.parameters),
 			BiomeMatcherConfig.CODEC.fieldOf("biomes").forGetter((config) -> config.biomeMatch),
-			DimensionMatcherConfig.CODEC.fieldOf("dimensions").forGetter((config) -> config.dimensionMatch.getConfig()),
+			DimensionMatcherConfig.CODEC.fieldOf("dimensions").forGetter((config) -> config.dimensionMatch),
 			WeightedList.getCodec(BlockState.CODEC).fieldOf("blocks").forGetter((config) -> config.blocks)
 		).apply(codec, DefaultFeatureConfig::new);
 	});
 
 	public final WeightedList<BlockState> blocks;
 	public final BiomeMatcherConfig biomeMatch;
-	public final DimensionMatcher dimensionMatch;
+	public final DimensionMatcherConfig dimensionMatch;
 	public final DefaultFeatureParametersConfig parameters;
 	public final String feature;
 	public final BlockMatcherConfig replacer;
 
 	public DefaultFeatureConfig(String featureName, BlockMatcherConfig replacement,
 								DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
-								DimensionMatcher dimensions, WeightedList<BlockState> blocks ) {
+								DimensionMatcherConfig dimensions, WeightedList<BlockState> blocks ) {
 		this.replacer = replacement;
 		this.blocks = blocks;
 		this.biomeMatch = biomes;
