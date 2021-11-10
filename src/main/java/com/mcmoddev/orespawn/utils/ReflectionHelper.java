@@ -1,12 +1,13 @@
 package com.mcmoddev.orespawn.utils;
 
 import com.mcmoddev.orespawn.OreSpawn;
-import com.mcmoddev.orespawn.api.OS4Feature;
+//import com.mcmoddev.orespawn.api.OS4Feature;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 public class ReflectionHelper {
+	public class OS4Feature {};
 	public static Class<? extends OS4Feature> getFeatureNamed(final String name, final String fqcn) {
 		Class<?> resultBase;
 		Class<? extends OS4Feature> result = null;
