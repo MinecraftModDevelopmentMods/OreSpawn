@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AllowDenyListBase<T extends RegistryKey> {
-	private final List<RegistryKey> listed = new LinkedList<>();
+	private final List<T> listed = new LinkedList<>();
 	private final ResourceLocation type;
 	private final T baseKey;
 
@@ -19,7 +19,7 @@ public class AllowDenyListBase<T extends RegistryKey> {
 	protected AllowDenyListBase(final ResourceLocation matchType, final T key, List<ResourceLocation> baseList) {
 		this.type = matchType;
 		this.baseKey = key;
-		listed.addAll(baseList.stream().map( rl -> RegistryKey.getOrCreateKey(this.baseKey, rl)).collect(Collectors.toList()));
+		listed.addAll((List<T>) baseList.stream().map( rl -> (T) RegistryKey.getOrCreateKey(this.baseKey, rl)).collect(Collectors.toList()));
 	}
 
 	public boolean matches(final String biomeName) {
@@ -42,10 +42,10 @@ public class AllowDenyListBase<T extends RegistryKey> {
 	}
 
 	public boolean matches(final ResourceLocation biomeName) {
-		return matches(RegistryKey.getOrCreateKey(this.baseKey, biomeName));
+		return matches((T)RegistryKey.getOrCreateKey(this.baseKey, biomeName));
 	}
 
-	private boolean matches(final RegistryKey item) {
+	private boolean matches(final T item) {
 		if (type == blacklist && listed.contains(item)) return false;
 		return listed.contains(item);
 	}
