@@ -4,7 +4,7 @@ issueTrackerURL="https://github.com/MinecraftModDevelopmentMods/OreSpawn/issues/
 # GNU LGPLv2.1 
 license="GNU LGPLv2.1"
 [[mods]] #mandatory
-modId="orespawn" #mandatory
+modId="orespawn4" #mandatory
 version="${file.jarVersion}" #mandatory
 displayName="MMD OreSpawn" #mandatory
 updateJSONURL="" # blank for now!

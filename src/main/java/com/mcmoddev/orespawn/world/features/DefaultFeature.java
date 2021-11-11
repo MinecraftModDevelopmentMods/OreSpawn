@@ -26,6 +26,7 @@ public class DefaultFeature extends OreSpawnFeature<DefaultFeatureConfig> {
 
 	@Override
 	public boolean generate(@Nonnull ISeedReader reader, @Nonnull ChunkGenerator chunkGenerator, @Nonnull Random rand, @Nonnull BlockPos pos, @Nonnull DefaultFeatureConfig config) {
+		OreSpawn.LOGGER.info("generate( ... ) for %s", config.feature);
 		if (biomeMatcher == null) biomeMatcher = new BiomeMatcher(config.biomeMatch);
 		if (dimensionMatcher == null) dimensionMatcher = new DimensionMatcher(config.dimensionMatch);
 		if (config.parameters.frequency <= rand.nextFloat()) {
