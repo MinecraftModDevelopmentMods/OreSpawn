@@ -12,7 +12,7 @@ public class DimensionMatcherConfig {
 	public final ResourceLocation type;
 
 	public static final Codec<DimensionMatcherConfig> CODEC = RecordCodecBuilder.create((base) -> {
-		return base.group(ResourceLocation.CODEC.listOf().fieldOf("entries").forGetter((config) -> {
+		return base.group(ResourceLocation.CODEC.listOf().fieldOf("data").forGetter((config) -> {
 				return config.data;
 			}),
 			ResourceLocation.CODEC.fieldOf("type").forGetter((config) -> {

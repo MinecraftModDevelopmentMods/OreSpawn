@@ -13,13 +13,14 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.pattern.BlockMatcher;
 import net.minecraft.util.WeightedList;
 import net.minecraft.world.gen.feature.IFeatureConfig;
+import net.minecraft.world.gen.feature.template.RuleTest;
 import org.lwjgl.system.Pointer;
 
 public class DefaultFeatureConfig implements IFeatureConfig {
 	public static final Codec<DefaultFeatureConfig> CODEC = RecordCodecBuilder.create((codec) -> {
 		return codec.group(
-			Codec.STRING.fieldOf("feature").forGetter((config) -> config.feature),
-			BlockMatcherConfig.CODEC.fieldOf("replaces").forGetter((config) -> config.replacer),
+			Codec.STRING.fieldOf("name").forGetter((config) -> config.feature),
+			RuleTest.CODEC.fieldOf("replaces").forGetter((config) -> config.replacer),
 			DefaultFeatureParametersConfig.CODEC.fieldOf("parameters").forGetter((config) -> config.parameters),
 			BiomeMatcherConfig.CODEC.fieldOf("biomes").forGetter((config) -> config.biomeMatch),
 			DimensionMatcherConfig.CODEC.fieldOf("dimensions").forGetter((config) -> config.dimensionMatch),
@@ -32,9 +33,9 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 	public final DimensionMatcherConfig dimensionMatch;
 	public final DefaultFeatureParametersConfig parameters;
 	public final String feature;
-	public final BlockMatcherConfig replacer;
+	public final RuleTest replacer;
 
-	public DefaultFeatureConfig(String featureName, BlockMatcherConfig replacement,
+	public DefaultFeatureConfig(String featureName, RuleTest replacement,
 								DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
 								DimensionMatcherConfig dimensions, WeightedList<BlockState> blocks ) {
 		this.replacer = replacement;

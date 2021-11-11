@@ -15,7 +15,7 @@ public class BiomeMatcherConfig {
 	public final ResourceLocation type;
 
 	public static final Codec<BiomeMatcherConfig> CODEC = RecordCodecBuilder.create((base) -> {
-		return base.group(ResourceLocation.CODEC.listOf().fieldOf("entries").forGetter((config) -> {
+		return base.group(ResourceLocation.CODEC.listOf().fieldOf("data").forGetter((config) -> {
 				return config.data;
 			}),
 			ResourceLocation.CODEC.fieldOf("type").forGetter((config) -> {
