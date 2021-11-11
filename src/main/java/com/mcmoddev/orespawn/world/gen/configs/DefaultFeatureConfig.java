@@ -1,18 +1,26 @@
 package com.mcmoddev.orespawn.world.gen.configs;
 
+import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.utils.codecs.BiomeMatcherConfig;
 import com.mcmoddev.orespawn.utils.codecs.DefaultFeatureParametersConfig;
 import com.mcmoddev.orespawn.utils.codecs.DimensionMatcherConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.WeightedList;
+import net.minecraft.util.registry.DynamicRegistries;
+import net.minecraft.util.registry.MutableRegistry;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraft.world.gen.feature.template.IRuleTestType;
 import net.minecraft.world.gen.feature.template.RuleTest;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Stream;
 
 public class DefaultFeatureConfig implements IFeatureConfig {
 	public static final Codec<DefaultFeatureConfig> CODEC = RecordCodecBuilder.create((codec) -> {
@@ -42,5 +50,6 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 		this.dimensionMatch = dimensions;
 		this.parameters = parameters;
 		this.feature = featureName;
+		OreSpawn.LOGGER.info("Feature %s configured", featureName);
 	}
 }

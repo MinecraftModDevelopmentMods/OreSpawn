@@ -24,6 +24,11 @@ public class DefaultFeature extends OreSpawnFeature<DefaultFeatureConfig> {
 		super(codec);
 	}
 
+	public boolean place(@Nonnull ISeedReader reader, @Nonnull ChunkGenerator chunkGenerator, @Nonnull Random rand, @Nonnull BlockPos pos, @Nonnull DefaultFeatureConfig config) {
+		OreSpawn.LOGGER.info("Yes, the method needed is called place and not generate, regardless of what IDEA says");
+		return this.generate(reader, chunkGenerator, rand, pos, config);
+	}
+
 	@Override
 	public boolean generate(@Nonnull ISeedReader reader, @Nonnull ChunkGenerator chunkGenerator, @Nonnull Random rand, @Nonnull BlockPos pos, @Nonnull DefaultFeatureConfig config) {
 		OreSpawn.LOGGER.info("generate( ... ) for %s", config.feature);

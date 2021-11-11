@@ -3,6 +3,7 @@ package com.mcmoddev.orespawn;
 import com.mcmoddev.orespawn.world.features.Features;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
@@ -18,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 @Mod("orespawn4")
 public class OreSpawn {
 	// Directly reference a log4j logger.
-	public static final Logger LOGGER = LogManager.getLogger();
+	public static final Logger LOGGER = LogManager.getFormatterLogger();
 
 	public OreSpawn() {
 		// Register the setup method for modloading
@@ -39,6 +40,8 @@ public class OreSpawn {
 		public static void featureRegistryEvent(final RegistryEvent.Register<Feature<?>> event) {
 			event.getRegistry().register(Features.DEFAULT.setRegistryName("default"));
 			LOGGER.info("Registered %s", Features.DEFAULT.getRegistryName());
+
+			event.getRegistry().getEntries().stream().forEach( ent -> LOGGER.fatal( "feature %s of type %s", ent.getValue().getRegistryName(), ent.getValue().getCodec()));
 		}
 	}
 }
