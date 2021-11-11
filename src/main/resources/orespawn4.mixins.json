@@ -2,9 +2,9 @@
   "required": true,
   "package": "com.mcmoddev.orespawn.utils.mixins",
   "compatibilityLevel": "JAVA_8",
+  "refmap": "orespawn4.refmap.json",
   "mixins": [
     "ServerAccessor",
-    "BiomeAccessor",
     "BiomeGenerationSettingsAccessor"
   ],
   "injectors": {

@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn;
 
 import com.mcmoddev.orespawn.utils.mixins.BiomeGenerationSettingsAccessor;
+import com.mcmoddev.orespawn.utils.mixins.ServerAccessor;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.biome.BiomeGenerationSettings;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
@@ -37,14 +38,14 @@ public class OreSpawn {
 	}
 
 	public void start(final FMLServerAboutToStartEvent event) {
-		event.getServer().getDynamicRegistries().getRegistry(Registry.BIOME_KEY).stream().forEach(b -> {
+		((ServerAccessor) event.getServer()).getDynamicRegistries().getRegistry(Registry.BIOME_KEY).stream().forEach(b -> {
 			BiomeGenerationSettings settings = b.getGenerationSettings();
 			List<List<Supplier<ConfiguredFeature<?, ?>>>> data = new LinkedList<>();
 			data.addAll(settings.getFeatures());
 			List<Supplier<ConfiguredFeature<?, ?>>> cc = new LinkedList<>();
 			DefaultFeatureConfig.getMyFeatures().values().stream().forEach( cf -> cc.add(() -> cf));
 			data.add(cc);
-			settings.setFeatures(data);
+			((BiomeGenerationSettingsAccessor) settings).setFeatures(data);
 		});
 	}
 
