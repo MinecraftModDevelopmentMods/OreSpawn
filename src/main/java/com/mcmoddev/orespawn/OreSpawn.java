@@ -1,14 +1,11 @@
 package com.mcmoddev.orespawn;
 
-import net.minecraft.item.Item;
+import com.mcmoddev.orespawn.world.features.Features;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +19,7 @@ public class OreSpawn {
 	public OreSpawn() {
 		// Register the setup method for modloading
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
+		/*
 		// Register the enqueueIMC method for modloading
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueIMC);
 		// Register the processIMC method for modloading
@@ -33,13 +31,15 @@ public class OreSpawn {
 		// Register ourselves for server and other game events we are interested in
 		MinecraftForge.EVENT_BUS.addListener(this::itemRegistryEvent);
 		MinecraftForge.EVENT_BUS.addListener(this::doServerStartTasks);
+		 */
 		MinecraftForge.EVENT_BUS.register(this);
 	}
 
 	private void setup(final FMLCommonSetupEvent event) {
+		event.enqueueWork( () -> Registry.register(Registry.FEATURE, new ResourceLocation("orespawn4", "default"), Features.DEFAULT) );
 	}
 
-
+    /*
 	private void doClientStuff(final FMLClientSetupEvent event) {
 	}
 
@@ -55,4 +55,5 @@ public class OreSpawn {
 
 	private void doServerStartTasks(final FMLServerStartingEvent ev) {
 	}
+	*/
 }

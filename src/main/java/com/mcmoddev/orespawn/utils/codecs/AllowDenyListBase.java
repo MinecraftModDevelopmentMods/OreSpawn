@@ -2,6 +2,7 @@ package com.mcmoddev.orespawn.utils.codecs;
 
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,10 +12,10 @@ public class AllowDenyListBase<T extends RegistryKey> {
 	private final ResourceLocation type;
 	private final T baseKey;
 
-	private static final ResourceLocation whitelist = new ResourceLocation("orespawn4", "allowlist");
-	private static final ResourceLocation blacklist = new ResourceLocation("orespawn4", "denylist");
-	private static final ResourceLocation denyall = new ResourceLocation("orespawn4", "denyall");
-	private static final ResourceLocation allowall = new ResourceLocation("orespawn4", "allowall");
+	public static final ResourceLocation whitelist = new ResourceLocation("orespawn4", "allowlist");
+	public static final ResourceLocation blacklist = new ResourceLocation("orespawn4", "denylist");
+	public static final ResourceLocation denyall = new ResourceLocation("orespawn4", "denyall");
+	public static final ResourceLocation allowall = new ResourceLocation("orespawn4", "allowall");
 
 	protected AllowDenyListBase(final ResourceLocation matchType, final T key, List<ResourceLocation> baseList) {
 		this.type = matchType;

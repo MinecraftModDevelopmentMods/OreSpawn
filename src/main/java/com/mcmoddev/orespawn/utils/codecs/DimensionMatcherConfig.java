@@ -5,6 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.ResourceLocation;
 
+import java.util.Collections;
 import java.util.List;
 
 public class DimensionMatcherConfig {
@@ -23,5 +24,10 @@ public class DimensionMatcherConfig {
 	public DimensionMatcherConfig(final List<ResourceLocation> entryList, final ResourceLocation type) {
 		this.data = ImmutableList.copyOf(entryList);
 		this.type = type;
+	}
+
+	public DimensionMatcherConfig() {
+		type = AllowDenyListBase.denyall;
+		data = Collections.emptyList();
 	}
 }

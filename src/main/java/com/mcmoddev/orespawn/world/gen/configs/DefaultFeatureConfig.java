@@ -1,20 +1,18 @@
 package com.mcmoddev.orespawn.world.gen.configs;
 
-import com.mcmoddev.orespawn.data.BiomeMatcher;
-import com.mcmoddev.orespawn.data.DefaultFeatureParameters;
-import com.mcmoddev.orespawn.data.DimensionMatcher;
 import com.mcmoddev.orespawn.utils.codecs.BiomeMatcherConfig;
-import com.mcmoddev.orespawn.utils.codecs.BlockMatcherConfig;
 import com.mcmoddev.orespawn.utils.codecs.DefaultFeatureParametersConfig;
 import com.mcmoddev.orespawn.utils.codecs.DimensionMatcherConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.pattern.BlockMatcher;
 import net.minecraft.util.WeightedList;
 import net.minecraft.world.gen.feature.IFeatureConfig;
+import net.minecraft.world.gen.feature.template.IRuleTestType;
 import net.minecraft.world.gen.feature.template.RuleTest;
-import org.lwjgl.system.Pointer;
+
+import java.util.Collections;
+import java.util.Random;
 
 public class DefaultFeatureConfig implements IFeatureConfig {
 	public static final Codec<DefaultFeatureConfig> CODEC = RecordCodecBuilder.create((codec) -> {
