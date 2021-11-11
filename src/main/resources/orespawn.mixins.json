@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.mcmoddev.orespawn.utils.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ServerAccessor",
+    "BiomeAccessor",
+    "BiomeGenerationSettingsAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

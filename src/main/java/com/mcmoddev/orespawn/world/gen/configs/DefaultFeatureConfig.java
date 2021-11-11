@@ -20,9 +20,7 @@ import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraft.world.gen.feature.template.IRuleTestType;
 import net.minecraft.world.gen.feature.template.RuleTest;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class DefaultFeatureConfig implements IFeatureConfig {
@@ -44,12 +42,16 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 	public final String feature;
 	public final RuleTest replacer;
 
+	private static final Map<String, ConfiguredFeature<?,?>> myFeatures = new TreeMap<>();
+
 	private static DefaultFeatureConfig generateFeature(String featureName, RuleTest replacement,
 														DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
 														DimensionMatcherConfig dimensions, WeightedList<BlockState> blocks ) {
 		DefaultFeatureConfig z = new DefaultFeatureConfig(featureName, replacement, parameters, biomes, dimensions, blocks);
-		Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, String.format("orespawn4:%s",featureName), Features.DEFAULT.withConfiguration(z));
-		WorldGenRegistries.CONFIGURED_FEATURE.getEntries().stream().forEach( ent -> OreSpawn.LOGGER.info( "%s --> %s [%s]", ent.getKey().getRegistryName(), ent.getValue().getConfig(), ent.getValue().getFeature().getRegistryName()));
+		if (!myFeatures.containsKey(featureName)) {
+			myFeatures.put(featureName, Features.DEFAULT.withConfiguration(z));
+			Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, featureName, Features.DEFAULT.withConfiguration(z));
+		}
 		return z;
 	}
 
@@ -63,5 +65,13 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 		this.parameters = parameters;
 		this.feature = featureName;
 		OreSpawn.LOGGER.info("Feature %s configured", featureName);
+	}
+
+	public Stream<ConfiguredFeature<?, ?>> getConfiguredFeatures() {
+		return myFeatures.values().stream();
+	}
+
+	public static Map<String, ConfiguredFeature<?, ?>> getMyFeatures() {
+		return Collections.unmodifiableMap(myFeatures);
 	}
 }
