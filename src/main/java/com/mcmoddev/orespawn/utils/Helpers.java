@@ -36,7 +36,7 @@ public class Helpers {
 		return Pair.of(domain, path);
 	}
 	public static ResourceLocation makeInternalResourceLocation(final String locIn) {
-		Pair<String, String> bits = getNameBits("orespawn", locIn);
+		Pair<String, String> bits = getNameBits("orespawn4", locIn);
 		return makeResourceLocationFlat(bits.getLeft(), bits.getRight());
 	}
 
@@ -53,23 +53,6 @@ public class Helpers {
 			OreSpawn.LOGGER.error("Error parsing serialized BlockState {} - {}", fullState, e.getMessage());
 			e.printStackTrace();
 			result = null;
-		}
-		return result;
-	}
-	public static Path makePath(ResourceLocation rl, String type) {
-		Path result;
-		switch (type) {
-			case Constants.FileBits.DISK:
-				result = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS4, rl.getPath() + ".json");
-				break;
-			case Constants.FileBits.RESOURCE:
-				ModFile mf = ModList.get().getModFileById(rl.getNamespace()).getFile();
-				result = mf.getLocator().findPath(mf, "assets", "orespawn4-data", rl.getPath() + ".json");
-				break;
-			default:
-				OreSpawn.LOGGER.error("Asked to resolve a path for {} of type {} -- I do not know how to do this", rl.toString(), type);
-				result = Paths.get(Constants.FileBits.CONFIG_DIR, Constants.FileBits.OS4, "error.json");
-				break;
 		}
 		return result;
 	}

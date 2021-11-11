@@ -48,8 +48,8 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 														DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
 														DimensionMatcherConfig dimensions, WeightedList<BlockState> blocks ) {
 		DefaultFeatureConfig z = new DefaultFeatureConfig(featureName, replacement, parameters, biomes, dimensions, blocks);
-		Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, featureName, Features.DEFAULT.withConfiguration(z));
-		WorldGenRegistries.CONFIGURED_FEATURE.getEntries().stream().forEach( ent -> OreSpawn.LOGGER.info( "%s --> %s", ent.getValue().getFeature().getRegistryName(), ent.getValue().getConfig()));
+		Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, String.format("orespawn4:%s",featureName), Features.DEFAULT.withConfiguration(z));
+		WorldGenRegistries.CONFIGURED_FEATURE.getEntries().stream().forEach( ent -> OreSpawn.LOGGER.info( "%s --> %s [%s]", ent.getKey().getRegistryName(), ent.getValue().getConfig(), ent.getValue().getFeature().getRegistryName()));
 		return z;
 	}
 
