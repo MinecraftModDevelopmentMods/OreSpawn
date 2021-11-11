@@ -4,6 +4,8 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.utils.codecs.BiomeMatcherConfig;
 import com.mcmoddev.orespawn.utils.codecs.DefaultFeatureParametersConfig;
 import com.mcmoddev.orespawn.utils.codecs.DimensionMatcherConfig;
+import com.mcmoddev.orespawn.world.features.DefaultFeature;
+import com.mcmoddev.orespawn.world.features.Features;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
@@ -12,6 +14,7 @@ import net.minecraft.util.WeightedList;
 import net.minecraft.util.registry.DynamicRegistries;
 import net.minecraft.util.registry.MutableRegistry;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.WorldGenRegistries;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraft.world.gen.feature.template.IRuleTestType;
@@ -31,7 +34,7 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 			BiomeMatcherConfig.CODEC.fieldOf("biomes").forGetter((config) -> config.biomeMatch),
 			DimensionMatcherConfig.CODEC.fieldOf("dimensions").forGetter((config) -> config.dimensionMatch),
 			WeightedList.getCodec(BlockState.CODEC).fieldOf("blocks").forGetter((config) -> config.blocks)
-		).apply(codec, DefaultFeatureConfig::new);
+		).apply(codec, DefaultFeatureConfig::generateFeature);
 	});
 
 	public final WeightedList<BlockState> blocks;
@@ -40,6 +43,15 @@ public class DefaultFeatureConfig implements IFeatureConfig {
 	public final DefaultFeatureParametersConfig parameters;
 	public final String feature;
 	public final RuleTest replacer;
+
+	private static DefaultFeatureConfig generateFeature(String featureName, RuleTest replacement,
+														DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
+														DimensionMatcherConfig dimensions, WeightedList<BlockState> blocks ) {
+		DefaultFeatureConfig z = new DefaultFeatureConfig(featureName, replacement, parameters, biomes, dimensions, blocks);
+		Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, featureName, Features.DEFAULT.withConfiguration(z));
+		WorldGenRegistries.CONFIGURED_FEATURE.getEntries().stream().forEach( ent -> OreSpawn.LOGGER.info( "%s --> %s", ent.getValue().getFeature().getRegistryName(), ent.getValue().getConfig()));
+		return z;
+	}
 
 	public DefaultFeatureConfig(String featureName, RuleTest replacement,
 								DefaultFeatureParametersConfig parameters, BiomeMatcherConfig biomes,
