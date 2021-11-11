@@ -5,8 +5,8 @@
     "biomes": { "type": "orespawn4:allowall", "data": [] },
     "dimensions": { "type": "orespawn4:denylist", "data": [ "minecraft:the_end", "minecraft:the_nether" ] },
     "parameters": {
-      "maxHeight": 0xFFFFFFFF,
-      "minHeight": 0xFFFFFFFF,
+      "maxHeight": 255,
+      "minHeight": 0,
       "size": 32,
       "variation": 16,
       "frequency": 0.50
@@ -15,6 +15,6 @@
       "predicate_type": "minecraft:tag_match",
       "tag": "minecraft:base_stone_overworld"
     },
-    "blocks": [ { "value": { "Name": "minecraft:coal_ore"}, "weight": 100 }, { "value": { "Name": "minecraft:iron_ore" }, "weight": 25 } ]
+    "blocks": [ { "data": { "Name": "minecraft:coal_ore" }, "weight": 100 }, { "data": { "Name": "minecraft:iron_ore" }, "weight": 25 } ]
   }
 }

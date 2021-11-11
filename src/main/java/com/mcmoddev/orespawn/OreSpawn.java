@@ -6,6 +6,8 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -21,44 +23,22 @@ public class OreSpawn {
 	public OreSpawn() {
 		// Register the setup method for modloading
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-		/*
-		// Register the enqueueIMC method for modloading
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueIMC);
-		// Register the processIMC method for modloading
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processIMC);
-		// Register the doClientStuff method for modloading
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
-		// Register the doClientStuff method for modloading
-
-		// Register ourselves for server and other game events we are interested in
-		MinecraftForge.EVENT_BUS.addListener(this::itemRegistryEvent);
-		MinecraftForge.EVENT_BUS.addListener(this::doServerStartTasks);
-		 */
-		MinecraftForge.EVENT_BUS.register(this);
 	}
 
-	private void featureRegistry(final RegistryEvent.Register<Feature<?>> event) {
-		event.getRegistry().register(Features.DEFAULT.setRegistryName(new ResourceLocation("orespawn4", "default")));
-	}
+
 	private void setup(final FMLCommonSetupEvent event) {
 //		event.enqueueWork( () -> Registry.register(Registry.FEATURE, new ResourceLocation("orespawn4", "default"), Features.DEFAULT) );
 	}
 
-    /*
-	private void doClientStuff(final FMLClientSetupEvent event) {
+	@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+	public static class RegistryEvents {
+		@SubscribeEvent
+		/**
+		 *
+		 */
+		public static void featureRegistryEvent(final RegistryEvent.Register<Feature<?>> event) {
+			event.getRegistry().register(Features.DEFAULT.setRegistryName("default"));
+			LOGGER.info("Registered %s", Features.DEFAULT.getRegistryName());
+		}
 	}
-
-	private void enqueueIMC(final InterModEnqueueEvent event) {
-	}
-
-	private void processIMC(final InterModProcessEvent event) {
-	}
-
-	private void itemRegistryEvent(final RegistryEvent.Register<Item> ev) {
-
-	}
-
-	private void doServerStartTasks(final FMLServerStartingEvent ev) {
-	}
-	*/
 }
