@@ -13,5 +13,6 @@ import java.util.function.Supplier;
 public interface BiomeGenerationSettingsAccessor {
 	@Accessor
 	@Mutable
+	//               List<List<Supplier<ConfiguredFeature<?, ?>>>>
 	void setFeatures(List<List<Supplier<ConfiguredFeature<?, ?>>>> features);
 }
