@@ -78,7 +78,7 @@ dependencies {
   implementation 'org.jetbrains:annotations:20.1.0'   ;
   minecraft "net.minecraftforge:forge:${project.forge_mc_version}-${project.forge_version}" ;
   annotationProcessor group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.0' ;
-  annotationProcessor 'org.spongepowered:mixin:0.8:processor' ;
+  annotationProcessor 'org.spongepowered:mixin:0.8.4:processor' ;
 }
 
 jar {
