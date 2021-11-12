@@ -45,32 +45,50 @@ minecraft {
   mappings channel: project.mcp_mappings_channel, version: project.mcp_mappings_version
 
   runs {
-   client {
-     workingDirectory project.file('run')
+    client {
+      workingDirectory project.file('run')
+      arg '-mixin.config=orespawn4.mixins.json'
+      taskName 'runClient'
+      property 'forge.logging.markers', 'REGISTRIES'
+      property 'forge.logging.console.level', 'debug'
 
-     taskName 'runClient'
-     property 'forge.logging.markers', 'REGISTRIES'
-     property 'forge.logging.console.level', 'debug'
+      mods {
+        orespawn4 {
+          source sourceSets.main
+        }
+      }
+    }
 
-     mods {}
-   }
+    server {
+      workingDirectory project.file('run')
+      arg '-mixin.config=orespawn4.mixins.json'
 
-   server {
-     workingDirectory project.file('run')
+      taskName 'runServer'
+      property 'forge.logging.markers', 'REGISTRIES'
+      property 'forge.logging.console.level', 'debug'
 
-     taskName 'runServer'
-     property 'forge.logging.markers', 'REGISTRIES'
-     property 'forge.logging.console.level', 'debug'
+      mods {
+        orespawn4 {
+          source sourceSets.main
+        }
+      }
 
-   }
+    }
 
-   data {
-     workingDirectory project.file('run')
+    data {
+      workingDirectory project.file('run')
 
-     property 'forge.logging.markers', 'REGISTRIES'
-     property 'forge.logging.console.level', 'debug'
-     args '--mod', 'orespawn', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-   }
+      property 'forge.logging.markers', 'REGISTRIES'
+      property 'forge.logging.console.level', 'debug'
+      args '--mod', 'orespawn', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/'), '-mixin.config', 'orespawn4.mixins.json'
+
+      mods {
+        orespawn4 {
+          source sourceSets.main
+        }
+      }
+
+    }
   }
 }
 

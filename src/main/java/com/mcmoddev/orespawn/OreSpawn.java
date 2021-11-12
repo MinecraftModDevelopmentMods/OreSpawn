@@ -45,7 +45,9 @@ public class OreSpawn {
 			List<Supplier<ConfiguredFeature<?, ?>>> cc = new LinkedList<>();
 			DefaultFeatureConfig.getMyFeatures().values().stream().forEach( cf -> cc.add(() -> cf));
 			data.add(cc);
+			LOGGER.fatal("Trying to reset biome features from %s to %s", settings.getFeatures(), data);
 			((BiomeGenerationSettingsAccessor) settings).setFeatures(data);
+			LOGGER.fatal("Do the two things match? %s", settings.getFeatures().containsAll(data) );
 		});
 	}
 
