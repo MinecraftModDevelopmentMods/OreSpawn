@@ -1,65 +1,87 @@
-package com.mcmoddev.orespawn;
+	package com.mcmoddev.orespawn;
 
-import com.mcmoddev.orespawn.utils.mixins.BiomeGenerationSettingsAccessor;
-import com.mcmoddev.orespawn.utils.mixins.ServerAccessor;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.biome.BiomeGenerationSettings;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+	import com.google.common.base.Joiner;
+	import com.mcmoddev.orespawn.data.Constants;
+	import net.minecraft.util.ResourceLocation;
+	import net.minecraft.world.gen.feature.Feature;
+	import net.minecraftforge.event.RegistryEvent;
+	import net.minecraftforge.eventbus.api.SubscribeEvent;
+	import net.minecraftforge.fml.ModList;
+	import net.minecraftforge.fml.common.Mod;
+	import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+	import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+	import net.minecraftforge.fml.loading.moddiscovery.ModFileInfo;
+	import org.apache.logging.log4j.LogManager;
+	import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.function.Supplier;
+	import java.io.IOException;
+	import java.nio.file.Files;
+	import java.nio.file.Path;
+	import java.util.ArrayList;
+	import java.util.List;
+	import java.util.Locale;
+	import java.util.stream.Collectors;
 
-import com.mcmoddev.orespawn.world.features.Features;
-import com.mcmoddev.orespawn.world.gen.configs.DefaultFeatureConfig;
+	@Mod("orespawn4")
+	public class OreSpawn {
+		// Directly reference a log4j logger.
+		public static final Logger LOGGER = LogManager.getFormatterLogger();
 
-@Mod("orespawn4")
-public class OreSpawn {
-	// Directly reference a log4j logger.
-	public static final Logger LOGGER = LogManager.getFormatterLogger();
+		public OreSpawn() {
+			// Register the setup method for modloading
+			FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
 
-	public OreSpawn() {
-		// Register the setup method for modloading
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-		MinecraftForge.EVENT_BUS.addListener(EventPriority.HIGHEST, this::start);
-//		MinecraftForge.EVENT_BUS.addListener(EventPriority.HIGHEST, this::finalizeFeatureRegistration);
-	}
+		}
 
-	public void start(final FMLServerAboutToStartEvent event) {
-		((ServerAccessor) event.getServer()).getDynamicRegistries().getRegistry(Registry.BIOME_KEY).stream().forEach(b -> {
-			BiomeGenerationSettings settings = b.getGenerationSettings();
-			List<List<Supplier<ConfiguredFeature<?, ?>>>> data = new LinkedList<>();
-			data.addAll(settings.getFeatures());
-			List<Supplier<ConfiguredFeature<?, ?>>> cc = new LinkedList<>();
-			DefaultFeatureConfig.getMyFeatures().values().stream().forEach( cf -> cc.add(() -> cf));
-			data.add(cc);
-			LOGGER.fatal("Trying to reset biome features from %s to %s", settings.getFeatures(), data);
-			((BiomeGenerationSettingsAccessor) settings).setFeatures(data);
-			LOGGER.fatal("Do the two things match? %s", settings.getFeatures().containsAll(data) );
-		});
-	}
+		private void setup(final FMLCommonSetupEvent event) {
+			List<ResourceLocation> foundFiles = new ArrayList<>();
+			ModList.get().getModFiles().stream()
+					.map(ModFileInfo::getFile)
+					.map(modFile -> {
+						Path root = modFile.getLocator().findPath(modFile, Constants.FileBits.RESOURCE_PATH).toAbsolutePath();
 
-	private void setup(final FMLCommonSetupEvent event) {
-	}
+						try {
+							return Files.walk(root).
+								map(path -> root.relativize(path.toAbsolutePath())).
+								filter(path -> path.getNameCount() <= 64). // Make sure the depth is within bounds
+									filter(path -> path.toString().endsWith(".json")).
+								map(path -> Joiner.on('/').join(path)).
+								//map(path -> path.toString()).
+								map(path -> path.substring(0, path.length() - 5)).
+								map(path -> new ResourceLocation(modFile.getModInfos().get(0).getModId(), path)).
+								collect(Collectors.toList());
+						} catch (IOException e) {
+							LOGGER.error("Exception trying to get possible data from mod-resources: {}", e.getMessage());
+							return new ArrayList<ResourceLocation>();
+						}
+					})
+				.filter(lrl -> !lrl.isEmpty())
+				.forEach(foundFiles::addAll);
 
-	@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
-	public static class RegistryEvents {
-		@SubscribeEvent
-		public static void featureRegistryEvent(final RegistryEvent.Register<Feature<?>> event) {
-			event.getRegistry().register(Features.DEFAULT.setRegistryName("default"));
-			LOGGER.info("Registered %s", Features.DEFAULT.getRegistryName());
+			try {
+				Path diskPath = Constants.JSONPATH.toAbsolutePath();
+				List<ResourceLocation> temp = Files.walk(diskPath)
+					.map(path -> diskPath.relativize(path.toAbsolutePath()))
+					.filter(path -> path.getNameCount() <= 64)
+					.filter(path -> path.toString().endsWith(".json"))
+					.map(path -> Joiner.on('/').join(path))
+					//.map(path -> path.toString())
+					.map(path -> path.toLowerCase(Locale.US))
+					.map(path -> path.substring(0, path.length() - 5))
+					.map(path -> new ResourceLocation("orespawn-disk", path))
+					.collect(Collectors.toList());
+				foundFiles.addAll(temp);
+			} catch (IOException e) {
+				LOGGER.error("Exception trying to get possible data from config directory resources: {}", e.getMessage());
+			}
+			foundFiles.forEach(rl -> LOGGER.debug("Found possible data with handle {}", rl.toString()));
+		}
+
+		@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+		public static class RegistryEvents {
+			@SubscribeEvent
+			public static void featureRegistryEvent(final RegistryEvent.Register<Feature<?>> event) {
+			}
 		}
 	}
-}
