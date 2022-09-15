@@ -8,8 +8,6 @@ public class Constants {
 	public static final String CRASH_SECTION = "OreSpawn Version";
 	public static final Path SYSCONF = Paths.get(FileBits.CONFIG_DIR, FileBits.OS4, FileBits.SYSCONF);
 	public static final Path JSONPATH = Paths.get(FileBits.CONFIG_DIR, FileBits.OS4);
-	public static final String MODID = "mmd_orespawn";
-
 	public static class ConfigNames {
 
 		public static final String REPLACEMENT = "replaces";
@@ -31,10 +29,7 @@ public class Constants {
 		public static final String ALLOWED_MODS = "active_mods.json";
 		public static final String DISK = "__DISK__";
 		public static final String RESOURCE = "__RESOURCE__";
-		public static final String ASSETS_DIR = "assets";
-		public static final String ORESPAWN_DIR = "orespawn-data";
-		public static final Path ORESPAWN_RESOURCES = Paths.get(ASSETS_DIR, ORESPAWN_DIR);
-		public static final String RESOURCE_PATH = ORESPAWN_RESOURCES.toString();
+		public static final String RESOURCE_PATH = "/assets/orespawn-data";
 	}
 	public enum FileTypes {
 		FEATURES, SPAWN, PRESETS, REPLACEMENTS
