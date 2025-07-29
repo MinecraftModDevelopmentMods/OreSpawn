@@ -1,42 +1,35 @@
-	package com.mcmoddev.orespawn;
+package com.mcmoddev.orespawn;
 
-	import com.mcmoddev.orespawn.data.Config;
-	import com.mcmoddev.orespawn.utils.Loaders;
-	import net.minecraftforge.fml.common.Mod;
-	import net.minecraftforge.fml.config.ModConfig;
-	import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-	import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import com.mcmoddev.orespawn.features.NormalCloud;
+import com.mcmoddev.orespawn.features.VeinFeature;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import org.slf4j.Logger;
 
-	import org.apache.logging.log4j.LogManager;
-	import org.apache.logging.log4j.Logger;
+import com.mojang.logging.LogUtils;
 
-	@Mod("orespawn")
-	public class OreSpawn {
-		// Directly reference a log4j logger.
-		public static final Logger LOGGER = LogManager.getFormatterLogger();
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
-		public OreSpawn() {
-			// Register the setup method for modloading
-			// find and load the configs - for this we just use a custom class...
-//			Loaders.loadConfigs();
-			FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-//			FMLJavaModLoadingContext.get().getModEventBus().addListener(this::modConfig);
-			// register features so they can be used elsewhere
-			Features.loadAndRegister();
-		}
+// The value here should match an entry in the META-INF/neoforge.mods.toml file
+@Mod(OreSpawn.MODID)
+public class OreSpawn
+{
+    // Define mod id in a common place for everything to reference
+    public static final String MODID = "mmdorespawn";
+    // Directly reference a slf4j logger
+    public static final Logger LOGGER = LogUtils.getLogger();
+    public static final DeferredRegister<Feature<?>> FEATURE = DeferredRegister.create(BuiltInRegistries.FEATURE, MODID);
+    public static final DeferredHolder<Feature<?>, Feature<?>> VEIN_FEATURE = FEATURE.register("mmdos4_vein", VeinFeature::new);
+    public static final DeferredHolder<Feature<?>, Feature<?>> NORMAL_CLOUD_FEATURE = FEATURE.register("mmdos4_normal_cloud", NormalCloud::new);
+    public static final DeferredHolder<Feature<?>, Feature<?>> CLUSTERS_FEATURE = FEATURE.register("mmdos4_clusters", NormalCloud::new);
 
-/*
-		public void modConfig(ModConfig.ModConfigEvent event)
-		{
-			ModConfig config = event.getConfig();
-			Config.refresh();
-		}
-*/
-
-		private void setup(final FMLCommonSetupEvent event) {
-		}
-
-		@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
-		public static class RegistryEvents {
-		}
-	}
+    // The constructor for the mod class is the first code that is run when your mod is loaded.
+    // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
+    public OreSpawn(IEventBus modEventBus, ModContainer modContainer) {
+        FEATURE.register(modEventBus);
+    }
+}
