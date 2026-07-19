@@ -2,6 +2,7 @@
 bin
 *.launch
 .settings
+.settings/*
 .metadata
 .classpath
 .project
@@ -20,17 +21,21 @@ build
 # other
 eclipse
 run
+/run.*
+/*.log
 classes
-*.hprof
+logs
+
+# local agent context
+/AGENTS.md
+/agent-notes/
+/.codex/
+/CLAUDE.md
 
 /README.txt
 /forge-*-changelog.txt
 
 secret.json
 libs/*
-!/libs/README.txt
 
 .DS_Store
-.DS_Store/*
-.okhttpcache/*
-OS3 API Redesign Notes.txt

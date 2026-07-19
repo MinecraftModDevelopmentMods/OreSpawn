@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcmoddev.com/orespawn/schemas/profile-common.schema.json",
+  "type": "object",
+  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "ores", "oil"],
+  "properties": {
+    "geology_mode": { "enum": ["geome", "legacy"] },
+    "place_crude_oil": { "type": "boolean" },
+    "manage_vanilla_ores": { "type": "boolean" },
+    "suppress_all_ore_features": { "type": "boolean" },
+    "default_template": { "$ref": "#/$defs/optionalRegistryId" },
+    "selected_template": { "$ref": "#/$defs/registryId" },
+    "formations": { "$ref": "#/$defs/formations" },
+    "rocks": { "type": "object", "additionalProperties": { "$ref": "#/$defs/rock" } },
+    "geomes": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/geome" } },
+    "biomes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
+    "biome_dictionary": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
+    "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "#/$defs/terrainDimension" } },
+    "ores": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ore" } },
+    "oil": { "$ref": "#/$defs/oil" },
+    "worldgen_aliases": { "type": "object", "additionalProperties": { "$ref": "#/$defs/registryId" } },
+    "providers": { "type": "object" },
+    "ore_providers": { "type": "object" }
+    ,"retrogen": { "$ref": "#/$defs/retrogen" }
+    ,"flat_bedrock": { "$ref": "#/$defs/flatBedrock" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "registryId": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" },
+    "optionalRegistryId": { "type": "string", "pattern": "^(|[a-z0-9_.-]+:[a-z0-9_./-]+)$" },
+    "registryIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/registryId" } },
+    "family": { "enum": ["sedimentary", "metamorphic", "igneous_intrusive", "igneous_volcanic"] },
+    "preset": { "enum": ["tiny", "small", "average", "large", "huge", "custom"] },
+    "weights": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+    "weightedBlock": {
+      "type": "object",
+      "required": ["block"],
+      "properties": {
+        "block": { "$ref": "#/$defs/registryId" },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "weightedTag": {
+      "type": "object",
+      "required": ["tag"],
+      "properties": {
+        "tag": { "$ref": "#/$defs/registryId" },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "hostBlocks": {
+      "type": "array",
+      "items": { "anyOf": [
+        { "$ref": "#/$defs/registryId" },
+        { "$ref": "#/$defs/weightedBlock" }
+      ] }
+    },
+    "hostTags": {
+      "type": "array",
+      "items": { "anyOf": [
+        { "$ref": "#/$defs/registryId" },
+        { "$ref": "#/$defs/weightedTag" }
+      ] }
+    },
+    "formations": {
+      "type": "object",
+      "required": ["algorithm", "horizontal_size", "vertical_thickness", "waviness", "edge_irregularity", "formation_continuity", "custom"],
+      "properties": {
+        "algorithm": { "enum": ["stable_layers", "sky_v1"] },
+        "horizontal_size": { "$ref": "#/$defs/preset" },
+        "vertical_thickness": { "$ref": "#/$defs/preset" },
+        "waviness": { "$ref": "#/$defs/preset" },
+        "edge_irregularity": { "$ref": "#/$defs/preset" },
+        "formation_continuity": { "$ref": "#/$defs/preset" },
+        "custom": { "type": "object", "additionalProperties": { "type": "number" } }
+      }
+    },
+    "rock": {
+      "type": "object",
+      "required": ["enabled", "family", "depth_peak", "depth_spread", "min_y", "max_y", "weight", "ore_replaceable"],
+      "properties": {
+        "block": { "$ref": "#/$defs/registryId" },
+        "enabled": { "type": "boolean" },
+        "family": { "$ref": "#/$defs/family" },
+        "depth_peak": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "depth_spread": { "type": "integer", "minimum": 1 },
+        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "weight": { "type": "number", "minimum": 0 },
+        "ore_replaceable": { "type": "boolean" },
+        "geomes": { "$ref": "#/$defs/weights" },
+        "dimensions": { "$ref": "#/$defs/registryIds" }
+      },
+      "additionalProperties": true
+    },
+    "geome": {
+      "type": "object",
+      "required": ["base", "families"],
+      "properties": {
+        "base": { "type": "number", "minimum": 0 },
+        "families": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } }
+      },
+      "additionalProperties": true
+    },
+    "terrainDimension": {
+      "type": "object",
+      "required": ["enabled", "host_blocks", "host_tags"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "biome_ids": { "$ref": "#/$defs/registryIds" },
+        "biome_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
+        "host_blocks": { "$ref": "#/$defs/hostBlocks" },
+        "host_tags": { "$ref": "#/$defs/hostTags" }
+      }
+    },
+    "oreDimension": {
+      "type": "object",
+      "required": ["enabled", "min_y", "max_y", "frequency", "quantity"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "frequency": { "type": "number", "minimum": 0, "maximum": 64 },
+        "quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "pattern": { "anyOf": [
+          { "enum": ["default", "vein", "normal_cloud", "precision", "clusters", "underfluids", "cluster", "cloud"] },
+          {
+            "type": "object",
+            "required": ["type", "settings"],
+            "properties": {
+              "type": { "$ref": "#/$defs/registryId" },
+              "settings": { "type": "object" }
+            }
+          }
+        ] },
+        "height_distribution": { "enum": ["uniform", "triangle"] },
+        "spread": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "vertical_spread": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "node_size": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "length": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "fluid": { "$ref": "#/$defs/registryId" },
+        "host_families": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/family" } },
+        "host_blocks": { "$ref": "#/$defs/hostBlocks" },
+        "host_tags": { "$ref": "#/$defs/hostTags" },
+        "geomes": { "$ref": "#/$defs/weights" },
+        "biome_ids": { "$ref": "#/$defs/registryIds" },
+        "excluded_biome_ids": { "$ref": "#/$defs/registryIds" },
+        "biome_dictionary": { "type": "array", "items": { "type": "string" } },
+        "excluded_biome_dictionary": { "type": "array", "items": { "type": "string" } }
+      },
+      "anyOf": [
+        { "required": ["host_families"] },
+        { "required": ["host_blocks"] },
+        { "required": ["host_tags"] }
+      ],
+      "additionalProperties": true
+    },
+    "ore": {
+      "type": "object",
+      "required": ["enabled", "dimensions"],
+      "properties": {
+        "block": { "$ref": "#/$defs/registryId" },
+        "enabled": { "type": "boolean" },
+        "source_mod": { "type": "string" },
+        "native_generation": { "type": "boolean" },
+        "suppress_vanilla": { "type": "boolean" },
+        "retrogen": { "type": "boolean" },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["block", "weight"],
+            "properties": {
+              "block": { "$ref": "#/$defs/registryId" },
+              "weight": { "type": "number", "minimum": 0 },
+              "min_y": { "type": "integer" },
+              "max_y": { "type": "integer" }
+            }
+          }
+        },
+        "deep_output": { "$ref": "#/$defs/registryId" },
+        "deep_output_max_y": { "type": "integer" },
+        "dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/oreDimension" } }
+      },
+      "additionalProperties": true
+    },
+    "oil": {
+      "type": "object",
+      "required": ["min_y", "max_y", "frequency", "min_radius", "max_radius", "min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover"],
+      "properties": {
+        "block": { "$ref": "#/$defs/registryId" },
+        "min_y": { "type": "integer" }, "max_y": { "type": "integer" },
+        "frequency": { "type": "number", "minimum": 0 },
+        "min_radius": { "type": "integer", "minimum": 1 }, "max_radius": { "type": "integer", "minimum": 1 },
+        "min_vertical_radius": { "type": "integer", "minimum": 1 }, "max_vertical_radius": { "type": "integer", "minimum": 1 },
+        "max_lobes": { "type": "integer", "minimum": 1 }, "min_solid_cover": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "retrogen": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "force": { "type": "boolean" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "chunks_per_tick": { "type": "integer", "minimum": 1, "maximum": 16 }
+      }
+    },
+    "flatBedrock": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "retrogen": { "type": "boolean" },
+        "layers": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "dimensions": { "$ref": "#/$defs/registryIds" }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcmoddev.com/orespawn/schemas/orespawn-provider.schema.json",
+  "type": "object",
+  "required": ["schema_version", "provider_modid", "provider_revision"],
+  "properties": {
+    "schema_version": { "enum": [1, 2] },
+    "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
+    "provider_revision": { "type": "integer", "minimum": 1 },
+    "rocks": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rock" } },
+    "ores": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/ore" } },
+    "geomes": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/geome" } },
+    "biome_rules": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/weights" } },
+    "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/terrainDimension" } },
+    "profile_defaults": { "type": "object" },
+    "templates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["profile"],
+        "properties": {
+          "name_key": { "type": "string" },
+          "description_key": { "type": "string" },
+          "required_mods": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "profile": { "type": "object" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "schema_version": { "const": 1 } } },
+      "then": {
+        "required": ["ores"],
+        "properties": {
+          "ores": { "minProperties": 1 },
+          "rocks": false,
+          "geomes": false,
+          "biome_rules": false,
+          "terrain_dimensions": false,
+          "templates": false,
+          "profile_defaults": false
+        }
+      }
+    }
+  ],
+  "anyOf": [
+    { "required": ["rocks"], "properties": { "rocks": { "minProperties": 1 } } },
+    { "required": ["ores"], "properties": { "ores": { "minProperties": 1 } } },
+    { "required": ["geomes"], "properties": { "geomes": { "minProperties": 1 } } },
+    { "required": ["biome_rules"], "properties": { "biome_rules": { "minProperties": 1 } } },
+    { "required": ["terrain_dimensions"], "properties": { "terrain_dimensions": { "minProperties": 1 } } },
+    { "required": ["templates"], "properties": { "templates": { "minProperties": 1 } } }
+  ],
+  "additionalProperties": false
+}

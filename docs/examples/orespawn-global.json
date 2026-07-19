@@ -1,0 +1,59 @@
+{
+  "schema_version": 4,
+  "geology_mode": "geome",
+  "place_crude_oil": false,
+  "manage_vanilla_ores": false,
+  "suppress_all_ore_features": false,
+  "default_template": "",
+  "formations": {
+    "algorithm": "stable_layers",
+    "horizontal_size": "average",
+    "vertical_thickness": "average",
+    "waviness": "average",
+    "edge_irregularity": "average",
+    "formation_continuity": "average",
+    "custom": {}
+  },
+  "geomes": {
+    "stable_craton": {
+      "base": 1.0,
+      "families": {
+        "sedimentary": 1.0,
+        "metamorphic": 1.0,
+        "igneous_intrusive": 1.4,
+        "igneous_volcanic": 0.25
+      }
+    }
+  },
+  "biomes": {},
+  "biome_dictionary": {},
+  "rocks": {},
+  "terrain_dimensions": {},
+  "ores": {},
+  "oil": {
+    "min_y": -48,
+    "max_y": 32,
+    "frequency": 0.08,
+    "min_radius": 8,
+    "max_radius": 18,
+    "min_vertical_radius": 3,
+    "max_vertical_radius": 8,
+    "max_lobes": 5,
+    "min_solid_cover": 2
+  },
+  "retrogen": {
+    "enabled": false,
+    "force": false,
+    "revision": 0,
+    "chunks_per_tick": 1
+  },
+  "flat_bedrock": {
+    "enabled": false,
+    "retrogen": false,
+    "layers": 1,
+    "dimensions": ["minecraft:overworld", "minecraft:the_nether"]
+  },
+  "worldgen_aliases": {},
+  "providers": {},
+  "ore_providers": {}
+}

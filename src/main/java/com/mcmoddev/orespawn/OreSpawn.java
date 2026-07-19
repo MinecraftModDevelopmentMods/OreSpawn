@@ -1,100 +1,173 @@
 package com.mcmoddev.orespawn;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.mcmoddev.orespawn.api.os3.OS3API;
-import com.mcmoddev.orespawn.api.plugin.PluginLoader;
-import com.mcmoddev.orespawn.commands.AddOreCommand;
-import com.mcmoddev.orespawn.commands.ClearChunkCommand;
-import com.mcmoddev.orespawn.commands.DumpBiomesCommand;
-import com.mcmoddev.orespawn.commands.WriteConfigsCommand;
-import com.mcmoddev.orespawn.data.Config;
-import com.mcmoddev.orespawn.data.Constants;
-import com.mcmoddev.orespawn.data.FeatureRegistry;
-import com.mcmoddev.orespawn.impl.os3.OS3APIImpl;
-import com.mcmoddev.orespawn.worldgen.FlatBedrock;
-import com.mcmoddev.orespawn.worldgen.OreSpawnFeatureGenerator;
+import com.mcmoddev.orespawn.integration.WorldgenIntegrationManager;
+import com.mcmoddev.orespawn.init.OreSpawnPatterns;
+import com.mcmoddev.orespawn.worldgen.OreSpawnOreGeneration;
+import com.mcmoddev.orespawn.worldgen.GeomeConfig;
+import com.mcmoddev.orespawn.worldgen.GeomeDistributionSampler;
+import com.mcmoddev.orespawn.worldgen.OilDepositFeature;
+import com.mcmoddev.orespawn.worldgen.StoneReplacer;
+import com.mcmoddev.orespawn.worldgen.WorldGeologyProfileManager;
+import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
+import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
+import com.mcmoddev.orespawn.worldgen.WorldGeologyProfile;
+import com.mcmoddev.orespawn.worldgen.WorldgenBenchmark;
+import com.mcmoddev.orespawn.worldgen.FlatBedrockFeature;
+import com.mcmoddev.orespawn.worldgen.OreRetrogenManager;
+import com.mcmoddev.orespawn.commands.OreSpawnCommands;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.Mod.Instance;
-import net.minecraftforge.fml.common.event.FMLFingerprintViolationEvent;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
+import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ForgeRegistries;
 
-/**
- * Main entry point for the mod, everything runs through this.
- *
- * @author DShadowWolf &lt;dshadowwolf@gmail.com&gt;
- */
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-@Mod(modid = Constants.MODID,
-		name = Constants.NAME,
-		version = Constants.VERSION,
-		acceptedMinecraftVersions = "[1.12,1.12.2]",
-		certificateFingerprint = "@FINGERPRINT@")
-
+@Mod(OreSpawn.MODID)
 public class OreSpawn {
-
-	@Instance
 	public static OreSpawn instance;
 
-	public static final Logger LOGGER = LogManager.getLogger(Constants.MODID);
-	public static final OS3API API = new OS3APIImpl();
-	static final EventHandlers eventHandlers = new EventHandlers();
-	public static final FeatureRegistry FEATURES = new FeatureRegistry();
+	public static final String MODID = "orespawn";
+	public static final String NAME = "OreSpawn";
+	public static final String VERSION = getVersion();
 
-	static final FlatBedrock flatBedrock = new FlatBedrock();
-	
-	@EventHandler
-	public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
-		LOGGER.warn("Invalid fingerprint detected!");
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	private static String getVersion() {
+		Package metadata = OreSpawn.class.getPackage();
+		String version = metadata == null ? null : metadata.getImplementationVersion();
+		return version == null ? "DEV" : version;
 	}
 
-	@EventHandler
-	public void preInit(final FMLPreInitializationEvent ev) {
-		Config.loadConfig();
+	public OreSpawn() {
+		instance = this;
+		OreSpawnConfig.register();
+		OreSpawnPatterns.register(FMLJavaModLoadingContext.get().getModEventBus());
 
-		PluginLoader.INSTANCE.load(ev);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueInterMod);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processInterMod);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
+		MinecraftForge.EVENT_BUS.addListener(StoneReplacer::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(OreSpawnOreGeneration::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(OilDepositFeature::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(FlatBedrockFeature::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
+		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
+		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
+		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
+		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
+		WorldgenBenchmark.register();
+	}
 
-		if (Config.getBoolean(Constants.FLAT_BEDROCK)) {
-			GameRegistry.registerWorldGenerator(flatBedrock, 100);
+	private void loadComplete(final FMLLoadCompleteEvent event) {
+		event.enqueueWork(() -> {
+			WorldgenIntegrationManager.freeze();
+			GeomeConfig.bake();
+			OreSpawnOreGeneration.refreshWorldConfig();
+			FlatBedrockFeature.refreshWorldConfig();
+			OreRetrogenManager.refreshWorldConfig();
+			WorldgenIntegrationManager.markFeatureReady();
+		});
+	}
+
+	private void enqueueInterMod(final InterModEnqueueEvent event) {
+		// Provider mods submit WorldgenProvider values from their own enqueue event.
+	}
+
+	private void processInterMod(final InterModProcessEvent event) {
+		// Files are authoritative, so scan them before accepting API submissions.
+		WorldgenIntegrationManager.initialize();
+		WorldgenIntegrationManager.processImcMessages();
+		GeomeConfig.bake();
+		OreSpawnOreGeneration.refreshWorldConfig();
+		FlatBedrockFeature.refreshWorldConfig();
+		OreRetrogenManager.refreshWorldConfig();
+	}
+
+	private void setup(final FMLCommonSetupEvent event) {
+		OreSpawnConfig.bake();
+		WorldgenIntegrationManager.initialize();
+		GeomeConfig.bake();
+		logGeomeSampler();
+		event.enqueueWork(() -> {
+			StoneReplacer.registerConfiguredFeature();
+			OreSpawnOreGeneration.registerConfiguredFeatures();
+			OilDepositFeature.registerConfiguredFeature();
+			FlatBedrockFeature.registerConfiguredFeature();
+		});
+	}
+
+	private static void logGeomeSampler() {
+		if (!Boolean.getBoolean("orespawn.geomeSampler")) {
+			return;
 		}
-		
-		if (Config.getBoolean(Constants.RETROGEN_KEY)
-				|| Config.getBoolean(Constants.REPLACE_VANILLA_OREGEN)
-				|| Config.getBoolean(Constants.RETRO_BEDROCK)) {
-			MinecraftForge.EVENT_BUS.register(eventHandlers);
-			MinecraftForge.ORE_GEN_BUS.register(eventHandlers);
+
+		WorldGeologyProfile original = GeomeConfig.globalProfile();
+		String defaultSeed = Long.toString(Long.getLong("orespawn.geomeSamplerSeed", 19780401L));
+		String[] samplerSeeds = System.getProperty("orespawn.geomeSamplerSeeds", defaultSeed).split(",");
+		String profileFilter = System.getProperty("orespawn.geomeSamplerProfiles", "all");
+		boolean includeBiomeAudit = Boolean.parseBoolean(
+				System.getProperty("orespawn.geomeSamplerBiomeAudit", "true"));
+		try {
+			for (String seedText : samplerSeeds) {
+				long samplerSeed = Long.parseLong(seedText.trim());
+				for (Preset preset : new Preset[] {
+						Preset.TINY, Preset.SMALL, Preset.AVERAGE, Preset.LARGE, Preset.HUGE }) {
+					if (!samplerProfileEnabled(profileFilter, preset.configName())) {
+						continue;
+					}
+					WorldGeologyProfile profile = original
+							.withSelection(GeologyMode.GEOME, preset, preset, preset, preset, preset,
+									original.placeCrudeOil());
+					logSamplerProfile("Sky " + preset.configName(), samplerSeed, profile, includeBiomeAudit);
+				}
+				if (samplerProfileEnabled(profileFilter, "mixed_huge")) {
+					WorldGeologyProfile mixedHuge = original
+							.withSelection(GeologyMode.GEOME, Preset.AVERAGE, Preset.HUGE, Preset.HUGE,
+									Preset.HUGE, Preset.HUGE, original.placeCrudeOil());
+					logSamplerProfile("Sky mixed-huge", samplerSeed, mixedHuge, includeBiomeAudit);
+				}
+			}
+		} finally {
+			GeomeConfig.applyWorldProfile(original);
 		}
 	}
 
-	@EventHandler
-	public void init(final FMLInitializationEvent ev) {
-		PluginLoader.INSTANCE.register();
-
-		API.loadConfigFiles();
+	private static boolean samplerProfileEnabled(String filter, String profile) {
+		if ("all".equalsIgnoreCase(filter.trim())) {
+			return true;
+		}
+		for (String configured : filter.split(",")) {
+			if (profile.equalsIgnoreCase(configured.trim())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
-	@EventHandler
-	public void postInit(final FMLPostInitializationEvent ev) {
-		Config.saveConfig();
-		API.getAllSpawns().entrySet().stream()
-		           .forEach(ent -> {
-		        	   GameRegistry.registerWorldGenerator(new OreSpawnFeatureGenerator(ent.getValue(), ent.getKey()), 100);
-		           });
+	private static void logSamplerProfile(String label, long seed, WorldGeologyProfile profile,
+			boolean includeBiomeAudit) {
+		GeomeConfig.applyWorldProfile(profile);
+		String terrainSample = System.getProperty("orespawn.geomeSamplerTerrain");
+		if (terrainSample == null || terrainSample.trim().isEmpty()) {
+			LOGGER.info("\n{} sampler\n{}", label,
+					GeomeDistributionSampler.sample(seed, ForgeRegistries.BIOMES.getValues(), 8, 8,
+							includeBiomeAudit));
+			return;
+		}
+		try {
+			LOGGER.info("\n{} sampler\n{}", label,
+					GeomeDistributionSampler.sampleTerrain(seed, java.nio.file.Paths.get(terrainSample)));
+		} catch (java.io.IOException e) {
+			LOGGER.error("Could not replay OreSpawn terrain sample '{}'", terrainSample, e);
+		}
 	}
 
-	@EventHandler
-	public void onServerStarting(final FMLServerStartingEvent ev) {
-		ev.registerServerCommand(new ClearChunkCommand());
-		ev.registerServerCommand(new DumpBiomesCommand());
-		ev.registerServerCommand(new AddOreCommand());
-		ev.registerServerCommand(new WriteConfigsCommand());
-	}
 }

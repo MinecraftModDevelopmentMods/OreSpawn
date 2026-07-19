@@ -1,152 +1,38 @@
-[![](https://img.shields.io/badge/Discord-MMD-green.svg?style=flat&logo=Discord)](https://discord.mcmoddev.com)
-[![](http://cf.way2muchnoise.eu/full_mmd-orespawn_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
-[![](http://cf.way2muchnoise.eu/versions/Minecraft_mmd-orespawn_all.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
-[![Build Status](https://ci.mcmoddev.com/job/OreSpawn/job/OreSpawn%201.12/badge/icon)](https://ci.mcmoddev.com/job/OreSpawn/job/OreSpawn%201.12/)
+# MMD OreSpawn
 
-# OreSpawn
-Minecraft library mod that provides better control over the spawning of ores in Minecraft.
-If you're looking for a place to report bugs for the mod that adds extra mobs, the "DangerZone", etc... go [to the site for that mod](http://www.orespawn.com/) as this is not it.
+OreSpawn 4 is a provider-driven Minecraft 1.18.2 world-generation engine. It
+can place ores using six built-in patterns, build configurable geological
+strata and geomes, flatten bedrock, and perform bounded ore retrogen. Installed
+mods provide blocks and declarative rules; OreSpawn keeps registry and config
+work out of chunk-generation loops.
 
-## How it works
-Ore Spawn parses all of the .json files found in `orespawn` and adds ore generators to the game based on those files. The JSON structure looks like this:
+This is not the unrelated mod that adds mobs and dimensions under the same
+name.
 
-```json
-[
-  {
-    "dimension": -1,
-    "ores": [
-      {
-        "block": "minecraft:quartz_ore",
-        "size": 15,
-        "variation": 4,
-        "frequency": 7,
-        "min_height": 0,
-        "max_height": 128
-      }
-    ]
-  },
-  {
-    "ores": [
-      {
-        "block": "minecraft:coal_ore",
-        "size": 25,
-        "variation": 12,
-        "frequency": 20,
-        "min_height": 0,
-        "max_height": 128
-      },
-      {
-        "block": "minecraft:iron_ore",
-        "size": 8,
-        "variation": 4,
-        "frequency": 20,
-        "min_height": 0,
-        "max_height": 64
-      },
-      {
-        "block": "minecraft:gold_ore",
-        "size": 8,
-        "variation": 2,
-        "frequency": 2,
-        "min_height": 0,
-        "max_height": 32
-      },
-      {
-        "block": "minecraft:diamond_ore",
-        "size": 6,
-        "variation": 3,
-        "frequency": 8,
-        "min_height": 0,
-        "max_height": 16
-      },
-      {
-        "block": "minecraft:lapis_ore",
-        "size": 5,
-        "variation": 2,
-        "frequency": 1,
-        "min_height": 0,
-        "max_height": 32
-      },
-      {
-        "block": "minecraft:emerald_ore",
-        "size": 1,
-        "variation": 0,
-        "frequency": 8,
-        "min_height": 4,
-        "max_height": 32,
-        "biomes": [
-          "minecraft:extreme_hills",
-          "minecraft:smaller_extreme_hills"
-        ]
-      },
-      {
-        "block": "minecraft:dirt",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:gravel",
-        "size": 112,
-        "variation": 50,
-        "frequency": 8,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=granite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=diorite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=andesite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      }
-    ]
-  }
-]
+OreSpawn is intentionally passive when installed alone. Terrain replacement,
+ore suppression, retrogen, and flat bedrock are opt-in. Mineralogy 6 is the
+first full provider and supplies its rocks, ores, oil, geomes, and defaults in
+`data/mineralogy/orespawn/provider.json`.
+
+## Integration
+
+- Global pack profile: `config/orespawn-worldgen.json`
+- Per-world snapshot: `<world>/serverconfig/orespawn-worldgen.json`
+- Pack provider override: `config/<modid>-orespawn.json`
+- Packaged provider: `data/<modid>/orespawn/provider.json`
+- Supported Java API: `com.mcmoddev.orespawn.api`, API major `1`
+
+Documentation, schemas, and examples are in [`docs`](docs/README.md). The same
+material is packaged under `META-INF/orespawn/docs` in the normal jar, with an
+agent-oriented entry point at jar-root `AGENTS.md`.
+
+## Building
+
+Use Java 17 and run from this checkout:
+
+```powershell
+.\gradlew.bat test build --no-daemon
+.\gradlew.bat genEclipseRuns eclipse --no-daemon
 ```
 
-### dimension
-The number ID of a dimension. Don't specify any dimension to target all dimensions *that are not already specified*.
-### ores
-Array of JSON objects specifying ore generators for this dimension
-### block
-Text ID of a block (the same you would use in the /give command)
-### state
-The state of a block (typically used for colored blocks)
-### size
-The number of blocks to spawn. Unlike the default Minecraft world settings JSON, this is the actually number of blocks that will spawn.
-### variation
-How much to randomly vary the number of blocks spawned (I recommend making this value 50% of the *size* value)
-### frequency
-How often, per chunk, to attempt to spawn this ore block. This value can be a fraction less than 1. If this value is between 0 and 1, then not every chunk will have a spawn in it. For example, a frequency of 0.1 means that there will be one attempt to spawn the ore per 10 chunks.
-### min_height
-The lowest Y-coordinate that the ore is allowed to spawn at
-### max_height
-The highest Y-coordinate that the ore is allowed to spawn at
-### biomes
-If this array is not empty, then the biomes in which the ore will spawn is restricted to those specified by ID in this array.
-
-# API
-Adding OreSpawn support to your mod is not hard. Look at `VanillaOreSpawn.java` for an example.
+OreSpawn is licensed under LGPL-2.1.

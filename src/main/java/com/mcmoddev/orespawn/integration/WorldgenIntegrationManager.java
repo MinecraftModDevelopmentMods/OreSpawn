@@ -1,0 +1,753 @@
+package com.mcmoddev.orespawn.integration;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import com.mcmoddev.orespawn.OreSpawn;
+import com.mcmoddev.orespawn.api.OreSpawnApi;
+import com.mcmoddev.orespawn.api.ProviderStatus;
+import com.mcmoddev.orespawn.api.WorldgenProvider;
+import com.mcmoddev.orespawn.worldgen.OreHeightDistribution;
+import com.mcmoddev.orespawn.worldgen.RockFamily;
+import com.mcmoddev.orespawn.init.OreSpawnPatterns;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.fml.InterModComms;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.forgespi.language.IModInfo;
+import net.minecraftforge.forgespi.locating.IModFile;
+import net.minecraftforge.registries.ForgeRegistries;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+/** Internal owner of provider discovery, validation, merging, and lifecycle. */
+public final class WorldgenIntegrationManager {
+	private static final Logger LOGGER = LogManager.getLogger();
+	private static final Pattern MOD_ID = Pattern.compile("^[a-z][a-z0-9_.-]{1,63}$");
+	private static final String FILE_SUFFIX = "-orespawn.json";
+	private static final Set<String> MERGED_SECTIONS = new LinkedHashSet<>();
+
+	static {
+		Collections.addAll(MERGED_SECTIONS, "rocks", "ores", "geomes", "biome_rules",
+				"terrain_dimensions");
+	}
+
+	private static final Map<String, WorldgenProvider> API_PROVIDERS = new LinkedHashMap<>();
+	private static final Map<String, JsonObject> RESOURCE_PROVIDERS = new LinkedHashMap<>();
+	private static final Map<String, JsonObject> FILE_PROVIDERS = new LinkedHashMap<>();
+	private static final Map<String, ProviderDefinition> ACTIVE_PROVIDERS = new LinkedHashMap<>();
+	private static final Map<ResourceLocation, TemplateDefinition> TEMPLATES = new LinkedHashMap<>();
+	private static final Set<String> INVALID_PROVIDERS = new HashSet<>();
+	private static final Set<String> FILE_PROVIDER_IDS = new HashSet<>();
+	private static boolean initialized;
+	private static boolean frozen;
+	private static boolean featureReady;
+
+	private WorldgenIntegrationManager() {
+	}
+
+	public static synchronized void initialize() {
+		initialize(FMLPaths.CONFIGDIR.get());
+	}
+
+	static synchronized void initialize(Path configDirectory) {
+		RESOURCE_PROVIDERS.clear();
+		FILE_PROVIDERS.clear();
+		FILE_PROVIDER_IDS.clear();
+		INVALID_PROVIDERS.clear();
+		initialized = true;
+		frozen = false;
+		scanPackagedProviders();
+		if (!Files.isDirectory(configDirectory)) {
+			rebuildActiveProviders();
+			return;
+		}
+
+		List<Path> files = new ArrayList<>();
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectory, "*" + FILE_SUFFIX)) {
+			for (Path path : stream) {
+				files.add(path);
+			}
+		} catch (IOException e) {
+			LOGGER.warn("Could not scan OreSpawn provider files in '{}'", configDirectory, e);
+			rebuildActiveProviders();
+			return;
+		}
+		files.sort(Comparator.comparing(path -> path.getFileName().toString()));
+		for (Path path : files) {
+			loadProviderFile(path);
+		}
+		rebuildActiveProviders();
+	}
+
+	public static synchronized void processImcMessages() {
+		InterModComms.getMessages(OreSpawn.MODID,
+				OreSpawnApi.IMC_WORLDGEN_PROVIDER::equals).forEach(message -> {
+			try {
+				Object value = message.messageSupplier().get();
+				if (!(value instanceof WorldgenProvider)) {
+					throw new IllegalArgumentException("message is not a WorldgenProvider");
+				}
+				WorldgenProvider provider = (WorldgenProvider) value;
+				if (!provider.modId().equals(message.senderModId())) {
+					throw new IllegalArgumentException("sender does not own provider ID " + provider.modId());
+				}
+				if (API_PROVIDERS.putIfAbsent(provider.modId(), provider) != null) {
+					throw new IllegalArgumentException("provider was submitted more than once");
+				}
+			} catch (RuntimeException e) {
+				INVALID_PROVIDERS.add(message.senderModId());
+				LOGGER.error("Rejected OreSpawn API provider from '{}'", message.senderModId(), e);
+			}
+		});
+		rebuildActiveProviders();
+	}
+
+	public static synchronized void freeze() {
+		rebuildActiveProviders();
+		frozen = true;
+		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
+			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, and {} templates",
+					provider.modId, provider.revision, provider.section("rocks").size(),
+					provider.section("ores").size(), provider.section("templates").size());
+		}
+	}
+
+	public static synchronized void markFeatureReady() {
+		featureReady = true;
+	}
+
+	public static synchronized ProviderStatus getProviderStatus(String providerModId) {
+		if (!initialized || (!frozen && (ACTIVE_PROVIDERS.containsKey(providerModId)
+				|| API_PROVIDERS.containsKey(providerModId) || FILE_PROVIDER_IDS.contains(providerModId)))) {
+			return ProviderStatus.PENDING;
+		}
+		return featureReady && frozen && ACTIVE_PROVIDERS.containsKey(providerModId)
+				&& !INVALID_PROVIDERS.contains(providerModId) ? ProviderStatus.ACTIVE : ProviderStatus.INACTIVE;
+	}
+
+	public static synchronized boolean isOreTakeoverActive(String providerModId) {
+		ProviderDefinition provider = ACTIVE_PROVIDERS.get(providerModId);
+		return getProviderStatus(providerModId) == ProviderStatus.ACTIVE
+				&& provider != null && !provider.section("ores").entrySet().isEmpty();
+	}
+
+	public static synchronized Set<String> activeProviderIds() {
+		return Collections.unmodifiableSet(new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
+	}
+
+	/** Merge new provider-owned defaults without overwriting pack or world values. */
+	public static synchronized boolean mergeProviderDefinitions(JsonObject target) {
+		JsonObject manifests = object(target, "providers");
+		JsonObject legacyOreManifests = object(target, "ore_providers");
+		boolean changed = false;
+
+		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
+			JsonObject manifest = object(manifests, provider.modId);
+			if (!bool(manifest, "profile_defaults_applied", false)
+					&& provider.root.has("profile_defaults")
+					&& provider.root.get("profile_defaults").isJsonObject()) {
+				mergeOverlay(target, provider.root.getAsJsonObject("profile_defaults"));
+				manifest.addProperty("profile_defaults_applied", true);
+				changed = true;
+			}
+			if (integer(manifest, "provider_revision", -1) != provider.revision) {
+				changed = true;
+			}
+			for (String sectionName : MERGED_SECTIONS) {
+				String targetName = "biome_rules".equals(sectionName) ? "biomes" : sectionName;
+				JsonObject targetSection = object(target, targetName);
+				JsonObject providerSection = provider.section(sectionName);
+				String knownKey = "known_" + sectionName;
+				Set<String> known = stringSet(manifest.get(knownKey));
+				Set<String> current = providerSection.keySet();
+
+				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
+					String id = entry.getKey();
+					if (!targetSection.has(id) && !known.contains(id)) {
+						JsonObject value = entry.getValue().getAsJsonObject().deepCopy();
+						if (!"biome_rules".equals(sectionName)) {
+							value.addProperty("source_provider", provider.modId);
+						}
+						targetSection.add(id, value);
+						changed = true;
+					}
+					known.add(id);
+					if (targetSection.has(id) && targetSection.get(id).isJsonObject()) {
+						targetSection.getAsJsonObject(id).remove("orphaned_provider");
+					}
+				}
+
+				for (String knownId : known) {
+					if (!current.contains(knownId) && targetSection.has(knownId)
+							&& targetSection.get(knownId).isJsonObject()) {
+						targetSection.getAsJsonObject(knownId).addProperty("orphaned_provider", true);
+						changed = true;
+					}
+				}
+				manifest.add(knownKey, sortedArray(known));
+				target.add(targetName, targetSection);
+			}
+
+			manifest.addProperty("provider_revision", provider.revision);
+			manifest.add("known_templates", sortedArray(provider.section("templates").keySet()));
+			manifests.add(provider.modId, manifest);
+			JsonObject legacy = object(legacyOreManifests, provider.modId);
+			legacy.addProperty("provider_revision", provider.revision);
+			legacy.add("known_ores", manifest.get("known_ores").deepCopy());
+			legacyOreManifests.add(provider.modId, legacy);
+		}
+
+		for (Entry<String, JsonElement> manifestEntry : manifests.entrySet()) {
+			if (ACTIVE_PROVIDERS.containsKey(manifestEntry.getKey()) || !manifestEntry.getValue().isJsonObject()) {
+				continue;
+			}
+			JsonObject manifest = manifestEntry.getValue().getAsJsonObject();
+			for (String sectionName : MERGED_SECTIONS) {
+				String targetName = "biome_rules".equals(sectionName) ? "biomes" : sectionName;
+				JsonObject targetSection = object(target, targetName);
+				for (String knownId : stringSet(manifest.get("known_" + sectionName))) {
+					if (!"biome_rules".equals(sectionName)
+							&& targetSection.has(knownId) && targetSection.get(knownId).isJsonObject()
+							&& !bool(targetSection.getAsJsonObject(knownId), "orphaned_provider", false)) {
+						targetSection.getAsJsonObject(knownId).addProperty("orphaned_provider", true);
+						changed = true;
+					}
+				}
+				target.add(targetName, targetSection);
+			}
+		}
+
+		target.add("providers", manifests);
+		target.add("ore_providers", legacyOreManifests);
+		return changed;
+	}
+
+	public static synchronized List<TemplateDefinition> templates() {
+		return Collections.unmodifiableList(new ArrayList<>(TEMPLATES.values()));
+	}
+
+	public static synchronized JsonObject applyTemplate(JsonObject base, ResourceLocation templateId) {
+		TemplateDefinition template = TEMPLATES.get(templateId);
+		if (template == null || !template.available) {
+			throw new IllegalArgumentException("Unknown or unavailable OreSpawn template: " + templateId);
+		}
+		JsonObject result = base.deepCopy();
+		mergeOverlay(result, template.profile);
+		result.addProperty("selected_template", templateId.toString());
+		return result;
+	}
+
+	private static void loadProviderFile(Path path) {
+		String fileName = path.getFileName().toString();
+		String providerId = fileName.substring(0, fileName.length() - FILE_SUFFIX.length());
+		FILE_PROVIDER_IDS.add(providerId);
+		if (!MOD_ID.matcher(providerId).matches() || !ModList.get().isLoaded(providerId)) {
+			return;
+		}
+		try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+			JsonElement element = new JsonParser().parse(reader);
+			if (!element.isJsonObject()) {
+				throw new JsonSyntaxException("root is not an object");
+			}
+			JsonObject root = element.getAsJsonObject();
+			validateProvider(providerId, root);
+			FILE_PROVIDERS.put(providerId, root.deepCopy());
+		} catch (IOException | RuntimeException e) {
+			INVALID_PROVIDERS.add(providerId);
+			LOGGER.error("Rejected OreSpawn provider file '{}'; {} native generation must remain enabled",
+					path, providerId, e);
+		}
+	}
+
+	private static void scanPackagedProviders() {
+		ModList mods = ModList.get();
+		if (mods == null) {
+			return;
+		}
+		mods.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
+	}
+
+	private static void scanPackagedProvider(IModFile file) {
+		for (IModInfo info : file.getModInfos()) {
+			String providerId = info.getModId();
+			Path path = file.findResource("data", providerId, "orespawn", "provider.json");
+			if (!Files.isRegularFile(path)) {
+				continue;
+			}
+			FILE_PROVIDER_IDS.add(providerId);
+			try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+				JsonElement element = new JsonParser().parse(reader);
+				if (!element.isJsonObject()) {
+					throw new JsonSyntaxException("root is not an object");
+				}
+				JsonObject root = element.getAsJsonObject();
+				validateProvider(providerId, root);
+				RESOURCE_PROVIDERS.put(providerId, root.deepCopy());
+			} catch (IOException | RuntimeException e) {
+				INVALID_PROVIDERS.add(providerId);
+				LOGGER.error("Rejected packaged OreSpawn provider '{}' from '{}'", providerId, path, e);
+			}
+		}
+	}
+
+	private static void rebuildActiveProviders() {
+		ACTIVE_PROVIDERS.clear();
+		TEMPLATES.clear();
+		Map<String, String> owners = new HashMap<>();
+		Set<String> providerIds = new LinkedHashSet<>();
+		providerIds.addAll(API_PROVIDERS.keySet());
+		providerIds.addAll(RESOURCE_PROVIDERS.keySet());
+		providerIds.addAll(FILE_PROVIDER_IDS);
+		List<String> sorted = new ArrayList<>(providerIds);
+		Collections.sort(sorted);
+
+		for (String providerId : sorted) {
+			if (INVALID_PROVIDERS.contains(providerId)) {
+				continue;
+			}
+			JsonObject root = FILE_PROVIDERS.get(providerId);
+			if (root == null) {
+				root = RESOURCE_PROVIDERS.get(providerId);
+			}
+			if (root == null) {
+				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
+				root = apiProvider == null ? null : apiProvider.toJson();
+			}
+			if (root == null || !ModList.get().isLoaded(providerId)) {
+				continue;
+			}
+			try {
+				validateProvider(providerId, root);
+				claimOwnedEntries(providerId, root, owners);
+				ProviderDefinition provider = new ProviderDefinition(providerId,
+						integer(root, "provider_revision", -1), root.deepCopy());
+				ACTIVE_PROVIDERS.put(providerId, provider);
+				readTemplates(provider);
+			} catch (RuntimeException e) {
+				INVALID_PROVIDERS.add(providerId);
+				LOGGER.error("Rejected OreSpawn worldgen provider '{}'", providerId, e);
+			}
+		}
+	}
+
+	private static void validateProvider(String providerId, JsonObject root) {
+		int schema = integer(root, "schema_version", -1);
+		if (schema != 1 && schema != 2) {
+			throw new JsonSyntaxException("unsupported schema_version");
+		}
+		if (!providerId.equals(string(root, "provider_modid", ""))) {
+			throw new JsonSyntaxException("provider_modid does not match the provider source");
+		}
+		if (integer(root, "provider_revision", -1) < 1) {
+			throw new JsonSyntaxException("provider_revision must be at least 1");
+		}
+		if (schema == 1) {
+			for (String section : new String[] { "rocks", "geomes", "biome_rules",
+					"terrain_dimensions", "templates", "profile_defaults" }) {
+				if (root.has(section)) {
+					throw new JsonSyntaxException("provider schema 1 is ore-only; found " + section);
+				}
+			}
+			if (optionalObject(root, "ores").size() == 0) {
+				throw new JsonSyntaxException("provider schema 1 must declare ores");
+			}
+		}
+
+		int entries = 0;
+		for (String section : MERGED_SECTIONS) {
+			JsonObject values = optionalObject(root, section);
+			entries += values.size();
+			for (Entry<String, JsonElement> entry : values.entrySet()) {
+				if (!entry.getValue().isJsonObject()) {
+					throw new JsonSyntaxException(section + " entry is not an object: " + entry.getKey());
+				}
+				if (!"biome_rules".equals(section)) {
+					validateOwnedId(providerId, entry.getKey(), section);
+				} else {
+					new ResourceLocation(entry.getKey());
+				}
+				if ("rocks".equals(section)) {
+					validateRock(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("ores".equals(section)) {
+					validateOre(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("geomes".equals(section)) {
+					validateGeome(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("biome_rules".equals(section)) {
+					validateWeights(entry.getValue().getAsJsonObject());
+				} else if ("terrain_dimensions".equals(section)) {
+					validateTerrainDimension(entry.getKey(), entry.getValue().getAsJsonObject());
+				}
+			}
+		}
+		JsonObject templates = optionalObject(root, "templates");
+		entries += templates.size();
+		for (Entry<String, JsonElement> entry : templates.entrySet()) {
+			validateOwnedId(providerId, entry.getKey(), "templates");
+			validateTemplate(entry.getKey(), entry.getValue());
+		}
+		if (root.has("profile_defaults") && !root.get("profile_defaults").isJsonObject()) {
+			throw new JsonSyntaxException("profile_defaults is not an object");
+		}
+		if (entries == 0) {
+			throw new JsonSyntaxException("provider declares no world-generation entries");
+		}
+	}
+
+	private static void validateOwnedId(String providerId, String idText, String section) {
+		ResourceLocation id = new ResourceLocation(idText);
+		if (!providerId.equals(id.getNamespace())) {
+			throw new JsonSyntaxException(section + " entry is outside provider namespace: " + id);
+		}
+	}
+
+	private static void validateRock(String idText, JsonObject rock) {
+		String blockId = string(rock, "block", idText);
+		Block block = block(blockId);
+		if (block == null || block == Blocks.AIR) {
+			throw new JsonSyntaxException("unknown rock block: " + blockId);
+		}
+		RockFamily.fromConfigName(string(rock, "family", ""));
+		int minY = integer(rock, "min_y", -64);
+		int maxY = integer(rock, "max_y", 319);
+		if (minY < -2048 || maxY > 2048 || minY > maxY
+				|| decimal(rock, "weight", 1.0D) < 0.0D) {
+			throw new JsonSyntaxException("invalid rock range or weight: " + idText);
+		}
+		validateIds(rock.get("dimensions"));
+		validateWeights(optionalObject(rock, "geomes"));
+	}
+
+	private static void validateOre(String idText, JsonObject ore) {
+		String blockId = string(ore, "block", idText);
+		Block output = block(blockId);
+		if (output == null || output == Blocks.AIR) {
+			throw new JsonSyntaxException("unknown ore block: " + blockId);
+		}
+		if (ore.has("outputs")) validateOutputs(idText, ore.get("outputs"));
+		JsonObject dimensions = requiredObject(ore, "dimensions");
+		if (dimensions.size() == 0) {
+			throw new JsonSyntaxException("ore has no dimensions: " + idText);
+		}
+		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
+			new ResourceLocation(entry.getKey());
+			if (!entry.getValue().isJsonObject()) {
+				throw new JsonSyntaxException("ore dimension is not an object: " + entry.getKey());
+			}
+			JsonObject rule = entry.getValue().getAsJsonObject();
+			if (!bool(rule, "enabled", true)) {
+				continue;
+			}
+			int minY = integer(rule, "min_y", Integer.MIN_VALUE);
+			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
+			double frequency = decimal(rule, "frequency", -1.0D);
+			int quantity = integer(rule, "quantity", -1);
+			if (minY < -2048 || maxY > 2048 || minY > maxY || frequency < 0.0D
+					|| frequency > 64.0D || quantity < 1 || quantity > 64) {
+				throw new JsonSyntaxException("invalid ore placement for " + idText + " in " + entry.getKey());
+			}
+			try {
+				OreSpawnPatterns.decode(rule);
+			} catch (IllegalArgumentException e) {
+				throw new JsonSyntaxException("invalid ore pattern for " + idText + ": " + e.getMessage());
+			}
+			OreHeightDistribution.fromConfigName(string(rule, "height_distribution",
+					OreHeightDistribution.UNIFORM.configName));
+			int spread = integer(rule, "spread", 8);
+			int vertical = integer(rule, "vertical_spread", Math.max(1, spread / 2));
+			int node = integer(rule, "node_size", 4);
+			if (spread < 0 || spread > 64 || vertical < 0 || vertical > 64 || node < 1 || node > 32) {
+				throw new JsonSyntaxException("invalid ore pattern dimensions for " + idText);
+			}
+			boolean hosts = validBlocks(rule.get("host_blocks")) || validateIds(rule.get("host_tags"));
+			if (rule.has("host_families") && rule.get("host_families").isJsonArray()) {
+				for (JsonElement family : rule.getAsJsonArray("host_families")) {
+					RockFamily.fromConfigName(family.getAsString());
+					hosts = true;
+				}
+			}
+			if (!hosts) {
+				throw new JsonSyntaxException("enabled ore dimension has no valid hosts: " + idText);
+			}
+		}
+	}
+
+	private static void validateOutputs(String idText, JsonElement element) {
+		if (!element.isJsonArray() || element.getAsJsonArray().size() == 0) {
+			throw new JsonSyntaxException("outputs is empty for " + idText);
+		}
+		for (JsonElement value : element.getAsJsonArray()) {
+			if (!value.isJsonObject()) throw new JsonSyntaxException("weighted output is not an object: " + idText);
+			JsonObject output = value.getAsJsonObject();
+			String blockId = string(output, "block", "");
+			Block block = block(blockId);
+			if (block == null || block == Blocks.AIR || decimal(output, "weight", 1.0D) <= 0.0D
+					|| integer(output, "min_y", -2048) > integer(output, "max_y", 2048)) {
+				throw new JsonSyntaxException("invalid weighted output for " + idText + ": " + blockId);
+			}
+		}
+	}
+
+	private static void validateGeome(String id, JsonObject geome) {
+		if (decimal(geome, "base", 1.0D) < 0.0D) {
+			throw new JsonSyntaxException("invalid geome base weight: " + id);
+		}
+		JsonObject families = optionalObject(geome, "families");
+		for (RockFamily family : RockFamily.values()) {
+			if (decimal(families, family.configName, 1.0D) < 0.0D) {
+				throw new JsonSyntaxException("invalid family weight in geome: " + id);
+			}
+		}
+	}
+
+	private static void validateTerrainDimension(String id, JsonObject dimension) {
+		if (!bool(dimension, "enabled", true)) {
+			return;
+		}
+		boolean hosts = validBlocks(dimension.get("host_blocks")) || validateIds(dimension.get("host_tags"));
+		validateIds(dimension.get("biome_ids"));
+		if (dimension.has("biome_namespaces")) {
+			if (!dimension.get("biome_namespaces").isJsonArray()) {
+				throw new JsonSyntaxException("biome_namespaces is not an array: " + id);
+			}
+			for (JsonElement namespace : dimension.getAsJsonArray("biome_namespaces")) {
+				if (!MOD_ID.matcher(namespace.getAsString()).matches()) {
+					throw new JsonSyntaxException("invalid biome namespace in terrain dimension: " + id);
+				}
+			}
+		}
+		if (!hosts) {
+			throw new JsonSyntaxException("enabled terrain dimension has no valid hosts: " + id);
+		}
+	}
+
+	private static void validateTemplate(String id, JsonElement element) {
+		if (!element.isJsonObject()) {
+			throw new JsonSyntaxException("template is not an object: " + id);
+		}
+		JsonObject template = element.getAsJsonObject();
+		requiredObject(template, "profile");
+		if (template.has("required_mods") && template.get("required_mods").isJsonArray()) {
+			for (JsonElement mod : template.getAsJsonArray("required_mods")) {
+				if (!MOD_ID.matcher(mod.getAsString()).matches()) {
+					throw new JsonSyntaxException("invalid required mod ID in template: " + id);
+				}
+			}
+		}
+	}
+
+	private static void validateWeights(JsonObject weights) {
+		for (Entry<String, JsonElement> entry : weights.entrySet()) {
+			normalizeGeomeId(entry.getKey());
+			if (entry.getValue().getAsDouble() < 0.0D) {
+				throw new JsonSyntaxException("negative geome weight: " + entry.getKey());
+			}
+		}
+	}
+
+	private static void claimOwnedEntries(String provider, JsonObject root, Map<String, String> owners) {
+		for (String section : new String[] { "rocks", "ores" }) {
+			for (String id : optionalObject(root, section).keySet()) {
+				String key = section + ':' + id;
+				String previous = owners.putIfAbsent(key, provider);
+				if (previous != null) {
+					throw new JsonSyntaxException(id + " is already owned by " + previous);
+				}
+			}
+		}
+	}
+
+	private static void readTemplates(ProviderDefinition provider) {
+		for (Entry<String, JsonElement> entry : provider.section("templates").entrySet()) {
+			ResourceLocation id = new ResourceLocation(entry.getKey());
+			JsonObject json = entry.getValue().getAsJsonObject();
+			boolean available = true;
+			if (json.has("required_mods") && json.get("required_mods").isJsonArray()) {
+				for (JsonElement mod : json.getAsJsonArray("required_mods")) {
+					available &= ModList.get().isLoaded(mod.getAsString());
+				}
+			}
+			TEMPLATES.put(id, new TemplateDefinition(id,
+					string(json, "name_key", "orespawn.template." + id.getNamespace() + '.' + id.getPath()),
+					string(json, "description_key", "orespawn.template." + id.getNamespace() + '.'
+							+ id.getPath() + ".description"),
+					json.getAsJsonObject("profile").deepCopy(), available));
+		}
+	}
+
+	private static void mergeOverlay(JsonObject target, JsonObject overlay) {
+		for (Entry<String, JsonElement> entry : overlay.entrySet()) {
+			if (entry.getValue().isJsonObject() && target.has(entry.getKey())
+					&& target.get(entry.getKey()).isJsonObject()) {
+				mergeOverlay(target.getAsJsonObject(entry.getKey()), entry.getValue().getAsJsonObject());
+			} else {
+				target.add(entry.getKey(), entry.getValue().deepCopy());
+			}
+		}
+	}
+
+	private static ResourceLocation normalizeGeomeId(String value) {
+		return value.indexOf(':') >= 0 ? new ResourceLocation(value) : new ResourceLocation(OreSpawn.MODID, value);
+	}
+
+	private static Block block(String idText) {
+		try {
+			return ForgeRegistries.BLOCKS.getValue(new ResourceLocation(idText));
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
+	private static boolean validBlocks(JsonElement element) {
+		if (element == null || !element.isJsonArray() || element.getAsJsonArray().size() == 0) {
+			return false;
+		}
+		for (JsonElement value : element.getAsJsonArray()) {
+			String id = value.isJsonObject() ? string(value.getAsJsonObject(), "block", "")
+					: value.getAsString();
+			Block block = block(id);
+			if (block == null || block == Blocks.AIR) {
+				throw new JsonSyntaxException("unknown host block: " + id);
+			}
+			if (value.isJsonObject() && (decimal(value.getAsJsonObject(), "weight", 1.0D) < 0.0D
+					|| decimal(value.getAsJsonObject(), "weight", 1.0D) > 1.0D))
+				throw new JsonSyntaxException("invalid host block weight: " + id);
+		}
+		return true;
+	}
+
+	private static boolean validateIds(JsonElement element) {
+		if (element == null) {
+			return false;
+		}
+		if (!element.isJsonArray()) {
+			throw new JsonSyntaxException("registry ID list is not an array");
+		}
+		for (JsonElement value : element.getAsJsonArray()) {
+			String id = value.isJsonObject() ? string(value.getAsJsonObject(), "tag", "")
+					: value.getAsString();
+			new ResourceLocation(id);
+			if (value.isJsonObject() && (decimal(value.getAsJsonObject(), "weight", 1.0D) < 0.0D
+					|| decimal(value.getAsJsonObject(), "weight", 1.0D) > 1.0D))
+				throw new JsonSyntaxException("invalid tag weight: " + id);
+		}
+		return element.getAsJsonArray().size() > 0;
+	}
+
+	private static JsonObject requiredObject(JsonObject root, String key) {
+		if (!root.has(key) || !root.get(key).isJsonObject()) {
+			throw new JsonSyntaxException("missing object '" + key + "'");
+		}
+		return root.getAsJsonObject(key);
+	}
+
+	private static JsonObject optionalObject(JsonObject root, String key) {
+		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key) : new JsonObject();
+	}
+
+	private static JsonObject object(JsonObject root, String key) {
+		if (!root.has(key) || !root.get(key).isJsonObject()) {
+			JsonObject value = new JsonObject();
+			root.add(key, value);
+			return value;
+		}
+		return root.getAsJsonObject(key);
+	}
+
+	private static Set<String> stringSet(JsonElement element) {
+		Set<String> result = new LinkedHashSet<>();
+		if (element != null && element.isJsonArray()) {
+			for (JsonElement value : element.getAsJsonArray()) {
+				result.add(value.getAsString());
+			}
+		}
+		return result;
+	}
+
+	private static JsonArray sortedArray(Set<String> values) {
+		List<String> sorted = new ArrayList<>(values);
+		Collections.sort(sorted);
+		JsonArray result = new JsonArray();
+		for (String value : sorted) {
+			result.add(value);
+		}
+		return result;
+	}
+
+	private static int integer(JsonObject root, String key, int fallback) {
+		return root.has(key) ? root.get(key).getAsInt() : fallback;
+	}
+
+	private static double decimal(JsonObject root, String key, double fallback) {
+		return root.has(key) ? root.get(key).getAsDouble() : fallback;
+	}
+
+	private static String string(JsonObject root, String key, String fallback) {
+		return root.has(key) ? root.get(key).getAsString() : fallback;
+	}
+
+	private static boolean bool(JsonObject root, String key, boolean fallback) {
+		return root.has(key) ? root.get(key).getAsBoolean() : fallback;
+	}
+
+	private static final class ProviderDefinition {
+		final String modId;
+		final int revision;
+		final JsonObject root;
+		ProviderDefinition(String modId, int revision, JsonObject root) {
+			this.modId = modId;
+			this.revision = revision;
+			this.root = root;
+		}
+		JsonObject section(String name) {
+			return optionalObject(root, name);
+		}
+	}
+
+	public static final class TemplateDefinition {
+		private final ResourceLocation id;
+		private final String nameKey;
+		private final String descriptionKey;
+		private final JsonObject profile;
+		private final boolean available;
+
+		TemplateDefinition(ResourceLocation id, String nameKey, String descriptionKey,
+				JsonObject profile, boolean available) {
+			this.id = id;
+			this.nameKey = nameKey;
+			this.descriptionKey = descriptionKey;
+			this.profile = profile;
+			this.available = available;
+		}
+
+		public ResourceLocation id() { return id; }
+		public String nameKey() { return nameKey; }
+		public String descriptionKey() { return descriptionKey; }
+		public boolean available() { return available; }
+	}
+}

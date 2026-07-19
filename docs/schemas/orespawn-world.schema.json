@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcmoddev.com/orespawn/schemas/orespawn-world.schema.json",
+  "allOf": [
+    { "$ref": "profile-common.schema.json" },
+    {
+      "type": "object",
+      "required": ["schema_version"],
+      "properties": { "schema_version": { "const": 3 } }
+    }
+  ]
+}

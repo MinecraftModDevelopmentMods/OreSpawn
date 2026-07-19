@@ -1,0 +1,110 @@
+{
+  "schema_version": 2,
+  "provider_modid": "examplemod",
+  "provider_revision": 1,
+  "rocks": {
+    "examplemod:rock/slate": {
+      "block": "examplemod:slate",
+      "enabled": true,
+      "family": "metamorphic",
+      "depth_peak": 20,
+      "depth_spread": 36,
+      "min_y": -64,
+      "max_y": 319,
+      "weight": 1.2,
+      "ore_replaceable": true,
+      "dimensions": ["minecraft:overworld"],
+      "geomes": { "orespawn:mountain_belt": 2.5 }
+    },
+    "examplemod:rock/crystal_rock": {
+      "block": "examplemod:crystal_rock",
+      "enabled": true,
+      "family": "igneous_intrusive",
+      "depth_peak": 32,
+      "depth_spread": 64,
+      "min_y": -64,
+      "max_y": 319,
+      "weight": 1.0,
+      "ore_replaceable": true,
+      "dimensions": ["examplemod:crystal_caverns"]
+    }
+  },
+  "ores": {
+    "examplemod:ore/tin": {
+      "block": "examplemod:tin_ore",
+      "outputs": [
+        { "block": "examplemod:tin_ore", "weight": 90 },
+        { "block": "examplemod:rich_tin_ore", "weight": 10, "min_y": -64, "max_y": 24 }
+      ],
+      "enabled": true,
+      "source_mod": "examplemod",
+      "dimensions": {
+        "minecraft:overworld": {
+          "enabled": true,
+          "min_y": -16,
+          "max_y": 96,
+          "frequency": 6.0,
+          "quantity": 8,
+          "pattern": {
+            "type": "orespawn:clusters",
+            "settings": {
+              "spread": 8,
+              "vertical_spread": 4,
+              "node_size": 4,
+              "length": 16,
+              "fluid": "minecraft:water"
+            }
+          },
+          "height_distribution": "triangle",
+          "spread": 8,
+          "vertical_spread": 4,
+          "node_size": 4,
+          "host_families": ["sedimentary", "metamorphic", "igneous_intrusive"],
+          "host_blocks": [
+            { "block": "minecraft:deepslate", "weight": 0.75 }
+          ]
+        }
+      }
+    }
+  },
+  "geomes": {
+    "examplemod:crystal_province": {
+      "base": 0.5,
+      "families": {
+        "sedimentary": 0.2,
+        "metamorphic": 1.0,
+        "igneous_intrusive": 3.0,
+        "igneous_volcanic": 0.5
+      }
+    }
+  },
+  "biome_rules": {
+    "minecraft:jagged_peaks": {
+      "examplemod:crystal_province": 2.5,
+      "orespawn:mountain_belt": 2.0
+    }
+  },
+  "terrain_dimensions": {
+    "examplemod:crystal_caverns": {
+      "enabled": true,
+      "biome_ids": [],
+      "biome_namespaces": ["examplemod"],
+      "host_blocks": ["examplemod:base_rock"],
+      "host_tags": []
+    }
+  },
+  "templates": {
+    "examplemod:crystal_world": {
+      "name_key": "template.examplemod.crystal_world",
+      "description_key": "template.examplemod.crystal_world.description",
+      "required_mods": ["examplemod"],
+      "profile": {
+        "formations": {
+          "horizontal_size": "large",
+          "formation_continuity": "large"
+        },
+        "manage_vanilla_ores": true
+      }
+    }
+  }
+}
