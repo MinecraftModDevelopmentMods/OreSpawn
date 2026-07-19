@@ -244,9 +244,18 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
             buildshipPreferences.withInputStream { buildship.load(it) }
         }
         String configuredGradleHome = buildship.getProperty('connection.gradle.user.home', '').trim()
-        File eclipseGradleHome = configuredGradleHome
-                ? file(configuredGradleHome).canonicalFile
-                : gradle.gradleUserHomeDir.canonicalFile
+        File eclipseProjectClasspath = file('.classpath')
+        File eclipseGradleHome = configuredGradleHome ? file(configuredGradleHome).canonicalFile : null
+        if (eclipseGradleHome == null && eclipseProjectClasspath.isFile()) {
+            def cacheMatcher = eclipseProjectClasspath.getText('UTF-8') =~
+                    /(?i)([A-Z]:[\\\/][^"<\r\n]*?[\\\/]caches)(?=[\\\/])/
+            if (cacheMatcher.find()) {
+                eclipseGradleHome = file(cacheMatcher.group(1)).canonicalFile.parentFile
+            }
+        }
+        if (eclipseGradleHome == null) {
+            eclipseGradleHome = gradle.gradleUserHomeDir.canonicalFile
+        }
         File eclipseCache = new File(eclipseGradleHome, 'caches').canonicalFile
         File eclipseClasspathDir = file('.settings/orespawn-run-classpaths')
         eclipseClasspathDir.mkdirs()
@@ -282,7 +291,6 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
             stableClasspaths.put(classpathFile.canonicalFile, stableClasspath.canonicalFile)
         }
 
-        File eclipseProjectClasspath = file('.classpath')
         int changedProjectClasspath = 0
         int changedResourceExclusions = 0
         if (eclipseProjectClasspath.isFile()) {
@@ -371,7 +379,8 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
 }
 
 tasks.configureEach {
-    if (name in ['copyEclipseResources', 'genEclipseRuns', 'eclipse']) {
+    if (name in ['copyEclipseResources', 'genEclipseRuns', 'eclipse',
+            'prepareRunClient', 'prepareRunServer', 'prepareRunData', 'prepareRunGameTestServer']) {
         finalizedBy syncEclipseRunClasspaths
     }
 }
