@@ -1,5 +1,6 @@
 package com.mcmoddev.orespawn.client;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.mcmoddev.orespawn.client.GeologyEditorSession.MaterialTab;
@@ -9,6 +10,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 
@@ -40,7 +42,8 @@ final class GeologyMaterialsScreen extends Screen {
 			int tabsInRow = Math.min(tabsPerRow, MaterialTab.values().length - (tabRow * tabsPerRow));
 			int rowWidth = (tabsInRow * tabWidth) + ((tabsInRow - 1) * tabGap);
 			int tabX = (width - rowWidth) / 2 + ((i % tabsPerRow) * (tabWidth + tabGap));
-			Button button = addRenderableWidget(new Button(tabX, 26 + (tabRow * 24), tabWidth, 20,
+			Button button = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+					tabX, 26 + (tabRow * 24), tabWidth, 20,
 					new TranslatableComponent("tab.orespawn." + value.key), selected -> changeTab(value)));
 			button.active = value != tab;
 		}
@@ -54,11 +57,12 @@ final class GeologyMaterialsScreen extends Screen {
 				new TranslatableComponent("option.orespawn.search")));
 		search.setValue(searchText);
 		int searchButtonX = contentLeft + searchWidth + 5;
-		addRenderableWidget(new Button(searchButtonX, searchY, searchButtonWidth, 20,
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font, searchButtonX, searchY, searchButtonWidth, 20,
 				new TranslatableComponent("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
-		Button advanced = addRenderableWidget(new Button(searchButtonX + searchButtonWidth + 5, searchY, 85, 20,
+		Button advanced = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				searchButtonX + searchButtonWidth + 5, searchY, 85, 20,
 				new TranslatableComponent(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
 				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
 		advanced.visible = tab == MaterialTab.UNASSIGNED;
@@ -77,10 +81,16 @@ final class GeologyMaterialsScreen extends Screen {
 			int y = listTop + (i * 24);
 			int entryWidth = tab == MaterialTab.UNASSIGNED
 					? contentWidth : contentWidth - removeWidth - rowGap;
+			Component rowMessage = new TextComponent(rowLabel(id));
+			Component fittedRow = OreSpawnScreenLayout.fit(font, rowMessage, entryWidth - 8);
+			List<Component> details = rowDetails(id);
 			addRenderableWidget(new Button(contentLeft, y, entryWidth, 20,
-					new TextComponent(rowLabel(id)), button -> openEntry(id)));
+					fittedRow, button -> openEntry(id),
+					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(
+							poseStack, details, mouseX, mouseY)));
 			if (tab != MaterialTab.UNASSIGNED) {
-				addRenderableWidget(new Button(contentLeft + entryWidth + rowGap, y, removeWidth, 20,
+				addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+						contentLeft + entryWidth + rowGap, y, removeWidth, 20,
 						new TranslatableComponent("button.orespawn.remove"), button -> removeEntry(id)));
 			}
 		}
@@ -93,7 +103,8 @@ final class GeologyMaterialsScreen extends Screen {
 		next.active = page + 1 < pageCount;
 
 		int addWidth = Math.min(150, contentWidth - 105);
-		Button add = addRenderableWidget(new Button(contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
+		Button add = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
 				new TranslatableComponent("button.orespawn.add_block"), button -> openBlockPicker()));
 		add.visible = tab != MaterialTab.UNASSIGNED;
 		int doneWidth = Math.min(150, contentWidth);
@@ -117,14 +128,25 @@ final class GeologyMaterialsScreen extends Screen {
 	}
 
 	private String rowLabel(String id) {
+		return session.materialBlockId(tab, id);
+	}
+
+	private List<Component> rowDetails(String id) {
+		List<Component> details = new ArrayList<>();
 		String block = session.materialBlockId(tab, id);
-		String label = block.equals(id) ? id : block + "  {" + id + "}";
+		details.add(new TextComponent(block));
+		if (!block.equals(id)) {
+			details.add(new TranslatableComponent("option.orespawn.registry_id").append(": ")
+					.append(new TextComponent(id)));
+		}
 		if (tab == MaterialTab.ORES) {
 			String source = GeologyEditorSession.string(session.ore(id), "source_provider",
 					GeologyEditorSession.string(session.ore(id), "source_mod", ""));
-			return source.isEmpty() ? label : label + "  [" + source + "]";
+			if (!source.isEmpty()) {
+				details.add(new TextComponent(source));
+			}
 		}
-		return label;
+		return details;
 	}
 
 	private void openEntry(String id) {

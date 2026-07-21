@@ -122,17 +122,36 @@ final class LegacyConfigMigrator {
 		JsonObject parameters = source.has("parameters") && source.get("parameters").isJsonObject()
 				? source.getAsJsonObject("parameters") : new JsonObject();
 		String feature = normalizePattern(string(source, "feature", "default"));
+		int minY = integer(parameters, "minHeight", 0);
+		int exclusiveMaxY = integer(parameters, "maxHeight", 256);
+		if (exclusiveMaxY <= minY) {
+			report.add("Skipped " + name + ": empty legacy height range " + minY + ".." + exclusiveMaxY + ".");
+			return null;
+		}
 		JsonObject rule = new JsonObject();
 		rule.addProperty("enabled", true);
-		rule.addProperty("min_y", integer(parameters, "minHeight", 0));
-		rule.addProperty("max_y", integer(parameters, "maxHeight", 255));
+		rule.addProperty("min_y", minY);
+		rule.addProperty("max_y", exclusiveMaxY - 1);
 		rule.addProperty("frequency", Math.max(0.0D, decimal(parameters, "frequency",
 				decimal(parameters, "attemptsMin", 1.0D))));
-		rule.addProperty("quantity", Math.max(1, integer(parameters, "size",
-				integer(parameters, "nodeSize", 8))));
+		int size = integer(parameters, "size", integer(parameters, "nodeSize", 8));
+		int variation = Math.max(0, integer(parameters, "variation", 4));
+		if ("default".equals(feature) && variation > 0) {
+			int minQuantity = clampLegacyQuantity(name, (long) size - variation, report);
+			int maxQuantity = clampLegacyQuantity(name, (long) size + variation - 1L, report);
+			if (minQuantity > maxQuantity) {
+				report.add("Skipped " + name + ": invalid legacy quantity range.");
+				return null;
+			}
+			rule.addProperty("min_quantity", minQuantity);
+			rule.addProperty("max_quantity", maxQuantity);
+		} else {
+			rule.addProperty("quantity", clampLegacyQuantity(name, size, report));
+		}
 		rule.addProperty("pattern", feature);
 		rule.addProperty("spread", Math.max(0, integer(parameters, "maxSpread", 8)));
-		rule.addProperty("vertical_spread", Math.max(0, integer(parameters, "variation", 4)));
+		rule.addProperty("vertical_spread", "default".equals(feature)
+				? Math.max(1, integer(parameters, "maxSpread", 8) / 2) : variation);
 		rule.addProperty("node_size", Math.max(1, integer(parameters, "nodeSize", 4)));
 		rule.addProperty("length", Math.max(1, integer(parameters, "length", 16)));
 		rule.addProperty("fluid", qualifyFluid(string(parameters, "fluid", "water")));
@@ -140,10 +159,11 @@ final class LegacyConfigMigrator {
 		addBiomeRules(source.get("biomes"), rule);
 
 		JsonObject dimensions = new JsonObject();
+		JsonObject selectors = new JsonObject();
 		JsonElement dimensionElement = source.get("dimensions");
 		if (dimensionElement == null || (dimensionElement.isJsonArray()
 				&& dimensionElement.getAsJsonArray().size() == 0)) {
-			dimensions.add("minecraft:overworld", rule);
+			selectors.add("orespawn:all_except_nether_end", rule);
 		} else if (dimensionElement.isJsonArray()) {
 			for (JsonElement dimension : dimensionElement.getAsJsonArray()) {
 				String id = legacyDimension(dimension);
@@ -159,12 +179,21 @@ final class LegacyConfigMigrator {
 				if (id != null) dimensions.add(id, rule.deepCopy());
 			}
 		}
-		if (dimensions.size() == 0) {
+		if (dimensions.size() == 0 && selectors.size() == 0) {
 			report.add("Skipped " + name + ": no 1.18 dimension mapping could be inferred.");
 			return null;
 		}
-		ore.add("dimensions", dimensions);
+		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
+		if (selectors.size() > 0) ore.add("dimension_selectors", selectors);
 		return ore;
+	}
+
+	private static int clampLegacyQuantity(String name, long value, List<String> report) {
+		int clamped = (int) Math.max(1L, Math.min(64L, value));
+		if (clamped != value) {
+			report.add("Clamped legacy quantity for " + name + " from " + value + " to " + clamped + ".");
+		}
+		return clamped;
 	}
 
 	private static void addLegacyHosts(JsonElement replaces, JsonObject rule) {

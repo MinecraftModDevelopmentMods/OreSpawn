@@ -28,6 +28,7 @@ import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.OreSpawnApi;
 import com.mcmoddev.orespawn.api.ProviderStatus;
 import com.mcmoddev.orespawn.api.WorldgenProvider;
+import com.mcmoddev.orespawn.api.OreDimensionSelector;
 import com.mcmoddev.orespawn.worldgen.OreHeightDistribution;
 import com.mcmoddev.orespawn.worldgen.RockFamily;
 import com.mcmoddev.orespawn.init.OreSpawnPatterns;
@@ -54,7 +55,7 @@ public final class WorldgenIntegrationManager {
 
 	static {
 		Collections.addAll(MERGED_SECTIONS, "rocks", "ores", "geomes", "biome_rules",
-				"terrain_dimensions");
+				"terrain_dimensions", "fluid_deposits");
 	}
 
 	private static final Map<String, WorldgenProvider> API_PROVIDERS = new LinkedHashMap<>();
@@ -132,9 +133,10 @@ public final class WorldgenIntegrationManager {
 		rebuildActiveProviders();
 		frozen = true;
 		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
-			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, and {} templates",
+			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, {} fluid deposits, and {} templates",
 					provider.modId, provider.revision, provider.section("rocks").size(),
-					provider.section("ores").size(), provider.section("templates").size());
+					provider.section("ores").size(), provider.section("fluid_deposits").size(),
+					provider.section("templates").size());
 		}
 	}
 
@@ -259,8 +261,45 @@ public final class WorldgenIntegrationManager {
 		}
 		JsonObject result = base.deepCopy();
 		mergeOverlay(result, template.profile);
+		applyLegacyTemplateOil(result, template.profile);
 		result.addProperty("selected_template", templateId.toString());
 		return result;
+	}
+
+	static void applyLegacyTemplateOil(JsonObject result, JsonObject templateProfile) {
+		if (!templateProfile.has("oil") || !templateProfile.get("oil").isJsonObject()) {
+			return;
+		}
+		JsonObject deposits = object(result, "fluid_deposits");
+		if (deposits.size() != 1) {
+			return;
+		}
+		JsonElement depositElement = deposits.entrySet().iterator().next().getValue();
+		if (!depositElement.isJsonObject()) {
+			return;
+		}
+		JsonObject dimensions = object(depositElement.getAsJsonObject(), "dimensions");
+		JsonObject dimension = null;
+		if (dimensions.has("minecraft:overworld")
+				&& dimensions.get("minecraft:overworld").isJsonObject()) {
+			dimension = dimensions.getAsJsonObject("minecraft:overworld");
+		} else if (dimensions.size() == 1
+				&& dimensions.entrySet().iterator().next().getValue().isJsonObject()) {
+			dimension = dimensions.entrySet().iterator().next().getValue().getAsJsonObject();
+		}
+		if (dimension == null) {
+			return;
+		}
+		JsonObject legacy = templateProfile.getAsJsonObject("oil");
+		for (String key : new String[] { "min_y", "max_y", "frequency", "min_radius", "max_radius",
+				"min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover" }) {
+			if (legacy.has(key)) {
+				dimension.add(key, legacy.get(key).deepCopy());
+			}
+		}
+		result.addProperty("place_fluid_deposits", true);
+		result.remove("place_crude_oil");
+		result.remove("oil");
 	}
 
 	private static void loadProviderFile(Path path) {
@@ -356,9 +395,9 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
-	private static void validateProvider(String providerId, JsonObject root) {
+	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
-		if (schema != 1 && schema != 2) {
+		if (schema != 1 && schema != 2 && schema != 3) {
 			throw new JsonSyntaxException("unsupported schema_version");
 		}
 		if (!providerId.equals(string(root, "provider_modid", ""))) {
@@ -369,7 +408,7 @@ public final class WorldgenIntegrationManager {
 		}
 		if (schema == 1) {
 			for (String section : new String[] { "rocks", "geomes", "biome_rules",
-					"terrain_dimensions", "templates", "profile_defaults" }) {
+					"terrain_dimensions", "fluid_deposits", "templates", "profile_defaults" }) {
 				if (root.has(section)) {
 					throw new JsonSyntaxException("provider schema 1 is ore-only; found " + section);
 				}
@@ -377,6 +416,9 @@ public final class WorldgenIntegrationManager {
 			if (optionalObject(root, "ores").size() == 0) {
 				throw new JsonSyntaxException("provider schema 1 must declare ores");
 			}
+		}
+		if (schema < 3 && root.has("fluid_deposits")) {
+			throw new JsonSyntaxException("fluid_deposits requires provider schema 3");
 		}
 
 		int entries = 0;
@@ -402,6 +444,8 @@ public final class WorldgenIntegrationManager {
 					validateWeights(entry.getValue().getAsJsonObject());
 				} else if ("terrain_dimensions".equals(section)) {
 					validateTerrainDimension(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("fluid_deposits".equals(section)) {
+					validateFluidDeposit(entry.getKey(), entry.getValue().getAsJsonObject());
 				}
 			}
 		}
@@ -450,25 +494,38 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("unknown ore block: " + blockId);
 		}
 		if (ore.has("outputs")) validateOutputs(idText, ore.get("outputs"));
-		JsonObject dimensions = requiredObject(ore, "dimensions");
-		if (dimensions.size() == 0) {
-			throw new JsonSyntaxException("ore has no dimensions: " + idText);
+		JsonObject dimensions = optionalObject(ore, "dimensions");
+		JsonObject selectors = optionalObject(ore, "dimension_selectors");
+		if (dimensions.size() == 0 && selectors.size() == 0) {
+			throw new JsonSyntaxException("ore has no dimensions or dimension selectors: " + idText);
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
 			new ResourceLocation(entry.getKey());
+			validateOreRule(idText, entry);
+		}
+		for (Entry<String, JsonElement> entry : selectors.entrySet()) {
+			OreDimensionSelector.fromId(new ResourceLocation(entry.getKey()));
+			validateOreRule(idText, entry);
+		}
+	}
+
+	private static void validateOreRule(String idText, Entry<String, JsonElement> entry) {
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("ore dimension is not an object: " + entry.getKey());
 			}
 			JsonObject rule = entry.getValue().getAsJsonObject();
-			if (!bool(rule, "enabled", true)) {
-				continue;
-			}
+			if (!bool(rule, "enabled", true)) return;
 			int minY = integer(rule, "min_y", Integer.MIN_VALUE);
 			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
 			double frequency = decimal(rule, "frequency", -1.0D);
-			int quantity = integer(rule, "quantity", -1);
+			double discardChance = decimal(rule, "discard_chance_on_air_exposure", 0.0D);
+			int[] quantities = validateQuantityRange(rule);
+			int minQuantity = quantities[0];
+			int maxQuantity = quantities[1];
 			if (minY < -2048 || maxY > 2048 || minY > maxY || frequency < 0.0D
-					|| frequency > 64.0D || quantity < 1 || quantity > 64) {
+					|| frequency > 64.0D || !Double.isFinite(discardChance)
+					|| discardChance < 0.0D || discardChance > 1.0D
+					|| minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64) {
 				throw new JsonSyntaxException("invalid ore placement for " + idText + " in " + entry.getKey());
 			}
 			try {
@@ -494,7 +551,21 @@ public final class WorldgenIntegrationManager {
 			if (!hosts) {
 				throw new JsonSyntaxException("enabled ore dimension has no valid hosts: " + idText);
 			}
+	}
+
+	static int[] validateQuantityRange(JsonObject rule) {
+		boolean hasMinQuantity = rule.has("min_quantity");
+		boolean hasMaxQuantity = rule.has("max_quantity");
+		if (hasMinQuantity != hasMaxQuantity) {
+			throw new JsonSyntaxException("ore quantity range needs both bounds");
 		}
+		int minQuantity = hasMinQuantity ? integer(rule, "min_quantity", -1)
+				: integer(rule, "quantity", -1);
+		int maxQuantity = hasMaxQuantity ? integer(rule, "max_quantity", -1) : minQuantity;
+		if (minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64) {
+			throw new JsonSyntaxException("ore quantity must be within 1..64");
+		}
+		return new int[] { minQuantity, maxQuantity };
 	}
 
 	private static void validateOutputs(String idText, JsonElement element) {
@@ -546,6 +617,72 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
+	private static void validateFluidDeposit(String id, JsonObject deposit) {
+		String blockId = string(deposit, "block", "");
+		Block output = block(blockId);
+		if (output == null || output == Blocks.AIR || output.defaultBlockState().getFluidState().isEmpty()) {
+			throw new JsonSyntaxException("fluid deposit output is not a fluid block: " + blockId);
+		}
+		JsonObject dimensions = requiredObject(deposit, "dimensions");
+		if (dimensions.size() == 0) {
+			throw new JsonSyntaxException("fluid deposit has no dimensions: " + id);
+		}
+		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
+			new ResourceLocation(entry.getKey());
+			if (!entry.getValue().isJsonObject()) {
+				throw new JsonSyntaxException("fluid deposit dimension is not an object: " + entry.getKey());
+			}
+			JsonObject rule = entry.getValue().getAsJsonObject();
+			if (!bool(rule, "enabled", true)) continue;
+			int minY = integer(rule, "min_y", Integer.MIN_VALUE);
+			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
+			double frequency = decimal(rule, "frequency", -1.0D);
+			int minRadius = integer(rule, "min_radius", -1);
+			int maxRadius = integer(rule, "max_radius", -1);
+			int minVertical = integer(rule, "min_vertical_radius", -1);
+			int maxVertical = integer(rule, "max_vertical_radius", -1);
+			int maxLobes = integer(rule, "max_lobes", -1);
+			int cover = integer(rule, "min_solid_cover", -1);
+			int shell = integer(rule, "min_solid_shell", 1);
+			if (minY < -2048 || maxY > 2048 || minY > maxY
+					|| !Double.isFinite(frequency) || frequency < 0.0D || frequency > 64.0D
+					|| minRadius < 1 || minRadius > maxRadius || maxRadius > 64
+					|| minVertical < 1 || minVertical > maxVertical || maxVertical > 64
+					|| maxLobes < 1 || maxLobes > 16 || cover < 0 || cover > 64
+					|| shell < 0 || shell > 64) {
+				throw new JsonSyntaxException("invalid fluid deposit placement for " + id
+						+ " in " + entry.getKey());
+			}
+			boolean hosts = validBlocks(rule.get("host_blocks")) || validateIds(rule.get("host_tags"));
+			if (rule.has("host_families") && rule.get("host_families").isJsonArray()) {
+				for (JsonElement family : rule.getAsJsonArray("host_families")) {
+					RockFamily.fromConfigName(family.getAsString());
+					hosts = true;
+				}
+			}
+			if (!hosts) {
+				throw new JsonSyntaxException("enabled fluid deposit dimension has no valid hosts: " + id);
+			}
+			validateIds(rule.get("biome_ids"));
+			validateIds(rule.get("excluded_biome_ids"));
+			validateStringList(rule.get("biome_dictionary"));
+			validateStringList(rule.get("excluded_biome_dictionary"));
+			validateWeights(optionalObject(rule, "geomes"));
+		}
+	}
+
+	private static void validateStringList(JsonElement element) {
+		if (element == null) return;
+		if (!element.isJsonArray()) {
+			throw new JsonSyntaxException("value is not an array");
+		}
+		for (JsonElement value : element.getAsJsonArray()) {
+			if (value.getAsString().trim().isEmpty()) {
+				throw new JsonSyntaxException("list contains an empty value");
+			}
+		}
+	}
+
 	private static void validateTemplate(String id, JsonElement element) {
 		if (!element.isJsonObject()) {
 			throw new JsonSyntaxException("template is not an object: " + id);
@@ -570,8 +707,8 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
-	private static void claimOwnedEntries(String provider, JsonObject root, Map<String, String> owners) {
-		for (String section : new String[] { "rocks", "ores" }) {
+	static void claimOwnedEntries(String provider, JsonObject root, Map<String, String> owners) {
+		for (String section : new String[] { "rocks", "ores", "fluid_deposits" }) {
 			for (String id : optionalObject(root, section).keySet()) {
 				String key = section + ':' + id;
 				String previous = owners.putIfAbsent(key, provider);

@@ -28,7 +28,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.mcmoddev.orespawn.OreSpawnConfig;
-import com.mcmoddev.orespawn.OreSpawnConfig.OilGenerationSettings;
 import com.mcmoddev.orespawn.OreSpawnConfig.OreGenerationSettings;
 import com.mcmoddev.orespawn.api.OreSpawnOreIntegration;
 import com.mcmoddev.orespawn.integration.WorldgenIntegrationManager;
@@ -60,19 +59,26 @@ public final class GeomeConfig {
 	private static final Path CONFIG_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v1.bak");
 	private static final Path CONFIG_V2_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v2.bak");
 	private static final Path CONFIG_V3_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v3.bak");
+	private static final Path CONFIG_V4_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v4.bak");
 	private static final Path BIOME_DEFAULTS_BACKUP_PATH = Paths.get("config",
 			"orespawn-worldgen.pre-biome-revision-3.bak");
 	private static final Path WORLDGEN_ALIAS_DEFAULTS_BACKUP_PATH = Paths.get("config",
 			"orespawn-worldgen.pre-alias-revision-1.bak");
 	private static final Path ORE_DEFAULTS_BACKUP_PATH = Paths.get("config",
-			"orespawn-worldgen.pre-ore-revision-1.bak");
+			"orespawn-worldgen.pre-ore-revision-9.bak");
 	private static final Path CONFIG_TEMP_PATH = Paths.get("config", "orespawn-worldgen.json.tmp");
 	private static final Path PROVIDER_DEFAULTS_BACKUP_PATH = Paths.get("config",
 			"orespawn-worldgen.pre-provider-defaults.bak");
-	public static final int SCHEMA_VERSION = 4;
+	public static final int SCHEMA_VERSION = 5;
 	private static final int BIOME_DEFAULTS_REVISION = 3;
 	private static final int WORLDGEN_ALIAS_DEFAULTS_REVISION = 1;
-	private static final int ORE_DEFAULTS_REVISION = 4;
+	private static final int ORE_DEFAULTS_REVISION = 10;
+	private static final String LEGACY_MINERALOGY_VANILLA_ORE_PREFIX = "mineralogy:ore/minecraft/";
+	private static final String[] VANILLA_ORE_IDS = {
+			"coal_ore", "iron_ore", "copper_ore", "gold_ore", "redstone_ore",
+			"diamond_ore", "lapis_ore", "emerald_ore", "nether_gold_ore",
+			"nether_quartz_ore", "ancient_debris"
+	};
 
 	private static volatile BakedGeomeConfig bakedConfig = null;
 	private static volatile Map<ResourceKey<Level>, BakedGeomeConfig> bakedConfigs = Collections.emptyMap();
@@ -86,7 +92,9 @@ public final class GeomeConfig {
 
 	public static synchronized BakedGeomeConfig bake() {
 		JsonObject root = loadConfig();
-		if (OreSpawnOreIntegration.mergeProviderOres(root)) {
+		boolean changed = OreSpawnOreIntegration.mergeProviderOres(root);
+		changed |= FluidDepositMigration.normalize(root);
+		if (changed) {
 			writeProviderMerge(root);
 		}
 		root = applyDefaultTemplate(root);
@@ -138,6 +146,10 @@ public final class GeomeConfig {
 		return terrainDimensions.get(dimension);
 	}
 
+	static boolean hasTerrainReplacement(ResourceKey<Level> dimension) {
+		return terrainDimension(dimension) != null;
+	}
+
 	private static JsonObject loadConfig() {
 		JsonObject defaults = defaultConfig();
 		JsonObject migratedLegacy = LegacyConfigMigrator.migrateIfNeeded(CONFIG_PATH, defaults);
@@ -149,20 +161,28 @@ public final class GeomeConfig {
 			return defaults;
 		}
 
+		JsonObject root;
 		try (BufferedReader reader = Files.newBufferedReader(CONFIG_PATH, StandardCharsets.UTF_8)) {
 			JsonElement element = new JsonParser().parse(reader);
 			if (!element.isJsonObject()) {
 				LOGGER.warn("OreSpawn geome config '{}' is not a JSON object; using defaults", CONFIG_PATH);
 				return defaults;
 			}
-			JsonObject root = element.getAsJsonObject();
+			root = element.getAsJsonObject();
+		} catch (IOException | JsonSyntaxException | IllegalStateException e) {
+			LOGGER.warn("Could not read OreSpawn geome config '{}'; using defaults", CONFIG_PATH, e);
+			return defaults;
+		}
+
+		try {
 			int schemaVersion = getInt(root, "schema_version", 1);
 			if (schemaVersion < SCHEMA_VERSION) {
 				JsonObject migrated = schemaVersion <= 1 ? migrateV1(root) : root.deepCopy();
-				migrated = migrateToV4(migrated, defaults);
+				migrated = migrateToV5(migrated, defaults);
 				writeMigratedConfig(migrated,
 						schemaVersion <= 1 ? CONFIG_BACKUP_PATH
-								: schemaVersion == 2 ? CONFIG_V2_BACKUP_PATH : CONFIG_V3_BACKUP_PATH);
+								: schemaVersion == 2 ? CONFIG_V2_BACKUP_PATH
+										: schemaVersion == 3 ? CONFIG_V3_BACKUP_PATH : CONFIG_V4_BACKUP_PATH);
 				return migrated;
 			}
 			if (schemaVersion > SCHEMA_VERSION) {
@@ -186,7 +206,7 @@ public final class GeomeConfig {
 				root = refreshed;
 			}
 			return root;
-		} catch (IOException | JsonSyntaxException | IllegalStateException e) {
+		} catch (JsonSyntaxException | IllegalStateException e) {
 			LOGGER.warn("Could not read OreSpawn geome config '{}'; using defaults", CONFIG_PATH, e);
 			return defaults;
 		}
@@ -606,11 +626,12 @@ public final class GeomeConfig {
 		return refreshBiomeDefaults(migrated, defaultConfig());
 	}
 
-	private static JsonObject migrateToV4(JsonObject original, JsonObject defaults) {
+	private static JsonObject migrateToV5(JsonObject original, JsonObject defaults) {
 		JsonObject migrated = getInt(original, "biome_defaults_revision", 0) < BIOME_DEFAULTS_REVISION
 				? refreshBiomeDefaults(original, defaults) : original.deepCopy();
-		for (String key : new String[] { "geology_mode", "place_crude_oil", "manage_vanilla_ores",
-				"ore_defaults_revision", "cyano", "oil", "ores",
+		FluidDepositMigration.normalize(migrated);
+		for (String key : new String[] { "geology_mode", "place_fluid_deposits", "fluid_deposits",
+				"manage_vanilla_ores", "ore_defaults_revision", "cyano", "ores",
 				"ore_providers", "providers", "worldgen_aliases", "default_template",
 				"terrain_dimensions" }) {
 			if (!migrated.has(key)) {
@@ -659,62 +680,192 @@ public final class GeomeConfig {
 		if (!refreshed.has("manage_vanilla_ores")) {
 			refreshed.addProperty("manage_vanilla_ores", false);
 		}
+		normalizeLegacyMineralogyVanillaOres(refreshed);
 		mergeMissingEntries(refreshed, defaults, "ores");
 		upgradeOrePatternDefaults(refreshed);
 		refreshed.addProperty("ore_defaults_revision", ORE_DEFAULTS_REVISION);
 		return refreshed;
 	}
 
-	private static void upgradeOrePatternDefaults(JsonObject root) {
-		upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
-				0, 256, 20.0D, 17, "cluster", 0, 96, 12.0D);
-		upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
-				0, 96, 6.0D, 17, "cluster", 0, 96, 12.0D);
-		upgradeOreRule(root, "minecraft:iron_ore", "minecraft:overworld",
-				-64, 256, 20.0D, 9, "vein", -64, 256, 34.0D);
-		upgradeOreRule(root, "minecraft:copper_ore", "minecraft:overworld",
-				-16, 112, 16.0D, 10, "cloud", -16, 112, 13.0D);
-		upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
-				-64, 16, 4.0D, 8, "cluster", -64, 16, 2.6D);
-		upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
-				-64, 16, 2.0D, 8, "cluster", -64, 16, 2.6D);
-		upgradeOreRule(root, "minecraft:lapis_ore", "minecraft:overworld",
-				-64, 64, 4.0D, 7, "cloud", -64, 64, 3.4D);
-		upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
-				-16, 319, 8.0D, 3, "cluster", -16, 128, 0.55D);
-		upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
-				-16, 128, 3.0D, 3, "cluster", -16, 128, 0.55D);
-		upgradeOreRule(root, "minecraft:nether_gold_ore", "minecraft:the_nether",
-				0, 127, 10.0D, 10, "cluster", 0, 127, 6.0D);
-		upgradeOreRule(root, "minecraft:ancient_debris", "minecraft:the_nether",
-				8, 120, 2.0D, 3, "cluster", 8, 120, 1.0D);
+	static boolean needsWorldOreDefaultsRefresh(JsonObject root) {
+		return getInt(root, "ore_defaults_revision", 0) < ORE_DEFAULTS_REVISION;
 	}
 
-	private static void upgradeOreRule(JsonObject root, String oreId, String dimensionId,
+	static JsonObject refreshWorldOreDefaults(JsonObject original) {
+		JsonObject refreshed = original.deepCopy();
+		normalizeLegacyMineralogyVanillaOres(refreshed);
+		upgradeOrePatternDefaults(refreshed);
+		refreshed.addProperty("ore_defaults_revision", ORE_DEFAULTS_REVISION);
+		return refreshed;
+	}
+
+	static int oreDefaultsRevision() {
+		return ORE_DEFAULTS_REVISION;
+	}
+
+	private static void normalizeLegacyMineralogyVanillaOres(JsonObject root) {
+		if (!root.has("ores") || !root.get("ores").isJsonObject()) return;
+		JsonObject ores = root.getAsJsonObject("ores");
+		for (String oreId : VANILLA_ORE_IDS) {
+			String legacyId = LEGACY_MINERALOGY_VANILLA_ORE_PREFIX + oreId;
+			if (!ores.has(legacyId) || !ores.get(legacyId).isJsonObject()) continue;
+			String canonicalId = "minecraft:" + oreId;
+			JsonObject legacy = ores.getAsJsonObject(legacyId).deepCopy();
+
+			JsonObject probeOres = new JsonObject();
+			probeOres.add(canonicalId, legacy.deepCopy());
+			JsonObject probeRoot = new JsonObject();
+			probeRoot.add("ores", probeOres);
+			boolean untouchedDefault = upgradeOrePatternDefaults(probeRoot);
+			if (!ores.has(canonicalId) || !untouchedDefault) {
+				legacy.remove("orphaned_provider");
+				ores.add(canonicalId, legacy);
+			}
+			ores.remove(legacyId);
+		}
+	}
+
+	private static boolean upgradeOrePatternDefaults(JsonObject root) {
+		boolean upgraded = false;
+		upgraded |= upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
+				0, 256, 20.0D, 17, "cluster", 0, 96, 12.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
+				0, 96, 6.0D, 17, "cluster", 0, 96, 12.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:iron_ore", "minecraft:overworld",
+				-64, 256, 20.0D, 9, "vein", -64, 256, 34.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:copper_ore", "minecraft:overworld",
+				-16, 112, 16.0D, 10, "cloud", -16, 112, 13.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
+				-64, 16, 4.0D, 8, "cluster", -64, 16, 2.6D);
+		upgraded |= upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
+				-64, 16, 2.0D, 8, "cluster", -64, 16, 2.6D);
+		upgraded |= upgradeOreRule(root, "minecraft:lapis_ore", "minecraft:overworld",
+				-64, 64, 4.0D, 7, "cloud", -64, 64, 3.4D);
+		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
+				-16, 319, 8.0D, 3, "cluster", -16, 128, 0.55D);
+		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
+				-16, 128, 3.0D, 3, "cluster", -16, 128, 0.55D);
+		upgraded |= upgradeOreRule(root, "minecraft:nether_gold_ore", "minecraft:the_nether",
+				0, 127, 10.0D, 10, "cluster", 0, 127, 6.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:ancient_debris", "minecraft:the_nether",
+				8, 120, 2.0D, 3, "cluster", 8, 120, 1.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
+				0, 96, 12.0D, 17, "cluster", 0, 96, 6.25D);
+		upgraded |= upgradeOreRule(root, "minecraft:iron_ore", "minecraft:overworld",
+				-64, 256, 34.0D, 9, "vein", -64, 256, 26.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:copper_ore", "minecraft:overworld",
+				-16, 112, 13.0D, 10, "cloud", -16, 112, 13.0D);
+		upgraded |= upgradeOreRule(root, "minecraft:gold_ore", "minecraft:overworld",
+				-64, 32, 4.5D, 9, "vein", -64, 32, 2.85D);
+		upgraded |= upgradeOreRule(root, "minecraft:redstone_ore", "minecraft:overworld",
+				-64, 15, 8.0D, 8, "vein", -64, 15, 4.7D);
+		upgraded |= upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
+				-64, 16, 2.6D, 8, "cluster", -64, 16, 1.8D);
+		upgraded |= upgradeOreRule(root, "minecraft:lapis_ore", "minecraft:overworld",
+				-64, 64, 3.4D, 7, "cloud", -64, 64, 3.25D);
+		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
+				-16, 128, 0.55D, 3, "cluster", -16, 128, 0.35D);
+		upgraded |= upgradeOreRule(root, "minecraft:nether_gold_ore", "minecraft:the_nether",
+				0, 127, 6.0D, 10, "cluster", 0, 127, 5.2D);
+		upgraded |= upgradeOreRule(root, "minecraft:nether_quartz_ore", "minecraft:the_nether",
+				0, 127, 16.0D, 14, "vein", 0, 127, 11.2D);
+		upgraded |= upgradeOreRule(root, "minecraft:ancient_debris", "minecraft:the_nether",
+				8, 120, 1.0D, 3, "cluster", 8, 120, 1.25D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:coal_ore", "minecraft:overworld",
+				0, 96, 6.25D, 17, "cluster", OreHeightDistribution.TRIANGLE, 0.0D,
+				6.27D, OreHeightDistribution.TRIANGLE, 0.87D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:iron_ore", "minecraft:overworld",
+				-64, 256, 26.0D, 9, "vein", OreHeightDistribution.TRIANGLE, 0.0D,
+				25.5D, OreHeightDistribution.TRIANGLE, 0.80D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:copper_ore", "minecraft:overworld",
+				-16, 112, 13.0D, 10, "cloud", OreHeightDistribution.TRIANGLE, 0.0D,
+				12.65D, OreHeightDistribution.TRIANGLE, 0.27D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:gold_ore", "minecraft:overworld",
+				-64, 32, 2.85D, 9, "vein", OreHeightDistribution.TRIANGLE, 0.0D,
+				2.95D, OreHeightDistribution.TRIANGLE, 0.94D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:redstone_ore", "minecraft:overworld",
+				-64, 15, 4.7D, 8, "vein", OreHeightDistribution.TRIANGLE, 0.0D,
+				4.68D, OreHeightDistribution.UNIFORM_BOTTOM_TRIANGLE, 0.78D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:diamond_ore", "minecraft:overworld",
+				-64, 16, 1.8D, 8, "cluster", OreHeightDistribution.TRIANGLE, 0.0D,
+				1.83D, OreHeightDistribution.BOTTOM_TRIANGLE, 0.94D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:lapis_ore", "minecraft:overworld",
+				-64, 64, 3.25D, 7, "cloud", OreHeightDistribution.TRIANGLE, 0.0D,
+				3.38D, OreHeightDistribution.TRIANGLE, 0.80D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:emerald_ore", "minecraft:overworld",
+				-16, 128, 0.35D, 3, "cluster", OreHeightDistribution.TRIANGLE, 0.0D,
+				0.40D, OreHeightDistribution.TRIANGLE, 0.65D);
+		upgraded |= upgradeOreFidelityRule(root, "minecraft:emerald_ore", "minecraft:overworld",
+				-16, 128, 0.40D, 3, "cluster", OreHeightDistribution.TRIANGLE, 0.65D,
+				0.33D, OreHeightDistribution.TRIANGLE, 0.65D);
+		return upgraded;
+	}
+
+	private static boolean upgradeOreFidelityRule(JsonObject root, String oreId, String dimensionId,
+			int minY, int maxY, double oldFrequency, int quantity, String pattern,
+			OreHeightDistribution oldDistribution, double oldDiscardChance,
+			double newFrequency, OreHeightDistribution newDistribution, double newDiscardChance) {
+		if (!root.has("ores") || !root.get("ores").isJsonObject()) return false;
+		JsonObject ores = root.getAsJsonObject("ores");
+		if (!ores.has(oreId) || !ores.get(oreId).isJsonObject()) return false;
+		JsonObject ore = ores.getAsJsonObject(oreId);
+		if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()
+				|| !ore.getAsJsonObject("dimensions").has(dimensionId)
+				|| !ore.getAsJsonObject("dimensions").get(dimensionId).isJsonObject()) return false;
+		JsonObject rule = ore.getAsJsonObject("dimensions").getAsJsonObject(dimensionId);
+		if (getInt(rule, "min_y", Integer.MIN_VALUE) == minY
+				&& getInt(rule, "max_y", Integer.MIN_VALUE) == maxY
+				&& Math.abs(getDouble(rule, "frequency", -1.0D) - oldFrequency) < 0.000001D
+				&& getInt(rule, "quantity", -1) == quantity
+				&& sameOrePattern(rule, pattern)
+				&& oldDistribution.configName.equals(getString(rule, "height_distribution",
+						oldDistribution.configName))
+				&& Math.abs(getDouble(rule, "discard_chance_on_air_exposure", 0.0D)
+						- oldDiscardChance) < 0.000001D) {
+			rule.addProperty("frequency", newFrequency);
+			rule.addProperty("height_distribution", newDistribution.configName);
+			rule.addProperty("discard_chance_on_air_exposure", newDiscardChance);
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean upgradeOreRule(JsonObject root, String oreId, String dimensionId,
 			int oldMinY, int oldMaxY, double oldFrequency, int oldQuantity, String oldPattern,
 			int newMinY, int newMaxY, double newFrequency) {
 		if (!root.has("ores") || !root.get("ores").isJsonObject()) {
-			return;
+			return false;
 		}
 		JsonObject ores = root.getAsJsonObject("ores");
 		if (!ores.has(oreId) || !ores.get(oreId).isJsonObject()) {
-			return;
+			return false;
 		}
 		JsonObject ore = ores.getAsJsonObject(oreId);
 		if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()
 				|| !ore.getAsJsonObject("dimensions").has(dimensionId)
 				|| !ore.getAsJsonObject("dimensions").get(dimensionId).isJsonObject()) {
-			return;
+			return false;
 		}
 		JsonObject rule = ore.getAsJsonObject("dimensions").getAsJsonObject(dimensionId);
 		if (getInt(rule, "min_y", Integer.MIN_VALUE) == oldMinY
 				&& getInt(rule, "max_y", Integer.MIN_VALUE) == oldMaxY
 				&& Math.abs(getDouble(rule, "frequency", -1.0D) - oldFrequency) < 0.000001D
 				&& getInt(rule, "quantity", -1) == oldQuantity
-				&& oldPattern.equals(getString(rule, "pattern", ""))) {
+				&& sameOrePattern(rule, oldPattern)) {
 			rule.addProperty("min_y", newMinY);
 			rule.addProperty("max_y", newMaxY);
 			rule.addProperty("frequency", newFrequency);
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean sameOrePattern(JsonObject rule, String expected) {
+		try {
+			return OrePattern.fromConfigName(getString(rule, "pattern", ""))
+					== OrePattern.fromConfigName(expected);
+		} catch (IllegalArgumentException ignored) {
+			return false;
 		}
 	}
 
@@ -1070,7 +1221,7 @@ public final class GeomeConfig {
 		root.addProperty("worldgen_alias_defaults_revision", WORLDGEN_ALIAS_DEFAULTS_REVISION);
 		root.addProperty("ore_defaults_revision", ORE_DEFAULTS_REVISION);
 		root.addProperty("geology_mode", OreSpawnConfig.geologyMode().name().toLowerCase(java.util.Locale.ROOT));
-		root.addProperty("place_crude_oil", false);
+		root.addProperty("place_fluid_deposits", true);
 		root.addProperty("manage_vanilla_ores", false);
 		root.addProperty("suppress_all_ore_features", false);
 		root.addProperty("default_template", "");
@@ -1130,7 +1281,7 @@ public final class GeomeConfig {
 
 		root.add("rocks", new JsonObject());
 		root.add("cyano", defaultCyanoConfig());
-		root.add("oil", defaultOilConfig());
+		root.add("fluid_deposits", new JsonObject());
 		root.add("ores", defaultOreConfig());
 		root.add("ore_providers", new JsonObject());
 		root.add("providers", new JsonObject());
@@ -1151,6 +1302,15 @@ public final class GeomeConfig {
 		bedrock.add("dimensions", bedrockDimensions);
 		root.add("flat_bedrock", bedrock);
 		return root;
+	}
+
+	public static JsonObject defaultEditorGeology() {
+		JsonObject defaults = defaultConfig();
+		JsonObject result = new JsonObject();
+		for (String key : new String[] { "geomes", "biomes", "biome_dictionary" }) {
+			result.add(key, defaults.get(key).deepCopy());
+		}
+		return result;
 	}
 
 	private static JsonObject defaultTerrainDimensions() {
@@ -1176,40 +1336,32 @@ public final class GeomeConfig {
 		return cyano;
 	}
 
-	private static JsonObject defaultOilConfig() {
-		OilGenerationSettings settings = OreSpawnConfig.crudeOil();
-		JsonObject oil = new JsonObject();
-		oil.addProperty("block", "minecraft:air");
-		oil.addProperty("min_y", settings.minY());
-		oil.addProperty("max_y", settings.maxY());
-		oil.addProperty("frequency", settings.frequency());
-		oil.addProperty("min_radius", settings.minRadius());
-		oil.addProperty("max_radius", settings.maxRadius());
-		oil.addProperty("min_vertical_radius", settings.minVerticalRadius());
-		oil.addProperty("max_vertical_radius", settings.maxVerticalRadius());
-		oil.addProperty("max_lobes", settings.maxLobes());
-		oil.addProperty("min_solid_cover", settings.minSolidCover());
-		return oil;
-	}
-
 	private static JsonObject defaultOreConfig() {
 		JsonObject ores = new JsonObject();
-		addVanillaOverworldOre(ores, "coal_ore", "deepslate_coal_ore", 0, 96, 12.0D, 17,
+		addVanillaOverworldOre(ores, "coal_ore", "deepslate_coal_ore", 0, 96, 6.27D, 17,
 				OrePattern.CLUSTER, 10, 4, 6);
-		addVanillaOverworldOre(ores, "iron_ore", "deepslate_iron_ore", -64, 256, 34.0D, 9,
+		setOreFidelity(ores, "coal_ore", OreHeightDistribution.TRIANGLE, 0.87D);
+		addVanillaOverworldOre(ores, "iron_ore", "deepslate_iron_ore", -64, 256, 25.5D, 9,
 				OrePattern.VEIN, 8, 4, 4);
-		addVanillaOverworldOre(ores, "copper_ore", "deepslate_copper_ore", -16, 112, 13.0D, 10,
+		setOreFidelity(ores, "iron_ore", OreHeightDistribution.TRIANGLE, 0.80D);
+		addVanillaOverworldOre(ores, "copper_ore", "deepslate_copper_ore", -16, 112, 12.65D, 10,
 				OrePattern.CLOUD, 6, 4, 4);
-		addVanillaOverworldOre(ores, "gold_ore", "deepslate_gold_ore", -64, 32, 4.5D, 9,
+		setOreFidelity(ores, "copper_ore", OreHeightDistribution.TRIANGLE, 0.27D);
+		addVanillaOverworldOre(ores, "gold_ore", "deepslate_gold_ore", -64, 32, 2.95D, 9,
 				OrePattern.VEIN, 8, 4, 4);
-		addVanillaOverworldOre(ores, "redstone_ore", "deepslate_redstone_ore", -64, 15, 8.0D, 8,
+		setOreFidelity(ores, "gold_ore", OreHeightDistribution.TRIANGLE, 0.94D);
+		addVanillaOverworldOre(ores, "redstone_ore", "deepslate_redstone_ore", -64, 15, 4.68D, 8,
 				OrePattern.VEIN, 8, 4, 4);
-		addVanillaOverworldOre(ores, "diamond_ore", "deepslate_diamond_ore", -64, 16, 2.6D, 8,
+		setOreFidelity(ores, "redstone_ore", OreHeightDistribution.UNIFORM_BOTTOM_TRIANGLE, 0.78D);
+		addVanillaOverworldOre(ores, "diamond_ore", "deepslate_diamond_ore", -64, 16, 1.83D, 8,
 				OrePattern.CLUSTER, 6, 3, 4);
-		addVanillaOverworldOre(ores, "lapis_ore", "deepslate_lapis_ore", -64, 64, 3.4D, 7,
+		setOreFidelity(ores, "diamond_ore", OreHeightDistribution.BOTTOM_TRIANGLE, 0.94D);
+		addVanillaOverworldOre(ores, "lapis_ore", "deepslate_lapis_ore", -64, 64, 3.38D, 7,
 				OrePattern.CLOUD, 8, 4, 4);
-		addVanillaOverworldOre(ores, "emerald_ore", "deepslate_emerald_ore", -16, 128, 0.55D, 3,
+		setOreFidelity(ores, "lapis_ore", OreHeightDistribution.TRIANGLE, 0.80D);
+		addVanillaOverworldOre(ores, "emerald_ore", "deepslate_emerald_ore", -16, 128, 0.33D, 3,
 				OrePattern.CLUSTER, 8, 5, 3);
+		setOreFidelity(ores, "emerald_ore", OreHeightDistribution.TRIANGLE, 0.65D);
 		setOreGeomeWeights(ores, "coal_ore", "sedimentary_basin", 1.8D,
 				"coastal_shelf", 1.5D, "wetland_basin", 1.4D, "volcanic_arc", 0.45D);
 		setOreGeomeWeights(ores, "iron_ore", "mountain_belt", 1.4D,
@@ -1223,9 +1375,9 @@ public final class GeomeConfig {
 				"glacial_highland", 2.0D, "stable_craton", 0.15D, "sedimentary_basin", 0.05D,
 				"coastal_shelf", 0.05D, "arid_basin", 0.15D, "wetland_basin", 0.05D,
 				"volcanic_arc", 0.35D);
-		addVanillaNetherOre(ores, "nether_gold_ore", 0, 127, 6.0D, 10, OrePattern.CLUSTER, 8, 5, 5);
-		addVanillaNetherOre(ores, "nether_quartz_ore", 0, 127, 16.0D, 14, OrePattern.VEIN, 8, 4, 4);
-		addVanillaNetherOre(ores, "ancient_debris", 8, 120, 1.0D, 3, OrePattern.CLUSTER, 12, 8, 3);
+		addVanillaNetherOre(ores, "nether_gold_ore", 0, 127, 5.2D, 10, OrePattern.CLUSTER, 8, 5, 5);
+		addVanillaNetherOre(ores, "nether_quartz_ore", 0, 127, 11.2D, 14, OrePattern.VEIN, 8, 4, 4);
+		addVanillaNetherOre(ores, "ancient_debris", 8, 120, 1.25D, 3, OrePattern.CLUSTER, 12, 8, 3);
 		return ores;
 	}
 
@@ -1294,6 +1446,14 @@ public final class GeomeConfig {
 			weights.addProperty((String) values[i], (Double) values[i + 1]);
 		}
 		rule.add("geomes", weights);
+	}
+
+	private static void setOreFidelity(JsonObject ores, String oreId,
+			OreHeightDistribution distribution, double discardChanceOnAirExposure) {
+		JsonObject rule = ores.getAsJsonObject("minecraft:" + oreId)
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld");
+		rule.addProperty("height_distribution", distribution.configName);
+		rule.addProperty("discard_chance_on_air_exposure", discardChanceOnAirExposure);
 	}
 
 	private static void addDefaultOre(JsonObject ores, String id, OreGenerationSettings settings) {

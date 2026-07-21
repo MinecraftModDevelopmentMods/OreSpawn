@@ -5,7 +5,7 @@ import com.mcmoddev.orespawn.init.OreSpawnPatterns;
 import com.mcmoddev.orespawn.worldgen.OreSpawnOreGeneration;
 import com.mcmoddev.orespawn.worldgen.GeomeConfig;
 import com.mcmoddev.orespawn.worldgen.GeomeDistributionSampler;
-import com.mcmoddev.orespawn.worldgen.OilDepositFeature;
+import com.mcmoddev.orespawn.worldgen.FluidDepositFeature;
 import com.mcmoddev.orespawn.worldgen.StoneReplacer;
 import com.mcmoddev.orespawn.worldgen.WorldGeologyProfileManager;
 import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
@@ -15,6 +15,7 @@ import com.mcmoddev.orespawn.worldgen.WorldgenBenchmark;
 import com.mcmoddev.orespawn.worldgen.FlatBedrockFeature;
 import com.mcmoddev.orespawn.worldgen.OreRetrogenManager;
 import com.mcmoddev.orespawn.commands.OreSpawnCommands;
+import com.mcmoddev.orespawn.documentation.DocumentationExporter;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -55,7 +56,7 @@ public class OreSpawn {
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
 		MinecraftForge.EVENT_BUS.addListener(StoneReplacer::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(OreSpawnOreGeneration::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(OilDepositFeature::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(FluidDepositFeature::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(FlatBedrockFeature::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
@@ -97,9 +98,10 @@ public class OreSpawn {
 		GeomeConfig.bake();
 		logGeomeSampler();
 		event.enqueueWork(() -> {
+			DocumentationExporter.exportBundledGuide();
 			StoneReplacer.registerConfiguredFeature();
 			OreSpawnOreGeneration.registerConfiguredFeatures();
-			OilDepositFeature.registerConfiguredFeature();
+			FluidDepositFeature.registerConfiguredFeature();
 			FlatBedrockFeature.registerConfiguredFeature();
 		});
 	}
@@ -125,13 +127,13 @@ public class OreSpawn {
 					}
 					WorldGeologyProfile profile = original
 							.withSelection(GeologyMode.GEOME, preset, preset, preset, preset, preset,
-									original.placeCrudeOil());
+									original.placeFluidDeposits());
 					logSamplerProfile("Sky " + preset.configName(), samplerSeed, profile, includeBiomeAudit);
 				}
 				if (samplerProfileEnabled(profileFilter, "mixed_huge")) {
 					WorldGeologyProfile mixedHuge = original
 							.withSelection(GeologyMode.GEOME, Preset.AVERAGE, Preset.HUGE, Preset.HUGE,
-									Preset.HUGE, Preset.HUGE, original.placeCrudeOil());
+									Preset.HUGE, Preset.HUGE, original.placeFluidDeposits());
 					logSamplerProfile("Sky mixed-huge", samplerSeed, mixedHuge, includeBiomeAudit);
 				}
 			}

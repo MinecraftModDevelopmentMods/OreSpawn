@@ -1,4 +1,4 @@
-# OreSpawn Integration Notes For Humans And Agents
+# OreSpawn Integration Notes For Coding Agents
 
 OreSpawn 4.0 is a required Forge mod and declarative world-generation engine.
 Public API major version 1 consists only of `com.mcmoddev.orespawn.api`. Treat
@@ -16,9 +16,15 @@ Integration entry points:
 
 Configuration contracts:
 
-- Global `config/orespawn-worldgen.json`: schema 4.
-- World `serverconfig/orespawn-worldgen.json`: schema 3.
-- Provider files: schema 2; legacy ore-only schema 1 remains accepted.
+- Global `config/orespawn-worldgen.json`: schema 5.
+- World `serverconfig/orespawn-worldgen.json`: schema 4.
+- Provider files: schema 3; legacy schemas 1 and 2 remain accepted.
+- Ore placement accepts fixed `quantity` or paired inclusive
+  `min_quantity`/`max_quantity` values in the range 1-64. A complete range is
+  authoritative when both forms exist.
+- `dimension_selectors.orespawn:all_except_nether_end` applies to ordinary
+  dimensions but never Nether or End. Explicit dimension entries override it
+  per ore and must also drive vanilla-feature suppression.
 - JSON Schemas and examples are under `META-INF/orespawn/docs/` in the jar.
 
 Lifecycle and ownership:
@@ -37,14 +43,19 @@ Performance constraints:
 - Registry IDs remain `ResourceLocation` values until setup-time baking.
 - Dimension, tag, alias, biome, geome, family, pattern, and block-state
   resolution occurs before generation.
+- Ore rules support `uniform`, `triangle`, `bottom_triangle`, and
+  `uniform_bottom_triangle` height distributions plus a 0-1
+  `discard_chance_on_air_exposure` value for buried deposits.
 - The chunk hot path must contain no config reads, registry access, strings,
   logging, reflection, or per-block allocation.
+- Cache biome filters as registry keys, never `Biome` object identities; 1.18
+  dynamic-registry biome instances are not identity-stable.
 - Ore and flat-bedrock retrogen are bounded and marker-based. Terrain strata
   are never retrogened.
 
 Compatibility defaults:
 
-- Standalone OreSpawn is passive: no rocks, terrain dimensions, oil, ore
+- Standalone OreSpawn is passive: no rocks, terrain dimensions, fluid deposits, ore
   suppression, retrogen, or flat bedrock are enabled by default.
 - The Overworld is the conventional geology target, but a provider must opt it
   in. Nether and End terrain remain untouched unless explicitly configured.
@@ -52,4 +63,5 @@ Compatibility defaults:
   removed `com.mcmoddev.mineralogy.api` classes.
 
 Common tasks are documented in `API.md`, `PROVIDERS.md`, `FEATURES.md`,
-`TEMPLATES.md`, and `DIMENSIONS.md`.
+`TEMPLATES.md`, and `DIMENSIONS.md`. Start with `DEVELOPER_GUIDE.md` when the
+task is broader than one isolated schema or API question.

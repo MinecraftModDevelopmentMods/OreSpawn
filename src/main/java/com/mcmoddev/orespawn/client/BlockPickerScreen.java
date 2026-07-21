@@ -17,7 +17,7 @@ import net.minecraft.network.chat.TranslatableComponent;
 
 /** Registry-backed picker; text narrows installed blocks but never creates an ID. */
 final class BlockPickerScreen extends Screen {
-	private final GeologyMaterialsScreen parent;
+	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final MaterialTab target;
 	private String searchText = "";
@@ -26,7 +26,7 @@ final class BlockPickerScreen extends Screen {
 	private int page;
 	private EditBox search;
 
-	BlockPickerScreen(GeologyMaterialsScreen parent, GeologyEditorSession session, MaterialTab target) {
+	BlockPickerScreen(Screen parent, GeologyEditorSession session, MaterialTab target) {
 		super(new TranslatableComponent("screen.orespawn.choose_block"));
 		this.parent = parent;
 		this.session = session;

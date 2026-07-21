@@ -101,6 +101,15 @@ class DocumentationJsonTest {
 				require(value.has(required.getAsString()), path + " missing " + required.getAsString());
 			}
 		}
+		if (schema.has("dependentRequired")) {
+			for (Map.Entry<String, JsonElement> dependency
+					: schema.getAsJsonObject("dependentRequired").entrySet()) {
+				if (!value.has(dependency.getKey())) continue;
+				for (JsonElement required : dependency.getValue().getAsJsonArray()) {
+					require(value.has(required.getAsString()), path + " missing " + required.getAsString());
+				}
+			}
+		}
 		JsonObject properties = schema.has("properties") ? schema.getAsJsonObject("properties") : new JsonObject();
 		for (Map.Entry<String, JsonElement> property : properties.entrySet()) {
 			if (value.has(property.getKey())) {
@@ -114,6 +123,12 @@ class DocumentationJsonTest {
 				if (!properties.has(property.getKey())) {
 					validate(additional, property.getValue(), document, path + "." + property.getKey(), probe);
 				}
+			}
+		}
+		if (schema.has("additionalProperties") && schema.get("additionalProperties").isJsonPrimitive()
+				&& !schema.get("additionalProperties").getAsBoolean()) {
+			for (String property : value.keySet()) {
+				require(properties.has(property), path + " has unsupported property " + property);
 			}
 		}
 	}

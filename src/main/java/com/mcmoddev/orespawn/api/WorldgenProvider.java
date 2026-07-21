@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -44,7 +45,7 @@ public final class WorldgenProvider {
 		return revision;
 	}
 
-	/** Returns a defensive JSON representation matching provider schema 2. */
+	/** Returns a defensive JSON representation matching provider schema 3. */
 	public JsonObject toJson() {
 		return definition.deepCopy();
 	}
@@ -54,6 +55,8 @@ public final class WorldgenProvider {
 		private final int revision;
 		private final LinkedHashMap<ResourceLocation, RockDefinition> rocks = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, OreDefinition> ores = new LinkedHashMap<>();
+		private final LinkedHashMap<ResourceLocation, FluidDepositDefinition> fluidDeposits =
+				new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, GeomeDefinition> geomes = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, BiomeRule> biomeRules = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, TerrainDimensionDefinition> terrainDimensions =
@@ -104,6 +107,18 @@ public final class WorldgenProvider {
 			return ore(builder.build());
 		}
 
+		public Builder fluidDeposit(FluidDepositDefinition deposit) {
+			putUnique(fluidDeposits, deposit.id(), deposit, "fluid deposit");
+			return this;
+		}
+
+		public Builder fluidDeposit(ResourceLocation id, ResourceLocation block,
+				Consumer<FluidDepositDefinition.Builder> edit) {
+			FluidDepositDefinition.Builder builder = FluidDepositDefinition.builder(id, block);
+			edit.accept(builder);
+			return fluidDeposit(builder.build());
+		}
+
 		public Builder geome(GeomeDefinition geome) {
 			putUnique(geomes, geome.id(), geome, "geome");
 			return this;
@@ -148,21 +163,24 @@ public final class WorldgenProvider {
 		}
 
 		public WorldgenProvider build() {
-			if (rocks.isEmpty() && ores.isEmpty() && geomes.isEmpty() && biomeRules.isEmpty()
+			if (rocks.isEmpty() && ores.isEmpty() && fluidDeposits.isEmpty()
+					&& geomes.isEmpty() && biomeRules.isEmpty()
 					&& terrainDimensions.isEmpty() && templates.isEmpty()) {
 				throw new IllegalStateException("A provider must declare at least one contribution");
 			}
 			requireOwned(rocks.keySet(), "rock");
 			requireOwned(ores.keySet(), "ore");
+			requireOwned(fluidDeposits.keySet(), "fluid deposit");
 			requireOwned(geomes.keySet(), "geome");
 			requireOwned(terrainDimensions.keySet(), "terrain dimension");
 			requireOwned(templates.keySet(), "template");
 			JsonObject root = new JsonObject();
-			root.addProperty("schema_version", 2);
+			root.addProperty("schema_version", 3);
 			root.addProperty("provider_modid", modId);
 			root.addProperty("provider_revision", revision);
 			root.add("rocks", object(rocks));
 			root.add("ores", object(ores));
+			root.add("fluid_deposits", object(fluidDeposits));
 			root.add("geomes", object(geomes));
 			root.add("biome_rules", object(biomeRules));
 			root.add("terrain_dimensions", object(terrainDimensions));
@@ -301,6 +319,7 @@ public final class WorldgenProvider {
 		private final boolean suppressVanilla;
 		private final boolean retrogen;
 		private final Map<ResourceLocation, OreDimensionDefinition> dimensions;
+		private final Map<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors;
 
 		private OreDefinition(Builder builder) {
 			id = builder.id;
@@ -313,6 +332,7 @@ public final class WorldgenProvider {
 			suppressVanilla = builder.suppressVanilla;
 			retrogen = builder.retrogen;
 			dimensions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.dimensions));
+			dimensionSelectors = Collections.unmodifiableMap(new LinkedHashMap<>(builder.dimensionSelectors));
 		}
 
 		public static Builder builder(ResourceLocation block) { return new Builder(block, block); }
@@ -324,6 +344,7 @@ public final class WorldgenProvider {
 		public boolean suppressVanilla() { return suppressVanilla; }
 		public boolean retrogen() { return retrogen; }
 		public Map<ResourceLocation, OreDimensionDefinition> dimensions() { return dimensions; }
+		public Map<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors() { return dimensionSelectors; }
 
 		@Override
 		public JsonObject toJson() {
@@ -342,7 +363,12 @@ public final class WorldgenProvider {
 				json.addProperty("deep_output", deepOutput.toString());
 				json.addProperty("deep_output_max_y", deepOutputMaxY);
 			}
-			json.add("dimensions", object(dimensions));
+			if (!dimensions.isEmpty()) json.add("dimensions", object(dimensions));
+			JsonObject selectors = new JsonObject();
+			for (Entry<OreDimensionSelector, OreDimensionDefinition> entry : dimensionSelectors.entrySet()) {
+				selectors.add(entry.getKey().id().toString(), entry.getValue().toJson());
+			}
+			if (selectors.size() > 0) json.add("dimension_selectors", selectors);
 			return json;
 		}
 
@@ -357,6 +383,8 @@ public final class WorldgenProvider {
 			private boolean suppressVanilla;
 			private boolean retrogen = true;
 			private final LinkedHashMap<ResourceLocation, OreDimensionDefinition> dimensions = new LinkedHashMap<>();
+			private final LinkedHashMap<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors =
+					new LinkedHashMap<>();
 
 			private Builder(ResourceLocation id, ResourceLocation block) {
 				this.id = Objects.requireNonNull(id, "id");
@@ -383,10 +411,27 @@ public final class WorldgenProvider {
 				edit.accept(builder);
 				return dimension(builder.build());
 			}
+			public Builder dimensionSelector(OreDimensionSelector selector, OreDimensionDefinition value) {
+				Objects.requireNonNull(selector, "selector");
+				if (!selector.id().equals(value.dimension())) {
+					throw new IllegalArgumentException("Selector rule ID does not match " + selector.id());
+				}
+				if (dimensionSelectors.putIfAbsent(selector, value) != null) {
+					throw new IllegalStateException("Duplicate ore dimension selector: " + selector.id());
+				}
+				return this;
+			}
+			/** Adds a built-in fallback policy used when no explicit dimension rule exists. */
+			public Builder dimensionSelector(OreDimensionSelector selector,
+					Consumer<OreDimensionDefinition.Builder> edit) {
+				OreDimensionDefinition.Builder builder = OreDimensionDefinition.builder(selector.id());
+				edit.accept(builder);
+				return dimensionSelector(selector, builder.build());
+			}
 
 			public OreDefinition build() {
-				if (dimensions.isEmpty()) {
-					throw new IllegalStateException("Ore has no dimensions: " + block);
+				if (dimensions.isEmpty() && dimensionSelectors.isEmpty()) {
+					throw new IllegalStateException("Ore has no dimensions or dimension selectors: " + block);
 				}
 				return new OreDefinition(this);
 			}
@@ -433,11 +478,13 @@ public final class WorldgenProvider {
 		private final int minY;
 		private final int maxY;
 		private final double frequency;
-		private final int quantity;
+		private final int minQuantity;
+		private final int maxQuantity;
 		private final OrePattern pattern;
 		private final ResourceLocation patternType;
 		private final JsonObject patternSettings;
 		private final OreHeightDistribution heightDistribution;
+		private final double discardChanceOnAirExposure;
 		private final int spread;
 		private final int verticalSpread;
 		private final int nodeSize;
@@ -454,11 +501,13 @@ public final class WorldgenProvider {
 			minY = builder.minY;
 			maxY = builder.maxY;
 			frequency = builder.frequency;
-			quantity = builder.quantity;
+			minQuantity = builder.minQuantity;
+			maxQuantity = builder.maxQuantity;
 			pattern = builder.pattern;
 			patternType = builder.patternType;
 			patternSettings = builder.patternSettings.deepCopy();
 			heightDistribution = builder.heightDistribution;
+			discardChanceOnAirExposure = builder.discardChanceOnAirExposure;
 			spread = builder.spread;
 			verticalSpread = builder.verticalSpread;
 			nodeSize = builder.nodeSize;
@@ -476,11 +525,15 @@ public final class WorldgenProvider {
 		public int minY() { return minY; }
 		public int maxY() { return maxY; }
 		public double attempts() { return frequency; }
-		public int quantity() { return quantity; }
+		/** Compatibility value for consumers that only understand a fixed quantity. */
+		public int quantity() { return (minQuantity + maxQuantity + 1) / 2; }
+		public int minQuantity() { return minQuantity; }
+		public int maxQuantity() { return maxQuantity; }
 		public OrePattern pattern() { return pattern; }
 		public ResourceLocation patternType() { return patternType; }
 		public JsonObject patternSettings() { return patternSettings.deepCopy(); }
 		public OreHeightDistribution heightDistribution() { return heightDistribution; }
+		public double discardChanceOnAirExposure() { return discardChanceOnAirExposure; }
 		public int spread() { return spread; }
 		public int verticalSpread() { return verticalSpread; }
 		public int nodeSize() { return nodeSize; }
@@ -498,7 +551,12 @@ public final class WorldgenProvider {
 			json.addProperty("min_y", minY);
 			json.addProperty("max_y", maxY);
 			json.addProperty("frequency", frequency);
-			json.addProperty("quantity", quantity);
+			if (minQuantity == maxQuantity) {
+				json.addProperty("quantity", minQuantity);
+			} else {
+				json.addProperty("min_quantity", minQuantity);
+				json.addProperty("max_quantity", maxQuantity);
+			}
 			if (patternType == null) {
 				json.addProperty("pattern", pattern.configName());
 			} else {
@@ -508,6 +566,7 @@ public final class WorldgenProvider {
 				json.add("pattern", configuredPattern);
 			}
 			json.addProperty("height_distribution", heightDistribution.configName());
+			json.addProperty("discard_chance_on_air_exposure", discardChanceOnAirExposure);
 			json.addProperty("spread", spread);
 			json.addProperty("vertical_spread", verticalSpread);
 			json.addProperty("node_size", nodeSize);
@@ -526,11 +585,13 @@ public final class WorldgenProvider {
 			private int minY = -64;
 			private int maxY = 319;
 			private double frequency = 1.0D;
-			private int quantity = 8;
+			private int minQuantity = 8;
+			private int maxQuantity = 8;
 			private OrePattern pattern = OrePattern.VEIN;
 			private ResourceLocation patternType;
 			private JsonObject patternSettings = new JsonObject();
 			private OreHeightDistribution heightDistribution = OreHeightDistribution.UNIFORM;
+			private double discardChanceOnAirExposure;
 			private int spread = 8;
 			private int verticalSpread = 4;
 			private int nodeSize = 4;
@@ -545,7 +606,9 @@ public final class WorldgenProvider {
 			public Builder enabled(boolean value) { enabled = value; return this; }
 			public Builder yRange(int min, int max) { minY = min; maxY = max; return this; }
 			public Builder attempts(double value) { frequency = value; return this; }
-			public Builder quantity(int value) { quantity = value; return this; }
+			public Builder quantity(int value) { minQuantity = value; maxQuantity = value; return this; }
+			/** Selects an inclusive random block budget for each placement attempt. */
+			public Builder quantityRange(int min, int max) { minQuantity = min; maxQuantity = max; return this; }
 			public Builder pattern(OrePattern value) {
 				pattern = Objects.requireNonNull(value);
 				patternType = null;
@@ -559,6 +622,7 @@ public final class WorldgenProvider {
 				return this;
 			}
 			public Builder heightDistribution(OreHeightDistribution value) { heightDistribution = Objects.requireNonNull(value); return this; }
+			public Builder discardChanceOnAirExposure(double value) { discardChanceOnAirExposure = value; return this; }
 			public Builder spread(int horizontal, int vertical) { spread = horizontal; verticalSpread = vertical; return this; }
 			public Builder nodeSize(int value) { nodeSize = value; return this; }
 			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
@@ -578,7 +642,10 @@ public final class WorldgenProvider {
 
 			public OreDimensionDefinition build() {
 				requireRange(minY, maxY, "ore Y range");
-				if (frequency < 0.0D || frequency > 64.0D || quantity < 1 || quantity > 64
+				if (frequency < 0.0D || frequency > 64.0D
+						|| minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64
+						|| !Double.isFinite(discardChanceOnAirExposure)
+						|| discardChanceOnAirExposure < 0.0D || discardChanceOnAirExposure > 1.0D
 						|| spread < 0 || spread > 64 || verticalSpread < 0 || verticalSpread > 64
 						|| nodeSize < 1 || nodeSize > 32) {
 					throw new IllegalStateException("Invalid ore placement values for " + dimension);
@@ -587,6 +654,238 @@ public final class WorldgenProvider {
 					throw new IllegalStateException("Enabled ore dimension has no hosts: " + dimension);
 				}
 				return new OreDimensionDefinition(this);
+			}
+		}
+	}
+
+	/** A provider-owned underground deposit made from a registered fluid block. */
+	public static final class FluidDepositDefinition implements JsonDefinition {
+		private final ResourceLocation id;
+		private final ResourceLocation block;
+		private final boolean enabled;
+		private final Map<ResourceLocation, FluidDepositDimensionDefinition> dimensions;
+
+		private FluidDepositDefinition(Builder builder) {
+			id = builder.id;
+			block = builder.block;
+			enabled = builder.enabled;
+			dimensions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.dimensions));
+		}
+
+		public static Builder builder(ResourceLocation id, ResourceLocation block) {
+			return new Builder(id, block);
+		}
+
+		public ResourceLocation id() { return id; }
+		public ResourceLocation block() { return block; }
+		public boolean enabled() { return enabled; }
+		public Map<ResourceLocation, FluidDepositDimensionDefinition> dimensions() { return dimensions; }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("block", block.toString());
+			json.addProperty("enabled", enabled);
+			json.add("dimensions", object(dimensions));
+			return json;
+		}
+
+		public static final class Builder {
+			private final ResourceLocation id;
+			private final ResourceLocation block;
+			private boolean enabled = true;
+			private final LinkedHashMap<ResourceLocation, FluidDepositDimensionDefinition> dimensions =
+					new LinkedHashMap<>();
+
+			private Builder(ResourceLocation id, ResourceLocation block) {
+				this.id = Objects.requireNonNull(id, "id");
+				this.block = Objects.requireNonNull(block, "block");
+			}
+
+			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder dimension(FluidDepositDimensionDefinition value) {
+				putUnique(dimensions, value.dimension(), value, "fluid deposit dimension");
+				return this;
+			}
+			public Builder dimension(ResourceLocation id,
+					Consumer<FluidDepositDimensionDefinition.Builder> edit) {
+				FluidDepositDimensionDefinition.Builder builder = FluidDepositDimensionDefinition.builder(id);
+				edit.accept(builder);
+				return dimension(builder.build());
+			}
+
+			public FluidDepositDefinition build() {
+				if (dimensions.isEmpty()) {
+					throw new IllegalStateException("Fluid deposit has no dimensions: " + id);
+				}
+				return new FluidDepositDefinition(this);
+			}
+		}
+	}
+
+	/** Placement and host rules for one fluid deposit in one dimension. */
+	public static final class FluidDepositDimensionDefinition implements JsonDefinition {
+		private final ResourceLocation dimension;
+		private final boolean enabled;
+		private final int minY;
+		private final int maxY;
+		private final double frequency;
+		private final int minRadius;
+		private final int maxRadius;
+		private final int minVerticalRadius;
+		private final int maxVerticalRadius;
+		private final int maxLobes;
+		private final int minSolidCover;
+		private final int minSolidShell;
+		private final Set<GeologyFamily> hostFamilies;
+		private final Set<ResourceLocation> hostBlocks;
+		private final Set<ResourceLocation> hostTags;
+		private final Set<ResourceLocation> biomeIds;
+		private final Set<ResourceLocation> excludedBiomeIds;
+		private final Set<String> biomeDictionary;
+		private final Set<String> excludedBiomeDictionary;
+		private final Map<ResourceLocation, Double> geomes;
+
+		private FluidDepositDimensionDefinition(Builder builder) {
+			dimension = builder.dimension;
+			enabled = builder.enabled;
+			minY = builder.minY;
+			maxY = builder.maxY;
+			frequency = builder.frequency;
+			minRadius = builder.minRadius;
+			maxRadius = builder.maxRadius;
+			minVerticalRadius = builder.minVerticalRadius;
+			maxVerticalRadius = builder.maxVerticalRadius;
+			maxLobes = builder.maxLobes;
+			minSolidCover = builder.minSolidCover;
+			minSolidShell = builder.minSolidShell;
+			hostFamilies = Collections.unmodifiableSet(new LinkedHashSet<>(builder.hostFamilies));
+			hostBlocks = immutableSet(builder.hostBlocks);
+			hostTags = immutableSet(builder.hostTags);
+			biomeIds = immutableSet(builder.biomeIds);
+			excludedBiomeIds = immutableSet(builder.excludedBiomeIds);
+			biomeDictionary = Collections.unmodifiableSet(new LinkedHashSet<>(builder.biomeDictionary));
+			excludedBiomeDictionary = Collections.unmodifiableSet(
+					new LinkedHashSet<>(builder.excludedBiomeDictionary));
+			geomes = immutableMap(builder.geomes);
+		}
+
+		public static Builder builder(ResourceLocation dimension) { return new Builder(dimension); }
+		public ResourceLocation dimension() { return dimension; }
+		public boolean enabled() { return enabled; }
+		public int minY() { return minY; }
+		public int maxY() { return maxY; }
+		public double attempts() { return frequency; }
+		public int minRadius() { return minRadius; }
+		public int maxRadius() { return maxRadius; }
+		public int minVerticalRadius() { return minVerticalRadius; }
+		public int maxVerticalRadius() { return maxVerticalRadius; }
+		public int maxLobes() { return maxLobes; }
+		public int minSolidCover() { return minSolidCover; }
+		public int minSolidShell() { return minSolidShell; }
+		public Set<GeologyFamily> hostFamilies() { return hostFamilies; }
+		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
+		public Set<ResourceLocation> hostTags() { return hostTags; }
+		public Set<ResourceLocation> biomeIds() { return biomeIds; }
+		public Set<ResourceLocation> excludedBiomeIds() { return excludedBiomeIds; }
+		public Set<String> biomeDictionary() { return biomeDictionary; }
+		public Set<String> excludedBiomeDictionary() { return excludedBiomeDictionary; }
+		public Map<ResourceLocation, Double> geomes() { return geomes; }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("enabled", enabled);
+			json.addProperty("min_y", minY);
+			json.addProperty("max_y", maxY);
+			json.addProperty("frequency", frequency);
+			json.addProperty("min_radius", minRadius);
+			json.addProperty("max_radius", maxRadius);
+			json.addProperty("min_vertical_radius", minVerticalRadius);
+			json.addProperty("max_vertical_radius", maxVerticalRadius);
+			json.addProperty("max_lobes", maxLobes);
+			json.addProperty("min_solid_cover", minSolidCover);
+			json.addProperty("min_solid_shell", minSolidShell);
+			JsonArray families = new JsonArray();
+			for (GeologyFamily family : hostFamilies) families.add(family.configName());
+			json.add("host_families", families);
+			json.add("host_blocks", ids(hostBlocks));
+			json.add("host_tags", ids(hostTags));
+			json.add("biome_ids", ids(biomeIds));
+			json.add("excluded_biome_ids", ids(excludedBiomeIds));
+			json.add("biome_dictionary", strings(biomeDictionary));
+			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
+			json.add("geomes", weights(geomes));
+			return json;
+		}
+
+		public static final class Builder {
+			private final ResourceLocation dimension;
+			private boolean enabled = true;
+			private int minY = -48;
+			private int maxY = 48;
+			private double frequency = 0.08D;
+			private int minRadius = 5;
+			private int maxRadius = 12;
+			private int minVerticalRadius = 2;
+			private int maxVerticalRadius = 5;
+			private int maxLobes = 4;
+			private int minSolidCover = 2;
+			private int minSolidShell = 1;
+			private final Set<GeologyFamily> hostFamilies = new LinkedHashSet<>();
+			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
+			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
+			private final Set<ResourceLocation> biomeIds = new LinkedHashSet<>();
+			private final Set<ResourceLocation> excludedBiomeIds = new LinkedHashSet<>();
+			private final Set<String> biomeDictionary = new LinkedHashSet<>();
+			private final Set<String> excludedBiomeDictionary = new LinkedHashSet<>();
+			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
+
+			private Builder(ResourceLocation dimension) {
+				this.dimension = Objects.requireNonNull(dimension, "dimension");
+			}
+
+			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder yRange(int min, int max) { minY = min; maxY = max; return this; }
+			public Builder attempts(double value) { frequency = value; return this; }
+			public Builder radius(int min, int max) { minRadius = min; maxRadius = max; return this; }
+			public Builder verticalRadius(int min, int max) {
+				minVerticalRadius = min; maxVerticalRadius = max; return this;
+			}
+			public Builder maxLobes(int value) { maxLobes = value; return this; }
+			public Builder minSolidCover(int value) { minSolidCover = value; return this; }
+			public Builder minSolidShell(int value) { minSolidShell = value; return this; }
+			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
+			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
+			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
+			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
+			public Builder excludeBiome(ResourceLocation value) { excludedBiomeIds.add(value); return this; }
+			public Builder biomeDictionary(String value) { biomeDictionary.add(nonBlank(value)); return this; }
+			public Builder excludeBiomeDictionary(String value) {
+				excludedBiomeDictionary.add(nonBlank(value)); return this;
+			}
+			public Builder geomeWeight(ResourceLocation geome, double value) {
+				if (!Double.isFinite(value) || value < 0.0D) {
+					throw new IllegalArgumentException("Geome weight must be finite and non-negative");
+				}
+				geomes.put(geome, value);
+				return this;
+			}
+
+			public FluidDepositDimensionDefinition build() {
+				requireRange(minY, maxY, "fluid deposit Y range");
+				if (!Double.isFinite(frequency) || frequency < 0.0D || frequency > 64.0D
+						|| minRadius < 1 || minRadius > maxRadius || maxRadius > 64
+						|| minVerticalRadius < 1 || minVerticalRadius > maxVerticalRadius
+						|| maxVerticalRadius > 64 || maxLobes < 1 || maxLobes > 16
+						|| minSolidCover < 0 || minSolidCover > 64
+						|| minSolidShell < 0 || minSolidShell > 64) {
+					throw new IllegalStateException("Invalid fluid deposit placement values for " + dimension);
+				}
+				if (enabled && hostFamilies.isEmpty() && hostBlocks.isEmpty() && hostTags.isEmpty()) {
+					throw new IllegalStateException("Enabled fluid deposit dimension has no hosts: " + dimension);
+				}
+				return new FluidDepositDimensionDefinition(this);
 			}
 		}
 	}
@@ -784,6 +1083,8 @@ public final class WorldgenProvider {
 		}
 	}
 
+	/** @deprecated Use {@link FluidDepositDefinition}. */
+	@Deprecated
 	public static final class OilDefinition implements JsonDefinition {
 		private final int minY;
 		private final int maxY;
@@ -915,7 +1216,21 @@ public final class WorldgenProvider {
 			public Builder requiresMod(String value) { requiredMods.add(requireModId(value)); return this; }
 			public Builder profile(JsonObject value) { profile.entrySet().clear(); value.entrySet().forEach(e -> profile.add(e.getKey(), e.getValue().deepCopy())); return this; }
 			public Builder formations(FormationDefinition value) { profile.add("formations", value.toJson()); return this; }
-			public Builder oil(OilDefinition value) { profile.add("oil", value.toJson()); profile.addProperty("place_crude_oil", true); return this; }
+			public Builder fluidDeposit(FluidDepositDefinition value) {
+				JsonObject deposits = profile.has("fluid_deposits") && profile.get("fluid_deposits").isJsonObject()
+						? profile.getAsJsonObject("fluid_deposits") : new JsonObject();
+				deposits.add(value.id().toString(), value.toJson());
+				profile.add("fluid_deposits", deposits);
+				profile.addProperty("place_fluid_deposits", true);
+				return this;
+			}
+			/** @deprecated Use {@link #fluidDeposit(FluidDepositDefinition)}. */
+			@Deprecated
+			public Builder oil(OilDefinition value) {
+				profile.add("oil", value.toJson());
+				profile.addProperty("place_crude_oil", true);
+				return this;
+			}
 			public Builder geologyMode(String value) { profile.addProperty("geology_mode", value); return this; }
 			public Builder manageVanillaOres(boolean value) { profile.addProperty("manage_vanilla_ores", value); return this; }
 			public GeologyTemplate build() {
@@ -948,6 +1263,12 @@ public final class WorldgenProvider {
 	private static JsonArray ids(Collection<ResourceLocation> values) {
 		JsonArray json = new JsonArray();
 		for (ResourceLocation value : values) { json.add(value.toString()); }
+		return json;
+	}
+
+	private static JsonArray strings(Collection<String> values) {
+		JsonArray json = new JsonArray();
+		for (String value : values) { json.add(value); }
 		return json;
 	}
 
@@ -988,6 +1309,15 @@ public final class WorldgenProvider {
 			throw new IllegalArgumentException("Invalid mod ID: " + value);
 		}
 		return value;
+	}
+
+	private static String nonBlank(String value) {
+		Objects.requireNonNull(value, "value");
+		String normalized = value.trim();
+		if (normalized.isEmpty()) {
+			throw new IllegalArgumentException("Value must not be blank");
+		}
+		return normalized;
 	}
 
 	private static void requireRange(int min, int max, String name) {

@@ -17,6 +17,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.api.CompiledOrePattern;
+import com.mcmoddev.orespawn.api.OreDimensionSelector;
 import com.mcmoddev.orespawn.api.OrePlacementContext;
 import com.mcmoddev.orespawn.init.OreSpawnPatterns;
 
@@ -62,6 +63,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	private static Holder<PlacedFeature> placedFeature;
 	private static volatile Map<ResourceKey<Level>, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceKey<Level>, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
+	private static volatile BakedOre[] selectorOres = NO_ORES;
+	private static volatile Set<Block> selectorVanillaTakeoverOutputs = Collections.emptySet();
 	private static volatile BakedGeomeConfig geomeConfig;
 	private static volatile GeomeGeology classifier;
 	private static volatile long classifierSeed = Long.MIN_VALUE;
@@ -89,6 +92,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		BakedOres baked = bakeOres(WorldGeologyProfileManager.activeProfile().rootCopy(), geomeConfig);
 		oresByDimension = baked.byDimension;
 		vanillaTakeoverOutputs = baked.vanillaOutputs;
+		selectorOres = baked.selectorOres;
+		selectorVanillaTakeoverOutputs = baked.selectorVanillaOutputs;
 		synchronized (CLASSIFIER_LOCK) {
 			classifier = null;
 			classifierSeed = Long.MIN_VALUE;
@@ -106,6 +111,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	static boolean takesOverVanillaOre(ResourceKey<Level> dimension, Block output) {
 		Set<Block> outputs = vanillaTakeoverOutputs.get(dimension);
+		if (outputs == null && selectorAllows(dimension)) outputs = selectorVanillaTakeoverOutputs;
 		return !WorldgenBenchmark.isVanillaBaseline() && outputs != null && outputs.contains(output);
 	}
 
@@ -113,7 +119,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
 		WorldGenLevel world = context.level();
 		ResourceKey<Level> dimension = world.getLevel().dimension();
-		BakedOre[] ores = oresByDimension.getOrDefault(dimension, NO_ORES);
+		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) {
 			return false;
 		}
@@ -121,7 +127,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		ChunkAccess chunk = world.getChunk(context.origin());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
-		boolean changed = generateChunk(chunk, world.getBiome(scratch.cursor), dimension,
+		boolean changed = generateChunk(world, chunk, world.getBiome(scratch.cursor), dimension,
 				world.getSeed(), context.random(), ores, false, scratch);
 		OreRetrogenManager.markGenerated(dimension, chunk.getPos());
 		return changed;
@@ -129,13 +135,13 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	static boolean retrogen(ServerLevel level, LevelChunk chunk) {
 		ResourceKey<Level> dimension = level.dimension();
-		BakedOre[] ores = oresByDimension.getOrDefault(dimension, NO_ORES);
+		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) return false;
 		long seed = mix(level.getSeed(), chunk.getPos().toLong(),
 				WorldGeologyProfileManager.activeProfile().generationRevision());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
-		return generateChunk(chunk, level.getBiome(scratch.cursor), dimension, level.getSeed(),
+		return generateChunk(null, chunk, level.getBiome(scratch.cursor), dimension, level.getSeed(),
 				new Random(seed), ores, true, scratch);
 	}
 
@@ -145,7 +151,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				Math.max(chunk.getMinBuildHeight(), 0), chunkPos.getMinBlockZ() + 8);
 	}
 
-	private static boolean generateChunk(ChunkAccess chunk, Holder<Biome> biome,
+	private static boolean generateChunk(WorldGenLevel world, ChunkAccess chunk, Holder<Biome> biome,
 			ResourceKey<Level> dimension, long worldSeed, Random random, BakedOre[] ores,
 			boolean retrogenOnly, GenerationScratch scratch) {
 		ChunkPos chunkPos = chunk.getPos();
@@ -169,7 +175,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			}
 			int attempts = attemptsForFrequency(random, frequency);
 			for (int attempt = 0; attempt < attempts; attempt++) {
-				changed |= placeAttempt(chunk, random, ore, geome, scratch);
+				changed |= placeAttempt(world, chunk, random, ore, geome, scratch);
 			}
 		}
 		if (changed) {
@@ -187,7 +193,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return value ^ (value >>> 31);
 	}
 
-	private static boolean placeAttempt(ChunkAccess chunk, Random random, BakedOre ore, int geome,
+	private static boolean placeAttempt(WorldGenLevel world, ChunkAccess chunk, Random random,
+			BakedOre ore, int geome,
 			GenerationScratch scratch) {
 		int minY = Math.max(ore.minY, chunk.getMinBuildHeight());
 		int maxY = Math.min(ore.maxY, chunk.getMaxBuildHeight() - 1);
@@ -195,105 +202,32 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			return false;
 		}
 		int x = chunk.getPos().getMinBlockX() + random.nextInt(16);
-		int y = ore.heightDistribution == OreHeightDistribution.TRIANGLE
-				? sampleTriangle(random, minY, maxY)
-				: minY + random.nextInt((maxY - minY) + 1);
+		int y = ore.heightDistribution.sample(random, minY, maxY);
 		int z = chunk.getPos().getMinBlockZ() + random.nextInt(16);
-		scratch.patternContext.initialize(chunk, random, ore, geome, x, y, z, minY, maxY);
+		int quantity = sampleQuantity(random, ore.minQuantity, ore.maxQuantity);
+		scratch.patternContext.initialize(world, chunk, random, ore, geome, x, y, z, minY, maxY,
+				quantity);
 		return ore.pattern.place(scratch.patternContext);
 	}
 
-	private static boolean placeDefaultNode(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int x, int y, int z, GenerationScratch scratch) {
-		return placeClusterNode(chunk, random, ore, geome, x, y, z, ore.quantity, scratch);
+	static int sampleQuantity(Random random, int minQuantity, int maxQuantity) {
+		return minQuantity == maxQuantity ? minQuantity
+				: minQuantity + random.nextInt(maxQuantity - minQuantity + 1);
 	}
 
-	private static boolean placeUnderFluid(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int originX, int originY, int originZ, GenerationScratch scratch) {
-		int minY = Math.max(ore.minY, chunk.getMinBuildHeight());
-		int maxY = Math.min(ore.maxY, chunk.getMaxBuildHeight() - 1);
-		for (int sample = 0; sample < 24; sample++) {
-			int x = originX + random.nextInt(5) - 2;
-			int y = Math.max(minY, Math.min(maxY, originY + random.nextInt(5) - 2));
-			int z = originZ + random.nextInt(5) - 2;
-			if (!insideChunk(chunk, x, y, z)) {
-				continue;
-			}
-			scratch.cursor.set(x, y, z);
-			if (chunk.getBlockState(scratch.cursor).getFluidState().isEmpty()) {
-				continue;
-			}
-			while (y > minY) {
-				scratch.cursor.set(x, y - 1, z);
-				if (chunk.getBlockState(scratch.cursor).getFluidState().isEmpty()) {
-					break;
-				}
-				y--;
-			}
-			return placeClusterNode(chunk, random, ore, geome, x, y - 1, z,
-					ore.quantity, scratch);
-		}
-		return false;
+	static boolean selectorAllows(ResourceKey<Level> dimension) {
+		return !Level.NETHER.equals(dimension) && !Level.END.equals(dimension);
 	}
 
-	private static boolean placeClusters(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int originX, int originY, int originZ, GenerationScratch scratch) {
-		int remaining = ore.quantity;
-		boolean changed = false;
-		while (remaining > 0) {
-			int nodeSize = Math.min(ore.nodeSize, remaining);
-			int centerX = originX + centeredTriangular(random, ore.spread);
-			int centerY = originY + centeredTriangular(random, ore.verticalSpread);
-			int centerZ = originZ + centeredTriangular(random, ore.spread);
-			changed |= placeClusterNode(chunk, random, ore, geome,
-					centerX, centerY, centerZ, nodeSize, scratch);
-			remaining -= nodeSize;
-		}
-		return changed;
+	static <T> T selectRule(Map<ResourceKey<Level>, T> explicit,
+			Set<ResourceKey<Level>> explicitDimensions, T selector, ResourceKey<Level> dimension) {
+		return explicitDimensions.contains(dimension) ? explicit.get(dimension)
+				: selectorAllows(dimension) ? selector : null;
 	}
 
-	private static boolean placeClusterNode(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int centerX, int centerY, int centerZ, int targetSize, GenerationScratch scratch) {
-		int placed = 0;
-		int orientation = random.nextInt(ClusterOffsets.ORIENTATIONS);
-		int offsetBase = orientation * ClusterOffsets.COUNT;
-		for (int candidate = 0; candidate < targetSize; candidate++) {
-			int offset = offsetBase + candidate;
-			int x = centerX + ClusterOffsets.X[offset];
-			int y = centerY + ClusterOffsets.Y[offset];
-			int z = centerZ + ClusterOffsets.Z[offset];
-			if (!insideChunk(chunk, x, y, z)) {
-				continue;
-			}
-			scratch.cursor.set(x, y, z);
-			BlockState existing = chunk.getBlockState(scratch.cursor);
-			if (ore.accepts(existing, random, geomeConfig)) {
-				chunk.setBlockState(scratch.cursor, ore.outputAt(y, random), false);
-				placed++;
-			}
-		}
-		return placed > 0;
-	}
-
-	private static boolean placeCloud(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int originX, int originY, int originZ, BlockPos.MutableBlockPos cursor) {
-		int placed = 0;
-		int attempts = ore.quantity * 4;
-		for (int attempt = 0; attempt < attempts && placed < ore.quantity; attempt++) {
-			int x = originX + centeredTriangular(random, ore.spread);
-			int y = originY + centeredTriangular(random, ore.verticalSpread);
-			int z = originZ + centeredTriangular(random, ore.spread);
-			if (!insideChunk(chunk, x, y, z)) {
-				continue;
-			}
-			cursor.set(x, y, z);
-			BlockState existing = chunk.getBlockState(cursor);
-			if (ore.accepts(existing, random, geomeConfig)) {
-				chunk.setBlockState(cursor, ore.outputAt(cursor.getY(), random), false);
-				placed++;
-			}
-		}
-		return placed > 0;
+	private static BakedOre[] oresForDimension(ResourceKey<Level> dimension) {
+		BakedOre[] exact = oresByDimension.get(dimension);
+		return exact != null ? exact : selectorAllows(dimension) ? selectorOres : NO_ORES;
 	}
 
 	private static boolean insideChunk(ChunkAccess chunk, int x, int y, int z) {
@@ -303,81 +237,14 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				&& y >= chunk.getMinBuildHeight() && y < chunk.getMaxBuildHeight();
 	}
 
-	private static int centeredTriangular(Random random, int radius) {
-		return radius <= 0 ? 0 : random.nextInt(radius + 1) - random.nextInt(radius + 1);
-	}
-
-	private static int sampleTriangle(Random random, int min, int max) {
-		int range = (max - min) + 1;
-		return min + ((random.nextInt(range) + random.nextInt(range)) / 2);
-	}
-
-	private static boolean placeVein(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-			int originX, int originY, int originZ, BlockPos.MutableBlockPos cursor) {
-		float angle = random.nextFloat() * (float) Math.PI;
-		double reach = ore.quantity / 8.0D;
-		double startX = originX + Math.sin(angle) * reach;
-		double endX = originX - Math.sin(angle) * reach;
-		double startZ = originZ + Math.cos(angle) * reach;
-		double endZ = originZ - Math.cos(angle) * reach;
-		double startY = originY + random.nextInt(3) - 1;
-		double endY = originY + random.nextInt(3) - 1;
-		boolean changed = false;
-
-		for (int step = 0; step < ore.quantity; step++) {
-			double progress = ore.quantity == 1 ? 0.5D : step / (double) (ore.quantity - 1);
-			double centerX = lerp(progress, startX, endX);
-			double centerY = lerp(progress, startY, endY);
-			double centerZ = lerp(progress, startZ, endZ);
-			double scale = random.nextDouble() * ore.quantity / 16.0D;
-			double diameter = (Math.sin(Math.PI * progress) + 1.0D) * scale + 1.0D;
-			double radius = diameter / 2.0D;
-			int minX = Math.max(chunk.getPos().getMinBlockX(), (int) Math.floor(centerX - radius));
-			int maxX = Math.min(chunk.getPos().getMaxBlockX(), (int) Math.floor(centerX + radius));
-			int minY = Math.max(chunk.getMinBuildHeight(), (int) Math.floor(centerY - radius));
-			int maxY = Math.min(chunk.getMaxBuildHeight() - 1, (int) Math.floor(centerY + radius));
-			int minZ = Math.max(chunk.getPos().getMinBlockZ(), (int) Math.floor(centerZ - radius));
-			int maxZ = Math.min(chunk.getPos().getMaxBlockZ(), (int) Math.floor(centerZ + radius));
-			double inverseRadius = radius <= 0.0D ? 1.0D : 1.0D / radius;
-
-			for (int x = minX; x <= maxX; x++) {
-				double dx = (x + 0.5D - centerX) * inverseRadius;
-				double dx2 = dx * dx;
-				if (dx2 >= 1.0D) {
-					continue;
-				}
-				for (int y = minY; y <= maxY; y++) {
-					double dy = (y + 0.5D - centerY) * inverseRadius;
-					double dxy2 = dx2 + (dy * dy);
-					if (dxy2 >= 1.0D) {
-						continue;
-					}
-					for (int z = minZ; z <= maxZ; z++) {
-						double dz = (z + 0.5D - centerZ) * inverseRadius;
-						if (dxy2 + (dz * dz) >= 1.0D) {
-							continue;
-						}
-						cursor.set(x, y, z);
-						BlockState existing = chunk.getBlockState(cursor);
-						if (ore.accepts(existing, random, geomeConfig)) {
-							chunk.setBlockState(cursor, ore.outputAt(cursor.getY(), random), false);
-							changed = true;
-						}
-					}
-				}
-			}
-		}
-		return changed;
-	}
-
 	private static BakedOres bakeOres(JsonObject profile, BakedGeomeConfig config) {
 		if (!profile.has("ores") || !profile.get("ores").isJsonObject()) {
 			return BakedOres.EMPTY;
 		}
 		boolean manageVanillaOres = bool(profile, "manage_vanilla_ores", false);
 		Map<TagKey<Block>, Set<Block>> resolvedTags = new HashMap<>();
-		Map<ResourceKey<Level>, List<BakedOre>> grouped = new LinkedHashMap<>();
-		Map<ResourceKey<Level>, Set<Block>> vanillaOutputs = new LinkedHashMap<>();
+		List<BakedOreRule> rules = new ArrayList<>();
+		Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
 		for (Entry<String, JsonElement> oreEntry : profile.getAsJsonObject("ores").entrySet()) {
 			if (!oreEntry.getValue().isJsonObject()) {
 				continue;
@@ -394,8 +261,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			}
 			ResourceLocation oreId = resource(string(oreJson, "block", oreEntry.getKey()));
 			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
-			if (output == null || output == Blocks.AIR || !oreJson.has("dimensions")
-					|| !oreJson.get("dimensions").isJsonObject()) {
+			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
+			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
+			if (output == null || output == Blocks.AIR || (dimensions.size() == 0 && selectors.size() == 0)) {
 				LOGGER.warn("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
 				continue;
 			}
@@ -407,15 +275,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			}
 			int deepOutputMaxY = integer(oreJson, "deep_output_max_y", -1);
 			BakedOutput[] outputs = bakeOutputs(oreJson, output.defaultBlockState());
+			BakedOreRule rule = new BakedOreRule(output, manageVanillaOres && suppressVanilla);
 
-			for (Entry<String, JsonElement> dimensionEntry : oreJson.getAsJsonObject("dimensions").entrySet()) {
-				if (!dimensionEntry.getValue().isJsonObject()) {
-					continue;
-				}
-				JsonObject dimension = dimensionEntry.getValue().getAsJsonObject();
-				if (!bool(dimension, "enabled", true)) {
-					continue;
-				}
+			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
 				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) {
 					LOGGER.warn("Ignoring invalid dimension '{}' for OreSpawn-managed ore '{}'",
@@ -423,34 +285,82 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 					continue;
 				}
 				ResourceKey<Level> dimensionKey = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
+				rule.explicitDimensions.add(dimensionKey);
+				explicitDimensions.add(dimensionKey);
+				if (!dimensionEntry.getValue().isJsonObject()) {
+					continue;
+				}
+				JsonObject dimension = dimensionEntry.getValue().getAsJsonObject();
+				if (!bool(dimension, "enabled", true)) {
+					continue;
+				}
 				BakedOre baked = bakeOre(output.defaultBlockState(), deepOutput, deepOutputMaxY, outputs,
 						dimension, config, resolvedTags, retrogen);
 				if (baked != null) {
-					grouped.computeIfAbsent(dimensionKey, ignored -> new ArrayList<>()).add(baked);
-					if (manageVanillaOres && suppressVanilla) {
-						vanillaOutputs.computeIfAbsent(dimensionKey,
-								ignored -> Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>()))
-								.add(output);
-					}
+					rule.explicit.put(dimensionKey, baked);
 				} else {
 					LOGGER.warn("Ignoring invalid placement rule for OreSpawn-managed ore '{}' in '{}'",
 							oreEntry.getKey(), dimensionEntry.getKey());
 				}
 			}
+			for (Entry<String, JsonElement> selectorEntry : selectors.entrySet()) {
+				ResourceLocation selectorId = resource(selectorEntry.getKey());
+				if (selectorId == null
+						|| !OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().equals(selectorId)) {
+					LOGGER.warn("Ignoring unknown dimension selector '{}' for OreSpawn-managed ore '{}'",
+							selectorEntry.getKey(), oreEntry.getKey());
+					continue;
+				}
+				if (!selectorEntry.getValue().isJsonObject()) continue;
+				JsonObject selector = selectorEntry.getValue().getAsJsonObject();
+				if (!bool(selector, "enabled", true)) continue;
+				rule.selector = bakeOre(output.defaultBlockState(), deepOutput, deepOutputMaxY, outputs,
+						selector, config, resolvedTags, retrogen);
+				if (rule.selector == null) {
+					LOGGER.warn("Ignoring invalid selector rule for OreSpawn-managed ore '{}'",
+							oreEntry.getKey());
+				}
+			}
+			rules.add(rule);
 		}
 
 		Map<ResourceKey<Level>, BakedOre[]> result = new HashMap<>();
-		for (Entry<ResourceKey<Level>, List<BakedOre>> entry : grouped.entrySet()) {
-			result.put(entry.getKey(), entry.getValue().toArray(new BakedOre[entry.getValue().size()]));
+		Map<ResourceKey<Level>, Set<Block>> vanillaOutputs = new HashMap<>();
+		for (ResourceKey<Level> dimension : explicitDimensions) {
+			List<BakedOre> combined = new ArrayList<>();
+			Set<Block> suppressed = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
+			for (BakedOreRule rule : rules) {
+				BakedOre selected = selectRule(rule.explicit, rule.explicitDimensions,
+						rule.selector, dimension);
+				if (selected != null) {
+					combined.add(selected);
+					if (rule.suppressVanilla) suppressed.add(rule.output);
+				}
+			}
+			result.put(dimension, combined.toArray(new BakedOre[combined.size()]));
+			vanillaOutputs.put(dimension, Collections.unmodifiableSet(suppressed));
 		}
+		List<BakedOre> selectorList = new ArrayList<>();
+		Set<Block> selectorOutputs = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
+		for (BakedOreRule rule : rules) {
+			if (rule.selector == null) continue;
+			selectorList.add(rule.selector);
+			if (rule.suppressVanilla) selectorOutputs.add(rule.output);
+		}
+		BakedOre[] selectorResult = selectorList.toArray(new BakedOre[selectorList.size()]);
 		LOGGER.info("Baked {} OreSpawn-managed ore definitions across {} dimensions",
-				grouped.values().stream().mapToInt(List::size).sum(), result.size());
+				rules.size(), result.size());
 		Map<ResourceKey<Level>, Set<Block>> immutableVanillaOutputs = new LinkedHashMap<>();
 		for (Entry<ResourceKey<Level>, Set<Block>> entry : vanillaOutputs.entrySet()) {
 			immutableVanillaOutputs.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
 		}
 		return new BakedOres(Collections.unmodifiableMap(result),
-				Collections.unmodifiableMap(immutableVanillaOutputs));
+				Collections.unmodifiableMap(immutableVanillaOutputs), selectorResult,
+				Collections.unmodifiableSet(selectorOutputs));
+	}
+
+	private static JsonObject objectOrEmpty(JsonObject root, String key) {
+		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key) : new JsonObject();
 	}
 
 	private static BakedOre bakeOre(BlockState output, BlockState deepOutput, int deepOutputMaxY,
@@ -460,8 +370,14 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		int minY = integer(json, "min_y", -64);
 		int maxY = integer(json, "max_y", 320);
 		double frequency = decimal(json, "frequency", 0.0D);
-		int quantity = integer(json, "quantity", 0);
-		if (minY > maxY || frequency <= 0.0D || quantity <= 0) {
+		boolean hasMinQuantity = json.has("min_quantity");
+		boolean hasMaxQuantity = json.has("max_quantity");
+		if (hasMinQuantity != hasMaxQuantity) return null;
+		int minQuantity = hasMinQuantity ? integer(json, "min_quantity", 0)
+				: integer(json, "quantity", 0);
+		int maxQuantity = hasMaxQuantity ? integer(json, "max_quantity", 0) : minQuantity;
+		if (minY > maxY || frequency <= 0.0D || minQuantity < 1
+				|| minQuantity > maxQuantity || maxQuantity > 64) {
 			return null;
 		}
 
@@ -493,6 +409,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		int spread = boundedInteger(json, "spread", 8, 0, 64);
 		int verticalSpread = boundedInteger(json, "vertical_spread", Math.max(1, spread / 2), 0, 64);
 		int nodeSize = boundedInteger(json, "node_size", 4, 1, 32);
+		double discardChanceOnAirExposure = Math.max(0.0D, Math.min(1.0D,
+				decimal(json, "discard_chance_on_air_exposure", 0.0D)));
 
 		double[] geomeWeights = new double[config.geomeCount()];
 		java.util.Arrays.fill(geomeWeights, 1.0D);
@@ -507,8 +425,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		Set<Biome> includedBiomes = resolveBiomes(json, "biome_ids", "biome_dictionary");
 		Set<Biome> excludedBiomes = resolveBiomes(json, "excluded_biome_ids", "excluded_biome_dictionary");
 		return new BakedOre(output, deepOutput, deepOutputMaxY, outputs,
-				minY, maxY, Math.min(64.0D, frequency), Math.min(64, quantity),
-				pattern, heightDistribution, spread, verticalSpread, nodeSize,
+				minY, maxY, Math.min(64.0D, frequency), minQuantity, maxQuantity,
+				pattern, heightDistribution, discardChanceOnAirExposure,
+				spread, verticalSpread, nodeSize,
 				hostBlocks, familyMask, geomeWeights, includedBiomes, excludedBiomes, retrogen);
 	}
 
@@ -624,10 +543,6 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return attempts;
 	}
 
-	private static double lerp(double value, double start, double end) {
-		return start + value * (end - start);
-	}
-
 	private static ResourceLocation resource(String value) {
 		try {
 			return new ResourceLocation(value);
@@ -689,9 +604,11 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		final int minY;
 		final int maxY;
 		final double frequency;
-		final int quantity;
+		final int minQuantity;
+		final int maxQuantity;
 		final CompiledOrePattern pattern;
 		final OreHeightDistribution heightDistribution;
+		final double discardChanceOnAirExposure;
 		final int spread;
 		final int verticalSpread;
 		final int nodeSize;
@@ -703,8 +620,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		final boolean retrogen;
 
 		BakedOre(BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
-				int minY, int maxY, double frequency, int quantity,
+				int minY, int maxY, double frequency, int minQuantity, int maxQuantity,
 				CompiledOrePattern pattern, OreHeightDistribution heightDistribution,
+				double discardChanceOnAirExposure,
 				int spread, int verticalSpread, int nodeSize,
 				Map<Block, Double> hostBlocks, int familyMask, double[] geomeWeights,
 				Set<Biome> includedBiomes, Set<Biome> excludedBiomes, boolean retrogen) {
@@ -715,9 +633,11 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			this.minY = minY;
 			this.maxY = maxY;
 			this.frequency = frequency;
-			this.quantity = quantity;
+			this.minQuantity = minQuantity;
+			this.maxQuantity = maxQuantity;
 			this.pattern = pattern;
 			this.heightDistribution = heightDistribution;
+			this.discardChanceOnAirExposure = discardChanceOnAirExposure;
 			this.spread = spread;
 			this.verticalSpread = verticalSpread;
 			this.nodeSize = nodeSize;
@@ -759,6 +679,19 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 	}
 
+	private static final class BakedOreRule {
+		final Block output;
+		final boolean suppressVanilla;
+		final Map<ResourceKey<Level>, BakedOre> explicit = new HashMap<>();
+		final Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
+		BakedOre selector;
+
+		BakedOreRule(Block output, boolean suppressVanilla) {
+			this.output = output;
+			this.suppressVanilla = suppressVanilla;
+		}
+	}
+
 	private static final class BakedOutput {
 		final BlockState state;
 		final double weight;
@@ -778,15 +711,21 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static final class BakedOres {
-		static final BakedOres EMPTY = new BakedOres(EMPTY_DIMENSIONS, Collections.emptyMap());
+		static final BakedOres EMPTY = new BakedOres(EMPTY_DIMENSIONS, Collections.emptyMap(),
+				NO_ORES, Collections.emptySet());
 
 		final Map<ResourceKey<Level>, BakedOre[]> byDimension;
 		final Map<ResourceKey<Level>, Set<Block>> vanillaOutputs;
+		final BakedOre[] selectorOres;
+		final Set<Block> selectorVanillaOutputs;
 
 		BakedOres(Map<ResourceKey<Level>, BakedOre[]> byDimension,
-				Map<ResourceKey<Level>, Set<Block>> vanillaOutputs) {
+				Map<ResourceKey<Level>, Set<Block>> vanillaOutputs, BakedOre[] selectorOres,
+				Set<Block> selectorVanillaOutputs) {
 			this.byDimension = byDimension;
 			this.vanillaOutputs = vanillaOutputs;
+			this.selectorOres = selectorOres;
+			this.selectorVanillaOutputs = selectorVanillaOutputs;
 		}
 	}
 
@@ -805,6 +744,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private static final class PatternContext implements OrePlacementContext {
 		private final BlockPos.MutableBlockPos cursor;
+		private final BlockPos.MutableBlockPos airCursor = new BlockPos.MutableBlockPos();
+		private WorldGenLevel world;
 		private ChunkAccess chunk;
 		private Random random;
 		private BakedOre ore;
@@ -814,13 +755,15 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		private int originZ;
 		private int minY;
 		private int maxY;
+		private int quantity;
 
 		PatternContext(BlockPos.MutableBlockPos cursor) {
 			this.cursor = cursor;
 		}
 
-		void initialize(ChunkAccess chunk, Random random, BakedOre ore, int geome,
-				int originX, int originY, int originZ, int minY, int maxY) {
+		void initialize(WorldGenLevel world, ChunkAccess chunk, Random random, BakedOre ore, int geome,
+				int originX, int originY, int originZ, int minY, int maxY, int quantity) {
+			this.world = world;
 			this.chunk = chunk;
 			this.random = random;
 			this.ore = ore;
@@ -830,6 +773,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			this.originZ = originZ;
 			this.minY = minY;
 			this.maxY = maxY;
+			this.quantity = quantity;
 		}
 
 		@Override public Random random() { return random; }
@@ -838,87 +782,61 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		@Override public int originZ() { return originZ; }
 		@Override public int minY() { return minY; }
 		@Override public int maxY() { return maxY; }
-		@Override public int quantity() { return ore.quantity; }
+		@Override public int quantity() { return quantity; }
 		@Override public int spread() { return ore.spread; }
 		@Override public int verticalSpread() { return ore.verticalSpread; }
 		@Override public int nodeSize() { return ore.nodeSize; }
 
 		@Override
 		public boolean inside(int x, int y, int z) {
-			return insideChunk(chunk, x, y, z) && y >= minY && y <= maxY;
+			if (y < minY || y > maxY || y < chunk.getMinBuildHeight()
+					|| y >= chunk.getMaxBuildHeight()) return false;
+			if (world == null) return insideChunk(chunk, x, y, z);
+			cursor.set(x, y, z);
+			return world.ensureCanWrite(cursor);
 		}
 
 		@Override
 		public boolean isFluid(int x, int y, int z, Fluid fluid) {
 			if (!inside(x, y, z)) return false;
 			cursor.set(x, y, z);
-			return chunk.getBlockState(cursor).getFluidState().getType() == fluid;
+			BlockState state = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
+			return state.getFluidState().getType() == fluid;
 		}
 
 		@Override
 		public boolean tryPlace(int x, int y, int z) {
 			if (!inside(x, y, z)) return false;
 			cursor.set(x, y, z);
-			BlockState existing = chunk.getBlockState(cursor);
+			BlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
 			if (!ore.accepts(existing, random, geomeConfig)) return false;
-			chunk.setBlockState(cursor, ore.outputAt(y, random), false);
+			if (ore.discardChanceOnAirExposure > 0.0D
+					&& random.nextDouble() < ore.discardChanceOnAirExposure
+					&& isAdjacentToAir(x, y, z)) {
+				return false;
+			}
+			BlockState output = ore.outputAt(y, random);
+			if (world == null) chunk.setBlockState(cursor, output, false);
+			else world.setBlock(cursor, output, 2);
 			return true;
 		}
-	}
 
-	private static final class ClusterOffsets {
-		static final int COUNT = 32;
-		static final int ORIENTATIONS = 48;
-		static final byte[] X = new byte[COUNT * ORIENTATIONS];
-		static final byte[] Y = new byte[COUNT * ORIENTATIONS];
-		static final byte[] Z = new byte[COUNT * ORIENTATIONS];
-
-		private static final byte[] BASE_X = {
-				0, 1, -1, 0, 0, 0, 0,
-				1, 1, -1, -1, 1, 1, -1, -1, 0, 0, 0, 0,
-				1, 1, 1, 1, -1, -1, -1, -1,
-				2, -2, 0, 0, 0
-		};
-		private static final byte[] BASE_Y = {
-				0, 0, 0, 1, -1, 0, 0,
-				1, -1, 1, -1, 0, 0, 0, 0, 1, 1, -1, -1,
-				1, 1, -1, -1, 1, 1, -1, -1,
-				0, 0, 2, -2, 0
-		};
-		private static final byte[] BASE_Z = {
-				0, 0, 0, 0, 0, 1, -1,
-				0, 0, 0, 0, 1, -1, 1, -1, 1, -1, 1, -1,
-				1, -1, 1, -1, 1, -1, 1, -1,
-				0, 0, 0, 0, 2
-		};
-
-		static {
-			for (int orientation = 0; orientation < ORIENTATIONS; orientation++) {
-				int permutation = orientation % 6;
-				int signs = orientation / 6;
-				for (int i = 0; i < COUNT; i++) {
-					int a = BASE_X[i];
-					int b = BASE_Y[i];
-					int c = BASE_Z[i];
-					int x;
-					int y;
-					int z;
-					switch (permutation) {
-						case 1: x = a; y = c; z = b; break;
-						case 2: x = b; y = a; z = c; break;
-						case 3: x = b; y = c; z = a; break;
-						case 4: x = c; y = a; z = b; break;
-						case 5: x = c; y = b; z = a; break;
-						default: x = a; y = b; z = c; break;
-					}
-					int index = orientation * COUNT + i;
-					X[index] = (byte) ((signs & 1) == 0 ? x : -x);
-					Y[index] = (byte) ((signs & 2) == 0 ? y : -y);
-					Z[index] = (byte) ((signs & 4) == 0 ? z : -z);
-				}
-			}
+		private boolean isAdjacentToAir(int x, int y, int z) {
+			return isAir(x + 1, y, z) || isAir(x - 1, y, z)
+					|| isAir(x, y + 1, z) || isAir(x, y - 1, z)
+					|| isAir(x, y, z + 1) || isAir(x, y, z - 1);
 		}
 
-		private ClusterOffsets() { }
+		private boolean isAir(int x, int y, int z) {
+			if (y < chunk.getMinBuildHeight() || y >= chunk.getMaxBuildHeight()) {
+				return false;
+			}
+			if (world == null && !insideChunk(chunk, x, y, z)) {
+				return false;
+			}
+			airCursor.set(x, y, z);
+			return (world == null ? chunk.getBlockState(airCursor) : world.getBlockState(airCursor)).isAir();
+		}
 	}
+
 }

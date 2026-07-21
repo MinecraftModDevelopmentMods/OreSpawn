@@ -29,27 +29,53 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 OreSpawnApi.enqueue(provider);
 ```
 
+For a complete ore-only Java example, including dimensions, height curves,
+patterns, and host tags, see `DEVELOPER_GUIDE.md`.
+
 Definitions are immutable after `build()`. Registry references remain
 `ResourceLocation` values until OreSpawn validates and bakes them. Provider
 messages are processed through Forge IMC and frozen at load completion; direct
 cross-mod mutation during parallel setup is unsupported.
 
-The builder emits provider schema 2. Legacy provider schema 1 is intentionally
-limited to ore-only JSON files.
+Ore dimensions use `quantity(int)` for fixed budgets or
+`quantityRange(min, max)` for inclusive random budgets. The compatibility
+`quantity()` getter returns the rounded-up midpoint of a range; new code should
+read `minQuantity()` and `maxQuantity()`. Add OS3-style ordinary-dimension
+coverage with `OreDefinition.Builder.dimensionSelector(...)` and
+`OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
+override that selector and prevent duplicate placement.
 
-Formation and oil settings use the same declarative style when building a
-template:
+The builder emits provider schema 3. Legacy provider schemas 1 and 2 remain
+readable, but cannot declare fluid deposits.
+
+Provider-owned fluid deposits are declarative and may target several dimensions:
 
 ```java
 FormationDefinition formations = FormationDefinition.builder()
     .horizontalSize(FormationPreset.HUGE)
     .waviness(FormationPreset.LARGE)
     .build();
-OilDefinition oil = OilDefinition.builder()
-    .yRange(-48, 32)
-    .minSolidCover(2)
+FluidDepositDefinition brine = FluidDepositDefinition.builder(
+        new ResourceLocation("examplemod", "fluid_deposit/brine"),
+        new ResourceLocation("examplemod", "brine"))
+    .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
+        .yRange(-48, 32)
+        .attempts(0.05)
+        .radius(4, 10)
+        .verticalRadius(2, 4)
+        .maxLobes(3)
+        .minSolidCover(2)
+        .minSolidShell(1)
+        .hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables")))
+    .build();
+
+WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+    .fluidDeposit(brine)
     .build();
 ```
+
+`OilDefinition` and template `.oil(...)` remain deprecated migration adapters
+for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
 Query the active profile and sample exact production geology on the server:
 

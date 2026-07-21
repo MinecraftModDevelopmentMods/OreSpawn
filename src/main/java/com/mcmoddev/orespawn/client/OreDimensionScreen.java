@@ -9,6 +9,7 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.api.OreDimensionSelector;
 import com.mcmoddev.orespawn.worldgen.OreHeightDistribution;
 import com.mcmoddev.orespawn.worldgen.OrePattern;
 import com.mcmoddev.orespawn.worldgen.RockFamily;
@@ -33,13 +34,16 @@ final class OreDimensionScreen extends Screen {
 	private final GeologyEditorSession session;
 	private final String oreId;
 	private final String dimensionId;
+	private final boolean dimensionSelector;
 	private final double baselineFrequency;
 	private final EnumSet<RockFamily> families = EnumSet.noneOf(RockFamily.class);
 	private boolean enabled;
 	private EditBox minY;
 	private EditBox maxY;
 	private EditBox frequency;
-	private EditBox quantity;
+	private EditBox minQuantity;
+	private EditBox maxQuantity;
+	private EditBox discardAirExposure;
 	private CycleButton<OreRichnessPreset> richness;
 	private EditBox spread;
 	private EditBox verticalSpread;
@@ -58,6 +62,9 @@ final class OreDimensionScreen extends Screen {
 	private final List<AbstractWidget> placementWidgets = new ArrayList<>();
 	private final List<AbstractWidget> patternWidgets = new ArrayList<>();
 	private final List<AbstractWidget> hostWidgets = new ArrayList<>();
+	private int contentLeft;
+	private int contentWidth = 310;
+	private int columnWidth = 150;
 
 	OreDimensionScreen(Screen parent, GeologyEditorSession session, String oreId, String dimensionId) {
 		super(new TranslatableComponent("screen.orespawn.ore_dimension"));
@@ -65,6 +72,8 @@ final class OreDimensionScreen extends Screen {
 		this.session = session;
 		this.oreId = oreId;
 		this.dimensionId = dimensionId;
+		this.dimensionSelector = OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString()
+				.equals(dimensionId);
 		this.baselineFrequency = session.oreFrequencyBaseline(oreId, dimensionId);
 		load();
 	}
@@ -106,36 +115,48 @@ final class OreDimensionScreen extends Screen {
 	@Override
 	protected void init() {
 		JsonObject rule = rule();
-		int left = width / 2 - 155;
-		int right = width / 2 + 5;
+		contentWidth = Math.min(390, Math.max(310, width - 24));
+		columnWidth = (contentWidth - 5) / 2;
+		contentLeft = (width - contentWidth) / 2;
+		int left = contentLeft;
+		int right = left + columnWidth + 5;
 		pageButtons.clear();
 		placementWidgets.clear();
 		patternWidgets.clear();
 		hostWidgets.clear();
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 32, 310, 20,
+		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 32, contentWidth, 20,
 				new TranslatableComponent("option.orespawn.enabled"), (button, value) -> enabled = value));
-		pageButtons.add(addRenderableWidget(new Button(left, 56, 100, 20,
+		int tabWidth = (contentWidth - 10) / 3;
+		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 56, tabWidth, 20,
 				new TranslatableComponent("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
-		pageButtons.add(addRenderableWidget(new Button(left + 105, 56, 100, 20,
+		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				left + tabWidth + 5, 56, tabWidth, 20,
 				new TranslatableComponent("tab.orespawn.pattern"), button -> showPage(Page.PATTERN))));
-		pageButtons.add(addRenderableWidget(new Button(left + 210, 56, 100, 20,
+		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				left + ((tabWidth + 5) * 2), 56, contentWidth - ((tabWidth + 5) * 2), 20,
 				new TranslatableComponent("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
 		double currentFrequency = GeologyEditorSession.decimal(rule, "frequency", baselineFrequency);
 		richness = addRenderableWidget(CycleButton.builder(this::richnessName)
 				.withValues(Arrays.asList(OreRichnessPreset.values()))
 				.withInitialValue(OreRichnessPreset.fromFrequency(baselineFrequency, currentFrequency))
 				.withTooltip(value -> tooltip("tooltip.orespawn.ore_richness"))
-				.create(left, 80, 310, 20, new TranslatableComponent("option.orespawn.ore_richness"),
+				.create(left, 80, contentWidth, 20, new TranslatableComponent("option.orespawn.ore_richness"),
 						(button, value) -> applyRichness(value)));
 		placementWidgets.add(richness);
 		minY = addPlacementField(right, 104, "min_y", text(rule, "min_y", -64));
 		maxY = addPlacementField(right, 128, "max_y", text(rule, "max_y", 64));
 		frequency = addPlacementField(right, 152, "frequency", text(rule, "frequency", 1.0D));
-		quantity = addPlacementField(right, 176, "quantity", text(rule, "quantity", 8));
+		int fixedQuantity = GeologyEditorSession.integer(rule, "quantity", 8);
+		minQuantity = addPlacementField(right, 176, "min_quantity",
+				text(rule, "min_quantity", fixedQuantity));
+		maxQuantity = addPlacementField(right, 200, "max_quantity",
+				text(rule, "max_quantity", fixedQuantity));
+		discardAirExposure = addPlacementField(right, 224, "discard_air_exposure",
+				text(rule, "discard_chance_on_air_exposure", 0.0D));
 
 		AbstractWidget patternButton;
 		if (externalPattern) {
-			Button external = new Button(left, 80, 310, 20,
+			Button external = OreSpawnScreenLayout.button(this, font, left, 80, contentWidth, 20,
 					new TextComponent("Pattern: " + externalPatternId), button -> { });
 			external.active = false;
 			patternButton = addRenderableWidget(external);
@@ -143,7 +164,7 @@ final class OreDimensionScreen extends Screen {
 			patternButton = addRenderableWidget(CycleButton.builder(this::patternName)
 					.withValues(Arrays.asList(OrePattern.values()))
 					.withInitialValue(pattern)
-					.create(left, 80, 310, 20, new TranslatableComponent("option.orespawn.pattern"),
+					.create(left, 80, contentWidth, 20, new TranslatableComponent("option.orespawn.pattern"),
 							(button, value) -> {
 								pattern = value;
 								updatePatternControls();
@@ -153,7 +174,7 @@ final class OreDimensionScreen extends Screen {
 		patternWidgets.add(addRenderableWidget(CycleButton.builder(this::distributionName)
 				.withValues(Arrays.asList(OreHeightDistribution.values()))
 				.withInitialValue(heightDistribution)
-				.create(left, 104, 310, 20,
+				.create(left, 104, contentWidth, 20,
 						new TranslatableComponent("option.orespawn.height_distribution"),
 						(button, value) -> heightDistribution = value)));
 		spread = addPatternField(right, 128, "spread", text(rule, "spread", 8));
@@ -164,11 +185,13 @@ final class OreDimensionScreen extends Screen {
 		originalHostTagsText = join(rule.get("host_tags"), "tag");
 		hostBlocks = addHostField(left, 88, "host_blocks", originalHostBlocksText);
 		hostTags = addHostField(left, 120, "host_tags", originalHostTagsText);
-		Button weights = addRenderableWidget(new Button(left, 144, 150, 20,
+		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				left, 144, columnWidth, 20,
 				new TranslatableComponent("button.orespawn.geome_weights"), button -> openWeights()));
-		weights.active = "minecraft:overworld".equals(dimensionId);
+		weights.active = "minecraft:overworld".equals(dimensionId) || dimensionSelector;
 		hostWidgets.add(weights);
-		hostWidgets.add(addRenderableWidget(new Button(right, 144, 150, 20,
+		hostWidgets.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				right, 144, columnWidth, 20,
 				new TranslatableComponent("button.orespawn.remove_dimension"), button -> removeDimension())));
 
 		RockFamily[] values = RockFamily.values();
@@ -176,7 +199,7 @@ final class OreDimensionScreen extends Screen {
 			RockFamily family = values[i];
 			int x = (i & 1) == 0 ? left : right;
 			int y = 168 + ((i / 2) * 22);
-			hostWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(families.contains(family)).create(x, y, 150, 20,
+			hostWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(families.contains(family)).create(x, y, columnWidth, 20,
 					new TranslatableComponent("value.orespawn.family." + family.configName),
 					(button, selected) -> {
 						if (selected) families.add(family); else families.remove(family);
@@ -184,16 +207,18 @@ final class OreDimensionScreen extends Screen {
 		}
 
 		int bottom = height - 28;
-		addRenderableWidget(new Button(left, bottom, 150, 20, CommonComponents.GUI_DONE,
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				left, bottom, columnWidth, 20, CommonComponents.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(right, bottom, 150, 20, CommonComponents.GUI_CANCEL,
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				right, bottom, columnWidth, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
 		showPage(page);
 		updatePatternControls();
 	}
 
 	private EditBox addPlacementField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, 150, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
 		box.setValue(value);
 		box.setMaxLength(32);
 		placementWidgets.add(addRenderableWidget(box));
@@ -201,7 +226,7 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private EditBox addHostField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, 310, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, contentWidth, 20, new TextComponent(key));
 		box.setValue(value);
 		box.setMaxLength(1024);
 		hostWidgets.add(addRenderableWidget(box));
@@ -209,7 +234,7 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private EditBox addPatternField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, 150, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
 		box.setValue(value);
 		box.setMaxLength(32);
 		patternWidgets.add(addRenderableWidget(box));
@@ -259,11 +284,13 @@ final class OreDimensionScreen extends Screen {
 			int parsedMin = integer(minY, -2048, 2048);
 			int parsedMax = integer(maxY, -2048, 2048);
 			double parsedFrequency = number(frequency, 0.0D, 64.0D);
-			int parsedQuantity = integer(quantity, 1, 64);
+			int parsedMinQuantity = integer(minQuantity, 1, 64);
+			int parsedMaxQuantity = integer(maxQuantity, 1, 64);
+			double parsedDiscardAirExposure = number(discardAirExposure, 0.0D, 1.0D);
 			int parsedSpread = integer(spread, 0, 64);
 			int parsedVerticalSpread = integer(verticalSpread, 0, 64);
 			int parsedNodeSize = integer(nodeSize, 1, 32);
-			if (parsedMin > parsedMax) throw new NumberFormatException();
+			if (parsedMin > parsedMax || parsedMinQuantity > parsedMaxQuantity) throw new NumberFormatException();
 			JsonArray blocks = ids(hostBlocks.getValue());
 			JsonArray tags = ids(hostTags.getValue());
 			if (enabled && families.isEmpty() && blocks.size() == 0 && tags.size() == 0) {
@@ -275,7 +302,16 @@ final class OreDimensionScreen extends Screen {
 			rule.addProperty("min_y", parsedMin);
 			rule.addProperty("max_y", parsedMax);
 			rule.addProperty("frequency", parsedFrequency);
-			rule.addProperty("quantity", parsedQuantity);
+			if (parsedMinQuantity == parsedMaxQuantity) {
+				rule.addProperty("quantity", parsedMinQuantity);
+				rule.remove("min_quantity");
+				rule.remove("max_quantity");
+			} else {
+				rule.remove("quantity");
+				rule.addProperty("min_quantity", parsedMinQuantity);
+				rule.addProperty("max_quantity", parsedMaxQuantity);
+			}
+			rule.addProperty("discard_chance_on_air_exposure", parsedDiscardAirExposure);
 			if (!externalPattern) rule.addProperty("pattern", pattern.configName);
 			rule.addProperty("height_distribution", heightDistribution.configName);
 			if (!externalPattern) {
@@ -300,16 +336,20 @@ final class OreDimensionScreen extends Screen {
 
 	private void removeDimension() {
 		JsonObject ore = session.ore(oreId);
-		ore.getAsJsonObject("dimensions").remove(dimensionId);
+		String section = dimensionSelector ? "dimension_selectors" : "dimensions";
+		if (ore.has(section) && ore.get(section).isJsonObject()) {
+			ore.getAsJsonObject(section).remove(dimensionId);
+		}
 		minecraft.setScreen(parent);
 	}
 
 	private JsonObject rule() {
 		JsonObject ore = session.ore(oreId);
-		if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()) {
-			ore.add("dimensions", new JsonObject());
+		String section = dimensionSelector ? "dimension_selectors" : "dimensions";
+		if (!ore.has(section) || !ore.get(section).isJsonObject()) {
+			ore.add(section, new JsonObject());
 		}
-		JsonObject dimensions = ore.getAsJsonObject("dimensions");
+		JsonObject dimensions = ore.getAsJsonObject(section);
 		if (!dimensions.has(dimensionId) || !dimensions.get(dimensionId).isJsonObject()) {
 			dimensions.add(dimensionId, GeologyEditorSession.defaultOreDimension());
 		}
@@ -367,20 +407,29 @@ final class OreDimensionScreen extends Screen {
 	@Override
 	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 6, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(oreId + " / " + dimensionId),
-				width / 2, 19, 0xDDDDDD);
+		drawCenteredString(poseStack, font, title, width / 2, 2, 0xFFFFFF);
+		Component blockName = new TextComponent(
+				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
+		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
+				width / 2, 13, 0xDDDDDD);
+		Component dimensionName = dimensionSelector
+				? new TranslatableComponent("value.orespawn.dimension.all_except_nether_end")
+				: new TextComponent(dimensionId);
+		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
+				width / 2, 23, 0xAAAAAA);
 		if (page == Page.PLACEMENT) {
-			String[] labels = { "min_y", "max_y", "frequency", "quantity" };
+			String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
+					"discard_air_exposure" };
 			for (int i = 0; i < labels.length; i++) {
-				drawString(poseStack, font, new TranslatableComponent("option.orespawn." + labels[i]),
-						width / 2 - 155, 110 + (i * 24), 0xDDDDDD);
+				Component label = new TranslatableComponent("option.orespawn." + labels[i]);
+				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
+						contentLeft, 110 + (i * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.PATTERN && !externalPattern) {
 			String[] labels = { "spread", "vertical_spread", "node_size" };
 			for (int i = 0; i < labels.length; i++) {
 				drawString(poseStack, font, new TranslatableComponent("option.orespawn." + labels[i]),
-						width / 2 - 155, 134 + (i * 24), 0xDDDDDD);
+						contentLeft, 134 + (i * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.PATTERN) {
 			drawCenteredString(poseStack, font,
@@ -388,9 +437,9 @@ final class OreDimensionScreen extends Screen {
 					width / 2, 132, 0xAAAAAA);
 		} else {
 			drawString(poseStack, font, new TranslatableComponent("option.orespawn.host_blocks"),
-					width / 2 - 155, 78, 0xDDDDDD);
+					contentLeft, 78, 0xDDDDDD);
 			drawString(poseStack, font, new TranslatableComponent("option.orespawn.host_tags"),
-					width / 2 - 155, 110, 0xDDDDDD);
+					contentLeft, 110, 0xDDDDDD);
 		}
 		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 40, 0xFF5555);
 		super.render(poseStack, mouseX, mouseY, partialTick);

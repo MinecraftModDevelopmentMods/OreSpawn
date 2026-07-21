@@ -22,15 +22,20 @@ final class AdvancedGeologySettingsScreen extends Screen {
 	protected void init() {
 		int left = width / 2 - 155;
 		int top = 54;
-		addRenderableWidget(new Button(left, top, 310, 20,
-				new TranslatableComponent("button.orespawn.formation_details"),
-				button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS)));
-		addRenderableWidget(new Button(left, top + 28, 310, 20,
-				new TranslatableComponent("button.orespawn.oil_details"),
-				button -> openNumeric("oil", NumericConfigScreen.OIL_FIELDS)));
-		addRenderableWidget(new Button(left, top + 56, 310, 20,
-				new TranslatableComponent("button.orespawn.cyano_details"),
-				button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS)));
+		int row = 0;
+		if (session.hasTerrainRules()) {
+			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
+					new TranslatableComponent("button.orespawn.formation_details"),
+					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS)));
+			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
+					new TranslatableComponent("button.orespawn.cyano_details"),
+					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS)));
+		}
+		if (!session.fluidDepositIds().isEmpty()) {
+			addRenderableWidget(new Button(left, top + (row * 28), 310, 20,
+					new TranslatableComponent("button.orespawn.fluid_deposit_details"),
+					button -> minecraft.setScreen(new FluidDepositListScreen(this, session))));
+		}
 		addRenderableWidget(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}

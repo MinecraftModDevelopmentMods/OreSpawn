@@ -14,6 +14,12 @@ Rock entries may include a `dimensions` array. For backward compatibility, an
 entry without this field belongs only to `minecraft:overworld`. A custom
 dimension is disabled during baking if no valid eligible rocks resolve.
 
+Ore rules may instead use the built-in
+`dimension_selectors.orespawn:all_except_nether_end` policy. It covers the
+Overworld and ordinary custom dimensions, but never the vanilla Nether or End.
+An explicit ore rule for a dimension takes precedence over the selector, even
+when the explicit rule is disabled.
+
 Example:
 
 ```json

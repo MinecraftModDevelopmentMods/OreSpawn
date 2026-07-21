@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import com.google.gson.JsonElement;
@@ -22,6 +23,14 @@ class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
 	private static final Set<String> REQUIRED_LOCALES = new HashSet<>(Arrays.asList(
 			"pt_br.json", "ru_ru.json", "ko_kr.json", "ja_jp.json"));
+	private static final String[] MOJIBAKE_MARKERS = {
+			"\u00c3", "\u00c2", "\u00e2\u20ac", "\u00d0", "\u00d1",
+			"\u00e3\u0192", "\u00ea\u00b4", "\u00ec\u201a", "\u00e7\u0178"
+	};
+	private static final String[] OLD_BRAND_MARKERS = {
+			"mineralog", "min\u00e9ralog", "\u043c\u0438\u043d\u0435\u0440\u0430\u043b\u043e\u0433",
+			"\uad11\ubb3c\ud559", "\u9271\u7269\u5b66", "\u77ff\u7269\u5b66", "\u7926\u7269\u5b78"
+	};
 
 	@Test
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
@@ -46,6 +55,14 @@ class LocalizationParityTest {
 					assertEquals(formatArgumentCount(english.get(key).getAsString()),
 							formatArgumentCount(translated.getAsString()),
 							locale + " changes the format arguments for " + key);
+					String value = translated.getAsString();
+					for (String marker : MOJIBAKE_MARKERS) {
+						assertFalse(value.contains(marker), locale + " contains broken UTF-8 text for " + key);
+					}
+					String lower = value.toLowerCase(Locale.ROOT);
+					for (String marker : OLD_BRAND_MARKERS) {
+						assertFalse(lower.contains(marker), locale + " still names Mineralogy for " + key);
+					}
 				}
 			}
 		}

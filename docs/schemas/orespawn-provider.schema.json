@@ -4,11 +4,12 @@
   "type": "object",
   "required": ["schema_version", "provider_modid", "provider_revision"],
   "properties": {
-    "schema_version": { "enum": [1, 2] },
+    "schema_version": { "enum": [1, 2, 3] },
     "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "provider_revision": { "type": "integer", "minimum": 1 },
     "rocks": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rock" } },
     "ores": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/ore" } },
+    "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/fluidDeposit" } },
     "geomes": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/geome" } },
     "biome_rules": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/weights" } },
     "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/terrainDimension" } },
@@ -38,11 +39,16 @@
           "geomes": false,
           "biome_rules": false,
           "terrain_dimensions": false,
+          "fluid_deposits": false,
           "templates": false,
           "profile_defaults": false
         }
       }
-    }
+    },
+	{
+	  "if": { "properties": { "schema_version": { "enum": [1, 2] } } },
+	  "then": { "properties": { "fluid_deposits": false } }
+	}
   ],
   "anyOf": [
     { "required": ["rocks"], "properties": { "rocks": { "minProperties": 1 } } },
@@ -50,6 +56,7 @@
     { "required": ["geomes"], "properties": { "geomes": { "minProperties": 1 } } },
     { "required": ["biome_rules"], "properties": { "biome_rules": { "minProperties": 1 } } },
     { "required": ["terrain_dimensions"], "properties": { "terrain_dimensions": { "minProperties": 1 } } },
+    { "required": ["fluid_deposits"], "properties": { "fluid_deposits": { "minProperties": 1 } } },
     { "required": ["templates"], "properties": { "templates": { "minProperties": 1 } } }
   ],
   "additionalProperties": false

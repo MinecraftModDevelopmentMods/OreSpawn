@@ -15,15 +15,51 @@ legacy OreSpawn `version: "2.0"` spawn files. It converts:
 - biome ID and biome-dictionary include/exclude rules;
 - frequency, size, height, spread, node, fluid, and retrogen settings.
 
+The OS3 default generator is migrated precisely: `size - variation` through
+`size + variation - 1` becomes an inclusive `min_quantity`/`max_quantity`
+range, while `variation: 0` remains a fixed `quantity`. Old `maxHeight` was
+exclusive, so it becomes modern inclusive `max_y: maxHeight - 1`; a missing
+maximum uses the old default 256 and becomes 255. Empty legacy dimension lists
+become `orespawn:all_except_nether_end`, preserving their meaning of every
+ordinary dimension while excluding the vanilla Nether and End. Quantities are
+clamped to the supported 1-64 budget with a migration-report warning, and empty
+height ranges are skipped and reported. Variation for other legacy pattern
+types retains the documented approximation used by the existing importer.
+
 Compatible flags are also read from `config/orespawn.cfg`: vanilla/all ore
 replacement, retrogen, forced retrogen, flat bedrock, and bedrock thickness.
 Unknown numeric dimensions and obsolete block states are reported instead of
 guessed. Review `config/orespawn-migration/migration-report.txt` after import.
 
-Global schemas 1-3 and world schemas 1-2 are upgraded in memory and persisted
+Global schemas 1-4 and world schemas 1-3 are upgraded in memory and persisted
 where safe. A schema-1 world held only mode/oil/formation choices and is
 overlaid on the effective installed-pack profile. A schema-2 world is already
 a full snapshot and preserves its geology. Existing terrain is not rewritten.
 
+The old `place_crude_oil` and singleton `oil` fields migrate to
+`place_fluid_deposits` and a provider-owned rule. A valid block becomes
+`<namespace>:fluid_deposit/<path>`; `minecraft:air` creates no rule. Mineralogy
+profiles converge on `mineralogy:fluid_deposit/crude_oil` without duplicates.
+One-time backups are written before persisted global or world migration.
+
 Unqualified built-in geome names remain accepted and normalize to
 `orespawn:<name>` internally.
+
+Managed vanilla-ore default revisions update only rules that still exactly
+match an older OreSpawn default signature. Changed frequencies, ranges,
+quantities, or patterns are treated as pack/player choices and are never
+rewritten.
+
+World profiles are backed up beside the active file before an ore-default
+revision is written. Revision 8 also folds the temporary Mineralogy-owned
+vanilla ore IDs from the 1.18 extraction experiment into OreSpawn's canonical
+IDs, preserving edited rules and removing duplicate placement.
+
+Revision 9 updates untouched redstone and diamond defaults with deep-biased
+height sampling and air-exposure discard. This aligns both their underground
+totals and cave-facing rarity with Minecraft 1.18. Customized distributions,
+frequencies, or discard values remain unchanged.
+
+Revision 10 trims the untouched managed-emerald frequency from `0.40` to
+`0.33` after a fixed-seed 529-chunk comparison. Hand-edited emerald rules are
+preserved.

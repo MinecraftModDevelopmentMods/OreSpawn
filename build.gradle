@@ -111,6 +111,16 @@ minecraft {
                         providers.gradleProperty('orespawnBenchmarkRepetitions').getOrElse('3')
                 property 'orespawn.worldgenBenchmarkVanillaOres',
                         providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkOreAudit',
+                        providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkCenterX',
+                        providers.gradleProperty('orespawnBenchmarkCenterX').getOrElse('256')
+                property 'orespawn.worldgenBenchmarkCenterZ',
+                        providers.gradleProperty('orespawnBenchmarkCenterZ').getOrElse('256')
+                property 'orespawn.worldgenBenchmarkCenterStep',
+                        providers.gradleProperty('orespawnBenchmarkCenterStep').getOrElse('64')
+                property 'orespawn.worldgenBenchmarkDimension',
+                        providers.gradleProperty('orespawnBenchmarkDimension').getOrElse('overworld')
             }
         }
 
@@ -178,6 +188,11 @@ tasks.named('jar', Jar).configure {
         ])
     }
 
+    // This is the preferred method to reobfuscate your jar file
+    finalizedBy 'reobfJar'
+}
+
+tasks.named('processResources', ProcessResources).configure {
     from('docs/AGENTS.md') {
         into ''
         rename { 'AGENTS.md' }
@@ -185,9 +200,6 @@ tasks.named('jar', Jar).configure {
     from('docs') {
         into 'META-INF/orespawn/docs'
     }
-
-    // This is the preferred method to reobfuscate your jar file
-    finalizedBy 'reobfJar'
 }
 
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:

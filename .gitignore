@@ -6,6 +6,7 @@ bin
 .metadata
 .classpath
 .project
+/.eclipse/
 
 # idea
 out
@@ -21,12 +22,14 @@ build
 # other
 eclipse
 run
+/run-data/
 /run.*
 /*.log
 classes
 logs
+/mcmodsrepo/
 
-# local agent context
+# machine-specific agent context (public integration notes live under /docs)
 /AGENTS.md
 /agent-notes/
 /.codex/

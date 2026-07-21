@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mcmoddev.com/orespawn/schemas/profile-common.schema.json",
   "type": "object",
-  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "ores", "oil"],
+  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "ores", "fluid_deposits"],
   "properties": {
     "geology_mode": { "enum": ["geome", "legacy"] },
-    "place_crude_oil": { "type": "boolean" },
+    "place_fluid_deposits": { "type": "boolean" },
     "manage_vanilla_ores": { "type": "boolean" },
     "suppress_all_ore_features": { "type": "boolean" },
     "default_template": { "$ref": "#/$defs/optionalRegistryId" },
@@ -17,7 +17,7 @@
     "biome_dictionary": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
     "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "#/$defs/terrainDimension" } },
     "ores": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ore" } },
-    "oil": { "$ref": "#/$defs/oil" },
+    "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fluidDeposit" } },
     "worldgen_aliases": { "type": "object", "additionalProperties": { "$ref": "#/$defs/registryId" } },
     "providers": { "type": "object" },
     "ore_providers": { "type": "object" }
@@ -115,13 +115,15 @@
     },
     "oreDimension": {
       "type": "object",
-      "required": ["enabled", "min_y", "max_y", "frequency", "quantity"],
+      "required": ["enabled", "min_y", "max_y", "frequency"],
       "properties": {
         "enabled": { "type": "boolean" },
         "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
         "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
         "frequency": { "type": "number", "minimum": 0, "maximum": 64 },
         "quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "min_quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "max_quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
         "pattern": { "anyOf": [
           { "enum": ["default", "vein", "normal_cloud", "precision", "clusters", "underfluids", "cluster", "cloud"] },
           {
@@ -133,7 +135,14 @@
             }
           }
         ] },
-        "height_distribution": { "enum": ["uniform", "triangle"] },
+        "height_distribution": {
+          "enum": ["uniform", "triangle", "bottom_triangle", "uniform_bottom_triangle"]
+        },
+        "discard_chance_on_air_exposure": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
         "spread": { "type": "integer", "minimum": 0, "maximum": 64 },
         "vertical_spread": { "type": "integer", "minimum": 0, "maximum": 64 },
         "node_size": { "type": "integer", "minimum": 1, "maximum": 32 },
@@ -148,16 +157,26 @@
         "biome_dictionary": { "type": "array", "items": { "type": "string" } },
         "excluded_biome_dictionary": { "type": "array", "items": { "type": "string" } }
       },
-      "anyOf": [
-        { "required": ["host_families"] },
-        { "required": ["host_blocks"] },
-        { "required": ["host_tags"] }
+      "allOf": [
+        { "anyOf": [
+          { "required": ["quantity"] },
+          { "required": ["min_quantity", "max_quantity"] }
+        ] },
+        { "anyOf": [
+          { "required": ["host_families"] },
+          { "required": ["host_blocks"] },
+          { "required": ["host_tags"] }
+        ] }
       ],
+      "dependentRequired": {
+        "min_quantity": ["max_quantity"],
+        "max_quantity": ["min_quantity"]
+      },
       "additionalProperties": true
     },
     "ore": {
       "type": "object",
-      "required": ["enabled", "dimensions"],
+      "required": ["enabled"],
       "properties": {
         "block": { "$ref": "#/$defs/registryId" },
         "enabled": { "type": "boolean" },
@@ -180,22 +199,59 @@
         },
         "deep_output": { "$ref": "#/$defs/registryId" },
         "deep_output_max_y": { "type": "integer" },
-        "dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/oreDimension" } }
+        "dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/oreDimension" } },
+        "dimension_selectors": {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "orespawn:all_except_nether_end": { "$ref": "#/$defs/oreDimension" }
+          },
+          "additionalProperties": false
+        }
       },
+      "anyOf": [
+        { "required": ["dimensions"] },
+        { "required": ["dimension_selectors"] }
+      ],
       "additionalProperties": true
     },
-    "oil": {
-      "type": "object",
-      "required": ["min_y", "max_y", "frequency", "min_radius", "max_radius", "min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover"],
-      "properties": {
-        "block": { "$ref": "#/$defs/registryId" },
-        "min_y": { "type": "integer" }, "max_y": { "type": "integer" },
-        "frequency": { "type": "number", "minimum": 0 },
-        "min_radius": { "type": "integer", "minimum": 1 }, "max_radius": { "type": "integer", "minimum": 1 },
-        "min_vertical_radius": { "type": "integer", "minimum": 1 }, "max_vertical_radius": { "type": "integer", "minimum": 1 },
-        "max_lobes": { "type": "integer", "minimum": 1 }, "min_solid_cover": { "type": "integer", "minimum": 0 }
-      }
-    },
+    "fluidDepositDimension": {
+	  "type": "object",
+	  "required": ["enabled", "min_y", "max_y", "frequency", "min_radius", "max_radius", "min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover"],
+	  "properties": {
+		"enabled": { "type": "boolean" },
+		"min_y": { "type": "integer" }, "max_y": { "type": "integer" },
+		"frequency": { "type": "number", "minimum": 0, "maximum": 64 },
+		"min_radius": { "type": "integer", "minimum": 1, "maximum": 64 }, "max_radius": { "type": "integer", "minimum": 1, "maximum": 64 },
+		"min_vertical_radius": { "type": "integer", "minimum": 1, "maximum": 64 }, "max_vertical_radius": { "type": "integer", "minimum": 1, "maximum": 64 },
+		"max_lobes": { "type": "integer", "minimum": 1, "maximum": 16 }, "min_solid_cover": { "type": "integer", "minimum": 0, "maximum": 64 },
+		"min_solid_shell": { "type": "integer", "minimum": 0, "maximum": 64, "default": 1 },
+		"host_families": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/family" } },
+		"host_blocks": { "$ref": "#/$defs/hostBlocks" },
+		"host_tags": { "$ref": "#/$defs/hostTags" },
+		"geomes": { "$ref": "#/$defs/weights" },
+		"biome_ids": { "$ref": "#/$defs/registryIds" },
+		"excluded_biome_ids": { "$ref": "#/$defs/registryIds" },
+		"biome_dictionary": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+		"excluded_biome_dictionary": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+	  },
+	  "anyOf": [
+		{ "required": ["host_families"] },
+		{ "required": ["host_blocks"] },
+		{ "required": ["host_tags"] }
+	  ],
+	  "additionalProperties": true
+	},
+	"fluidDeposit": {
+	  "type": "object",
+	  "required": ["enabled", "block", "dimensions"],
+	  "properties": {
+		"enabled": { "type": "boolean" },
+		"block": { "$ref": "#/$defs/registryId" },
+		"dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/fluidDepositDimension" } }
+	  },
+	  "additionalProperties": true
+	},
     "retrogen": {
       "type": "object",
       "properties": {

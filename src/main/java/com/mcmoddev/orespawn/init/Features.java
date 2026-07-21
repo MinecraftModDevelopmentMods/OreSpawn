@@ -3,7 +3,7 @@ package com.mcmoddev.orespawn.init;
 import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.worldgen.OreSpawnOreGeneration;
 import com.mcmoddev.orespawn.worldgen.FlatBedrockFeature;
-import com.mcmoddev.orespawn.worldgen.OilDepositFeature;
+import com.mcmoddev.orespawn.worldgen.FluidDepositFeature;
 import com.mcmoddev.orespawn.worldgen.StoneReplacer;
 import com.mcmoddev.orespawn.worldgen.VanillaOreFeatureGate;
 
@@ -18,7 +18,7 @@ public final class Features {
 	public static void registerFeatures(RegistryEvent.Register<Feature<?>> event) {
 		event.getRegistry().register(StoneReplacer.FEATURE);
 		event.getRegistry().register(OreSpawnOreGeneration.FEATURE);
-		event.getRegistry().register(OilDepositFeature.FEATURE);
+		event.getRegistry().register(FluidDepositFeature.FEATURE);
 		event.getRegistry().register(FlatBedrockFeature.FEATURE);
 		VanillaOreFeatureGate.registerFeatures(event.getRegistry());
 	}

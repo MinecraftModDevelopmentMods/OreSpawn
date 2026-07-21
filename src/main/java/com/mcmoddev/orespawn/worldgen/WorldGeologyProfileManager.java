@@ -74,10 +74,14 @@ public final class WorldGeologyProfileManager {
 		return profile == null ? globalProfile().geologyMode() : profile.geologyMode();
 	}
 
-	public static boolean placeCrudeOil() {
+	public static boolean placeFluidDeposits() {
 		WorldGeologyProfile profile = activeProfile;
-		return profile == null ? globalProfile().placeCrudeOil() : profile.placeCrudeOil();
+		return profile == null ? globalProfile().placeFluidDeposits() : profile.placeFluidDeposits();
 	}
+
+	/** @deprecated Use {@link #placeFluidDeposits()}. */
+	@Deprecated
+	public static boolean placeCrudeOil() { return placeFluidDeposits(); }
 
 	public static WorldGeologyProfile activeProfile() {
 		WorldGeologyProfile profile = activeProfile;
@@ -146,11 +150,11 @@ public final class WorldGeologyProfileManager {
 		}
 
 		activateProfile(profile);
-		LOGGER.info("Activated OreSpawn world geology profile: mode={}, formations={}, horizontal={}, thickness={}, waviness={}, edge={}, continuity={}, oil={}",
+		LOGGER.info("Activated OreSpawn world geology profile: mode={}, formations={}, horizontal={}, thickness={}, waviness={}, edge={}, continuity={}, fluidDeposits={}/{}",
 				profile.geologyMode(), profile.algorithm().configName(), profile.horizontalSize().configName(),
 				profile.verticalThickness().configName(), profile.waviness().configName(),
 				profile.edgeIrregularity().configName(), profile.formationContinuity().configName(),
-				profile.placeCrudeOil());
+				profile.enabledFluidDepositCount(), profile.fluidDepositCount());
 	}
 
 	public static void onServerStopped(ServerStoppedEvent event) {
@@ -159,7 +163,7 @@ public final class WorldGeologyProfileManager {
 		GeomeConfig.applyWorldProfile(globalProfile());
 		StoneReplacer.refreshWorldConfig();
 		OreSpawnOreGeneration.refreshWorldConfig();
-		OilDepositFeature.refreshWorldConfig();
+		FluidDepositFeature.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.clear();
 	}
@@ -173,7 +177,7 @@ public final class WorldGeologyProfileManager {
 		GeomeConfig.applyWorldProfile(profile);
 		StoneReplacer.refreshWorldConfig();
 		OreSpawnOreGeneration.refreshWorldConfig();
-		OilDepositFeature.refreshWorldConfig();
+		FluidDepositFeature.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.refreshWorldConfig();
 	}
@@ -181,7 +185,7 @@ public final class WorldGeologyProfileManager {
 	private static WorldGeologyProfile globalProfile() {
 		WorldGeologyProfile profile = GeomeConfig.globalProfile();
 		return profile == null
-				? WorldGeologyProfile.recommended(OreSpawnConfig.placeCrudeOil())
+				? WorldGeologyProfile.recommended(false)
 				: profile;
 	}
 
@@ -207,33 +211,83 @@ public final class WorldGeologyProfileManager {
 		}
 	}
 
-	private static WorldGeologyProfile readProfile(Path path, WorldGeologyProfile fallback) {
+	static WorldGeologyProfile readProfile(Path path, WorldGeologyProfile fallback) {
+		JsonObject root;
 		try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
 			JsonElement element = new JsonParser().parse(reader);
 			if (!element.isJsonObject()) {
 				LOGGER.warn("OreSpawn world geology profile '{}' is not a JSON object; using instance settings", path);
 				return fallback;
 			}
-			JsonObject root = element.getAsJsonObject();
+			root = element.getAsJsonObject();
+		} catch (IOException | JsonSyntaxException | IllegalStateException e) {
+			LOGGER.warn("Could not read OreSpawn world geology profile '{}'; using instance settings", path, e);
+			return fallback;
+		}
+
+		try {
 			int schema = root.has("schema_version") ? root.get("schema_version").getAsInt() : 1;
 			if (schema > WorldGeologyProfile.SCHEMA_VERSION) {
 				LOGGER.warn("OreSpawn world geology profile '{}' uses newer schema {}; reading known fields only",
 						path, schema);
 			}
+			boolean oreDefaultsRefreshed = schema <= WorldGeologyProfile.SCHEMA_VERSION
+					&& GeomeConfig.needsWorldOreDefaultsRefresh(root);
+			if (oreDefaultsRefreshed) {
+				root = GeomeConfig.refreshWorldOreDefaults(root);
+			}
 			WorldGeologyProfile profile = WorldGeologyProfile.fromJson(root, fallback);
-			if (schema < WorldGeologyProfile.SCHEMA_VERSION) {
-				writeProfile(path, profile);
-				LOGGER.info("Migrated OreSpawn world geology profile '{}' to schema {}",
-						path, WorldGeologyProfile.SCHEMA_VERSION);
+			if (schema < WorldGeologyProfile.SCHEMA_VERSION || oreDefaultsRefreshed) {
+				boolean canWrite = schema >= WorldGeologyProfile.SCHEMA_VERSION
+						|| preserveBeforeSchemaMigration(path, schema);
+				canWrite &= !oreDefaultsRefreshed || preserveBeforeOreDefaultsRefresh(path);
+				if (canWrite && writeProfile(path, profile)) {
+					if (schema < WorldGeologyProfile.SCHEMA_VERSION) {
+						LOGGER.info("Migrated OreSpawn world geology profile '{}' to schema {}",
+								path, WorldGeologyProfile.SCHEMA_VERSION);
+					}
+					if (oreDefaultsRefreshed) {
+						LOGGER.info("Updated untouched managed-ore rules in world geology profile '{}' to revision {}",
+								path, GeomeConfig.oreDefaultsRevision());
+					}
+				} else if (oreDefaultsRefreshed) {
+					LOGGER.warn("Could not persist updated OreSpawn ore defaults for world profile '{}'; "
+							+ "using refreshed settings in memory", path);
+				}
 			}
 			return profile;
-		} catch (IOException | JsonSyntaxException | IllegalStateException e) {
+		} catch (JsonSyntaxException | IllegalStateException e) {
 			LOGGER.warn("Could not read OreSpawn world geology profile '{}'; using instance settings", path, e);
 			return fallback;
 		}
 	}
 
-	private static void writeProfile(Path path, WorldGeologyProfile profile) {
+	private static boolean preserveBeforeOreDefaultsRefresh(Path path) {
+		Path backup = path.resolveSibling("orespawn-worldgen.pre-ore-revision-"
+				+ GeomeConfig.oreDefaultsRevision() + ".bak");
+		try {
+			if (!Files.exists(backup)) {
+				Files.copy(path, backup);
+			}
+			return true;
+		} catch (IOException e) {
+			LOGGER.warn("Could not preserve OreSpawn world geology profile '{}' at '{}'", path, backup, e);
+			return false;
+		}
+	}
+
+	private static boolean preserveBeforeSchemaMigration(Path path, int schema) {
+		Path backup = path.resolveSibling("orespawn-worldgen.v" + Math.max(1, schema) + ".bak");
+		try {
+			if (!Files.exists(backup)) Files.copy(path, backup);
+			return true;
+		} catch (IOException e) {
+			LOGGER.warn("Could not preserve OreSpawn world geology profile '{}' at '{}'", path, backup, e);
+			return false;
+		}
+	}
+
+	private static boolean writeProfile(Path path, WorldGeologyProfile profile) {
 		Path temporary = path.resolveSibling(path.getFileName().toString() + ".tmp");
 		try {
 			Files.createDirectories(path.getParent());
@@ -245,6 +299,7 @@ public final class WorldGeologyProfileManager {
 			} catch (AtomicMoveNotSupportedException e) {
 				Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
 			}
+			return true;
 		} catch (IOException e) {
 			try {
 				Files.deleteIfExists(temporary);
@@ -252,6 +307,7 @@ public final class WorldGeologyProfileManager {
 				// The write failure is the useful diagnostic.
 			}
 			LOGGER.warn("Could not persist OreSpawn world geology profile '{}'", path, e);
+			return false;
 		}
 	}
 }

@@ -27,13 +27,6 @@ final class NumericConfigScreen extends Screen {
 			new Field("edge_octaves", 1, 8, true),
 			new Field("continuity", 0, 1, false)
 	};
-	static final Field[] OIL_FIELDS = {
-			new Field("min_y", -64, 320, true), new Field("max_y", -64, 320, true),
-			new Field("frequency", 0, 16, false), new Field("min_radius", 1, 24, true),
-			new Field("max_radius", 1, 32, true), new Field("min_vertical_radius", 1, 16, true),
-			new Field("max_vertical_radius", 1, 24, true), new Field("max_lobes", 1, 8, true),
-			new Field("min_solid_cover", 1, 16, true)
-	};
 	static final Field[] CYANO_FIELDS = {
 			new Field("geome_size", 4, Short.MAX_VALUE, true),
 			new Field("rock_layer_noise", 1, Short.MAX_VALUE, false),

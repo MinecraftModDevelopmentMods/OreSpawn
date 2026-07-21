@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 /** A complete, self-contained snapshot of the geology settings for one world. */
 public final class WorldGeologyProfile {
-	public static final int SCHEMA_VERSION = 3;
+	public static final int SCHEMA_VERSION = 4;
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -29,15 +29,16 @@ public final class WorldGeologyProfile {
 	private final Preset waviness;
 	private final Preset edgeIrregularity;
 	private final Preset formationContinuity;
-	private final boolean placeCrudeOil;
+	private final boolean placeFluidDeposits;
 
-	private WorldGeologyProfile(JsonObject root, GeologyMode fallbackMode, boolean fallbackOil) {
+	private WorldGeologyProfile(JsonObject root, GeologyMode fallbackMode, boolean fallbackFluidDeposits) {
 		this.root = root.deepCopy();
+		FluidDepositMigration.normalize(this.root);
 		this.root.addProperty("schema_version", SCHEMA_VERSION);
 		geologyMode = enumValue(this.root, "geology_mode", GeologyMode.class, fallbackMode);
-		placeCrudeOil = booleanValue(this.root, "place_crude_oil", fallbackOil);
+		placeFluidDeposits = booleanValue(this.root, "place_fluid_deposits", fallbackFluidDeposits);
 		this.root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
-		this.root.addProperty("place_crude_oil", placeCrudeOil);
+		this.root.addProperty("place_fluid_deposits", placeFluidDeposits);
 
 		JsonObject formations = object(this.root, "formations", recommendedFormationJson());
 		algorithm = namedValue(formations, "algorithm", Algorithm.STABLE_LAYERS, Algorithm::fromConfigName);
@@ -50,39 +51,39 @@ public final class WorldGeologyProfile {
 		this.root.add("formations", normalizedFormationJson(formations));
 	}
 
-	public static WorldGeologyProfile recommended(boolean placeCrudeOil) {
+	public static WorldGeologyProfile recommended(boolean placeFluidDeposits) {
 		JsonObject root = new JsonObject();
 		root.addProperty("geology_mode", GeologyMode.GEOME.name().toLowerCase(Locale.ROOT));
-		root.addProperty("place_crude_oil", placeCrudeOil);
+		root.addProperty("place_fluid_deposits", placeFluidDeposits);
 		root.add("formations", recommendedFormationJson());
-		return new WorldGeologyProfile(root, GeologyMode.GEOME, placeCrudeOil);
+		return new WorldGeologyProfile(root, GeologyMode.GEOME, placeFluidDeposits);
 	}
 
 	public static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
-			GeologyMode geologyMode, boolean placeCrudeOil) {
+			GeologyMode geologyMode, boolean placeFluidDeposits) {
 		JsonObject root = globalRoot.deepCopy();
 		if (!root.has("geology_mode")) {
 			root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
 		}
-		if (!root.has("place_crude_oil")) {
-			root.addProperty("place_crude_oil", placeCrudeOil);
+		if (!root.has("place_fluid_deposits") && !root.has("place_crude_oil")) {
+			root.addProperty("place_fluid_deposits", placeFluidDeposits);
 		}
-		return new WorldGeologyProfile(root, geologyMode, placeCrudeOil);
+		return new WorldGeologyProfile(root, geologyMode, placeFluidDeposits);
 	}
 
 	public static WorldGeologyProfile fromJson(JsonObject json, WorldGeologyProfile fallback) {
 		int schema = intValue(json, "schema_version", 1);
 		if (schema >= SCHEMA_VERSION) {
-			return new WorldGeologyProfile(json, fallback.geologyMode, fallback.placeCrudeOil);
+			return new WorldGeologyProfile(json, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
-		if (schema == 2) {
+		if (schema == 2 || schema == 3) {
 			JsonObject migrated = json.deepCopy();
 			for (String key : new String[] { "terrain_dimensions", "providers" }) {
 				if (!migrated.has(key) && fallback.root.has(key)) {
 					migrated.add(key, fallback.root.get(key).deepCopy());
 				}
 			}
-			return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeCrudeOil);
+			return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
 
 		// Schema 1 contained only mode, oil and formations. Overlay those fields on
@@ -91,15 +92,15 @@ public final class WorldGeologyProfile {
 		copyIfPresent(json, migrated, "geology_mode");
 		copyIfPresent(json, migrated, "place_crude_oil");
 		copyIfPresent(json, migrated, "formations");
-		return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeCrudeOil);
+		return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeFluidDeposits);
 	}
 
 	public WorldGeologyProfile withSelection(GeologyMode mode,
 			Preset horizontal, Preset thickness, Preset wave,
-			Preset irregularity, Preset continuity, boolean oil) {
+			Preset irregularity, Preset continuity, boolean fluidDeposits) {
 		JsonObject edited = rootCopy();
 		edited.addProperty("geology_mode", mode.name().toLowerCase(Locale.ROOT));
-		edited.addProperty("place_crude_oil", oil);
+		edited.addProperty("place_fluid_deposits", fluidDeposits);
 		JsonObject formations = toFormationJson();
 		formations.addProperty("algorithm", Algorithm.STABLE_LAYERS.configName());
 		formations.addProperty("horizontal_size", horizontal.configName());
@@ -108,22 +109,22 @@ public final class WorldGeologyProfile {
 		formations.addProperty("edge_irregularity", irregularity.configName());
 		formations.addProperty("formation_continuity", continuity.configName());
 		edited.add("formations", formations);
-		return new WorldGeologyProfile(edited, mode, oil);
+		return new WorldGeologyProfile(edited, mode, fluidDeposits);
 	}
 
 	public WorldGeologyProfile withRoot(JsonObject editedRoot) {
-		return new WorldGeologyProfile(editedRoot, geologyMode, placeCrudeOil);
+		return new WorldGeologyProfile(editedRoot, geologyMode, placeFluidDeposits);
 	}
 
 	public WorldGeologyProfile withTemplate(ResourceLocation templateId) {
 		return new WorldGeologyProfile(WorldgenIntegrationManager.applyTemplate(root, templateId),
-				geologyMode, placeCrudeOil);
+				geologyMode, placeFluidDeposits);
 	}
 
 	public WorldGeologyProfile withoutTemplate() {
 		JsonObject edited = rootCopy();
 		edited.remove("selected_template");
-		return new WorldGeologyProfile(edited, geologyMode, placeCrudeOil);
+		return new WorldGeologyProfile(edited, geologyMode, placeFluidDeposits);
 	}
 
 	public Optional<ResourceLocation> selectedTemplate() {
@@ -138,7 +139,7 @@ public final class WorldGeologyProfile {
 	}
 
 	public WorldGeologyProfile copy() {
-		return new WorldGeologyProfile(root, geologyMode, placeCrudeOil);
+		return new WorldGeologyProfile(root, geologyMode, placeFluidDeposits);
 	}
 
 	public JsonObject toJson() {
@@ -189,8 +190,29 @@ public final class WorldGeologyProfile {
 		return formationContinuity;
 	}
 
+	public boolean placeFluidDeposits() {
+		return placeFluidDeposits;
+	}
+
+	/** @deprecated Use {@link #placeFluidDeposits()}. */
+	@Deprecated
 	public boolean placeCrudeOil() {
-		return placeCrudeOil;
+		return placeFluidDeposits;
+	}
+
+	public int fluidDepositCount() {
+		return sectionSize("fluid_deposits");
+	}
+
+	public int enabledFluidDepositCount() {
+		if (!root.has("fluid_deposits") || !root.get("fluid_deposits").isJsonObject()) return 0;
+		int count = 0;
+		for (java.util.Map.Entry<String, JsonElement> entry
+				: root.getAsJsonObject("fluid_deposits").entrySet()) {
+			if (entry.getValue().isJsonObject()
+					&& booleanValue(entry.getValue().getAsJsonObject(), "enabled", true)) count++;
+		}
+		return count;
 	}
 
 	public boolean manageVanillaOres() {
@@ -231,7 +253,7 @@ public final class WorldGeologyProfile {
 			return configured;
 		}
 		int hash = 17;
-		for (String key : new String[] { "ores", "flat_bedrock", "providers" }) {
+		for (String key : new String[] { "ores", "fluid_deposits", "flat_bedrock", "providers" }) {
 			if (root.has(key)) {
 				hash = (31 * hash) + root.get(key).toString().hashCode();
 			}
@@ -303,6 +325,10 @@ public final class WorldGeologyProfile {
 		} catch (RuntimeException e) {
 			return fallback;
 		}
+	}
+
+	private int sectionSize(String key) {
+		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key).size() : 0;
 	}
 
 	private boolean nestedBoolean(String section, String key, boolean fallback) {

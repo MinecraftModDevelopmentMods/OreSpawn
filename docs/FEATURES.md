@@ -5,12 +5,12 @@ the namespaced form is preferred.
 
 | Pattern | ID | Shape |
 |---|---|---|
-| Compact | `orespawn:default` | Dense rounded deposit |
-| Vein | `orespawn:vein` | Wandering connected vein |
+| Compact | `orespawn:default` | One dense, face-connected deposit |
+| Vein | `orespawn:vein` | Wandering chain of connected nodes |
 | Normal cloud | `orespawn:normal_cloud` | Diffuse bounded cloud |
 | Precision | `orespawn:precision` | Deterministic compact fill |
-| Clusters | `orespawn:clusters` | Multiple nearby nodes |
-| Under fluids | `orespawn:underfluids` | Deposit beneath configured fluid |
+| Clusters | `orespawn:clusters` | Multiple nearby face-connected nodes |
+| Under fluids | `orespawn:underfluids` | Connected deposit beneath configured fluid |
 
 Built-in settings are `spread` (0-64), `vertical_spread` (0-64), `node_size`
 (1-32), `length` (1-64), and a fluid registry ID. The legacy flat fields and
@@ -35,10 +35,23 @@ and compiles decoded settings into a `CompiledOrePattern`. Compilation occurs
 during profile baking. The generation loop invokes only the compiled object.
 Third-party codec settings are preserved and shown read-only in OreSpawn's UI.
 
-Height selection supports `uniform` and `triangle`. `frequency` is expected
-attempts per chunk: the integer part is guaranteed and the fractional part is
-the chance of one additional attempt. `quantity` is the placement budget for
-each attempt.
+Height selection supports `uniform`, centre-peaked `triangle`, deep-biased
+`bottom_triangle`, and a half-uniform `uniform_bottom_triangle`. `frequency`
+is expected attempts per chunk: the integer part is guaranteed and the
+fractional part is the chance of one additional attempt. `quantity` is a fixed
+placement budget; `min_quantity` and `max_quantity` define an inclusive random
+budget. `orespawn:all_except_nether_end` preserves OS3-style ordinary custom
+dimension coverage, with explicit dimensions taking precedence.
+`discard_chance_on_air_exposure` is a
+number from 0 to 1; selected placements touching air are rejected with that
+probability. It can reproduce buried ore behavior without reducing deposits
+that remain enclosed in rock.
+
+Compact nodes use one of 48 pre-baked orientations. Every prefix from 1 to 64
+blocks is face-connected when the host material is continuous. During initial
+generation deposits may cross chunk borders through Minecraft's writable
+worldgen region; retrogen remains deliberately limited to the chunk being
+updated.
 
 Retrogen records a deterministic profile revision in chunk NBT under
 `OreSpawn`. Only ore rules with `retrogen:true` participate. Processing is

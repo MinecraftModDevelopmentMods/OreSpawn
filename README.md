@@ -1,38 +1,87 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven Minecraft 1.18.2 world-generation engine. It
-can place ores using six built-in patterns, build configurable geological
-strata and geomes, flatten bedrock, and perform bounded ore retrogen. Installed
-mods provide blocks and declarative rules; OreSpawn keeps registry and config
-work out of chunk-generation loops.
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.18.2.
+It gives mods and modpacks one place to configure ores, deposit shapes, optional
+rock strata and geomes, provider-owned underground fluid deposits, flat bedrock,
+and bounded ore retrogen.
+
+Its OS3 compatibility layer preserves ranged legacy block budgets, exclusive
+legacy height ceilings, and the historical "all dimensions except Nether and
+End" policy used by mods such as Base Metals.
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-OreSpawn is intentionally passive when installed alone. Terrain replacement,
-ore suppression, retrogen, and flat bedrock are opt-in. Mineralogy 6 is the
-first full provider and supplies its rocks, ores, oil, geomes, and defaults in
-`data/mineralogy/orespawn/provider.json`.
+## What Happens When It Is Installed?
 
-## Integration
+OreSpawn is deliberately passive on its own. It does not replace stone, remove
+vanilla ores, or change the Nether merely because the jar is installed. A
+provider mod or a modpack profile must opt features in.
 
-- Global pack profile: `config/orespawn-worldgen.json`
-- Per-world snapshot: `<world>/serverconfig/orespawn-worldgen.json`
-- Pack provider override: `config/<modid>-orespawn.json`
-- Packaged provider: `data/<modid>/orespawn/provider.json`
-- Supported Java API: `com.mcmoddev.orespawn.api`, API major `1`
+Mineralogy 6 is the first full provider. It supplies its rocks, ores, crude-oil
+deposit, geomes, biome influences, and recommended settings to OreSpawn. An ore-only
+provider such as Base Metals can supply ores and host tags without enabling
+rock layers at all.
 
-Documentation, schemas, and examples are in [`docs`](docs/README.md). The same
-material is packaged under `META-INF/orespawn/docs` in the normal jar, with an
-agent-oriented entry point at jar-root `AGENTS.md`.
+## Players And Server Owners
+
+When a provider exposes world settings, use **OreSpawn...** on the Create World
+screen. **Recommended Defaults** restores the settings supplied by the
+installed mods and pack. The in-game **Help & Guide** explains the controls.
+
+Important files:
+
+| Location | Purpose |
+|---|---|
+| `config/orespawn-worldgen.json` | Defaults for newly created worlds |
+| `<world>/serverconfig/orespawn-worldgen.json` | Complete settings snapshot for one world |
+| `config/<modid>-orespawn.json` | Optional modpack override for one provider |
+| `config/orespawn-guide/README.md` | Guide exported automatically on first load |
+
+Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
+separate opt-in features; OreSpawn never retro-generates rock strata.
+
+To move a configured single-player world to a dedicated server, copy the
+world's `serverconfig/orespawn-worldgen.json` with the world and install the
+same provider mods on the server.
+
+## Mod And Modpack Integration
+
+Mods can provide declarative rules in either of these ways:
+
+- package `data/<modid>/orespawn/provider.json` in the mod jar;
+- call `OreSpawnApi.enqueue(WorldgenProvider)` during `InterModEnqueueEvent`.
+
+Modpacks can override a provider with `config/<modid>-orespawn.json`. A present
+override is authoritative and fails closed when invalid, so a broken pack file
+cannot silently disable another mod's native ore generation.
+
+Only `com.mcmoddev.orespawn.api` is supported Java API. API major version `1`
+is also recorded in the jar manifest as `OreSpawn-API-Version`.
+
+Start with:
+
+- [Player guide](docs/PLAYER_GUIDE.md)
+- [Developer guide](docs/DEVELOPER_GUIDE.md)
+- [Configuration reference](docs/CONFIGURATION.md)
+- [Provider JSON guide](docs/PROVIDERS.md)
+- [Java API guide](docs/API.md)
+- [Schemas and examples](docs/README.md)
+
+The full documentation bundle is packaged under `META-INF/orespawn/docs/` and
+exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 17 and run from this checkout:
+Use Java 17 from the repository root:
 
 ```powershell
-.\gradlew.bat test build --no-daemon
+.\gradlew.bat test processResources build javadoc --no-daemon
 .\gradlew.bat genEclipseRuns eclipse --no-daemon
 ```
+
+Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
+Public developer and AI integration guidance lives in `docs/` and is included
+in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.

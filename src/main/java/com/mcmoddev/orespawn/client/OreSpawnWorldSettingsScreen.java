@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import com.mcmoddev.orespawn.OreSpawnConfig;
 import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
 import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
 import com.mcmoddev.orespawn.worldgen.WorldGeologyProfile;
@@ -24,9 +23,10 @@ import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public final class OreSpawnWorldSettingsScreen extends Screen {
-	private static final int BUTTON_WIDTH = 150;
 	private static final int BUTTON_HEIGHT = 20;
 
 	private final Screen parent;
@@ -37,13 +37,13 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private Preset waviness;
 	private Preset edgeIrregularity;
 	private Preset formationContinuity;
-	private boolean placeCrudeOil;
+	private boolean placeFluidDeposits;
 	private boolean manageVanillaOres;
 	private ResourceLocation selectedTemplate;
 	private final List<TemplateChoice> templateChoices;
 
 	private CycleButton<GeologyMode> geologyModeButton;
-	private CycleButton<Boolean> crudeOilButton;
+	private CycleButton<Boolean> fluidDepositsButton;
 	private CycleButton<Boolean> vanillaOresButton;
 	private CycleButton<Preset> horizontalSizeButton;
 	private CycleButton<Preset> verticalThicknessButton;
@@ -51,6 +51,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private CycleButton<Preset> edgeIrregularityButton;
 	private CycleButton<Preset> formationContinuityButton;
 	private Component validationError;
+	private int columnWidth = 150;
 
 	public OreSpawnWorldSettingsScreen(Screen parent, WorldGeologyProfile profile) {
 		this(parent, profile, Collections.emptyList());
@@ -66,73 +67,112 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int left = this.width / 2 - 155;
-		int right = this.width / 2 + 5;
+		int contentWidth = Math.min(390, Math.max(310, this.width - 24));
+		columnWidth = (contentWidth - 5) / 2;
+		int left = (this.width - contentWidth) / 2;
+		int right = left + columnWidth + 5;
+		boolean terrain = session.hasTerrainRules();
+		boolean fluids = !session.fluidDepositIds().isEmpty();
 		int top = OreSpawnScreenLayout.mainTop(this.height);
-		int row = OreSpawnScreenLayout.mainRowSpacing(this.height);
+		int rows = (templateChoices.size() > 1 ? 1 : 0) + (terrain ? 8
+				: 4 + (fluids ? 1 : 0));
+		int available = OreSpawnScreenLayout.footerY(height) - top - BUTTON_HEIGHT - 4;
+		int row = Math.min(OreSpawnScreenLayout.mainRowSpacing(this.height),
+				rows <= 1 ? 24 : Math.max(BUTTON_HEIGHT, available / (rows - 1)));
+		int rowIndex = 0;
+		if (templateChoices.size() > 1) {
+			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
+			addRenderableWidget(CycleButton.builder(TemplateChoice::label)
+					.withValues(templateChoices).withInitialValue(initialTemplate)
+					.create(left, top + (row * rowIndex++), contentWidth, BUTTON_HEIGHT,
+							new TranslatableComponent("option.orespawn.template"),
+							(button, value) -> selectTemplate(value.id)));
+		}
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex++),
+				contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.recommended"),
+				button -> resetRecommended()));
 
-		TemplateChoice initialTemplate = templateChoice(selectedTemplate);
-		addRenderableWidget(CycleButton.builder(TemplateChoice::label)
-				.withValues(templateChoices)
-				.withInitialValue(initialTemplate)
-				.create(left, top, 310, BUTTON_HEIGHT,
-						new TranslatableComponent("option.orespawn.template"),
-						(button, value) -> selectTemplate(value.id)));
-		addRenderableWidget(new Button(left, top + row, 310, BUTTON_HEIGHT,
-				new TranslatableComponent("button.orespawn.recommended"), button -> resetRecommended()));
+		if (!terrain) {
+			vanillaOresButton = addVanillaOresButton(left, top + (row * rowIndex), columnWidth);
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.materials"),
+					button -> openMaterials()));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex++),
+					contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.configure_strata"),
+					button -> configureRockStrata()));
+			if (fluids) {
+				fluidDepositsButton = addFluidToggle(left, top + (row * rowIndex), columnWidth);
+				addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+						columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()));
+			}
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
+					contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.help"),
+					button -> openHelp()));
+		} else {
+			geologyModeButton = addRenderableWidget(CycleButton.builder(this::geologyModeName)
+					.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
+					.withInitialValue(geologyMode)
+					.withTooltip(value -> tooltip("tooltip.orespawn.geology_mode"))
+					.create(left, top + (row * rowIndex), columnWidth, BUTTON_HEIGHT,
+							new TranslatableComponent("option.orespawn.geology_mode"),
+							(button, value) -> { geologyMode = value; updateFormationControls(); }));
+			if (fluids) fluidDepositsButton = addFluidToggle(right, top + (row * rowIndex), columnWidth);
+			else vanillaOresButton = addVanillaOresButton(right, top + (row * rowIndex), columnWidth);
+			rowIndex++;
 
-		geologyModeButton = addRenderableWidget(CycleButton
-				.builder(this::geologyModeName)
-				.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
-				.withInitialValue(geologyMode)
-				.withTooltip(value -> tooltip("tooltip.orespawn.geology_mode"))
-				.create(left, top + (row * 2), BUTTON_WIDTH, BUTTON_HEIGHT,
-						new TranslatableComponent("option.orespawn.geology_mode"),
-						(button, value) -> {
-							geologyMode = value;
-							updateFormationControls();
-						}));
-
-		crudeOilButton = addRenderableWidget(CycleButton.onOffBuilder(placeCrudeOil)
-				.withTooltip(value -> tooltip("tooltip.orespawn.crude_oil"))
-				.create(right, top + (row * 2), BUTTON_WIDTH, BUTTON_HEIGHT,
-						new TranslatableComponent("option.orespawn.crude_oil"),
-						(button, value) -> placeCrudeOil = value));
-
-		horizontalSizeButton = addPresetButton(left, top + (row * 3),
-				"option.orespawn.horizontal_size", "tooltip.orespawn.horizontal_size",
-				horizontalSize, value -> horizontalSize = value);
-		verticalThicknessButton = addPresetButton(right, top + (row * 3),
-				"option.orespawn.vertical_thickness", "tooltip.orespawn.vertical_thickness",
-				verticalThickness, value -> verticalThickness = value);
-		wavinessButton = addPresetButton(left, top + (row * 4),
-				"option.orespawn.waviness", "tooltip.orespawn.waviness",
-				waviness, value -> waviness = value);
-		edgeIrregularityButton = addPresetButton(right, top + (row * 4),
-				"option.orespawn.edge_irregularity", "tooltip.orespawn.edge_irregularity",
-				edgeIrregularity, value -> edgeIrregularity = value);
-		formationContinuityButton = addPresetButton(left, top + (row * 5),
-				"option.orespawn.formation_continuity", "tooltip.orespawn.formation_continuity",
-				formationContinuity, value -> formationContinuity = value);
-
-		vanillaOresButton = addRenderableWidget(CycleButton.onOffBuilder(manageVanillaOres)
-				.withTooltip(value -> tooltip("tooltip.orespawn.manage_vanilla_ores"))
-				.create(right, top + (row * 5), BUTTON_WIDTH, BUTTON_HEIGHT,
-						new TranslatableComponent("option.orespawn.manage_vanilla_ores"),
-						(button, value) -> manageVanillaOres = value));
-		addRenderableWidget(new Button(left, top + (row * 6), BUTTON_WIDTH, BUTTON_HEIGHT,
-				new TranslatableComponent("button.orespawn.materials"), button -> openMaterials()));
-		addRenderableWidget(new Button(right, top + (row * 6), BUTTON_WIDTH, BUTTON_HEIGHT,
-				new TranslatableComponent("button.orespawn.geomes"), button -> openGeomes()));
-		addRenderableWidget(new Button(left, top + (row * 7), BUTTON_WIDTH, BUTTON_HEIGHT,
-				new TranslatableComponent("button.orespawn.advanced"), button -> openAdvanced()));
-		addRenderableWidget(new Button(right, top + (row * 7), BUTTON_WIDTH, BUTTON_HEIGHT,
-				new TranslatableComponent("button.orespawn.help"), button -> openHelp()));
-		addRenderableWidget(new Button(left, this.height - 28, BUTTON_WIDTH, BUTTON_HEIGHT,
+			horizontalSizeButton = addPresetButton(left, top + (row * rowIndex),
+					"option.orespawn.horizontal_size", "tooltip.orespawn.horizontal_size",
+					horizontalSize, value -> horizontalSize = value);
+			verticalThicknessButton = addPresetButton(right, top + (row * rowIndex++),
+					"option.orespawn.vertical_thickness", "tooltip.orespawn.vertical_thickness",
+					verticalThickness, value -> verticalThickness = value);
+			wavinessButton = addPresetButton(left, top + (row * rowIndex),
+					"option.orespawn.waviness", "tooltip.orespawn.waviness",
+					waviness, value -> waviness = value);
+			edgeIrregularityButton = addPresetButton(right, top + (row * rowIndex++),
+					"option.orespawn.edge_irregularity", "tooltip.orespawn.edge_irregularity",
+					edgeIrregularity, value -> edgeIrregularity = value);
+			formationContinuityButton = addPresetButton(left, top + (row * rowIndex),
+					"option.orespawn.formation_continuity", "tooltip.orespawn.formation_continuity",
+					formationContinuity, value -> formationContinuity = value);
+			if (vanillaOresButton == null) vanillaOresButton = addVanillaOresButton(right,
+					top + (row * rowIndex), columnWidth);
+			rowIndex++;
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.materials"),
+					button -> openMaterials()));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.geomes"),
+					button -> openGeomes()));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.advanced"),
+					button -> openAdvanced()));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.help"),
+					button -> openHelp()));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
+					contentWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()));
+		}
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_DONE, button -> saveAndClose()));
-		addRenderableWidget(new Button(right, this.height - 28, BUTTON_WIDTH, BUTTON_HEIGHT,
+		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_CANCEL, button -> onClose()));
 		updateFormationControls();
+	}
+
+	private CycleButton<Boolean> addVanillaOresButton(int x, int y, int width) {
+		return addRenderableWidget(CycleButton.onOffBuilder(manageVanillaOres)
+				.withTooltip(value -> tooltip("tooltip.orespawn.manage_vanilla_ores"))
+				.create(x, y, width, BUTTON_HEIGHT,
+						new TranslatableComponent("option.orespawn.manage_vanilla_ores"),
+						(button, value) -> manageVanillaOres = value));
+	}
+
+	private CycleButton<Boolean> addFluidToggle(int x, int y, int width) {
+		return addRenderableWidget(CycleButton.onOffBuilder(placeFluidDeposits)
+				.withTooltip(value -> tooltip("tooltip.orespawn.fluid_deposits"))
+				.create(x, y, width, BUTTON_HEIGHT, fluidControlLabel(),
+						(button, value) -> placeFluidDeposits = value));
 	}
 
 	private CycleButton<Preset> addPresetButton(int x, int y, String labelKey, String tooltipKey,
@@ -141,7 +181,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 				.withValues(Arrays.asList(Preset.values()))
 				.withInitialValue(initialValue)
 				.withTooltip(value -> tooltip(tooltipKey))
-				.create(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, new TranslatableComponent(labelKey),
+				.create(x, y, columnWidth, BUTTON_HEIGHT, new TranslatableComponent(labelKey),
 						(button, value) -> consumer.accept(value)));
 	}
 
@@ -159,18 +199,10 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private void resetRecommended() {
 		WorldGeologyProfile recommended = session.profile().withSelection(GeologyMode.GEOME,
 				Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE,
-				OreSpawnConfig.placeCrudeOil());
+				placeFluidDeposits);
 		session.applyProfile(recommended);
 		setProfile(recommended);
-		geologyModeButton.setValue(geologyMode);
-		crudeOilButton.setValue(placeCrudeOil);
-		vanillaOresButton.setValue(manageVanillaOres);
-		horizontalSizeButton.setValue(horizontalSize);
-		verticalThicknessButton.setValue(verticalThickness);
-		wavinessButton.setValue(waviness);
-		edgeIrregularityButton.setValue(edgeIrregularity);
-		formationContinuityButton.setValue(formationContinuity);
-		updateFormationControls();
+		rebuildWidgets();
 	}
 
 	private void setProfile(WorldGeologyProfile profile) {
@@ -180,7 +212,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		waviness = profile.waviness();
 		edgeIrregularity = profile.edgeIrregularity();
 		formationContinuity = profile.formationContinuity();
-		placeCrudeOil = profile.placeCrudeOil();
+		placeFluidDeposits = profile.placeFluidDeposits();
 		manageVanillaOres = profile.manageVanillaOres();
 		selectedTemplate = profile.selectedTemplate().orElse(null);
 	}
@@ -194,15 +226,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 				? session.profile().withoutTemplate() : session.profile().withTemplate(templateId);
 		session.applyProfile(profile);
 		setProfile(profile);
-		geologyModeButton.setValue(geologyMode);
-		crudeOilButton.setValue(placeCrudeOil);
-		vanillaOresButton.setValue(manageVanillaOres);
-		horizontalSizeButton.setValue(horizontalSize);
-		verticalThicknessButton.setValue(verticalThickness);
-		wavinessButton.setValue(waviness);
-		edgeIrregularityButton.setValue(edgeIrregularity);
-		formationContinuityButton.setValue(formationContinuity);
-		updateFormationControls();
+		rebuildWidgets();
 	}
 
 	private TemplateChoice templateChoice(ResourceLocation id) {
@@ -243,7 +267,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private void syncSession() {
 		WorldGeologyProfile selected = session.profile().withSelection(
 				geologyMode, horizontalSize, verticalThickness, waviness,
-				edgeIrregularity, formationContinuity, placeCrudeOil);
+				edgeIrregularity, formationContinuity, placeFluidDeposits);
 		com.google.gson.JsonObject root = selected.rootCopy();
 		root.addProperty("manage_vanilla_ores", manageVanillaOres);
 		session.applyProfile(selected.withRoot(root));
@@ -251,6 +275,12 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	private void openMaterials() {
 		syncSession();
+		minecraft.setScreen(new GeologyMaterialsScreen(this, session));
+	}
+
+	private void configureRockStrata() {
+		syncSession();
+		session.configureDefaultVanillaStrata();
 		minecraft.setScreen(new GeologyMaterialsScreen(this, session));
 	}
 
@@ -262,6 +292,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private void openAdvanced() {
 		syncSession();
 		minecraft.setScreen(new AdvancedGeologySettingsScreen(this, session));
+	}
+
+	private void openFluidDeposits() {
+		syncSession();
+		minecraft.setScreen(new FluidDepositListScreen(this, session));
 	}
 
 	private void openHelp() {
@@ -291,6 +326,37 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	private Component presetName(Preset preset) {
 		return new TranslatableComponent("value.orespawn.preset." + preset.configName());
+	}
+
+	private Component fluidControlLabel() {
+		List<String> ids = session.fluidDepositIds();
+		if (ids.size() == 1) {
+			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
+			ResourceLocation blockId = access.resource("block");
+			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
+			if (block != null) return new TranslatableComponent(block.getDescriptionId());
+		}
+		return new TranslatableComponent("option.orespawn.fluid_deposits");
+	}
+
+	private Component fluidEditorLabel() {
+		int total = session.fluidDepositIds().size();
+		int enabled = session.enabledFluidDepositCount();
+		return new TranslatableComponent("button.orespawn.fluid_deposits_count", enabled, total);
+	}
+
+	private void rebuildWidgets() {
+		clearWidgets();
+		init();
+	}
+
+	private static final class JsonObjectAccess {
+		private final com.google.gson.JsonObject value;
+		JsonObjectAccess(com.google.gson.JsonObject value) { this.value = value; }
+		ResourceLocation resource(String key) {
+			try { return new ResourceLocation(value.get(key).getAsString()); }
+			catch (RuntimeException ignored) { return null; }
+		}
 	}
 
 	private List<FormattedCharSequence> tooltip(String key) {

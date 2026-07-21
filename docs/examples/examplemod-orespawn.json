@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "rocks": {
@@ -56,6 +56,7 @@
             }
           },
           "height_distribution": "triangle",
+          "discard_chance_on_air_exposure": 0.5,
           "spread": 8,
           "vertical_spread": 4,
           "node_size": 4,
@@ -63,6 +64,48 @@
           "host_blocks": [
             { "block": "minecraft:deepslate", "weight": 0.75 }
           ]
+        }
+      }
+    }
+  },
+  "fluid_deposits": {
+    "examplemod:fluid_deposit/brine": {
+      "enabled": true,
+      "block": "examplemod:brine",
+      "dimensions": {
+        "minecraft:overworld": {
+          "enabled": true,
+          "min_y": -48,
+          "max_y": 32,
+          "frequency": 0.05,
+          "min_radius": 6,
+          "max_radius": 14,
+          "min_vertical_radius": 2,
+          "max_vertical_radius": 6,
+          "max_lobes": 4,
+          "min_solid_cover": 2,
+          "min_solid_shell": 1,
+          "host_families": ["sedimentary"],
+          "host_blocks": [],
+          "host_tags": ["minecraft:stone_ore_replaceables"],
+          "biome_ids": [],
+          "excluded_biome_ids": [],
+          "biome_dictionary": ["OCEAN"],
+          "excluded_biome_dictionary": [],
+          "geomes": {}
+        }
+      },
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "enabled": true,
+          "min_y": -16,
+          "max_y": 96,
+          "frequency": 2.0,
+          "min_quantity": 4,
+          "max_quantity": 11,
+          "pattern": "vein",
+          "height_distribution": "uniform",
+          "host_tags": ["minecraft:stone_ore_replaceables"]
         }
       }
     }

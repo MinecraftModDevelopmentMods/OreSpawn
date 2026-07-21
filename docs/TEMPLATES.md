@@ -1,7 +1,7 @@
 # Geology Templates
 
 Templates are named profile overlays supplied by providers. They may set
-formation presets, rocks, geomes, biome rules, ores, oil, suppression,
+formation presets, rocks, geomes, biome rules, ores, fluid deposits, suppression,
 retrogen, flat bedrock, and terrain dimensions. A template may reference any
 installed registry ID and list `required_mods`.
 

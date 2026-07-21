@@ -1,7 +1,7 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "geology_mode": "geome",
-  "place_crude_oil": false,
+  "place_fluid_deposits": true,
   "manage_vanilla_ores": false,
   "suppress_all_ore_features": false,
   "default_template": "",
@@ -30,17 +30,7 @@
   "rocks": {},
   "terrain_dimensions": {},
   "ores": {},
-  "oil": {
-    "min_y": -48,
-    "max_y": 32,
-    "frequency": 0.08,
-    "min_radius": 8,
-    "max_radius": 18,
-    "min_vertical_radius": 3,
-    "max_vertical_radius": 8,
-    "max_lobes": 5,
-    "min_solid_cover": 2
-  },
+  "fluid_deposits": {},
   "retrogen": {
     "enabled": false,
     "force": false,

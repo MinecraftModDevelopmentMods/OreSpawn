@@ -16,7 +16,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
@@ -62,7 +61,8 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			return;
 		}
 
-		if (isOverworldCategory(event.getCategory())) {
+		if (TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(event.getCategory(),
+				OreSpawnConfig.placeOreSpawnRock(), GeomeConfig.hasTerrainReplacement(Level.OVERWORLD))) {
 			removeVanillaMatchingStoneFeatures(event);
 		}
 		if (placedFeature != null) {
@@ -90,11 +90,6 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			geology.sky.replaceStoneInChunk(world, chunk, terrain);
 		}
 		return true;
-	}
-
-	private static boolean isOverworldCategory(BiomeCategory category) {
-		return category != BiomeCategory.NETHER && category != BiomeCategory.THEEND
-				&& category != BiomeCategory.NONE;
 	}
 
 	private static void removeVanillaMatchingStoneFeatures(BiomeLoadingEvent event) {

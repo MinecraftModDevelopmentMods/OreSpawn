@@ -1,12 +1,19 @@
 package com.mcmoddev.orespawn.worldgen;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
 import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
@@ -47,7 +54,7 @@ public final class WorldgenBenchmark {
 		GeologyMode geologyMode = "cyano".equals(MODE) ? GeologyMode.LEGACY : GeologyMode.GEOME;
 		WorldGeologyProfile benchmarkProfile = source.withSelection(geologyMode,
 				Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE, Preset.AVERAGE,
-				source.placeCrudeOil());
+				source.placeFluidDeposits());
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkVanillaOres")) {
 			com.google.gson.JsonObject root = benchmarkProfile.rootCopy();
 			root.addProperty("manage_vanilla_ores", true);
@@ -57,27 +64,41 @@ public final class WorldgenBenchmark {
 	}
 
 	private static void onServerStarted(ServerStartedEvent event) {
-		ServerLevel level = event.getServer().overworld();
+		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
+				.trim().toLowerCase(Locale.ROOT);
+		ServerLevel level = "nether".equals(dimensionName)
+				? event.getServer().getLevel(net.minecraft.world.level.Level.NETHER)
+				: event.getServer().overworld();
+		if (level == null) {
+			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
+		}
 		int radius = boundedInteger("orespawn.worldgenBenchmarkRadius", 4, 1, 16);
 		int repetitions = boundedInteger("orespawn.worldgenBenchmarkRepetitions", 3, 1, 9);
 		int warmupRadius = Math.min(2, radius);
 		int chunks = squareDiameter(radius);
+		int baseCenterX = integer("orespawn.worldgenBenchmarkCenterX", 256);
+		int baseCenterZ = integer("orespawn.worldgenBenchmarkCenterZ", 256);
+		int centerStep = integer("orespawn.worldgenBenchmarkCenterStep", 64);
 
-		LOGGER.info("ORESPAWN_BENCHMARK start mode={} seed={} target_chunks={} repetitions={} "
+		LOGGER.info("ORESPAWN_BENCHMARK start mode={} dimension={} seed={} target_chunks={} repetitions={} "
 				+ "java={} processors={} max_heap_mb={}",
-				MODE, level.getSeed(), chunks, repetitions, System.getProperty("java.version"),
+				MODE, level.dimension().location(), level.getSeed(), chunks, repetitions,
+				System.getProperty("java.version"),
 				Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory() / (1024L * 1024L));
 
-		generateSquare(level, 192, 192, warmupRadius);
+		generateSquare(level, baseCenterX - 64, baseCenterZ - 64, warmupRadius);
 		double[] milliseconds = new double[repetitions];
 		for (int repetition = 0; repetition < repetitions; repetition++) {
-			int centerX = 256 + (repetition * 64);
+			int centerX = baseCenterX + (repetition * centerStep);
 			long started = System.nanoTime();
-			generateSquare(level, centerX, 256, radius);
+			generateSquare(level, centerX, baseCenterZ, radius);
 			milliseconds[repetition] = (System.nanoTime() - started) / 1_000_000.0D;
 			LOGGER.info("ORESPAWN_BENCHMARK result mode={} repetition={} chunks={} elapsed_ms={} ms_per_chunk={}",
 					MODE, repetition + 1, chunks, format(milliseconds[repetition]),
 					format(milliseconds[repetition] / chunks));
+			if (Boolean.getBoolean("orespawn.worldgenBenchmarkOreAudit")) {
+				auditOres(level, centerX, baseCenterZ, radius, repetition + 1);
+			}
 		}
 
 		double[] sorted = milliseconds.clone();
@@ -102,6 +123,72 @@ public final class WorldgenBenchmark {
 		return diameter * diameter;
 	}
 
+	private static void auditOres(ServerLevel level, int centerX, int centerZ, int radius,
+			int repetition) {
+		Map<String, OreAudit> audits = new LinkedHashMap<>();
+		if (net.minecraft.world.level.Level.NETHER.equals(level.dimension())) {
+			audits.put("nether_gold", new OreAudit(Blocks.NETHER_GOLD_ORE, Blocks.NETHER_GOLD_ORE));
+			audits.put("quartz", new OreAudit(Blocks.NETHER_QUARTZ_ORE, Blocks.NETHER_QUARTZ_ORE));
+			audits.put("ancient_debris", new OreAudit(Blocks.ANCIENT_DEBRIS, Blocks.ANCIENT_DEBRIS));
+		} else {
+			audits.put("coal", new OreAudit(Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE));
+			audits.put("copper", new OreAudit(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE));
+			audits.put("iron", new OreAudit(Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE));
+			audits.put("gold", new OreAudit(Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE));
+			audits.put("redstone", new OreAudit(Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE));
+			audits.put("diamond", new OreAudit(Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE));
+			audits.put("lapis", new OreAudit(Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE));
+			audits.put("emerald", new OreAudit(Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE));
+		}
+
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
+			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
+				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+				int minX = chunk.getPos().getMinBlockX();
+				int minZ = chunk.getPos().getMinBlockZ();
+				for (int localX = 0; localX < 16; localX++) {
+					for (int localZ = 0; localZ < 16; localZ++) {
+						cursor.set(minX + localX, chunk.getMinBuildHeight(), minZ + localZ);
+						for (int y = chunk.getMinBuildHeight(); y < chunk.getMaxBuildHeight(); y++) {
+							cursor.setY(y);
+							BlockState state = chunk.getBlockState(cursor);
+							for (OreAudit audit : audits.values()) {
+								if (audit.accepts(state.getBlock())) {
+									audit.record(localX, localZ,
+											isAdjacentToAir(level, cursor.getX(), y, cursor.getZ(), neighbor));
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		int chunks = squareDiameter(radius);
+		for (Map.Entry<String, OreAudit> entry : audits.entrySet()) {
+			OreAudit audit = entry.getValue();
+			LOGGER.info("ORESPAWN_BENCHMARK_ORE mode={} repetition={} ore={} total={} per_chunk={} "
+					+ "exposed={} exposed_pct={} x_low_pct={} x_high_pct={} z_low_pct={} z_high_pct={}",
+					MODE, repetition, entry.getKey(), audit.total, format(audit.total / (double) chunks),
+					audit.exposed, format(audit.exposedPercent()),
+					format(audit.edgePercent(audit.byX, 0)), format(audit.edgePercent(audit.byX, 14)),
+					format(audit.edgePercent(audit.byZ, 0)), format(audit.edgePercent(audit.byZ, 14)));
+		}
+	}
+
+	private static boolean isAdjacentToAir(ServerLevel level, int x, int y, int z,
+			BlockPos.MutableBlockPos cursor) {
+		return level.getBlockState(cursor.set(x + 1, y, z)).isAir()
+				|| level.getBlockState(cursor.set(x - 1, y, z)).isAir()
+				|| level.getBlockState(cursor.set(x, y + 1, z)).isAir()
+				|| level.getBlockState(cursor.set(x, y - 1, z)).isAir()
+				|| level.getBlockState(cursor.set(x, y, z + 1)).isAir()
+				|| level.getBlockState(cursor.set(x, y, z - 1)).isAir();
+	}
+
 	private static int boundedInteger(String property, int fallback, int min, int max) {
 		try {
 			return Math.max(min, Math.min(max, Integer.parseInt(System.getProperty(property, ""))));
@@ -112,5 +199,50 @@ public final class WorldgenBenchmark {
 
 	private static String format(double value) {
 		return String.format(Locale.ROOT, "%.3f", value);
+	}
+
+	private static int integer(String property, int fallback) {
+		try {
+			return Integer.parseInt(System.getProperty(property, ""));
+		} catch (NumberFormatException ignored) {
+			return fallback;
+		}
+	}
+
+	private static final class OreAudit {
+		private final Block shallow;
+		private final Block deep;
+		private final long[] byX = new long[16];
+		private final long[] byZ = new long[16];
+		private long total;
+		private long exposed;
+
+		OreAudit(Block shallow, Block deep) {
+			this.shallow = shallow;
+			this.deep = deep;
+		}
+
+		boolean accepts(Block block) {
+			return block == shallow || block == deep;
+		}
+
+		void record(int localX, int localZ, boolean isExposed) {
+			total++;
+			byX[localX]++;
+			byZ[localZ]++;
+			if (isExposed) exposed++;
+		}
+
+		double exposedPercent() {
+			return total == 0L ? 0.0D : (exposed * 100.0D) / total;
+		}
+
+		double edgePercent(long[] counts, int start) {
+			double edgeAverage = (counts[start] + counts[start + 1]) / 2.0D;
+			long interior = 0L;
+			for (int i = 2; i < 14; i++) interior += counts[i];
+			double interiorAverage = interior / 12.0D;
+			return interiorAverage <= 0.0D ? 0.0D : (edgeAverage * 100.0D) / interiorAverage;
+		}
 	}
 }

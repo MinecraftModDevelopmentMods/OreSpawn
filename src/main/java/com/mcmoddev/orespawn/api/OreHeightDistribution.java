@@ -3,7 +3,9 @@ package com.mcmoddev.orespawn.api;
 /** Vertical distributions supported by OreSpawn-managed ores. */
 public enum OreHeightDistribution {
 	UNIFORM("uniform"),
-	TRIANGLE("triangle");
+	TRIANGLE("triangle"),
+	BOTTOM_TRIANGLE("bottom_triangle"),
+	UNIFORM_BOTTOM_TRIANGLE("uniform_bottom_triangle");
 
 	private final String configName;
 

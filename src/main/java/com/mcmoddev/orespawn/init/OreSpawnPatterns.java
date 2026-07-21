@@ -113,8 +113,8 @@ public final class OreSpawnPatterns {
 	}
 
 	private static CompiledOrePattern compact(StandardPatternSettings settings) {
-		return context -> fillBall(context, context.originX(), context.originY(), context.originZ(),
-				context.quantity(), Math.max(1, settings.nodeSize()));
+		return context -> ConnectedOreShape.place(context, context.originX(), context.originY(),
+				context.originZ(), context.quantity());
 	}
 
 	private static CompiledOrePattern precision(StandardPatternSettings settings) {
@@ -157,11 +157,10 @@ public final class OreSpawnPatterns {
 			boolean changed = false;
 			while (remaining > 0) {
 				int node = Math.min(settings.nodeSize(), remaining);
-				changed |= fillBall(context,
+				changed |= ConnectedOreShape.place(context,
 						context.originX() + triangular(random, settings.spread()),
 						context.originY() + triangular(random, settings.verticalSpread()),
-						context.originZ() + triangular(random, settings.spread()), node,
-						settings.nodeSize());
+						context.originZ() + triangular(random, settings.spread()), node);
 				remaining -= node;
 			}
 			return changed;
@@ -181,8 +180,8 @@ public final class OreSpawnPatterns {
 			boolean changed = false;
 			for (int step = 0; step < steps && remaining > 0; step++) {
 				int node = Math.min(settings.nodeSize(), remaining);
-				changed |= fillBall(context, (int) Math.round(x), (int) Math.round(y),
-						(int) Math.round(z), node, settings.nodeSize());
+				changed |= ConnectedOreShape.place(context, (int) Math.round(x), (int) Math.round(y),
+						(int) Math.round(z), node);
 				remaining -= node;
 				yaw += (random.nextDouble() - 0.5D) * 0.55D;
 				pitch = Math.max(-0.65D, Math.min(0.65D,
@@ -208,29 +207,10 @@ public final class OreSpawnPatterns {
 				int z = context.originZ() + random.nextInt(5) - 2;
 				if (!context.isFluid(x, y, z, targetFluid)) continue;
 				while (y > context.minY() && context.isFluid(x, y - 1, z, targetFluid)) y--;
-				return fillBall(context, x, y - 1, z, context.quantity(), settings.nodeSize());
+				return ConnectedOreShape.place(context, x, y - 1, z, context.quantity());
 			}
 			return false;
 		};
-	}
-
-	private static boolean fillBall(OrePlacementContext context, int centerX, int centerY, int centerZ,
-			int target, int configuredNodeSize) {
-		int radius = Math.max(1, (int) Math.ceil(Math.cbrt(Math.max(1, configuredNodeSize))));
-		int placed = 0;
-		int limit = Math.min(256, Math.max(target * 6, 12));
-		Random random = context.random();
-		for (int attempt = 0; attempt < limit && placed < target; attempt++) {
-			int x = centerX + random.nextInt(radius * 2 + 1) - radius;
-			int y = centerY + random.nextInt(radius * 2 + 1) - radius;
-			int z = centerZ + random.nextInt(radius * 2 + 1) - radius;
-			int dx = x - centerX;
-			int dy = y - centerY;
-			int dz = z - centerZ;
-			if ((dx * dx) + (dy * dy) + (dz * dz) <= radius * radius
-					&& context.tryPlace(x, y, z)) placed++;
-		}
-		return placed > 0;
 	}
 
 	private static int triangular(Random random, int radius) {

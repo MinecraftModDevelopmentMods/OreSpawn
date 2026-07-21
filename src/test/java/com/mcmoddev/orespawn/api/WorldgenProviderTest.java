@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 
 class WorldgenProviderTest {
 	@Test
-	void serializesTypedSchemaTwoProvider() {
+	void serializesTypedSchemaThreeProvider() {
 		ResourceLocation overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
 				.rock(id("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
@@ -25,14 +25,17 @@ class WorldgenProviderTest {
 						.suppressVanilla(true).retrogen(false)
 						.dimension(overworld, dimension -> dimension
 						.yRange(-16, 96).attempts(6.5D).quantity(8)
-						.pattern(OrePattern.CLUSTER).hostFamily(GeologyFamily.METAMORPHIC)
+						.pattern(OrePattern.CLUSTER)
+						.heightDistribution(OreHeightDistribution.BOTTOM_TRIANGLE)
+						.discardChanceOnAirExposure(0.75D)
+						.hostFamily(GeologyFamily.METAMORPHIC)
 						.hostBlock(id("minecraft:deepslate"), 0.75D)))
 				.biome(id("minecraft:jagged_peaks"),
 						Collections.singletonMap(id("orespawn:mountain_belt"), 2.0D))
 				.build();
 
 		JsonObject json = provider.toJson();
-		assertEquals(2, json.get("schema_version").getAsInt());
+		assertEquals(3, json.get("schema_version").getAsInt());
 		assertEquals("examplemod", json.get("provider_modid").getAsString());
 		assertTrue(json.getAsJsonObject("rocks").has("examplemod:rock/examplemod/slate"));
 		assertEquals("examplemod:slate", json.getAsJsonObject("rocks")
@@ -43,6 +46,11 @@ class WorldgenProviderTest {
 		assertFalse(ore.get("retrogen").getAsBoolean());
 		assertEquals(0.75D, ore.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.getAsJsonArray("host_blocks").get(0).getAsJsonObject().get("weight").getAsDouble());
+		assertEquals("bottom_triangle", ore.getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:overworld").get("height_distribution").getAsString());
+		assertEquals(0.75D, ore.getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:overworld")
+				.get("discard_chance_on_air_exposure").getAsDouble());
 		assertTrue(json.getAsJsonObject("biome_rules").has("minecraft:jagged_peaks"));
 
 		json.getAsJsonObject("rocks").remove("examplemod:rock/examplemod/slate");
@@ -58,9 +66,13 @@ class WorldgenProviderTest {
 				.waviness(FormationPreset.CUSTOM)
 				.customValue("waviness_amplitude", 180.0D)
 				.build();
-		WorldgenProvider.OilDefinition oil = WorldgenProvider.OilDefinition.builder()
-				.yRange(-32, 24).attempts(0.05D).radius(10, 18)
-				.verticalRadius(3, 8).maxLobes(5).minSolidCover(3).build();
+		WorldgenProvider.FluidDepositDefinition brine = WorldgenProvider.FluidDepositDefinition.builder(
+				id("examplemod:fluid_deposit/brine"), id("examplemod:brine"))
+				.dimension(id("minecraft:overworld"), rule -> rule
+						.yRange(-32, 24).attempts(0.05D).radius(10, 18)
+						.verticalRadius(3, 8).maxLobes(5).minSolidCover(3).minSolidShell(2)
+						.hostFamily(GeologyFamily.SEDIMENTARY).biomeDictionary("OCEAN"))
+				.build();
 
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 2)
 				.geome(id("examplemod:crystal_basin"), geome -> geome
@@ -69,8 +81,9 @@ class WorldgenProviderTest {
 						id("examplemod:crystal_basin"), 3.0D))
 				.terrainDimension(dimension, terrain -> terrain
 						.biomeNamespace("examplemod").hostTag(id("examplemod:base_stone")))
+				.fluidDeposit(brine)
 				.template(id("examplemod:huge_crystals"), template -> template
-						.requiresMod("examplemod").formations(formations).oil(oil))
+						.requiresMod("examplemod").formations(formations).fluidDeposit(brine))
 				.build();
 
 		JsonObject json = provider.toJson();
@@ -81,7 +94,14 @@ class WorldgenProviderTest {
 				.getAsJsonObject("examplemod:huge_crystals").getAsJsonObject("profile");
 		assertEquals("huge", template.getAsJsonObject("formations")
 				.get("horizontal_size").getAsString());
-		assertEquals(3, template.getAsJsonObject("oil").get("min_solid_cover").getAsInt());
+		assertEquals(3, template.getAsJsonObject("fluid_deposits")
+				.getAsJsonObject("examplemod:fluid_deposit/brine")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
+				.get("min_solid_cover").getAsInt());
+		assertEquals(2, template.getAsJsonObject("fluid_deposits")
+				.getAsJsonObject("examplemod:fluid_deposit/brine")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
+				.get("min_solid_shell").getAsInt());
 	}
 
 	@Test
@@ -136,6 +156,59 @@ class WorldgenProviderTest {
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
 				.builder(id("minecraft:overworld")).attempts(-1.0D)
 				.hostTag(id("minecraft:base_stone_overworld")).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).discardChanceOnAirExposure(1.01D)
+				.hostTag(id("minecraft:base_stone_overworld")).build());
+	}
+
+	@Test
+	void serializesRangedQuantityAndBroadDimensionSelector() {
+		WorldgenProvider.OreDimensionDefinition placement = WorldgenProvider.OreDimensionDefinition
+				.builder(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id())
+				.yRange(0, 127).attempts(5.0D).quantityRange(4, 11)
+				.hostTag(id("minecraft:stone_ore_replaceables")).build();
+		assertEquals(4, placement.minQuantity());
+		assertEquals(11, placement.maxQuantity());
+		assertEquals(8, placement.quantity());
+
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.ore(id("examplemod:copper_ore"), ore -> ore.dimensionSelector(
+						OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END, placement))
+				.build();
+		JsonObject ore = provider.toJson().getAsJsonObject("ores")
+				.getAsJsonObject("examplemod:ore/examplemod/copper_ore");
+		assertFalse(ore.has("dimensions"));
+		JsonObject rule = ore
+				.getAsJsonObject("dimension_selectors")
+				.getAsJsonObject("orespawn:all_except_nether_end");
+		assertEquals(4, rule.get("min_quantity").getAsInt());
+		assertEquals(11, rule.get("max_quantity").getAsInt());
+		assertFalse(rule.has("quantity"));
+	}
+
+	@Test
+	void rejectsInvalidQuantityRangesEarly() {
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).quantityRange(12, 4)
+				.hostTag(id("minecraft:base_stone_overworld")).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).quantityRange(1, 65)
+				.hostTag(id("minecraft:base_stone_overworld")).build());
+	}
+
+	@Test
+	void rejectsInvalidFluidPlacementEarly() {
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
+				.builder(id("minecraft:overworld")).attempts(-1.0D)
+				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
+				.builder(id("minecraft:overworld")).radius(12, 5)
+				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
+				.builder(id("minecraft:overworld")).minSolidShell(-1)
+				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
+				.builder(id("minecraft:overworld")).build());
 	}
 
 	private static ResourceLocation id(String value) {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mcmoddev.orespawn.api.OreDimensionSelector;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.gui.components.Button;
@@ -20,6 +21,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
 final class OreEntryScreen extends Screen {
+	private static final String BROAD_SELECTOR =
+			OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString();
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String oreId;
@@ -40,6 +43,7 @@ final class OreEntryScreen extends Screen {
 	protected void init() {
 		JsonObject ore = session.ore(oreId);
 		JsonObject dimensions = dimensions(ore);
+		JsonObject selectors = selectors(ore);
 		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(width / 2 - 155, 48, 150, 20,
 				new TranslatableComponent("option.orespawn.enabled"), (button, value) -> {
 					enabled = value; ore.addProperty("enabled", value);
@@ -48,6 +52,7 @@ final class OreEntryScreen extends Screen {
 				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
 
 		List<String> ids = new ArrayList<>(dimensions.keySet());
+		ids.addAll(selectors.keySet());
 		Collections.sort(ids);
 		int listTop = 76;
 		int pickerY = height - 76;
@@ -58,7 +63,8 @@ final class OreEntryScreen extends Screen {
 		int start = page * pageSize;
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
-			addRenderableWidget(new Button(width / 2 - 155, listTop + (i * 24), 310, 20,
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+					width / 2 - 155, listTop + (i * 24), 310, 20,
 					new TextComponent(id), button -> minecraft.setScreen(
 							new OreDimensionScreen(this, session, oreId, id))));
 		}
@@ -72,7 +78,8 @@ final class OreEntryScreen extends Screen {
 				new TranslatableComponent("option.orespawn.dimension")));
 		dimensionId.setMaxLength(128);
 		List<String> availableDimensions = session.availableDimensionIds();
-		String selectedDimension = selectedDimension(availableDimensions, dimensions);
+		availableDimensions.add(0, BROAD_SELECTOR);
+		String selectedDimension = selectedDimension(availableDimensions, dimensions, selectors);
 		if (dimensionText.isEmpty()) dimensionText = selectedDimension;
 		dimensionId.setValue(dimensionText);
 		dimensionId.setResponder(value -> dimensionText = value);
@@ -102,8 +109,9 @@ final class OreEntryScreen extends Screen {
 		}
 		dimensionText = id;
 		JsonObject dimensions = dimensions(session.ore(oreId));
-		if (!dimensions.has(id)) {
-			dimensions.add(id, defaultDimension(id));
+		JsonObject target = BROAD_SELECTOR.equals(id) ? selectors(session.ore(oreId)) : dimensions;
+		if (!target.has(id)) {
+			target.add(id, defaultDimension(id));
 		}
 		minecraft.setScreen(new OreDimensionScreen(this, session, oreId, id));
 	}
@@ -134,10 +142,10 @@ final class OreEntryScreen extends Screen {
 		return rule;
 	}
 
-	private String selectedDimension(List<String> available, JsonObject configured) {
+	private String selectedDimension(List<String> available, JsonObject configured, JsonObject selectors) {
 		if (available.contains(dimensionText)) return dimensionText;
 		for (String id : available) {
-			if (!configured.has(id)) return id;
+			if (!configured.has(id) && !selectors.has(id)) return id;
 		}
 		return available.get(0);
 	}
@@ -167,7 +175,19 @@ final class OreEntryScreen extends Screen {
 		return ore.getAsJsonObject("dimensions");
 	}
 
+	private static JsonObject selectors(JsonObject ore) {
+		if (!ore.has("dimension_selectors") || !ore.get("dimension_selectors").isJsonObject()) {
+			JsonObject result = new JsonObject();
+			ore.add("dimension_selectors", result);
+			return result;
+		}
+		return ore.getAsJsonObject("dimension_selectors");
+	}
+
 	private Component dimensionName(String id) {
+		if (BROAD_SELECTOR.equals(id)) {
+			return new TranslatableComponent("value.orespawn.dimension.all_except_nether_end");
+		}
 		if ("minecraft:overworld".equals(id)) {
 			return new TranslatableComponent("value.orespawn.dimension.overworld");
 		}
@@ -193,8 +213,9 @@ final class OreEntryScreen extends Screen {
 	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
-		drawCenteredString(poseStack, font,
-				new TextComponent(session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId)),
+		Component blockName = new TextComponent(
+				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
+		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
 				width / 2, 25, 0xDDDDDD);
 		String source = GeologyEditorSession.string(session.ore(oreId), "source_provider",
 				GeologyEditorSession.string(session.ore(oreId), "source_mod", ""));
