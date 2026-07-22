@@ -12,20 +12,34 @@ final class OreSpawnScreenLayout {
 
 	private OreSpawnScreenLayout() { }
 
+	static boolean compact(int height) {
+		return height < COMPACT_HEIGHT;
+	}
+
 	static int mainTop(int height) {
-		return height < COMPACT_HEIGHT ? 28 : 42;
+		return compact(height) ? 28 : 42;
 	}
 
 	static int mainRowSpacing(int height) {
-		return height < COMPACT_HEIGHT ? 22 : 24;
+		return compact(height) ? 22 : 24;
 	}
 
 	static int mainTitleY(int height) {
-		return height < COMPACT_HEIGHT ? 7 : 16;
+		return compact(height) ? 7 : 16;
 	}
 
 	static int mainErrorY(int height) {
-		return height < COMPACT_HEIGHT ? 18 : 30;
+		return compact(height) ? 18 : 30;
+	}
+
+	static int compactOrePlacementLabelY(int height, int row) {
+		int available = footerY(height) - 4 - 134;
+		int spacing = Math.min(36, Math.max(30, available / 2));
+		return 104 + (row * spacing);
+	}
+
+	static int compactOrePlacementFieldY(int height, int row) {
+		return compactOrePlacementLabelY(height, row) + 10;
 	}
 
 	static int footerY(int height) {

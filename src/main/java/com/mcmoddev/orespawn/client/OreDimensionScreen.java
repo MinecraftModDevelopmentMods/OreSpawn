@@ -143,16 +143,29 @@ final class OreDimensionScreen extends Screen {
 				.create(left, 80, contentWidth, 20, new TranslatableComponent("option.orespawn.ore_richness"),
 						(button, value) -> applyRichness(value)));
 		placementWidgets.add(richness);
-		minY = addPlacementField(right, 104, "min_y", text(rule, "min_y", -64));
-		maxY = addPlacementField(right, 128, "max_y", text(rule, "max_y", 64));
-		frequency = addPlacementField(right, 152, "frequency", text(rule, "frequency", 1.0D));
 		int fixedQuantity = GeologyEditorSession.integer(rule, "quantity", 8);
-		minQuantity = addPlacementField(right, 176, "min_quantity",
-				text(rule, "min_quantity", fixedQuantity));
-		maxQuantity = addPlacementField(right, 200, "max_quantity",
-				text(rule, "max_quantity", fixedQuantity));
-		discardAirExposure = addPlacementField(right, 224, "discard_air_exposure",
-				text(rule, "discard_chance_on_air_exposure", 0.0D));
+		if (OreSpawnScreenLayout.compact(height)) {
+			minY = addPlacementField(left, compactPlacementFieldY(0), "min_y", text(rule, "min_y", -64));
+			maxY = addPlacementField(right, compactPlacementFieldY(0), "max_y", text(rule, "max_y", 64));
+			frequency = addPlacementField(left, compactPlacementFieldY(1), "frequency",
+					text(rule, "frequency", 1.0D));
+			discardAirExposure = addPlacementField(right, compactPlacementFieldY(1), "discard_air_exposure",
+					text(rule, "discard_chance_on_air_exposure", 0.0D));
+			minQuantity = addPlacementField(left, compactPlacementFieldY(2), "min_quantity",
+					text(rule, "min_quantity", fixedQuantity));
+			maxQuantity = addPlacementField(right, compactPlacementFieldY(2), "max_quantity",
+					text(rule, "max_quantity", fixedQuantity));
+		} else {
+			minY = addPlacementField(right, 104, "min_y", text(rule, "min_y", -64));
+			maxY = addPlacementField(right, 128, "max_y", text(rule, "max_y", 64));
+			frequency = addPlacementField(right, 152, "frequency", text(rule, "frequency", 1.0D));
+			minQuantity = addPlacementField(right, 176, "min_quantity",
+					text(rule, "min_quantity", fixedQuantity));
+			maxQuantity = addPlacementField(right, 200, "max_quantity",
+					text(rule, "max_quantity", fixedQuantity));
+			discardAirExposure = addPlacementField(right, 224, "discard_air_exposure",
+					text(rule, "discard_chance_on_air_exposure", 0.0D));
+		}
 
 		AbstractWidget patternButton;
 		if (externalPattern) {
@@ -223,6 +236,10 @@ final class OreDimensionScreen extends Screen {
 		box.setMaxLength(32);
 		placementWidgets.add(addRenderableWidget(box));
 		return box;
+	}
+
+	private int compactPlacementFieldY(int row) {
+		return OreSpawnScreenLayout.compactOrePlacementFieldY(height, row);
 	}
 
 	private EditBox addHostField(int x, int y, String key, String value) {
@@ -415,15 +432,22 @@ final class OreDimensionScreen extends Screen {
 		Component dimensionName = dimensionSelector
 				? new TranslatableComponent("value.orespawn.dimension.all_except_nether_end")
 				: new TextComponent(dimensionId);
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
-				width / 2, 23, 0xAAAAAA);
+		boolean compact = OreSpawnScreenLayout.compact(height);
+		if (error == null || !compact) {
+			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
+					width / 2, 23, 0xAAAAAA);
+		}
 		if (page == Page.PLACEMENT) {
-			String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
-					"discard_air_exposure" };
-			for (int i = 0; i < labels.length; i++) {
-				Component label = new TranslatableComponent("option.orespawn." + labels[i]);
-				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
-						contentLeft, 110 + (i * 24), 0xDDDDDD);
+			if (compact) {
+				drawCompactPlacementLabels(poseStack);
+			} else {
+				String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
+						"discard_air_exposure" };
+				for (int i = 0; i < labels.length; i++) {
+					Component label = new TranslatableComponent("option.orespawn." + labels[i]);
+					drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
+							contentLeft, 110 + (i * 24), 0xDDDDDD);
+				}
 			}
 		} else if (page == Page.PATTERN && !externalPattern) {
 			String[] labels = { "spread", "vertical_spread", "node_size" };
@@ -441,8 +465,27 @@ final class OreDimensionScreen extends Screen {
 			drawString(poseStack, font, new TranslatableComponent("option.orespawn.host_tags"),
 					contentLeft, 110, 0xDDDDDD);
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 40, 0xFF5555);
+		if (error != null) {
+			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, error, contentWidth),
+					width / 2, compact ? 23 : height - 40, 0xFF5555);
+		}
 		super.render(poseStack, mouseX, mouseY, partialTick);
+	}
+
+	private void drawCompactPlacementLabels(PoseStack poseStack) {
+		String[][] labels = {
+				{ "min_y", "max_y" },
+				{ "frequency", "discard_air_exposure" },
+				{ "min_quantity", "max_quantity" }
+		};
+		for (int row = 0; row < labels.length; row++) {
+			for (int column = 0; column < labels[row].length; column++) {
+				Component label = new TranslatableComponent("option.orespawn." + labels[row][column]);
+				int x = column == 0 ? contentLeft : contentLeft + columnWidth + 5;
+				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth),
+						x, OreSpawnScreenLayout.compactOrePlacementLabelY(height, row), 0xDDDDDD);
+			}
+		}
 	}
 
 	private Component patternName(OrePattern value) {
