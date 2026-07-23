@@ -1,5 +1,16 @@
 # Migration
 
+## OreSpawn 4.0.1 provider-aware OS3 imports
+
+When an OreSpawn 2/3 file is named for an installed provider, the migrator now
+compares each converted primary output with that provider's ore declarations.
+A unique output match is written under the provider's stable rule ID, allowing
+provider merging to retain the migrated user values without adding a duplicate
+default. Ambiguous and unmatched outputs keep their `orespawn:legacy/...` IDs
+and are called out in `orespawn-migration/migration-report.txt` for manual
+review. Files owned by mods without an active provider retain the original
+legacy-ID behaviour.
+
 Migration is non-destructive. OreSpawn writes `config/orespawn-worldgen.json`
 only when that target does not already exist and retains every source file.
 

@@ -14,6 +14,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
+
+import com.mcmoddev.orespawn.integration.WorldgenIntegrationManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -34,6 +37,11 @@ final class LegacyConfigMigrator {
 	}
 
 	static JsonObject migrateIfNeeded(Path target, JsonObject defaults) {
+		return migrateIfNeeded(target, defaults, WorldgenIntegrationManager::findProviderOreRulesByOutput);
+	}
+
+	static JsonObject migrateIfNeeded(Path target, JsonObject defaults,
+			BiFunction<String, String, List<String>> providerRules) {
 		if (Files.exists(target)) return null;
 		Path config = target.getParent();
 		Path mineralogy = config.resolve("mineralogy-geomes.json");
@@ -66,9 +74,9 @@ final class LegacyConfigMigrator {
 			String owner = safe(path.getFileName().toString().replaceFirst("\\.json$", ""));
 			for (Entry<String, JsonElement> entry : root.getAsJsonObject("spawns").entrySet()) {
 				if (!entry.getValue().isJsonObject()) continue;
-				String id = "orespawn:legacy/" + owner + "/" + safe(entry.getKey());
 				JsonObject converted = convertSpawn(entry.getKey(), entry.getValue().getAsJsonObject(), report);
 				if (converted != null) {
+					String id = migratedRuleId(owner, entry.getKey(), converted, providerRules, report);
 					ores.add(id, converted);
 					imported++;
 				}
@@ -88,6 +96,28 @@ final class LegacyConfigMigrator {
 		writeReport(config, report);
 		LOGGER.info("Migrated {} legacy OreSpawn definitions into '{}'", imported, target);
 		return migrated;
+	}
+
+	private static String migratedRuleId(String owner, String legacyName, JsonObject converted,
+			BiFunction<String, String, List<String>> providerRules, List<String> report) {
+		String legacyId = "orespawn:legacy/" + owner + "/" + safe(legacyName);
+		String output = string(converted, "block", "");
+		List<String> matches = providerRules.apply(owner, output);
+		if (matches == null) return legacyId;
+		if (matches.size() == 1) {
+			String providerId = matches.get(0);
+			report.add("Mapped legacy rule " + legacyName + " to provider rule " + providerId
+					+ " by unique output " + output + ".");
+			return providerId;
+		}
+		if (matches.isEmpty()) {
+			report.add("Warning: installed provider " + owner + " has no ore rule matching legacy output "
+					+ output + "; retained " + legacyId + ".");
+		} else {
+			report.add("Warning: installed provider " + owner + " has ambiguous ore rules " + matches
+					+ " for legacy output " + output + "; retained " + legacyId + ".");
+		}
+		return legacyId;
 	}
 
 	private static JsonObject convertSpawn(String name, JsonObject source, List<String> report) {

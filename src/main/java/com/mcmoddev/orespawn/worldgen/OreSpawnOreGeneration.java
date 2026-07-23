@@ -264,12 +264,12 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
 			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
 			if (output == null || output == Blocks.AIR || (dimensions.size() == 0 && selectors.size() == 0)) {
-				LOGGER.warn("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
+				reportBakeProblem("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
 				continue;
 			}
 			BlockState deepOutput = blockState(oreJson, "deep_output", output.defaultBlockState());
 			if (deepOutput == null) {
-				LOGGER.warn("Ignoring OreSpawn-managed ore '{}' because its deep output is invalid",
+				reportBakeProblem("Ignoring OreSpawn-managed ore '{}' because its deep output is invalid",
 						oreEntry.getKey());
 				continue;
 			}
@@ -280,7 +280,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
 				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) {
-					LOGGER.warn("Ignoring invalid dimension '{}' for OreSpawn-managed ore '{}'",
+					reportBakeProblem("Ignoring invalid dimension '{}' for OreSpawn-managed ore '{}'",
 							dimensionEntry.getKey(), oreEntry.getKey());
 					continue;
 				}
@@ -299,7 +299,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				if (baked != null) {
 					rule.explicit.put(dimensionKey, baked);
 				} else {
-					LOGGER.warn("Ignoring invalid placement rule for OreSpawn-managed ore '{}' in '{}'",
+					reportBakeProblem("Ignoring invalid placement rule for OreSpawn-managed ore '{}' in '{}'",
 							oreEntry.getKey(), dimensionEntry.getKey());
 				}
 			}
@@ -307,7 +307,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				ResourceLocation selectorId = resource(selectorEntry.getKey());
 				if (selectorId == null
 						|| !OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().equals(selectorId)) {
-					LOGGER.warn("Ignoring unknown dimension selector '{}' for OreSpawn-managed ore '{}'",
+					reportBakeProblem("Ignoring unknown dimension selector '{}' for OreSpawn-managed ore '{}'",
 							selectorEntry.getKey(), oreEntry.getKey());
 					continue;
 				}
@@ -317,7 +317,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				rule.selector = bakeOre(output.defaultBlockState(), deepOutput, deepOutputMaxY, outputs,
 						selector, config, resolvedTags, retrogen);
 				if (rule.selector == null) {
-					LOGGER.warn("Ignoring invalid selector rule for OreSpawn-managed ore '{}'",
+					reportBakeProblem("Ignoring invalid selector rule for OreSpawn-managed ore '{}'",
 							oreEntry.getKey());
 				}
 			}
@@ -357,6 +357,18 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return new BakedOres(Collections.unmodifiableMap(result),
 				Collections.unmodifiableMap(immutableVanillaOutputs), selectorResult,
 				Collections.unmodifiableSet(selectorOutputs));
+	}
+
+	private static void reportBakeProblem(String message, Object... arguments) {
+		// Loading invokes provisional bakes before the server's registries and
+		// data-pack tags are authoritative. Keep diagnostics available at debug
+		// level then, but warn once the server-thread bake can make a real
+		// validity decision.
+		if (WorldGeologyProfileManager.activeServer() == null) {
+			LOGGER.debug(message, arguments);
+		} else {
+			LOGGER.warn(message, arguments);
+		}
 	}
 
 	private static JsonObject objectOrEmpty(JsonObject root, String key) {

@@ -9,7 +9,11 @@ import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
 import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -66,9 +70,7 @@ public final class WorldgenBenchmark {
 	private static void onServerStarted(ServerStartedEvent event) {
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
-		ServerLevel level = "nether".equals(dimensionName)
-				? event.getServer().getLevel(net.minecraft.world.level.Level.NETHER)
-				: event.getServer().overworld();
+		ServerLevel level = event.getServer().getLevel(benchmarkDimensionKey(dimensionName));
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
@@ -108,6 +110,26 @@ public final class WorldgenBenchmark {
 				+ "median_ms={} median_ms_per_chunk={} min_ms={} max_ms={}",
 				MODE, chunks, repetitions, format(median), format(median / chunks),
 				format(sorted[0]), format(sorted[sorted.length - 1]));
+		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
+			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
+			event.getServer().halt(false);
+		}
+	}
+
+	static ResourceKey<Level> benchmarkDimensionKey(String configured) {
+		String dimensionName = configured.trim().toLowerCase(Locale.ROOT);
+		return switch (dimensionName) {
+			case "overworld" -> Level.OVERWORLD;
+			case "nether" -> Level.NETHER;
+			case "end" -> Level.END;
+			default -> {
+				ResourceLocation id = ResourceLocation.tryParse(dimensionName);
+				if (id == null) {
+					throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
+				}
+				yield ResourceKey.create(Registry.DIMENSION_REGISTRY, id);
+			}
+		};
 	}
 
 	private static void generateSquare(ServerLevel level, int centerX, int centerZ, int radius) {
@@ -140,6 +162,7 @@ public final class WorldgenBenchmark {
 			audits.put("lapis", new OreAudit(Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE));
 			audits.put("emerald", new OreAudit(Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE));
 		}
+		addConfiguredAudits(audits);
 
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
@@ -156,9 +179,8 @@ public final class WorldgenBenchmark {
 							BlockState state = chunk.getBlockState(cursor);
 							for (OreAudit audit : audits.values()) {
 								if (audit.accepts(state.getBlock())) {
-									audit.record(localX, localZ,
+									audit.record(localX, localZ, y,
 											isAdjacentToAir(level, cursor.getX(), y, cursor.getZ(), neighbor));
-									break;
 								}
 							}
 						}
@@ -171,11 +193,41 @@ public final class WorldgenBenchmark {
 		for (Map.Entry<String, OreAudit> entry : audits.entrySet()) {
 			OreAudit audit = entry.getValue();
 			LOGGER.info("ORESPAWN_BENCHMARK_ORE mode={} repetition={} ore={} total={} per_chunk={} "
-					+ "exposed={} exposed_pct={} x_low_pct={} x_high_pct={} z_low_pct={} z_high_pct={}",
+					+ "min_y={} max_y={} out_of_range={} exposed={} exposed_pct={} "
+					+ "x_low_pct={} x_high_pct={} z_low_pct={} z_high_pct={}",
 					MODE, repetition, entry.getKey(), audit.total, format(audit.total / (double) chunks),
+					audit.minimumObserved(), audit.maximumObserved(), audit.outOfRange,
 					audit.exposed, format(audit.exposedPercent()),
 					format(audit.edgePercent(audit.byX, 0)), format(audit.edgePercent(audit.byX, 14)),
 					format(audit.edgePercent(audit.byZ, 0)), format(audit.edgePercent(audit.byZ, 14)));
+			audit.assertExpectation(entry.getKey());
+		}
+	}
+
+	private static void addConfiguredAudits(Map<String, OreAudit> audits) {
+		String configured = System.getProperty("orespawn.worldgenBenchmarkBlockAudit", "").trim();
+		if (configured.isEmpty()) {
+			return;
+		}
+		for (String specification : configured.split(";")) {
+			String[] fields = specification.trim().split(",");
+			if (fields.length != 4) {
+				throw new IllegalArgumentException("Invalid benchmark block audit specification: " + specification);
+			}
+			ResourceLocation id = ResourceLocation.tryParse(fields[0].trim());
+			if (id == null || !Registry.BLOCK.containsKey(id)) {
+				throw new IllegalArgumentException("Unknown benchmark audit block: " + fields[0].trim());
+			}
+			int minimumY = Integer.parseInt(fields[1].trim());
+			int maximumY = Integer.parseInt(fields[2].trim());
+			boolean required = switch (fields[3].trim().toLowerCase(Locale.ROOT)) {
+				case "present" -> true;
+				case "absent" -> false;
+				default -> throw new IllegalArgumentException(
+						"Benchmark audit expectation must be present or absent: " + specification);
+			};
+			audits.put(id.toString(), new OreAudit(Registry.BLOCK.get(id), Registry.BLOCK.get(id),
+					minimumY, maximumY, required));
 		}
 	}
 
@@ -212,25 +264,62 @@ public final class WorldgenBenchmark {
 	private static final class OreAudit {
 		private final Block shallow;
 		private final Block deep;
+		private final int minimumY;
+		private final int maximumY;
+		private final Boolean required;
 		private final long[] byX = new long[16];
 		private final long[] byZ = new long[16];
 		private long total;
 		private long exposed;
+		private long outOfRange;
+		private int minimumObserved = Integer.MAX_VALUE;
+		private int maximumObserved = Integer.MIN_VALUE;
 
 		OreAudit(Block shallow, Block deep) {
+			this(shallow, deep, Integer.MIN_VALUE, Integer.MAX_VALUE, null);
+		}
+
+		OreAudit(Block shallow, Block deep, int minimumY, int maximumY, Boolean required) {
 			this.shallow = shallow;
 			this.deep = deep;
+			this.minimumY = minimumY;
+			this.maximumY = maximumY;
+			this.required = required;
 		}
 
 		boolean accepts(Block block) {
 			return block == shallow || block == deep;
 		}
 
-		void record(int localX, int localZ, boolean isExposed) {
+		void record(int localX, int localZ, int y, boolean isExposed) {
 			total++;
 			byX[localX]++;
 			byZ[localZ]++;
+			minimumObserved = Math.min(minimumObserved, y);
+			maximumObserved = Math.max(maximumObserved, y);
+			if (y < minimumY || y > maximumY) outOfRange++;
 			if (isExposed) exposed++;
+		}
+
+		String minimumObserved() {
+			return total == 0L ? "n/a" : Integer.toString(minimumObserved);
+		}
+
+		String maximumObserved() {
+			return total == 0L ? "n/a" : Integer.toString(maximumObserved);
+		}
+
+		void assertExpectation(String name) {
+			if (outOfRange != 0L) {
+				throw new IllegalStateException("Benchmark audit found " + outOfRange
+						+ " out-of-range blocks for " + name + " (expected " + minimumY + ".." + maximumY + ")");
+			}
+			if (Boolean.TRUE.equals(required) && total == 0L) {
+				throw new IllegalStateException("Benchmark audit found no blocks for required ore " + name);
+			}
+			if (Boolean.FALSE.equals(required) && total != 0L) {
+				throw new IllegalStateException("Benchmark audit found " + total + " blocks for absent ore " + name);
+			}
 		}
 
 		double exposedPercent() {

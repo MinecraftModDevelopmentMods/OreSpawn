@@ -96,6 +96,29 @@ minecraft {
         server {
             property 'forge.enabledGameTestNamespaces', mod_id
             args '--nogui'
+            if (providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
+                property 'orespawn.worldgenBenchmarkMode', providers.gradleProperty('orespawnBenchmarkMode').get()
+                property 'orespawn.worldgenBenchmarkRadius',
+                        providers.gradleProperty('orespawnBenchmarkRadius').getOrElse('8')
+                property 'orespawn.worldgenBenchmarkRepetitions',
+                        providers.gradleProperty('orespawnBenchmarkRepetitions').getOrElse('5')
+                property 'orespawn.worldgenBenchmarkVanillaOres',
+                        providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkOreAudit',
+                        providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkCenterX',
+                        providers.gradleProperty('orespawnBenchmarkCenterX').getOrElse('1024')
+                property 'orespawn.worldgenBenchmarkCenterZ',
+                        providers.gradleProperty('orespawnBenchmarkCenterZ').getOrElse('1024')
+                property 'orespawn.worldgenBenchmarkCenterStep',
+                        providers.gradleProperty('orespawnBenchmarkCenterStep').getOrElse('64')
+                property 'orespawn.worldgenBenchmarkDimension',
+                        providers.gradleProperty('orespawnBenchmarkDimension').getOrElse('overworld')
+                property 'orespawn.worldgenBenchmarkStopServer', 'true'
+                if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
+                    jvmArg "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
+                }
+            }
         }
 
         // This run config launches GameTestServer and runs all registered gametests, then exits.
@@ -121,6 +144,10 @@ minecraft {
                         providers.gradleProperty('orespawnBenchmarkCenterStep').getOrElse('64')
                 property 'orespawn.worldgenBenchmarkDimension',
                         providers.gradleProperty('orespawnBenchmarkDimension').getOrElse('overworld')
+                property 'orespawn.worldgenBenchmarkStopServer', 'true'
+                if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
+                    jvmArg "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
+                }
             }
         }
 

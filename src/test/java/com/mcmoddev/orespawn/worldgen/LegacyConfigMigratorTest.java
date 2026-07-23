@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -87,6 +88,69 @@ class LegacyConfigMigratorTest {
 		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
 		assertTrue(report.contains("Clamped legacy quantity"));
 		assertTrue(report.contains("empty legacy height range"));
+	}
+
+	@Test
+	void mapsUniqueInstalledProviderOutputWithoutDuplicatingAndPreservesUserValues() throws IOException {
+		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
+		JsonObject root = new JsonObject();
+		root.addProperty("version", "2.0");
+		JsonObject custom = spawn("copper_ore", null, 12, 2, 7.5D, -16, 113);
+		custom.addProperty("enabled", false);
+		JsonObject spawns = new JsonObject();
+		spawns.add("copper_ore", custom);
+		root.add("spawns", spawns);
+		Files.writeString(legacyDirectory.resolve("basemetals.json"), root.toString(), StandardCharsets.UTF_8);
+
+		JsonObject defaults = new JsonObject();
+		JsonObject ores = new JsonObject();
+		JsonObject providerDefault = new JsonObject();
+		providerDefault.addProperty("block", "basemetals:copper_ore");
+		providerDefault.addProperty("enabled", true);
+		ores.add("basemetals:ore/copper", providerDefault);
+		defaults.add("ores", ores);
+
+		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
+				temporary.resolve("orespawn-worldgen.json"), defaults,
+				(owner, output) -> owner.equals("basemetals") && output.equals("basemetals:copper_ore")
+						? List.of("basemetals:ore/copper") : null);
+
+		JsonObject migratedOres = migrated.getAsJsonObject("ores");
+		assertEquals(1, migratedOres.size());
+		assertTrue(migratedOres.has("basemetals:ore/copper"));
+		JsonObject migratedCopper = migratedOres.getAsJsonObject("basemetals:ore/copper");
+		assertFalse(migratedCopper.get("enabled").getAsBoolean());
+		assertEquals(7.5D, rule(migratedCopper).get("frequency").getAsDouble());
+		assertEquals(10, rule(migratedCopper).get("min_quantity").getAsInt());
+		assertEquals(13, rule(migratedCopper).get("max_quantity").getAsInt());
+		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
+		assertTrue(report.contains("Mapped legacy rule copper_ore to provider rule basemetals:ore/copper"));
+	}
+
+	@Test
+	void retainsLegacyIdsAndWarnsForAmbiguousAndUnmatchedProviderOutputs() throws IOException {
+		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
+		JsonObject root = new JsonObject();
+		root.addProperty("version", "2.0");
+		JsonObject spawns = new JsonObject();
+		spawns.add("copper_ore", spawn("copper_ore", null, 8, 4, 1, 0, 64));
+		spawns.add("tin_ore", spawn("tin_ore", null, 8, 4, 1, 0, 64));
+		root.add("spawns", spawns);
+		Files.writeString(legacyDirectory.resolve("basemetals.json"), root.toString(), StandardCharsets.UTF_8);
+		JsonObject defaults = new JsonObject();
+		defaults.add("ores", new JsonObject());
+
+		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
+				temporary.resolve("orespawn-worldgen.json"), defaults,
+				(owner, output) -> output.endsWith("copper_ore")
+						? List.of("basemetals:ore/copper", "basemetals:ore/alternate_copper") : List.of());
+
+		JsonObject migratedOres = migrated.getAsJsonObject("ores");
+		assertTrue(migratedOres.has("orespawn:legacy/basemetals/copper_ore"));
+		assertTrue(migratedOres.has("orespawn:legacy/basemetals/tin_ore"));
+		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
+		assertTrue(report.contains("ambiguous ore rules"));
+		assertTrue(report.contains("no ore rule matching legacy output"));
 	}
 
 	private static JsonObject baseMetalsFixture() {

@@ -266,6 +266,30 @@ public final class WorldgenIntegrationManager {
 		return result;
 	}
 
+	/** Internal migration lookup. Null means the owner is not an active installed provider. */
+	public static synchronized List<String> findProviderOreRulesByOutput(String providerModId, String outputBlock) {
+		ProviderDefinition provider = ACTIVE_PROVIDERS.get(providerModId);
+		if (provider == null) return null;
+		List<String> matches = new ArrayList<>();
+		for (Entry<String, JsonElement> entry : provider.section("ores").entrySet()) {
+			if (!entry.getValue().isJsonObject()) continue;
+			JsonObject ore = entry.getValue().getAsJsonObject();
+			boolean matchesOutput = outputBlock.equals(string(ore, "block", ""));
+			if (!matchesOutput && ore.has("outputs") && ore.get("outputs").isJsonArray()) {
+				for (JsonElement candidate : ore.getAsJsonArray("outputs")) {
+					if (candidate.isJsonObject()
+							&& outputBlock.equals(string(candidate.getAsJsonObject(), "block", ""))) {
+						matchesOutput = true;
+						break;
+					}
+				}
+			}
+			if (matchesOutput) matches.add(entry.getKey());
+		}
+		matches.sort(String::compareTo);
+		return Collections.unmodifiableList(matches);
+	}
+
 	static void applyLegacyTemplateOil(JsonObject result, JsonObject templateProfile) {
 		if (!templateProfile.has("oil") || !templateProfile.get("oil").isJsonObject()) {
 			return;
