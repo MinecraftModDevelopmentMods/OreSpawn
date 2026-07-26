@@ -11,7 +11,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 
 final class WeightMapScreen extends Screen {
 	private static final int PAGE_SIZE = 7;
@@ -46,25 +45,25 @@ final class WeightMapScreen extends Screen {
 		for (int i = start; i < end; i++) {
 			String key = keys.get(i);
 			EditBox box = new EditBox(font, width / 2 + 5, 38 + ((i - start) * 24), 110, 20,
-					new TextComponent(key));
+					Component.literal(key));
 			box.setMaxLength(24);
 			box.setValue(weights.has(key) ? weights.get(key).getAsString() : Double.toString(defaultWeight));
 			editors.add(addRenderableWidget(box));
 		}
 		int bottom = height - 28;
-		addRenderableWidget(new Button(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
-		Button previous = addRenderableWidget(new Button(width / 2 - 50, bottom, 45, 20,
-				new TextComponent("<"), button -> changePage(-1)));
-		Button next = addRenderableWidget(new Button(width / 2 + 5, bottom, 45, 20,
-				new TextComponent(">"), button -> changePage(1)));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 50, bottom, 45, 20,
+				Component.literal("<"), button -> changePage(-1)));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 + 5, bottom, 45, 20,
+				Component.literal(">"), button -> changePage(1)));
 		previous.active = page > 0;
 		next.active = (page + 1) * PAGE_SIZE < keys.size();
 		if (removeAction != null) {
-			addRenderableWidget(new Button(width - 105, 8, 95, 20,
-					new TextComponent("Remove rule"), button -> {
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(width - 105, 8, 95, 20,
+					Component.literal("Remove rule"), button -> {
 						removeAction.run(); minecraft.setScreen(parent);
 					}));
 		}
@@ -77,7 +76,7 @@ final class WeightMapScreen extends Screen {
 		}
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -96,7 +95,7 @@ final class WeightMapScreen extends Screen {
 				}
 				weights.addProperty(keys.get(start + i), value);
 			} catch (NumberFormatException e) {
-				error = new TextComponent("Weights must be between 0 and 1000.");
+				error = Component.literal("Weights must be between 0 and 1000.");
 				return false;
 			}
 		}

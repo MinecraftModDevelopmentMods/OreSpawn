@@ -16,12 +16,11 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class GeomeDistributionSampler {
@@ -64,7 +63,7 @@ public final class GeomeDistributionSampler {
 				shape.addDrift(geology, x, z);
 				for (int y = 8; y <= 96; y += step) {
 					Block block = geology.getStoneAt(biome, x, y, z, 96);
-					ResourceLocation id = block.getRegistryName();
+					ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 					selectionSignature ^= id == null ? 0 : id.toString().hashCode();
 					selectionSignature *= 0x100000001B3L;
 					add(rockCounts, id == null ? "<unregistered>" : id.toString());
@@ -166,7 +165,7 @@ public final class GeomeDistributionSampler {
 						}
 						Block block = geology.getStoneAt(geomeIndex, stratumOffset, formationRegion,
 								x, minY + yIndex, z);
-						ResourceLocation id = block.getRegistryName();
+						ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 						String rockId = id == null ? "<unregistered>" : id.toString();
 						selectionSignature ^= rockId.hashCode();
 						selectionSignature *= 0x100000001B3L;
@@ -206,10 +205,10 @@ public final class GeomeDistributionSampler {
 		if (biomeId == null || "minecraft:the_void".equals(biomeId.toString())) {
 			return false;
 		}
-		ResourceKey<Biome> biomeKey = ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
-		return !BiomeDictionary.hasType(biomeKey, Type.NETHER)
-				&& !BiomeDictionary.hasType(biomeKey, Type.END)
-				&& !BiomeDictionary.hasType(biomeKey, Type.VOID);
+		ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME, biomeId);
+		return !BiomeTypeCompatibility.hasType(biomeKey, "NETHER")
+				&& !BiomeTypeCompatibility.hasType(biomeKey, "END")
+				&& !BiomeTypeCompatibility.hasType(biomeKey, "VOID");
 	}
 
 	private static void appendBiomeAudit(StringBuilder report, GeomeGeology geology,
@@ -245,7 +244,8 @@ public final class GeomeDistributionSampler {
 			report.append("  ").append(entry.getKey())
 					.append(" types=").append(biomeTypes(biomeId))
 					.append(" temperature=").append(format(entry.getValue().getBaseTemperature()))
-					.append(" downfall=").append(format(entry.getValue().getDownfall()))
+					.append(" downfall=").append(format(
+							entry.getValue().getModifiedClimateSettings().downfall()))
 					.append(" dominant=").append(config.dominantBiomeWeight(entry.getValue()))
 					.append(" weights=").append(config.describeBiomeWeights(entry.getValue()))
 					.append(" geomes=").append(geomeCounts);
@@ -266,11 +266,9 @@ public final class GeomeDistributionSampler {
 	}
 
 	private static String biomeTypes(ResourceLocation biomeId) {
-		ResourceKey<Biome> biomeKey = ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
 		List<String> names = new ArrayList<>();
-		for (Type type : BiomeDictionary.getTypes(biomeKey)) {
-			names.add(type.getName());
-		}
+		Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
+		if (biome != null) names.addAll(BiomeTypeCompatibility.types(biome));
 		Collections.sort(names);
 		return names.toString();
 	}

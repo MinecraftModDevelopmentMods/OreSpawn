@@ -25,7 +25,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraft.server.level.ServerLevel;
 
 import org.apache.logging.log4j.LogManager;
@@ -173,11 +173,11 @@ public final class WorldGeologyProfileManager {
 		OreRetrogenManager.clear();
 	}
 
-	public static void onWorldLoad(WorldEvent.Load event) {
-		if (!(event.getWorld() instanceof ServerLevel)) return;
+	public static void onWorldLoad(LevelEvent.Load event) {
+		if (!(event.getLevel() instanceof ServerLevel)) return;
 		WorldGeologyProfile profile = activeProfile;
 		if (profile != null) {
-			BiomeWorldgenManager.apply((ServerLevel) event.getWorld(), profile);
+			BiomeWorldgenManager.apply((ServerLevel) event.getLevel(), profile);
 		}
 	}
 

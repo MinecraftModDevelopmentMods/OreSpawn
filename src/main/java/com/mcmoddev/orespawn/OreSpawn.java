@@ -2,6 +2,8 @@ package com.mcmoddev.orespawn;
 
 import com.mcmoddev.orespawn.integration.WorldgenIntegrationManager;
 import com.mcmoddev.orespawn.init.OreSpawnPatterns;
+import com.mcmoddev.orespawn.init.Features;
+import com.mcmoddev.orespawn.init.BiomeModifiers;
 import com.mcmoddev.orespawn.worldgen.OreSpawnOreGeneration;
 import com.mcmoddev.orespawn.worldgen.GeomeConfig;
 import com.mcmoddev.orespawn.worldgen.GeomeDistributionSampler;
@@ -51,17 +53,16 @@ public class OreSpawn {
 	public OreSpawn() {
 		instance = this;
 		OreSpawnConfig.register();
-		OreSpawnPatterns.register(FMLJavaModLoadingContext.get().getModEventBus());
+		net.minecraftforge.eventbus.api.IEventBus modBus =
+				FMLJavaModLoadingContext.get().getModEventBus();
+		OreSpawnPatterns.register(modBus);
+		Features.register(modBus);
+		BiomeModifiers.register(modBus);
 
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueInterMod);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processInterMod);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
-		MinecraftForge.EVENT_BUS.addListener(StoneReplacer::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(OreSpawnOreGeneration::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(FluidDepositFeature::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(FlatBedrockFeature::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(BiomeSurfaceFeature::onBiomeLoading);
+		modBus.addListener(this::setup);
+		modBus.addListener(this::enqueueInterMod);
+		modBus.addListener(this::processInterMod);
+		modBus.addListener(this::loadComplete);
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);

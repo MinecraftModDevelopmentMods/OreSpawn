@@ -18,7 +18,7 @@ import com.mcmoddev.orespawn.OreSpawn;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -26,19 +26,15 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -63,16 +59,10 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	private FluidDepositFeature() {
 		super(NoneFeatureConfiguration.CODEC);
-		setRegistryName(OreSpawn.MODID, "fluid_deposits");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "fluid_deposits");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, FluidDepositFeature>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
 		refreshWorldConfig();
 	}
 
@@ -91,13 +81,6 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			classifierSeed = Long.MIN_VALUE;
 		}
 		GENERATION_SCRATCH.remove();
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES).add(placedFeature);
-		}
 	}
 
 	static Holder<PlacedFeature> placedFeature() {
@@ -124,7 +107,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		boolean geomeClassified = false;
 
 		boolean changed = false;
-		Random random = context.random();
+		Random random = scratch.random.wrap(context.random());
 		for (BakedDeposit deposit : deposits) {
 			if (!deposit.acceptsBiome(biome)) continue;
 			if (!geomeClassified && deposit.usesGeomeWeights && config != null) {
@@ -135,7 +118,9 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			double frequency = geome < 0 ? deposit.frequency : deposit.frequency * deposit.geomeWeights[geome];
 			int attempts = attemptsForFrequency(random, frequency);
 			for (int attempt = 0; attempt < attempts; attempt++) {
-				changed |= placeDeposit(world, chunk, random, deposit, geome, config, scratch.cursor);
+				boolean placed = placeDeposit(world, chunk, random, deposit, geome, config, scratch.cursor);
+				if (placed) WorldgenBenchmark.recordFluidDeposit();
+				changed |= placed;
 			}
 		}
 		if (changed) chunk.setUnsaved(true);
@@ -337,7 +322,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				if (!bool(rule, "enabled", true)) continue;
 				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) continue;
-				ResourceKey<Level> dimension = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
+				ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionId);
 				BakedGeomeConfig config = Level.OVERWORLD.equals(dimension)
 						? GeomeConfig.baked() : GeomeConfig.baked(dimension);
 				BakedDeposit baked = bakeDeposit(output.defaultBlockState(), rule, config,
@@ -427,7 +412,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			ResourceLocation id = resource(value.isJsonObject()
 					? string(value.getAsJsonObject(), "tag", "") : value.getAsString());
 			if (id == null) continue;
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
+			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
 			target.addAll(resolvedTags.computeIfAbsent(tag, FluidDepositFeature::resolveTag));
 		}
 	}
@@ -445,14 +430,13 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				if (id != null) result.add(ResourceKey.create(Registry.BIOME_REGISTRY, id));
+				if (id != null) result.add(ResourceKey.create(Registries.BIOME, id));
 			}
 		}
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					result.addAll(net.minecraftforge.common.BiomeDictionary.getBiomes(
-							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString())));
+					result.addAll(BiomeTypeCompatibility.biomeKeys(element.getAsString()));
 				} catch (RuntimeException ignored) { }
 			}
 		}
@@ -580,6 +564,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static final class GenerationScratch {
+		final RandomSourceAdapter random = new RandomSourceAdapter();
 		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		private double[] geomeValues = new double[0];
 		double[] geomeValues(int count) {

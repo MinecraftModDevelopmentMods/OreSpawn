@@ -9,8 +9,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 
 /** Registry-backed block picker for surface, fluid, snow, and ice materials. */
 final class MaterialBlockPickerScreen extends Screen {
@@ -24,7 +23,7 @@ final class MaterialBlockPickerScreen extends Screen {
 
 	MaterialBlockPickerScreen(Screen parent, GeologyEditorSession session,
 			boolean fluidOnly, Consumer<String> select) {
-		super(new TranslatableComponent("screen.orespawn.choose_block"));
+		super(Component.translatable("screen.orespawn.choose_block"));
 		this.parent = parent;
 		this.session = session;
 		this.fluidOnly = fluidOnly;
@@ -36,10 +35,10 @@ final class MaterialBlockPickerScreen extends Screen {
 		int contentWidth = Math.min(390, Math.max(280, width - 24));
 		int left = (width - contentWidth) / 2;
 		search = addRenderableWidget(new EditBox(font, left, 36, contentWidth - 75, 20,
-				new TranslatableComponent("option.orespawn.search")));
+				Component.translatable("option.orespawn.search")));
 		search.setValue(searchText);
-		addRenderableWidget(new Button(left + contentWidth - 70, 36, 70, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + contentWidth - 70, 36, 70, 20,
+				Component.translatable("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
 		List<String> ids = session.availableMaterialBlockIds(searchText, fluidOnly);
@@ -52,22 +51,22 @@ final class MaterialBlockPickerScreen extends Screen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left,
-					listTop + i * 24, contentWidth, 20, new TextComponent(id), button -> {
+					listTop + i * 24, contentWidth, 20, Component.literal(id), button -> {
 						select.accept(id);
 						onClose();
 					}));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
+				Component.literal("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 50, controlsY, 45, 20,
+				Component.literal(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_CANCEL, button -> onClose()));
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	protected void rebuildWidgets() { clearWidgets(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override

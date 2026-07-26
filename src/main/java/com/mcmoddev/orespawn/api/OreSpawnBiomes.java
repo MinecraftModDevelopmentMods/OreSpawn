@@ -25,7 +25,16 @@ public final class OreSpawnBiomes {
 		Objects.requireNonNull(source, "source");
 		Objects.requireNonNull(edit, "edit");
 		return register.register(name, () -> {
-			Biome.BiomeBuilder builder = Biome.BiomeBuilder.from(source.get());
+			Biome original = source.get();
+			Biome.ClimateSettings climate = original.getModifiedClimateSettings();
+			Biome.BiomeBuilder builder = new Biome.BiomeBuilder()
+					.hasPrecipitation(climate.hasPrecipitation())
+					.temperature(climate.temperature())
+					.temperatureAdjustment(climate.temperatureModifier())
+					.downfall(climate.downfall())
+					.specialEffects(original.getModifiedSpecialEffects())
+					.mobSpawnSettings(original.getMobSettings())
+					.generationSettings(original.getGenerationSettings());
 			edit.accept(builder);
 			return builder.build();
 		});

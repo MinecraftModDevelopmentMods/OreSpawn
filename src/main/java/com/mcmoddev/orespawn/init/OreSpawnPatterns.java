@@ -28,7 +28,7 @@ public final class OreSpawnPatterns {
 	private static final DeferredRegister<OrePatternType> TYPES =
 			DeferredRegister.create(OreSpawnPatternRegistry.REGISTRY_NAME, OreSpawn.MODID);
 	private static final Supplier<IForgeRegistry<OrePatternType>> REGISTRY = TYPES.makeRegistry(
-			OrePatternType.class, () -> new RegistryBuilder<OrePatternType>().disableSaving().disableSync());
+			() -> new RegistryBuilder<OrePatternType>().disableSaving().disableSync());
 
 	public static final RegistryObject<OrePatternType> DEFAULT = register("default", OreSpawnPatterns::compact);
 	public static final RegistryObject<OrePatternType> VEIN = register("vein", OreSpawnPatterns::vein);

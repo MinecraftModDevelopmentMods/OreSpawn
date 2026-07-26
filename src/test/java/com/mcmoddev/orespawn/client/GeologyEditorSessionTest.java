@@ -6,23 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.mcmoddev.orespawn.worldgen.WorldGeologyProfile;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-
 class GeologyEditorSessionTest {
-	@BeforeAll
-	static void bootstrapMinecraft() {
-		SharedConstants.tryDetectVersion();
-		Bootstrap.bootStrap();
-	}
-
 	@Test
 	void emptyStandaloneProfileIsValidAndFirstRockActivatesOverworldTerrain() {
 		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));

@@ -28,7 +28,6 @@ final class BiomeOverlaySource extends BiomeSource {
 	private final long seed;
 
 	BiomeOverlaySource(BiomeSource delegate, List<Palette> palettes, long seed) {
-		super(possible(delegate, palettes));
 		this.delegate = delegate;
 		this.palettes = palettes.toArray(new Palette[palettes.size()]);
 		this.seed = seed;
@@ -52,9 +51,8 @@ final class BiomeOverlaySource extends BiomeSource {
 	}
 
 	@Override
-	public BiomeSource withSeed(long value) {
-		return new BiomeOverlaySource(delegate.withSeed(value),
-				java.util.Arrays.asList(palettes), value);
+	protected Stream<Holder<Biome>> collectPossibleBiomes() {
+		return possible(delegate, java.util.Arrays.asList(palettes));
 	}
 
 	@Override

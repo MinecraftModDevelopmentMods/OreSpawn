@@ -25,6 +25,7 @@ import com.mcmoddev.orespawn.worldgen.WorldGeologyProfile;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -165,8 +166,8 @@ final class GeologyEditorSession {
 		String mod = namespace == null ? "" : namespace.trim().toLowerCase(Locale.ROOT);
 		Set<String> assigned = assignedBlockIds();
 		List<String> result = new ArrayList<>();
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+		for (Block block : registeredBlocks()) {
+			ResourceLocation id = blockId(block);
 			if (id == null || assigned.contains(id.toString()) || isWorldgenAliasSource(id.toString())
 					|| (!mod.isEmpty() && !mod.equals(id.getNamespace()))
 					|| (!query.isEmpty() && !id.toString().toLowerCase(Locale.ROOT).contains(query))
@@ -208,8 +209,8 @@ final class GeologyEditorSession {
 
 	List<String> installedBlockNamespaces() {
 		TreeSet<String> namespaces = new TreeSet<>();
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+		for (Block block : registeredBlocks()) {
+			ResourceLocation id = blockId(block);
 			if (id != null && block != Blocks.AIR && block.asItem() != Items.AIR) {
 				namespaces.add(id.getNamespace());
 			}
@@ -432,8 +433,7 @@ final class GeologyEditorSession {
 	}
 
 	void addBiomePlacement(String dimensionId, String biomeId) {
-		if (!validResource(biomeId)
-				|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeId)) == null) return;
+		if (!knownBiome(biomeId)) return;
 		JsonObject palette = biomePalette(dimensionId, true);
 		JsonObject placement = new JsonObject();
 		placement.addProperty("enabled", true);
@@ -488,9 +488,8 @@ final class GeologyEditorSession {
 			return;
 		}
 		if (!validResource(blockId)) return;
-		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockId));
-		if (block == null || block == Blocks.AIR
-				|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return;
+		Block block = registeredBlock(new ResourceLocation(blockId));
+		if (block == null || block == Blocks.AIR || (fluid && !isFluidBlock(block))) return;
 		JsonObject materials = dimensionMaterials(dimensionId, true);
 		materials.addProperty(key, blockId);
 		materials.addProperty("enabled", true);
@@ -504,10 +503,10 @@ final class GeologyEditorSession {
 	List<String> availableMaterialBlockIds(String search, boolean fluidOnly) {
 		String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
 		List<String> result = new ArrayList<>();
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+		for (Block block : registeredBlocks()) {
+			ResourceLocation id = blockId(block);
 			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
-					|| (fluidOnly && block.defaultBlockState().getFluidState().isEmpty())
+					|| (fluidOnly && !isFluidBlock(block))
 					|| (!fluidOnly && block instanceof EntityBlock)
 					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
 			result.add(id.toString());
@@ -535,9 +534,9 @@ final class GeologyEditorSession {
 			configured.add(string(fluidDeposit(id), "block", ""));
 		}
 		List<String> result = new ArrayList<>();
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id != null && block != Blocks.AIR && !block.defaultBlockState().getFluidState().isEmpty()
+		for (Block block : registeredBlocks()) {
+			ResourceLocation id = blockId(block);
+			if (id != null && isFluidBlock(block)
 					&& !configured.contains(id.toString())
 					&& (query.isEmpty() || id.toString().contains(query))) result.add(id.toString());
 		}
@@ -905,8 +904,7 @@ final class GeologyEditorSession {
 					? palette.getAsJsonObject("biomes") : new JsonObject();
 			if (biomes.size() == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
 			for (Entry<String, JsonElement> biome : biomes.entrySet()) {
-				if (!validResource(biome.getKey())
-						|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null
+				if (!knownBiome(biome.getKey())
 						|| !biome.getValue().isJsonObject()) {
 					errors.add("Invalid biome placement: " + biome.getKey());
 					continue;
@@ -1061,8 +1059,8 @@ final class GeologyEditorSession {
 
 	String canonicalBlockId(String id) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-			ResourceLocation canonical = block == null ? null : ForgeRegistries.BLOCKS.getKey(block);
+			Block block = registeredBlock(new ResourceLocation(id));
+			ResourceLocation canonical = block == null ? null : blockId(block);
 			return block == Blocks.AIR || canonical == null ? null : canonical.toString();
 		} catch (RuntimeException e) {
 			return null;
@@ -1146,7 +1144,7 @@ final class GeologyEditorSession {
 
 	private static boolean validBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
+		Block block = registeredBlock(new ResourceLocation(id));
 		return block != null && block != Blocks.AIR;
 	}
 
@@ -1157,8 +1155,39 @@ final class GeologyEditorSession {
 
 	private static boolean validFluidBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-		return block != null && block != Blocks.AIR && !block.defaultBlockState().getFluidState().isEmpty();
+		Block block = registeredBlock(new ResourceLocation(id));
+		return isFluidBlock(block);
+	}
+
+	private static boolean isFluidBlock(Block block) {
+		return block != null && block != Blocks.AIR
+				&& (block instanceof LiquidBlock || !block.defaultBlockState().getFluidState().isEmpty());
+	}
+
+	private static Iterable<Block> registeredBlocks() {
+		return ForgeRegistries.BLOCKS.containsKey(new ResourceLocation("minecraft", "stone"))
+				? ForgeRegistries.BLOCKS.getValues() : BuiltInRegistries.BLOCK;
+	}
+
+	private static Block registeredBlock(ResourceLocation id) {
+		Block builtIn = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+		if (builtIn != null) {
+			return builtIn;
+		}
+		return ForgeRegistries.BLOCKS.containsKey(id) ? ForgeRegistries.BLOCKS.getValue(id) : null;
+	}
+
+	private static ResourceLocation blockId(Block block) {
+		ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+		return id != null ? id : ForgeRegistries.BLOCKS.getKey(block);
+	}
+
+	private static boolean knownBiome(String id) {
+		if (!validResource(id)) return false;
+		// Biomes are dynamic in 1.19.4. Before the live registry is available,
+		// retain syntactically valid provider IDs for server-side resolution.
+		return ForgeRegistries.BIOMES.getKeys().isEmpty()
+				|| ForgeRegistries.BIOMES.containsKey(new ResourceLocation(id));
 	}
 
 	private static boolean validResource(String id) {

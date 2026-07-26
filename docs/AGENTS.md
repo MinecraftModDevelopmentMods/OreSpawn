@@ -56,7 +56,7 @@ Performance constraints:
   `discard_chance_on_air_exposure` value for buried deposits.
 - The chunk hot path must contain no config reads, registry access, strings,
   logging, reflection, or per-block allocation.
-- Cache biome filters as registry keys, never `Biome` object identities; 1.18
+- Cache biome filters as registry keys, never `Biome` object identities;
   dynamic-registry biome instances are not identity-stable.
 - Ore and flat-bedrock retrogen are bounded and marker-based. Terrain strata
   are never retrogened.

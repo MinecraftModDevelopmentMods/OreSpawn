@@ -10,8 +10,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -22,7 +20,7 @@ final class FluidDepositListScreen extends Screen {
 	private int page;
 
 	FluidDepositListScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.fluid_deposits"));
+		super(Component.translatable("screen.orespawn.fluid_deposits"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -41,29 +39,28 @@ final class FluidDepositListScreen extends Screen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			int y = listTop + (i * 24);
-			addRenderableWidget(new Button(left, y, contentWidth - 82, 20,
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, y, contentWidth - 82, 20,
 					OreSpawnScreenLayout.fit(font, depositName(id), contentWidth - 90),
 					button -> minecraft.setScreen(new FluidDepositEntryScreen(this, session, id)),
-					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(poseStack,
-							details(id), mouseX, mouseY)));
+					OreSpawnScreenLayout.tooltip(details(id))));
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
-					new TranslatableComponent("button.orespawn.remove"), button -> {
+					Component.translatable("button.orespawn.remove"), button -> {
 						session.removeFluidDeposit(id);
 						rebuildWidgets();
 					}));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
+				Component.literal("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 50, controlsY, 45, 20,
+				Component.literal(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		int addWidth = Math.min(150, contentWidth - 105);
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
-				new TranslatableComponent("button.orespawn.add"), button ->
+				Component.translatable("button.orespawn.add"), button ->
 						minecraft.setScreen(new FluidBlockPickerScreen(this, session))));
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 
@@ -72,22 +69,22 @@ final class FluidDepositListScreen extends Screen {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return new TranslatableComponent(block.getDescriptionId());
+			if (block != null) return Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }
-		return new TextComponent(id);
+		return Component.literal(id);
 	}
 
 	private List<Component> details(String id) {
 		List<Component> result = new ArrayList<>();
-		result.add(new TextComponent(id));
+		result.add(Component.literal(id));
 		JsonObject deposit = session.fluidDeposit(id);
-		result.add(new TextComponent(GeologyEditorSession.string(deposit, "block", "")));
+		result.add(Component.literal(GeologyEditorSession.string(deposit, "block", "")));
 		String provider = GeologyEditorSession.string(deposit, "source_provider", "");
-		if (!provider.isEmpty()) result.add(new TextComponent(provider));
+		if (!provider.isEmpty()) result.add(Component.literal(provider));
 		return result;
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	protected void rebuildWidgets() { clearWidgets(); init(); }
 
 	@Override
 	public void onClose() { minecraft.setScreen(parent); }

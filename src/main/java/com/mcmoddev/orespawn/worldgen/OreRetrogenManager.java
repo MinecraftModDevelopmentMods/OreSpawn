@@ -12,7 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.world.ChunkDataEvent;
+import net.minecraftforge.event.level.ChunkDataEvent;
 
 /** Bounded, marker-based ore and flat-bedrock retrogen with no reflected internals. */
 public final class OreRetrogenManager {
@@ -37,9 +37,9 @@ public final class OreRetrogenManager {
 		Settings current = settings;
 		if ((!current.oreEnabled && !current.bedrockEnabled)
 				|| event.getStatus() != ChunkStatus.ChunkType.LEVELCHUNK
-				|| !(event.getWorld() instanceof ServerLevel)
+				|| !(event.getLevel() instanceof ServerLevel)
 				|| !(event.getChunk() instanceof LevelChunk)) return;
-		ServerLevel level = (ServerLevel) event.getWorld();
+		ServerLevel level = (ServerLevel) event.getLevel();
 		LevelChunk chunk = (LevelChunk) event.getChunk();
 		CompoundTag marker = event.getData().getCompound(ROOT_TAG);
 		if (!current.force && marker.getInt(REVISION_TAG) == current.revision) return;
@@ -47,8 +47,8 @@ public final class OreRetrogenManager {
 	}
 
 	public static void onChunkSave(ChunkDataEvent.Save event) {
-		if (!(event.getWorld() instanceof ServerLevel)) return;
-		ServerLevel level = (ServerLevel) event.getWorld();
+		if (!(event.getLevel() instanceof ServerLevel)) return;
+		ServerLevel level = (ServerLevel) event.getLevel();
 		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().toLong());
 		if (!COMPLETE.contains(key)) return;
 		CompoundTag marker = event.getData().getCompound(ROOT_TAG);

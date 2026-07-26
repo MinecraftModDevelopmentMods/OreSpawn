@@ -106,6 +106,12 @@ minecraft {
                         providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
                 property 'orespawn.worldgenBenchmarkOreAudit',
                         providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkFluidAudit',
+                        providers.gradleProperty('orespawnBenchmarkFluidAudit').getOrElse('false')
+                if (providers.gradleProperty('orespawnBenchmarkBiomeAudit').isPresent()) {
+                    property 'orespawn.worldgenBenchmarkBiomeAudit',
+                            providers.gradleProperty('orespawnBenchmarkBiomeAudit').get()
+                }
                 if (providers.gradleProperty('orespawnBenchmarkBlockAudit').isPresent()) {
                     property 'orespawn.worldgenBenchmarkBlockAudit',
                             providers.gradleProperty('orespawnBenchmarkBlockAudit').get()
@@ -144,6 +150,12 @@ minecraft {
                         providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
                 property 'orespawn.worldgenBenchmarkOreAudit',
                         providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
+                property 'orespawn.worldgenBenchmarkFluidAudit',
+                        providers.gradleProperty('orespawnBenchmarkFluidAudit').getOrElse('false')
+                if (providers.gradleProperty('orespawnBenchmarkBiomeAudit').isPresent()) {
+                    property 'orespawn.worldgenBenchmarkBiomeAudit',
+                            providers.gradleProperty('orespawnBenchmarkBiomeAudit').get()
+                }
                 if (providers.gradleProperty('orespawnBenchmarkBlockAudit').isPresent()) {
                     property 'orespawn.worldgenBenchmarkBlockAudit',
                             providers.gradleProperty('orespawnBenchmarkBlockAudit').get()
@@ -200,6 +212,7 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.platform:junit-platform-launcher'
 
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency

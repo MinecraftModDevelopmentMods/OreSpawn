@@ -34,8 +34,10 @@ import com.mcmoddev.orespawn.worldgen.RockFamily;
 import com.mcmoddev.orespawn.init.OreSpawnPatterns;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -671,7 +673,7 @@ public final class WorldgenIntegrationManager {
 	private static void validateFluidDeposit(String id, JsonObject deposit) {
 		String blockId = string(deposit, "block", "");
 		Block output = block(blockId);
-		if (output == null || output == Blocks.AIR || output.defaultBlockState().getFluidState().isEmpty()) {
+		if (!isFluidBlock(output)) {
 			throw new JsonSyntaxException("fluid deposit output is not a fluid block: " + blockId);
 		}
 		JsonObject dimensions = requiredObject(deposit, "dimensions");
@@ -760,9 +762,6 @@ public final class WorldgenIntegrationManager {
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("biome placement is not an object: " + biomeId);
 			}
-			if (ForgeRegistries.BIOMES.getValue(biomeId) == null) {
-				throw new JsonSyntaxException("unknown biome in palette: " + biomeId);
-			}
 			JsonObject placement = entry.getValue().getAsJsonObject();
 			double weight = decimal(placement, "weight", 1.0D);
 			double minTemperature = decimal(placement, "min_temperature", -2.0D);
@@ -805,7 +804,7 @@ public final class WorldgenIntegrationManager {
 		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
 			if (!materials.has(key)) continue;
 			Block value = block(materials.get(key).getAsString());
-			if (value == null || value == Blocks.AIR || value.defaultBlockState().getFluidState().isEmpty()) {
+			if (!isFluidBlock(value)) {
 				throw new JsonSyntaxException("dimension material is not a fluid block for " + id + ": "
 						+ materials.get(key).getAsString());
 			}
@@ -921,10 +920,25 @@ public final class WorldgenIntegrationManager {
 
 	private static Block block(String idText) {
 		try {
-			return ForgeRegistries.BLOCKS.getValue(new ResourceLocation(idText));
+			ResourceLocation id = new ResourceLocation(idText);
+			Block builtIn = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
+			if (builtIn != null) {
+				return builtIn;
+			}
+			if (ForgeRegistries.BLOCKS.containsKey(id)) {
+				return ForgeRegistries.BLOCKS.getValue(id);
+			}
+			return null;
 		} catch (RuntimeException e) {
 			return null;
 		}
+	}
+
+	private static boolean isFluidBlock(Block block) {
+		// Vanilla fluid holders are not populated during early 1.19 provider discovery,
+		// but their registered blocks already have the stable LiquidBlock type.
+		return block != null && block != Blocks.AIR
+				&& (block instanceof LiquidBlock || !block.defaultBlockState().getFluidState().isEmpty());
 	}
 
 	private static boolean validBlocks(JsonElement element) {

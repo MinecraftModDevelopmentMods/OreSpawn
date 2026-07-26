@@ -29,7 +29,7 @@ final class DimensionDiscovery {
 		result.add(END);
 
 		try {
-			screen.worldGenSettingsComponent.makeSettings(screen.hardCore).dimensions().keySet()
+			screen.getUiState().getSettings().selectedDimensions().dimensions().keySet()
 					.forEach(id -> result.add(id.toString()));
 		} catch (RuntimeException ignored) {
 			// The vanilla dimensions above keep the picker usable if a custom preset is incomplete.

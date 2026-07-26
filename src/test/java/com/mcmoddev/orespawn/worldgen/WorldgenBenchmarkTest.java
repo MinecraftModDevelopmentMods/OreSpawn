@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
@@ -16,7 +16,7 @@ class WorldgenBenchmarkTest {
 		assertEquals(Level.OVERWORLD, WorldgenBenchmark.benchmarkDimensionKey("overworld"));
 		assertEquals(Level.NETHER, WorldgenBenchmark.benchmarkDimensionKey("NETHER"));
 		assertEquals(Level.END, WorldgenBenchmark.benchmarkDimensionKey(" end "));
-		assertEquals(ResourceKey.create(Registry.DIMENSION_REGISTRY,
+		assertEquals(ResourceKey.create(Registries.DIMENSION,
 				new ResourceLocation("test", "ordinary")),
 				WorldgenBenchmark.benchmarkDimensionKey("test:ordinary"));
 	}

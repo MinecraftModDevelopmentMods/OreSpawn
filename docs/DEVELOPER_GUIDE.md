@@ -173,8 +173,8 @@ The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
 Biome filters are baked as `ResourceKey<Biome>` values. Do not compare baked
-`Biome` instances by identity: 1.18 worldgen can supply equivalent values from
-a dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
+`Biome` instances by identity: worldgen can supply equivalent values from a
+dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
 chunk invocation and no registry lookup in the placement loop.
 
 Biome palettes wrap the dimension's already-selected biome source and bake

@@ -2,9 +2,9 @@ package com.mcmoddev.orespawn.client;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 
 /** Shared dimensions for the compact world-creation screens. */
 final class OreSpawnScreenLayout {
@@ -52,17 +52,36 @@ final class OreSpawnScreenLayout {
 		}
 		String suffix = "...";
 		int available = Math.max(0, width - font.width(suffix));
-		return new TextComponent(font.plainSubstrByWidth(message.getString(), available) + suffix);
+		return Component.literal(font.plainSubstrByWidth(message.getString(), available) + suffix);
 	}
 
 	static Button button(Screen screen, Font font, int x, int y, int width, int height,
 			Component message, Button.OnPress onPress) {
 		Component fitted = fit(font, message, Math.max(0, width - 8));
-		if (fitted == message) {
-			return new Button(x, y, width, height, message, onPress);
+		Button.Builder builder = Button.builder(fitted, onPress).bounds(x, y, width, height);
+		if (fitted != message) {
+			builder.tooltip(Tooltip.create(message));
 		}
-		return new Button(x, y, width, height, fitted, onPress,
-				(button, poseStack, mouseX, mouseY) -> screen.renderTooltip(poseStack,
-						font.split(message, Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY));
+		return builder.build();
+	}
+
+	static Button plainButton(int x, int y, int width, int height,
+			Component message, Button.OnPress onPress) {
+		return Button.builder(message, onPress).bounds(x, y, width, height).build();
+	}
+
+	static Button plainButton(int x, int y, int width, int height,
+			Component message, Button.OnPress onPress, Component tooltip) {
+		return Button.builder(message, onPress).bounds(x, y, width, height)
+				.tooltip(Tooltip.create(tooltip)).build();
+	}
+
+	static Component tooltip(java.util.List<Component> lines) {
+		net.minecraft.network.chat.MutableComponent result = Component.empty();
+		for (int i = 0; i < lines.size(); i++) {
+			if (i > 0) result.append("\n");
+			result.append(lines.get(i));
+		}
+		return result;
 	}
 }

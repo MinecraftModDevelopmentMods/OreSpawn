@@ -12,8 +12,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 
 final class RockEntryScreen extends Screen {
 	private final Screen parent;
@@ -30,7 +28,7 @@ final class RockEntryScreen extends Screen {
 	private Component error;
 
 	RockEntryScreen(Screen parent, GeologyEditorSession session, String blockId) {
-		super(new TranslatableComponent("screen.orespawn.rock_entry"));
+		super(Component.translatable("screen.orespawn.rock_entry"));
 		this.parent = parent;
 		this.session = session;
 		this.blockId = blockId;
@@ -55,10 +53,10 @@ final class RockEntryScreen extends Screen {
 		int right = width / 2 + 5;
 		addRenderableWidget(CycleButton.builder(this::familyName)
 				.withValues(Arrays.asList(RockFamily.values())).withInitialValue(family)
-				.create(left, 38, 190, 20, new TranslatableComponent("option.orespawn.family"),
+				.create(left, 38, 190, 20, Component.translatable("option.orespawn.family"),
 						(button, value) -> family = value));
 		addRenderableWidget(CycleButton.onOffBuilder(enabled)
-				.create(left + 200, 38, 110, 20, new TranslatableComponent("option.orespawn.enabled"),
+				.create(left + 200, 38, 110, 20, Component.translatable("option.orespawn.enabled"),
 						(button, value) -> enabled = value));
 		weight = addField(right, 64, "weight", value(rock, "weight", 1.0D));
 		peak = addField(right, 86, "depth_peak", value(rock, "depth_peak", 48));
@@ -66,20 +64,20 @@ final class RockEntryScreen extends Screen {
 		minY = addField(right, 130, "min_y", value(rock, "min_y", -64));
 		maxY = addField(right, 152, "max_y", value(rock, "max_y", 319));
 		addRenderableWidget(CycleButton.onOffBuilder(oreReplaceable)
-				.create(left, 176, 150, 20, new TranslatableComponent("option.orespawn.ore_replaceable"),
+				.create(left, 176, 150, 20, Component.translatable("option.orespawn.ore_replaceable"),
 						(button, value) -> oreReplaceable = value));
-		addRenderableWidget(new Button(right, 176, 150, 20,
-				new TranslatableComponent("button.orespawn.geome_weights"), button -> openWeights()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(right, 176, 150, 20,
+				Component.translatable("button.orespawn.geome_weights"), button -> openWeights()));
 		int bottom = height - 28;
-		addRenderableWidget(new Button(left, bottom, 95, 20, CommonComponents.GUI_DONE, button -> saveAndClose()));
-		addRenderableWidget(new Button(left + 100, bottom, 95, 20,
-				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
-		addRenderableWidget(new Button(right + 45, bottom, 105, 20,
-				new TranslatableComponent("button.orespawn.remove"), button -> remove()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, bottom, 95, 20, CommonComponents.GUI_DONE, button -> saveAndClose()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 100, bottom, 95, 20,
+				Component.translatable("button.orespawn.reset"), button -> reset()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(right + 45, bottom, 105, 20,
+				Component.translatable("button.orespawn.remove"), button -> remove()));
 	}
 
 	private EditBox addField(int x, int y, String key, String initial) {
-		EditBox box = new EditBox(font, x, y, 150, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, 150, 20, Component.literal(key));
 		box.setMaxLength(32);
 		box.setValue(initial);
 		return addRenderableWidget(box);
@@ -91,7 +89,7 @@ final class RockEntryScreen extends Screen {
 		JsonObject weights = rock.has("geomes") && rock.get("geomes").isJsonObject()
 				? rock.getAsJsonObject("geomes") : new JsonObject();
 		rock.add("geomes", weights);
-		minecraft.setScreen(new WeightMapScreen(this, new TranslatableComponent("screen.orespawn.geome_weights"),
+		minecraft.setScreen(new WeightMapScreen(this, Component.translatable("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
@@ -119,7 +117,7 @@ final class RockEntryScreen extends Screen {
 			error = null;
 			return true;
 		} catch (NumberFormatException e) {
-			error = new TextComponent("Check the numeric values and Y range.");
+			error = Component.literal("Check the numeric values and Y range.");
 			return false;
 		}
 	}
@@ -130,7 +128,7 @@ final class RockEntryScreen extends Screen {
 		rebuildWidgets();
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -157,7 +155,7 @@ final class RockEntryScreen extends Screen {
 	}
 
 	private Component familyName(RockFamily value) {
-		return new TranslatableComponent("value.orespawn.family." + value.configName);
+		return Component.translatable("value.orespawn.family." + value.configName);
 	}
 
 	@Override
@@ -170,11 +168,11 @@ final class RockEntryScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 6, 0xFFFFFF);
 		drawCenteredString(poseStack, font,
-				new TextComponent(session.materialBlockId(GeologyEditorSession.MaterialTab.SEDIMENTARY, blockId)),
+				Component.literal(session.materialBlockId(GeologyEditorSession.MaterialTab.SEDIMENTARY, blockId)),
 				width / 2, 20, 0xDDDDDD);
 		String[] labels = { "weight", "depth_peak", "depth_spread", "min_y", "max_y" };
 		for (int i = 0; i < labels.length; i++) {
-			drawString(poseStack, font, new TranslatableComponent("option.orespawn." + labels[i]),
+			drawString(poseStack, font, Component.translatable("option.orespawn." + labels[i]),
 					width / 2 - 155, 70 + (i * 22), 0xDDDDDD);
 		}
 		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);

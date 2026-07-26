@@ -11,8 +11,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 final class GeomeBiomeScreen extends Screen {
@@ -26,7 +25,7 @@ final class GeomeBiomeScreen extends Screen {
 	private EditBox newId;
 
 	GeomeBiomeScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.geomes"));
+		super(Component.translatable("screen.orespawn.geomes"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -36,16 +35,16 @@ final class GeomeBiomeScreen extends Screen {
 		int left = width / 2 - 155;
 		for (int i = 0; i < Tab.values().length; i++) {
 			Tab value = Tab.values()[i];
-			Button button = addRenderableWidget(new Button(left + (i * 105), 26, 100, 20,
-					new TranslatableComponent("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
+			Button button = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + (i * 105), 26, 100, 20,
+					Component.translatable("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
 					selected -> { tab = value; page = 0; rebuildWidgets(); }));
 			button.active = value != tab;
 		}
 		search = addRenderableWidget(new EditBox(font, left, 52, 230, 20,
-				new TranslatableComponent("option.orespawn.search")));
+				Component.translatable("option.orespawn.search")));
 		search.setValue(searchText);
-		addRenderableWidget(new Button(left + 235, 52, 75, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 235, 52, 75, 20,
+				Component.translatable("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
 
@@ -58,21 +57,21 @@ final class GeomeBiomeScreen extends Screen {
 		int start = page * pageSize;
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
-			addRenderableWidget(new Button(left, listTop + (i * 24), 310, 20,
-					new TextComponent(label(id)), button -> open(id)));
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, listTop + (i * 24), 310, 20,
+					Component.literal(label(id)), button -> open(id)));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
+				Component.literal("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 50, controlsY, 45, 20,
+				Component.literal(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		newId = addRenderableWidget(new EditBox(font, left + 100, controlsY, 150, 20,
-				new TranslatableComponent("option.orespawn.registry_id")));
+				Component.translatable("option.orespawn.registry_id")));
 		newId.setMaxLength(128);
-		addRenderableWidget(new Button(left + 255, controlsY, 55, 20,
-				new TranslatableComponent("button.orespawn.add"), button -> add()));
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 255, controlsY, 55, 20,
+				Component.translatable("button.orespawn.add"), button -> add()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 
@@ -88,7 +87,7 @@ final class GeomeBiomeScreen extends Screen {
 		return filtered;
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -105,7 +104,7 @@ final class GeomeBiomeScreen extends Screen {
 		}
 		String section = tab == Tab.BIOMES ? "biomes" : "biome_dictionary";
 		JsonObject weights = session.weightMap(section, id);
-		minecraft.setScreen(new WeightMapScreen(this, new TextComponent(id), weights,
+		minecraft.setScreen(new WeightMapScreen(this, Component.literal(id), weights,
 				session.geomeIds(), 0.0D, () -> session.section(section).remove(id)));
 	}
 

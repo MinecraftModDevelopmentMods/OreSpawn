@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 
 /**
  * Converts vanilla weather products in loaded columns to configured materials.
@@ -22,17 +22,17 @@ public final class WorldMaterialWeather {
 	}
 
 	public static void onChunkLoad(ChunkEvent.Load event) {
-		if (!(event.getWorld() instanceof ServerLevel)) return;
-		ServerLevel level = (ServerLevel) event.getWorld();
+		if (!(event.getLevel() instanceof ServerLevel)) return;
+		ServerLevel level = (ServerLevel) event.getLevel();
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
 		if (config == null || config.materials == null) return;
 		convertChunk(event.getChunk(), config.materials);
 	}
 
-	public static void onWorldTick(TickEvent.WorldTickEvent event) {
-		if (event.phase != TickEvent.Phase.END || !(event.world instanceof ServerLevel)
-				|| event.world.getGameTime() % 20L != 0L) return;
-		ServerLevel level = (ServerLevel) event.world;
+	public static void onWorldTick(TickEvent.LevelTickEvent event) {
+		if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel)
+				|| event.level.getGameTime() % 20L != 0L) return;
+		ServerLevel level = (ServerLevel) event.level;
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
 		if (config == null || config.materials == null) return;
 		DimensionMaterials materials = config.materials;

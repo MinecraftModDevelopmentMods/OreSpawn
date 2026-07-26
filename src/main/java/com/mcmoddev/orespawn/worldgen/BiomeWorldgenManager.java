@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -19,6 +20,8 @@ import com.mcmoddev.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -42,14 +45,16 @@ final class BiomeWorldgenManager {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceKey<Level>, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
+	private static final Map<NoiseBasedChunkGenerator, Supplier<Aquifer.FluidPicker>>
+			ORIGINAL_FLUID_PICKERS = new IdentityHashMap<>();
 
 	private BiomeWorldgenManager() {
 	}
 
 	static void registerBiomeSourceCodec() {
 		ResourceLocation id = new ResourceLocation("orespawn", "profile_overlay");
-		if (!Registry.BIOME_SOURCE.containsKey(id)) {
-			Registry.register(Registry.BIOME_SOURCE, id, BiomeOverlaySource.CODEC);
+		if (!BuiltInRegistries.BIOME_SOURCE.containsKey(id)) {
+			Registry.register(BuiltInRegistries.BIOME_SOURCE, id, BiomeOverlaySource.CODEC);
 		}
 	}
 
@@ -92,6 +97,7 @@ final class BiomeWorldgenManager {
 
 	static synchronized void clear() {
 		BiomeFeatureInstaller.restoreAll();
+		restoreAquiferMaterials();
 		baked = Collections.emptyMap();
 	}
 
@@ -100,7 +106,7 @@ final class BiomeWorldgenManager {
 	}
 
 	private static BakedBiomeWorldgen bake(ServerLevel level, JsonObject root) {
-		Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+		Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registries.BIOME);
 		ResourceLocation dimensionId = level.dimension().location();
 		Map<Holder<Biome>, Surface> surfaces = new IdentityHashMap<>();
 		List<Palette> palettes = bakePalettes(root, biomes, dimensionId, surfaces);
@@ -128,7 +134,7 @@ final class BiomeWorldgenManager {
 				try { biomeId = new ResourceLocation(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
 				Holder<Biome> holder = registry.getHolder(ResourceKey.create(
-						Registry.BIOME_REGISTRY, biomeId)).orElse(null);
+						Registries.BIOME, biomeId)).orElse(null);
 				if (holder == null) {
 					LOGGER.warn("Skipping missing optional OreSpawn biome '{}'", biomeId);
 					continue;
@@ -190,7 +196,7 @@ final class BiomeWorldgenManager {
 			if (!scopeMatches(scope, included, excluded, sourceId)) continue;
 			Biome biome = source.getValue();
 			float temperature = biome.getBaseTemperature();
-			float downfall = biome.getDownfall();
+			float downfall = biome.getModifiedClimateSettings().downfall();
 			int count = 0;
 			for (BakedBiomeWorldgen.Entry candidate : entries) {
 				if (eligible(candidate, sourceId, temperature, downfall)) count++;
@@ -259,35 +265,41 @@ final class BiomeWorldgenManager {
 
 	private static void installBiomeSource(ServerLevel level, BakedBiomeWorldgen config) {
 		ChunkGenerator generator = level.getChunkSource().getGenerator();
-		BiomeSource original = generator.runtimeBiomeSource;
+		BiomeSource original = generator.biomeSource;
 		while (original instanceof BiomeOverlaySource) {
 			original = ((BiomeOverlaySource) original).delegate();
 		}
 		if (config == null || !config.hasBiomeOverlay()) {
 			generator.biomeSource = original;
-			generator.runtimeBiomeSource = original;
 			return;
 		}
 		BiomeOverlaySource overlay =
 				new BiomeOverlaySource(original, config.palettes, level.getSeed());
 		generator.biomeSource = overlay;
-		generator.runtimeBiomeSource = overlay;
 	}
 
 	private static void installAquiferMaterials(ServerLevel level, DimensionMaterials materials) {
 		ChunkGenerator raw = level.getChunkSource().getGenerator();
 		if (!(raw instanceof NoiseBasedChunkGenerator)) return;
 		NoiseBasedChunkGenerator generator = (NoiseBasedChunkGenerator) raw;
-		Aquifer.FluidPicker original = generator.globalFluidPicker;
-		while (original instanceof ConfiguredFluidPicker) {
-			original = ((ConfiguredFluidPicker) original).original();
-		}
+		Supplier<Aquifer.FluidPicker> originalSupplier =
+				ORIGINAL_FLUID_PICKERS.computeIfAbsent(generator,
+						ignored -> generator.globalFluidPicker);
 		if (materials == null || !materials.hasAquiferOverride()) {
-			generator.globalFluidPicker = original;
+			generator.globalFluidPicker = originalSupplier;
 			return;
 		}
-		generator.globalFluidPicker = new ConfiguredFluidPicker(original,
-				generator.getSeaLevel(), materials);
+		Aquifer.FluidPicker configured = new ConfiguredFluidPicker(
+				originalSupplier.get(), generator.getSeaLevel(), materials);
+		generator.globalFluidPicker = () -> configured;
+	}
+
+	private static void restoreAquiferMaterials() {
+		for (Map.Entry<NoiseBasedChunkGenerator, Supplier<Aquifer.FluidPicker>> entry
+				: ORIGINAL_FLUID_PICKERS.entrySet()) {
+			entry.getKey().globalFluidPicker = entry.getValue();
+		}
+		ORIGINAL_FLUID_PICKERS.clear();
 	}
 
 	private static Surface surface(JsonObject json) {

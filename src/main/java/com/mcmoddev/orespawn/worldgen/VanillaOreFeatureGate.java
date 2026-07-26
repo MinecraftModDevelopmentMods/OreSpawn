@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.worldgen;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,21 +11,16 @@ import com.mojang.serialization.Codec;
 import com.mcmoddev.orespawn.OreSpawn;
 
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
-import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.DeferredRegister;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,109 +35,76 @@ public final class VanillaOreFeatureGate {
 	private static final Definition[] DEFINITIONS = definitions();
 	private static final GateFeature[] FEATURES = features();
 	private static final SuppressibleGateFeature SUPPRESSIBLE_FEATURE = new SuppressibleGateFeature();
-	private static Gate[] gates = new Gate[0];
-	private static Map<ResourceLocation, Holder<PlacedFeature>> suppressibleGates = new LinkedHashMap<>();
+	private static final Map<ResourceLocation, Holder<PlacedFeature>> VANILLA_GATES =
+			new LinkedHashMap<>();
+	private static final Map<PlacedFeature, Holder<PlacedFeature>> SUPPRESSIBLE_GATES =
+			new IdentityHashMap<>();
 
 	private VanillaOreFeatureGate() {
 	}
 
-	public static void registerFeatures(IForgeRegistry<Feature<?>> registry) {
-		for (GateFeature feature : FEATURES) {
-			registry.register(feature);
+	public static void registerFeatures(DeferredRegister<Feature<?>> registry) {
+		for (int i = 0; i < FEATURES.length; i++) {
+			final int index = i;
+			registry.register("vanilla_ore_gate_" + DEFINITIONS[i].placedFeatureId.getPath(),
+					() -> FEATURES[index]);
 		}
-		registry.register(SUPPRESSIBLE_FEATURE);
-	}
-
-	static void register() {
-		List<Gate> registered = new ArrayList<>();
-		for (int definitionIndex = 0; definitionIndex < DEFINITIONS.length; definitionIndex++) {
-			Definition definition = DEFINITIONS[definitionIndex];
-			ResourceKey<PlacedFeature> key = ResourceKey.create(Registry.PLACED_FEATURE_REGISTRY,
-					definition.placedFeatureId);
-			Holder<PlacedFeature> original = BuiltinRegistries.PLACED_FEATURE.getHolder(key).orElse(null);
-			Block output = ForgeRegistries.BLOCKS.getValue(definition.oreBlockId);
-			if (original == null || output == null) {
-				LOGGER.warn("Could not create OreSpawn gate for vanilla ore feature '{}'",
-						definition.placedFeatureId);
-				continue;
-			}
-
-			ResourceLocation wrapperId = new ResourceLocation(OreSpawn.MODID,
-					"vanilla_ore_gate/" + definition.placedFeatureId.getPath());
-			GateFeature feature = FEATURES[definitionIndex];
-			feature.initialize(original.value().feature(), output);
-			Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-					BuiltinRegistries.CONFIGURED_FEATURE, wrapperId,
-					new ConfiguredFeature<NoneFeatureConfiguration, GateFeature>(feature,
-							NoneFeatureConfiguration.INSTANCE));
-			// BiomeFilter must see the registered wrapper as the top feature. Moving
-			// these modifiers into the delegate leaks biome-specific ores.
-			Holder<PlacedFeature> wrapper = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE,
-					wrapperId, new PlacedFeature(configured, original.value().placement()));
-			registered.add(new Gate(definition.placedFeatureId, wrapper));
-		}
-		gates = registered.toArray(new Gate[registered.size()]);
-		registerSuppressibleOreGates();
-	}
-
-	static void wrapVanillaOres(BiomeLoadingEvent event) {
-		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES));
-		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_DECORATION));
+		registry.register("suppressible_ore_gate", () -> SUPPRESSIBLE_FEATURE);
 	}
 
 	static boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Holder<PlacedFeature> feature = features.get(featureIndex);
-			boolean wrapped = false;
-			for (Gate gate : gates) {
-				if (feature.is(gate.originalId)) {
-					features.set(featureIndex, gate.wrapper);
-					wrapped = true;
-					changed = true;
-					break;
-				}
-			}
-			if (!wrapped) {
-				ResourceLocation id = BuiltinRegistries.PLACED_FEATURE.getKey(feature.value());
-				Holder<PlacedFeature> replacement = id == null ? null : suppressibleGates.get(id);
-				if (replacement != null) {
-					features.set(featureIndex, replacement);
-					changed = true;
-				}
+			ResourceLocation id = feature.unwrapKey().map(key -> key.location()).orElse(null);
+			if (id != null && OreSpawn.MODID.equals(id.getNamespace())) continue;
+
+			int vanillaIndex = definitionIndex(id);
+			Holder<PlacedFeature> replacement = vanillaIndex >= 0
+					? VANILLA_GATES.computeIfAbsent(id,
+							ignored -> vanillaGate(feature, vanillaIndex))
+					: isStandardOreFeature(feature.value())
+							? SUPPRESSIBLE_GATES.computeIfAbsent(feature.value(),
+									ignored -> suppressibleGate(feature))
+							: null;
+			if (replacement != null) {
+				features.set(featureIndex, replacement);
+				changed = true;
 			}
 		}
 		return changed;
 	}
 
-	private static void registerSuppressibleOreGates() {
-		Map<ResourceLocation, Holder<PlacedFeature>> registered = new LinkedHashMap<>();
-		List<Map.Entry<ResourceKey<PlacedFeature>, PlacedFeature>> candidates =
-				new ArrayList<>(BuiltinRegistries.PLACED_FEATURE.entrySet());
-		for (Map.Entry<ResourceKey<PlacedFeature>, PlacedFeature> entry : candidates) {
-			ResourceLocation id = entry.getKey().location();
-			PlacedFeature original = entry.getValue();
-			if (OreSpawn.MODID.equals(id.getNamespace()) || isKnownVanillaGate(id)
-					|| !isStandardOreFeature(original)) {
-				continue;
-			}
-			ResourceLocation wrapperId = new ResourceLocation(OreSpawn.MODID,
-					"all_ore_gate/" + id.getNamespace() + "/" + id.getPath());
-			Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-					BuiltinRegistries.CONFIGURED_FEATURE, wrapperId,
-					new ConfiguredFeature<SuppressibleConfig, SuppressibleGateFeature>(SUPPRESSIBLE_FEATURE,
-							new SuppressibleConfig(original.feature())));
-			Holder<PlacedFeature> wrapper = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE,
-					wrapperId, new PlacedFeature(configured, original.placement()));
-			registered.put(id, wrapper);
+	private static Holder<PlacedFeature> vanillaGate(Holder<PlacedFeature> original,
+			int definitionIndex) {
+		Definition definition = DEFINITIONS[definitionIndex];
+		Block output = ForgeRegistries.BLOCKS.getValue(definition.oreBlockId);
+		if (output == null) {
+			LOGGER.warn("Could not create OreSpawn gate for vanilla ore feature '{}'",
+					definition.placedFeatureId);
+			return null;
 		}
-		suppressibleGates = registered;
-		LOGGER.info("Registered {} OreSpawn gates for standard ore features", registered.size());
+		GateFeature feature = FEATURES[definitionIndex];
+		feature.initialize(original.value().feature(), output);
+		Holder<ConfiguredFeature<?, ?>> configured = Holder.direct(
+				new ConfiguredFeature<NoneFeatureConfiguration, GateFeature>(
+						feature, NoneFeatureConfiguration.INSTANCE));
+		return Holder.direct(new PlacedFeature(configured, original.value().placement()));
 	}
 
-	private static boolean isKnownVanillaGate(ResourceLocation id) {
-		for (Definition definition : DEFINITIONS) if (definition.placedFeatureId.equals(id)) return true;
-		return false;
+	private static Holder<PlacedFeature> suppressibleGate(Holder<PlacedFeature> original) {
+		Holder<ConfiguredFeature<?, ?>> configured = Holder.direct(
+				new ConfiguredFeature<SuppressibleConfig, SuppressibleGateFeature>(
+						SUPPRESSIBLE_FEATURE, new SuppressibleConfig(original.value().feature())));
+		return Holder.direct(new PlacedFeature(configured, original.value().placement()));
+	}
+
+	private static int definitionIndex(ResourceLocation id) {
+		if (id == null) return -1;
+		for (int i = 0; i < DEFINITIONS.length; i++) {
+			if (DEFINITIONS[i].placedFeatureId.equals(id)) return i;
+		}
+		return -1;
 	}
 
 	private static boolean isStandardOreFeature(PlacedFeature placed) {
@@ -182,8 +145,6 @@ public final class VanillaOreFeatureGate {
 		GateFeature[] result = new GateFeature[DEFINITIONS.length];
 		for (int i = 0; i < result.length; i++) {
 			result[i] = new GateFeature();
-			result[i].setRegistryName(OreSpawn.MODID,
-					"vanilla_ore_gate_" + DEFINITIONS[i].placedFeatureId.getPath());
 		}
 		return result;
 	}
@@ -235,7 +196,6 @@ public final class VanillaOreFeatureGate {
 	private static final class SuppressibleGateFeature extends Feature<SuppressibleConfig> {
 		SuppressibleGateFeature() {
 			super(SuppressibleConfig.CODEC);
-			setRegistryName(OreSpawn.MODID, "suppressible_ore_gate");
 		}
 
 		@Override
@@ -256,13 +216,4 @@ public final class VanillaOreFeatureGate {
 		}
 	}
 
-	private static final class Gate {
-		final ResourceLocation originalId;
-		final Holder<PlacedFeature> wrapper;
-
-		Gate(ResourceLocation originalId, Holder<PlacedFeature> wrapper) {
-			this.originalId = originalId;
-			this.wrapper = wrapper;
-		}
-	}
 }

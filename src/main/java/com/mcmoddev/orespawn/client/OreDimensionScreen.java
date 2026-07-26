@@ -22,8 +22,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
@@ -67,7 +65,7 @@ final class OreDimensionScreen extends Screen {
 	private int columnWidth = 150;
 
 	OreDimensionScreen(Screen parent, GeologyEditorSession session, String oreId, String dimensionId) {
-		super(new TranslatableComponent("screen.orespawn.ore_dimension"));
+		super(Component.translatable("screen.orespawn.ore_dimension"));
 		this.parent = parent;
 		this.session = session;
 		this.oreId = oreId;
@@ -125,22 +123,22 @@ final class OreDimensionScreen extends Screen {
 		patternWidgets.clear();
 		hostWidgets.clear();
 		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 32, contentWidth, 20,
-				new TranslatableComponent("option.orespawn.enabled"), (button, value) -> enabled = value));
+				Component.translatable("option.orespawn.enabled"), (button, value) -> enabled = value));
 		int tabWidth = (contentWidth - 10) / 3;
 		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 56, tabWidth, 20,
-				new TranslatableComponent("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
+				Component.translatable("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
 		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + tabWidth + 5, 56, tabWidth, 20,
-				new TranslatableComponent("tab.orespawn.pattern"), button -> showPage(Page.PATTERN))));
+				Component.translatable("tab.orespawn.pattern"), button -> showPage(Page.PATTERN))));
 		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + ((tabWidth + 5) * 2), 56, contentWidth - ((tabWidth + 5) * 2), 20,
-				new TranslatableComponent("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
+				Component.translatable("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
 		double currentFrequency = GeologyEditorSession.decimal(rule, "frequency", baselineFrequency);
 		richness = addRenderableWidget(CycleButton.builder(this::richnessName)
 				.withValues(Arrays.asList(OreRichnessPreset.values()))
 				.withInitialValue(OreRichnessPreset.fromFrequency(baselineFrequency, currentFrequency))
 				.withTooltip(value -> tooltip("tooltip.orespawn.ore_richness"))
-				.create(left, 80, contentWidth, 20, new TranslatableComponent("option.orespawn.ore_richness"),
+				.create(left, 80, contentWidth, 20, Component.translatable("option.orespawn.ore_richness"),
 						(button, value) -> applyRichness(value)));
 		placementWidgets.add(richness);
 		int fixedQuantity = GeologyEditorSession.integer(rule, "quantity", 8);
@@ -170,14 +168,14 @@ final class OreDimensionScreen extends Screen {
 		AbstractWidget patternButton;
 		if (externalPattern) {
 			Button external = OreSpawnScreenLayout.button(this, font, left, 80, contentWidth, 20,
-					new TextComponent("Pattern: " + externalPatternId), button -> { });
+					Component.literal("Pattern: " + externalPatternId), button -> { });
 			external.active = false;
 			patternButton = addRenderableWidget(external);
 		} else {
 			patternButton = addRenderableWidget(CycleButton.builder(this::patternName)
 					.withValues(Arrays.asList(OrePattern.values()))
 					.withInitialValue(pattern)
-					.create(left, 80, contentWidth, 20, new TranslatableComponent("option.orespawn.pattern"),
+					.create(left, 80, contentWidth, 20, Component.translatable("option.orespawn.pattern"),
 							(button, value) -> {
 								pattern = value;
 								updatePatternControls();
@@ -188,7 +186,7 @@ final class OreDimensionScreen extends Screen {
 				.withValues(Arrays.asList(OreHeightDistribution.values()))
 				.withInitialValue(heightDistribution)
 				.create(left, 104, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.height_distribution"),
+						Component.translatable("option.orespawn.height_distribution"),
 						(button, value) -> heightDistribution = value)));
 		spread = addPatternField(right, 128, "spread", text(rule, "spread", 8));
 		verticalSpread = addPatternField(right, 152, "vertical_spread", text(rule, "vertical_spread", 4));
@@ -200,12 +198,12 @@ final class OreDimensionScreen extends Screen {
 		hostTags = addHostField(left, 120, "host_tags", originalHostTagsText);
 		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left, 144, columnWidth, 20,
-				new TranslatableComponent("button.orespawn.geome_weights"), button -> openWeights()));
+				Component.translatable("button.orespawn.geome_weights"), button -> openWeights()));
 		weights.active = "minecraft:overworld".equals(dimensionId) || dimensionSelector;
 		hostWidgets.add(weights);
 		hostWidgets.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				right, 144, columnWidth, 20,
-				new TranslatableComponent("button.orespawn.remove_dimension"), button -> removeDimension())));
+				Component.translatable("button.orespawn.remove_dimension"), button -> removeDimension())));
 
 		RockFamily[] values = RockFamily.values();
 		for (int i = 0; i < values.length; i++) {
@@ -213,7 +211,7 @@ final class OreDimensionScreen extends Screen {
 			int x = (i & 1) == 0 ? left : right;
 			int y = 168 + ((i / 2) * 22);
 			hostWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(families.contains(family)).create(x, y, columnWidth, 20,
-					new TranslatableComponent("value.orespawn.family." + family.configName),
+					Component.translatable("value.orespawn.family." + family.configName),
 					(button, selected) -> {
 						if (selected) families.add(family); else families.remove(family);
 					})));
@@ -231,7 +229,7 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private EditBox addPlacementField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(32);
 		placementWidgets.add(addRenderableWidget(box));
@@ -243,7 +241,7 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private EditBox addHostField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, contentWidth, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, contentWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(1024);
 		hostWidgets.add(addRenderableWidget(box));
@@ -251,7 +249,7 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private EditBox addPatternField(int x, int y, String key, String value) {
-		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
+		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(32);
 		patternWidgets.add(addRenderableWidget(box));
@@ -288,7 +286,7 @@ final class OreDimensionScreen extends Screen {
 		JsonObject weights = rule.has("geomes") && rule.get("geomes").isJsonObject()
 				? rule.getAsJsonObject("geomes") : new JsonObject();
 		rule.add("geomes", weights);
-		minecraft.setScreen(new WeightMapScreen(this, new TranslatableComponent("screen.orespawn.geome_weights"),
+		minecraft.setScreen(new WeightMapScreen(this, Component.translatable("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
@@ -311,7 +309,7 @@ final class OreDimensionScreen extends Screen {
 			JsonArray blocks = ids(hostBlocks.getValue());
 			JsonArray tags = ids(hostTags.getValue());
 			if (enabled && families.isEmpty() && blocks.size() == 0 && tags.size() == 0) {
-				error = new TextComponent("An enabled dimension needs at least one host.");
+				error = Component.literal("An enabled dimension needs at least one host.");
 				return false;
 			}
 			JsonObject rule = rule();
@@ -346,7 +344,7 @@ final class OreDimensionScreen extends Screen {
 			error = null;
 			return true;
 		} catch (RuntimeException e) {
-			error = new TextComponent("Check the numeric ranges and registry IDs.");
+			error = Component.literal("Check the numeric ranges and registry IDs.");
 			return false;
 		}
 	}
@@ -425,13 +423,13 @@ final class OreDimensionScreen extends Screen {
 	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 2, 0xFFFFFF);
-		Component blockName = new TextComponent(
+		Component blockName = Component.literal(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
 		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
 				width / 2, 13, 0xDDDDDD);
 		Component dimensionName = dimensionSelector
-				? new TranslatableComponent("value.orespawn.dimension.all_except_nether_end")
-				: new TextComponent(dimensionId);
+				? Component.translatable("value.orespawn.dimension.all_except_nether_end")
+				: Component.literal(dimensionId);
 		boolean compact = OreSpawnScreenLayout.compact(height);
 		if (error == null || !compact) {
 			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
@@ -444,7 +442,7 @@ final class OreDimensionScreen extends Screen {
 				String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
 						"discard_air_exposure" };
 				for (int i = 0; i < labels.length; i++) {
-					Component label = new TranslatableComponent("option.orespawn." + labels[i]);
+					Component label = Component.translatable("option.orespawn." + labels[i]);
 					drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
 							contentLeft, 110 + (i * 24), 0xDDDDDD);
 				}
@@ -452,17 +450,17 @@ final class OreDimensionScreen extends Screen {
 		} else if (page == Page.PATTERN && !externalPattern) {
 			String[] labels = { "spread", "vertical_spread", "node_size" };
 			for (int i = 0; i < labels.length; i++) {
-				drawString(poseStack, font, new TranslatableComponent("option.orespawn." + labels[i]),
+				drawString(poseStack, font, Component.translatable("option.orespawn." + labels[i]),
 						contentLeft, 134 + (i * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.PATTERN) {
 			drawCenteredString(poseStack, font,
-					new TranslatableComponent("message.orespawn.external_pattern_read_only"),
+					Component.translatable("message.orespawn.external_pattern_read_only"),
 					width / 2, 132, 0xAAAAAA);
 		} else {
-			drawString(poseStack, font, new TranslatableComponent("option.orespawn.host_blocks"),
+			drawString(poseStack, font, Component.translatable("option.orespawn.host_blocks"),
 					contentLeft, 78, 0xDDDDDD);
-			drawString(poseStack, font, new TranslatableComponent("option.orespawn.host_tags"),
+			drawString(poseStack, font, Component.translatable("option.orespawn.host_tags"),
 					contentLeft, 110, 0xDDDDDD);
 		}
 		if (error != null) {
@@ -480,7 +478,7 @@ final class OreDimensionScreen extends Screen {
 		};
 		for (int row = 0; row < labels.length; row++) {
 			for (int column = 0; column < labels[row].length; column++) {
-				Component label = new TranslatableComponent("option.orespawn." + labels[row][column]);
+				Component label = Component.translatable("option.orespawn." + labels[row][column]);
 				int x = column == 0 ? contentLeft : contentLeft + columnWidth + 5;
 				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth),
 						x, OreSpawnScreenLayout.compactOrePlacementLabelY(height, row), 0xDDDDDD);
@@ -489,18 +487,18 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	private Component patternName(OrePattern value) {
-		return new TranslatableComponent("value.orespawn.ore_pattern." + value.configName);
+		return Component.translatable("value.orespawn.ore_pattern." + value.configName);
 	}
 
 	private Component distributionName(OreHeightDistribution value) {
-		return new TranslatableComponent("value.orespawn.height_distribution." + value.configName);
+		return Component.translatable("value.orespawn.height_distribution." + value.configName);
 	}
 
 	private Component richnessName(OreRichnessPreset value) {
-		return new TranslatableComponent("value.orespawn.ore_richness." + value.configName);
+		return Component.translatable("value.orespawn.ore_richness." + value.configName);
 	}
 
-	private List<FormattedCharSequence> tooltip(String key) {
-		return font.split(new TranslatableComponent(key), 240);
+	private net.minecraft.client.gui.components.Tooltip tooltip(String key) {
+		return net.minecraft.client.gui.components.Tooltip.create(Component.translatable(key));
 	}
 }

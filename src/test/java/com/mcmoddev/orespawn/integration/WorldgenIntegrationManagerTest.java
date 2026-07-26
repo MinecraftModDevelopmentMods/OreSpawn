@@ -12,19 +12,9 @@ import java.util.Map;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-
 class WorldgenIntegrationManagerTest {
-	@BeforeAll
-	static void bootstrapMinecraft() {
-		SharedConstants.tryDetectVersion();
-		Bootstrap.bootStrap();
-	}
-
 	@Test
 	void acceptsAValidFluidProvider() {
 		assertDoesNotThrow(() -> WorldgenIntegrationManager.validateProvider(

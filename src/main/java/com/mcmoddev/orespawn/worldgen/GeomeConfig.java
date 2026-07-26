@@ -43,10 +43,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -337,7 +337,7 @@ public final class GeomeConfig {
 				}
 				Set<ResourceLocation> biomeIds = resourceLocations(json.get("biome_ids"));
 				Set<String> namespaces = strings(json.get("biome_namespaces"));
-				ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, id);
+				ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, id);
 				result.put(key, new BakedTerrainDimension(key, biomeIds, namespaces, hosts));
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn terrain dimension '{}'", entry.getKey());
@@ -357,7 +357,7 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
+			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
 			for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 				if (block.defaultBlockState().is(tag)) {
 					target.add(block);
@@ -1024,9 +1024,8 @@ public final class GeomeConfig {
 			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
-				ResourceKey<Biome> biomeKey = ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
-				for (BiomeDictionary.Type type : BiomeDictionary.getTypes(biomeKey)) {
-					merge(weights, dictionaryRules.get(type.getName()));
+				for (String type : BiomeTypeCompatibility.types(biome)) {
+					merge(weights, dictionaryRules.get(type));
 				}
 			}
 			applyBiomeHeuristic(weights, geomeIndexes, biomeId, biome);
@@ -1039,7 +1038,7 @@ public final class GeomeConfig {
 			ResourceLocation biomeId, Biome biome) {
 		String biomeName = biomeId == null ? "" : biomeId.getPath();
 		float temperature = biome.getBaseTemperature();
-		float downfall = biome.getDownfall();
+		float downfall = biome.getModifiedClimateSettings().downfall();
 
 		if (biomeName.contains("ocean") || biomeName.contains("river") || biomeName.contains("beach")
 				|| biomeName.contains("shore") || biomeName.contains("coast")

@@ -24,7 +24,7 @@ import com.mcmoddev.orespawn.init.OreSpawnPatterns;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -33,20 +33,16 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -73,17 +69,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private OreSpawnOreGeneration() {
 		super(NoneFeatureConfiguration.CODEC);
-		setRegistryName(OreSpawn.MODID, "managed_ores");
 	}
 
 	public static void registerConfiguredFeatures() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "managed_ores");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, OreSpawnOreGeneration>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
-		VanillaOreFeatureGate.register();
+		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
 		refreshWorldConfig();
 	}
 
@@ -99,14 +88,6 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			classifierSeed = Long.MIN_VALUE;
 		}
 		GENERATION_SCRATCH.remove();
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		VanillaOreFeatureGate.wrapVanillaOres(event);
-		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES).add(placedFeature);
-		}
 	}
 
 	static boolean takesOverVanillaOre(ResourceKey<Level> dimension, Block output) {
@@ -128,7 +109,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
 		boolean changed = generateChunk(world, chunk, world.getBiome(scratch.cursor), dimension,
-				world.getSeed(), context.random(), ores, false, scratch);
+				world.getSeed(), scratch.randomSource.wrap(context.random()), ores, false, scratch);
 		OreRetrogenManager.markGenerated(dimension, chunk.getPos());
 		return changed;
 	}
@@ -284,7 +265,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 							dimensionEntry.getKey(), oreEntry.getKey());
 					continue;
 				}
-				ResourceKey<Level> dimensionKey = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
+				ResourceKey<Level> dimensionKey = ResourceKey.create(Registries.DIMENSION, dimensionId);
 				rule.explicitDimensions.add(dimensionKey);
 				explicitDimensions.add(dimensionKey);
 				if (!dimensionEntry.getValue().isJsonObject()) {
@@ -495,7 +476,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			if (id == null) {
 				continue;
 			}
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
+			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
 			Set<Block> blocks = resolvedTags.computeIfAbsent(tag, OreSpawnOreGeneration::resolveTag);
 			double weight = Math.max(0.0D, Math.min(1.0D,
 					object == null ? 1.0D : decimal(object, "weight", 1.0D)));
@@ -515,11 +496,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					for (ResourceKey<Biome> key : net.minecraftforge.common.BiomeDictionary.getBiomes(
-							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString()))) {
-						Biome biome = ForgeRegistries.BIOMES.getValue(key.location());
-						if (biome != null) result.add(biome);
-					}
+					result.addAll(BiomeTypeCompatibility.biomes(element.getAsString()));
 				} catch (RuntimeException ignored) {
 				}
 			}
@@ -746,6 +723,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static final class GenerationScratch {
+		final RandomSourceAdapter randomSource = new RandomSourceAdapter();
 		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		final PatternContext patternContext = new PatternContext(cursor);
 		private double[] geomeValues = new double[0];

@@ -1,14 +1,14 @@
 package com.mcmoddev.orespawn.worldgen;
 
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 final class TerrainFeaturePolicy {
 	private TerrainFeaturePolicy() { }
 
-	static boolean shouldRemoveVanillaMatchingStoneFeatures(BiomeCategory category,
+	static boolean shouldSuppressVanillaMatchingStoneFeature(ResourceKey<Level> dimension,
 			boolean rockPlacementEnabled, boolean overworldTerrainConfigured) {
 		return rockPlacementEnabled && overworldTerrainConfigured
-				&& category != BiomeCategory.NETHER && category != BiomeCategory.THEEND
-				&& category != BiomeCategory.NONE;
+				&& !Level.NETHER.equals(dimension) && !Level.END.equals(dimension);
 	}
 }

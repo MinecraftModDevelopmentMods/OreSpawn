@@ -9,8 +9,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.util.FormattedCharSequence;
 
 /** A short, player-facing guide available while a world is being configured. */
@@ -28,7 +26,7 @@ final class OreSpawnGuideScreen extends Screen {
 	private int page;
 
 	OreSpawnGuideScreen(Screen parent) {
-		super(new TranslatableComponent("screen.orespawn.guide"));
+		super(Component.translatable("screen.orespawn.guide"));
 		this.parent = parent;
 	}
 
@@ -36,12 +34,12 @@ final class OreSpawnGuideScreen extends Screen {
 	protected void init() {
 		int left = width / 2 - 155;
 		int bottom = OreSpawnScreenLayout.footerY(height);
-		Button previous = addRenderableWidget(new Button(left, bottom, 80, 20,
-				new TranslatableComponent("button.orespawn.previous"), button -> changePage(-1)));
-		addRenderableWidget(new Button(width / 2 - 70, bottom, 140, 20,
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, bottom, 80, 20,
+				Component.translatable("button.orespawn.previous"), button -> changePage(-1)));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 70, bottom, 140, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
-		Button next = addRenderableWidget(new Button(left + 230, bottom, 80, 20,
-				new TranslatableComponent("button.orespawn.next"), button -> changePage(1)));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 230, bottom, 80, 20,
+				Component.translatable("button.orespawn.next"), button -> changePage(1)));
 		previous.active = page > 0;
 		next.active = page + 1 < PAGES.size();
 	}
@@ -64,7 +62,7 @@ final class OreSpawnGuideScreen extends Screen {
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		drawCenteredString(poseStack, font, current.title, width / 2, 28, 0xFFFF55);
 		drawCenteredString(poseStack, font,
-				new TextComponent((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
+				Component.literal((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
 
 		int textWidth = Math.min(330, width - 32);
 		int x = (width - textWidth) / 2;
@@ -82,9 +80,9 @@ final class OreSpawnGuideScreen extends Screen {
 	private static GuidePage page(String id, int paragraphCount) {
 		Component[] paragraphs = new Component[paragraphCount];
 		for (int i = 0; i < paragraphCount; i++) {
-			paragraphs[i] = new TranslatableComponent("guide.orespawn." + id + "." + (i + 1));
+			paragraphs[i] = Component.translatable("guide.orespawn." + id + "." + (i + 1));
 		}
-		return new GuidePage(new TranslatableComponent("guide.orespawn." + id + ".title"), paragraphs);
+		return new GuidePage(Component.translatable("guide.orespawn." + id + ".title"), paragraphs);
 	}
 
 	private static final class GuidePage {

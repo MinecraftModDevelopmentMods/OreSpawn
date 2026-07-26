@@ -6,29 +6,24 @@ import java.util.Set;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mcmoddev.orespawn.OreSpawn;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Optional flat bedrock generation compatible with OreSpawn 3 profiles. */
@@ -41,26 +36,11 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 
 	private FlatBedrockFeature() {
 		super(NoneFeatureConfiguration.CODEC);
-		setRegistryName(OreSpawn.MODID, "flat_bedrock");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "flat_bedrock");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-				BuiltinRegistries.CONFIGURED_FEATURE, id,
-				new ConfiguredFeature<NoneFeatureConfiguration, FlatBedrockFeature>(
-						FEATURE, NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
 		refreshWorldConfig();
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (!WorldgenBenchmark.isVanillaBaseline() && event.getCategory() != BiomeCategory.NONE
-				&& placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION)
-					.add(placedFeature);
-		}
 	}
 
 	static Holder<PlacedFeature> placedFeature() {
@@ -147,7 +127,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 		if (json.has("dimensions") && json.get("dimensions").isJsonArray()) {
 			for (JsonElement element : json.getAsJsonArray("dimensions")) {
 				try {
-					dimensions.add(ResourceKey.create(Registry.DIMENSION_REGISTRY,
+					dimensions.add(ResourceKey.create(Registries.DIMENSION,
 							new ResourceLocation(element.getAsString())));
 				} catch (RuntimeException ignored) {
 				}

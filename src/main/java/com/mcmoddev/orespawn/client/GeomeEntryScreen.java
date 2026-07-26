@@ -12,8 +12,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 
 final class GeomeEntryScreen extends Screen {
 	private final Screen parent;
@@ -24,7 +22,7 @@ final class GeomeEntryScreen extends Screen {
 	private Component error;
 
 	GeomeEntryScreen(Screen parent, GeologyEditorSession session, String geomeId) {
-		super(new TranslatableComponent("screen.orespawn.geome_entry"));
+		super(Component.translatable("screen.orespawn.geome_entry"));
 		this.parent = parent;
 		this.session = session;
 		this.geomeId = geomeId;
@@ -45,20 +43,20 @@ final class GeomeEntryScreen extends Screen {
 			familyWeights.put(family, field);
 			index++;
 		}
-		addRenderableWidget(new Button(left, 190, 150, 20,
-				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
-		Button remove = addRenderableWidget(new Button(right, 190, 150, 20,
-				new TranslatableComponent("button.orespawn.remove"), button -> remove()));
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, 190, 150, 20,
+				Component.translatable("button.orespawn.reset"), button -> reset()));
+		Button remove = addRenderableWidget(OreSpawnScreenLayout.plainButton(right, 190, 150, 20,
+				Component.translatable("button.orespawn.remove"), button -> remove()));
 		remove.active = !GeologyEditorSession.BUILT_IN_GEOMES.contains(geomeId);
 		int bottom = height - 28;
-		addRenderableWidget(new Button(left, bottom, 150, 20, CommonComponents.GUI_DONE,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, bottom, 150, 20, CommonComponents.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(right, bottom, 150, 20, CommonComponents.GUI_CANCEL,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(right, bottom, 150, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
 	}
 
 	private EditBox addField(int x, int y, String key, String value) {
-		EditBox field = new EditBox(font, x, y, 150, 20, new TextComponent(key));
+		EditBox field = new EditBox(font, x, y, 150, 20, Component.literal(key));
 		field.setMaxLength(32);
 		field.setValue(value);
 		return addRenderableWidget(field);
@@ -75,7 +73,7 @@ final class GeomeEntryScreen extends Screen {
 			error = null;
 			minecraft.setScreen(parent);
 		} catch (NumberFormatException e) {
-			error = new TextComponent("Weights must be between 0 and 1000.");
+			error = Component.literal("Weights must be between 0 and 1000.");
 		}
 	}
 
@@ -90,7 +88,7 @@ final class GeomeEntryScreen extends Screen {
 		rebuildWidgets();
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -122,12 +120,12 @@ final class GeomeEntryScreen extends Screen {
 	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(geomeId), width / 2, 30, 0xDDDDDD);
-		drawString(poseStack, font, new TranslatableComponent("option.orespawn.base_weight"),
+		drawCenteredString(poseStack, font, Component.literal(geomeId), width / 2, 30, 0xDDDDDD);
+		drawString(poseStack, font, Component.translatable("option.orespawn.base_weight"),
 				width / 2 - 155, 58, 0xDDDDDD);
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
-			drawString(poseStack, font, new TranslatableComponent("value.orespawn.family." + family.configName),
+			drawString(poseStack, font, Component.translatable("value.orespawn.family." + family.configName),
 					width / 2 - 155, 88 + (index * 25), 0xDDDDDD);
 			index++;
 		}

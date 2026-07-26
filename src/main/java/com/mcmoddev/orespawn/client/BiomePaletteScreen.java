@@ -7,8 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 
 final class BiomePaletteScreen extends Screen {
 	private final Screen parent;
@@ -17,7 +16,7 @@ final class BiomePaletteScreen extends Screen {
 	private int page;
 
 	BiomePaletteScreen(Screen parent, GeologyEditorSession session, String dimension) {
-		super(new TranslatableComponent("screen.orespawn.biome_palette"));
+		super(Component.translatable("screen.orespawn.biome_palette"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -39,31 +38,31 @@ final class BiomePaletteScreen extends Screen {
 			String id = ids.get(start + i);
 			int y = listTop + i * 24;
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y,
-					contentWidth - removeWidth - 5, 20, new TextComponent(id),
+					contentWidth - removeWidth - 5, 20, Component.literal(id),
 					button -> minecraft.setScreen(new BiomePlacementScreen(this, session,
 							dimension, id))));
-			addRenderableWidget(new Button(left + contentWidth - removeWidth, y, removeWidth, 20,
-					new TranslatableComponent("button.orespawn.remove"),
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left + contentWidth - removeWidth, y, removeWidth, 20,
+					Component.translatable("button.orespawn.remove"),
 					button -> { session.removeBiomePlacement(dimension, id); rebuildWidgets(); }));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
+				Component.literal("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 50, controlsY, 45, 20,
+				Component.literal(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - 150, controlsY, 150, 20,
-				new TranslatableComponent("button.orespawn.add_biome"),
+				Component.translatable("button.orespawn.add_biome"),
 				button -> minecraft.setScreen(new BiomePickerScreen(this, session, id -> {
 					session.addBiomePlacement(dimension, id);
 					minecraft.setScreen(new BiomePlacementScreen(this, session, dimension, id));
 				}))));
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -74,7 +73,7 @@ final class BiomePaletteScreen extends Screen {
 	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(dimension), width / 2, 28, 0xCCCCCC);
+		drawCenteredString(poseStack, font, Component.literal(dimension), width / 2, 28, 0xCCCCCC);
 		super.render(poseStack, mouseX, mouseY, partialTick);
 	}
 }

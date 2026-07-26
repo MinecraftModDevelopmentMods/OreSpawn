@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.mojang.datafixers.util.Pair;
 import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
@@ -12,6 +13,8 @@ import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -22,7 +25,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -36,6 +38,7 @@ public final class WorldgenBenchmark {
 	private static final String PROPERTY = "orespawn.worldgenBenchmarkMode";
 	private static final String MODE = System.getProperty(PROPERTY, "").trim().toLowerCase(Locale.ROOT);
 	private static final boolean ENABLED = "vanilla".equals(MODE) || "cyano".equals(MODE) || "sky".equals(MODE);
+	private static final AtomicLong FLUID_DEPOSITS_PLACED = new AtomicLong();
 
 	private WorldgenBenchmark() {
 		throw new IllegalAccessError("Not an instantiable class");
@@ -51,6 +54,12 @@ public final class WorldgenBenchmark {
 
 	public static boolean isVanillaBaseline() {
 		return ENABLED && "vanilla".equals(MODE);
+	}
+
+	static void recordFluidDeposit() {
+		if (ENABLED && Boolean.getBoolean("orespawn.worldgenBenchmarkFluidAudit")) {
+			FLUID_DEPOSITS_PLACED.incrementAndGet();
+		}
 	}
 
 	private static void onServerAboutToStart(ServerAboutToStartEvent event) {
@@ -96,18 +105,28 @@ public final class WorldgenBenchmark {
 				Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory() / (1024L * 1024L));
 
 		generateSquare(level, baseCenterX - 64, baseCenterZ - 64, warmupRadius);
+		FLUID_DEPOSITS_PLACED.set(0L);
+		long fluidDepositTotal = 0L;
 		double[] milliseconds = new double[repetitions];
 		for (int repetition = 0; repetition < repetitions; repetition++) {
 			int centerX = baseCenterX + (repetition * centerStep);
+			long fluidDepositsBefore = FLUID_DEPOSITS_PLACED.get();
 			long started = System.nanoTime();
 			generateSquare(level, centerX, baseCenterZ, radius);
 			milliseconds[repetition] = (System.nanoTime() - started) / 1_000_000.0D;
 			LOGGER.info("ORESPAWN_BENCHMARK result mode={} repetition={} chunks={} elapsed_ms={} ms_per_chunk={}",
 					MODE, repetition + 1, chunks, format(milliseconds[repetition]),
 					format(milliseconds[repetition] / chunks));
+			if (Boolean.getBoolean("orespawn.worldgenBenchmarkFluidAudit")) {
+				long placed = FLUID_DEPOSITS_PLACED.get() - fluidDepositsBefore;
+				fluidDepositTotal += placed;
+				LOGGER.info("ORESPAWN_BENCHMARK_FLUID mode={} repetition={} successful_deposits={}",
+						MODE, repetition + 1, placed);
+			}
 			if (Boolean.getBoolean("orespawn.worldgenBenchmarkOreAudit")) {
 				auditOres(level, centerX, baseCenterZ, radius, repetition + 1);
 			}
+			auditBiomes(level, centerX, baseCenterZ, radius, repetition + 1);
 		}
 
 		double[] sorted = milliseconds.clone();
@@ -117,6 +136,9 @@ public final class WorldgenBenchmark {
 				+ "median_ms={} median_ms_per_chunk={} min_ms={} max_ms={}",
 				MODE, chunks, repetitions, format(median), format(median / chunks),
 				format(sorted[0]), format(sorted[sorted.length - 1]));
+		if (Boolean.getBoolean("orespawn.worldgenBenchmarkFluidAudit") && fluidDepositTotal == 0L) {
+			throw new IllegalStateException("Benchmark fluid audit found no successful deposits");
+		}
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
 			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
 			event.getServer().halt(false);
@@ -134,7 +156,7 @@ public final class WorldgenBenchmark {
 				if (id == null) {
 					throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 				}
-				yield ResourceKey.create(Registry.DIMENSION_REGISTRY, id);
+				yield ResourceKey.create(Registries.DIMENSION, id);
 			}
 		};
 	}
@@ -152,15 +174,42 @@ public final class WorldgenBenchmark {
 		return diameter * diameter;
 	}
 
+	private static void auditBiomes(ServerLevel level, int centerX, int centerZ, int radius,
+			int repetition) {
+		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeAudit", "").trim();
+		if (configured.isEmpty()) return;
+		ResourceLocation expected = ResourceLocation.tryParse(configured);
+		if (expected == null) {
+			throw new IllegalArgumentException("Invalid benchmark biome audit ID: " + configured);
+		}
+		int matching = 0;
+		int total = squareDiameter(radius);
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
+			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
+				cursor.set((chunkX << 4) + 8, level.getSeaLevel(), (chunkZ << 4) + 8);
+				ResourceLocation actual = level.getBiome(cursor).unwrapKey()
+						.map(key -> key.location()).orElse(null);
+				if (expected.equals(actual)) matching++;
+			}
+		}
+		LOGGER.info("ORESPAWN_BENCHMARK_BIOME mode={} repetition={} expected={} matching={} total={}",
+				MODE, repetition, expected, matching, total);
+		if (matching != total) {
+			throw new IllegalStateException("Benchmark biome audit expected " + expected
+					+ " in all " + total + " chunks but matched " + matching);
+		}
+	}
+
 	private static int[] locateBiomeType(ServerLevel level, int centerX, int centerZ) {
 		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeType", "").trim();
 		if (configured.isEmpty()) {
 			return new int[] { centerX, centerZ };
 		}
-		BiomeDictionary.Type type = BiomeDictionary.Type.getType(configured);
 		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
-		Pair<BlockPos, Holder<Biome>> located = level.findNearestBiome(holder -> holder.unwrapKey()
-				.map(key -> BiomeDictionary.hasType(key, type)).orElse(false), origin, 16384, 32);
+		Pair<BlockPos, Holder<Biome>> located = level.findClosestBiome3d(holder -> holder.unwrapKey()
+				.map(key -> BiomeTypeCompatibility.hasType(key, configured)).orElse(false),
+				origin, 16384, 32, 64);
 		if (located == null) {
 			throw new IllegalStateException("Benchmark could not locate biome dictionary type " + configured);
 		}
@@ -241,7 +290,7 @@ public final class WorldgenBenchmark {
 				throw new IllegalArgumentException("Invalid benchmark block audit specification: " + specification);
 			}
 			ResourceLocation id = ResourceLocation.tryParse(fields[0].trim());
-			if (id == null || !Registry.BLOCK.containsKey(id)) {
+			if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
 				throw new IllegalArgumentException("Unknown benchmark audit block: " + fields[0].trim());
 			}
 			int minimumY = Integer.parseInt(fields[1].trim());
@@ -252,7 +301,8 @@ public final class WorldgenBenchmark {
 				default -> throw new IllegalArgumentException(
 						"Benchmark audit expectation must be present or absent: " + specification);
 			};
-			audits.put(id.toString(), new OreAudit(Registry.BLOCK.get(id), Registry.BLOCK.get(id),
+			audits.put(id.toString(), new OreAudit(BuiltInRegistries.BLOCK.get(id),
+					BuiltInRegistries.BLOCK.get(id),
 					minimumY, maximumY, required));
 		}
 	}

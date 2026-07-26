@@ -8,14 +8,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 
-import net.minecraftforge.registries.ForgeRegistryEntry;
-
 /**
  * Forge-registered ore pattern type. Its codec is evaluated once while a
  * geology profile is baked; only the resulting compiled pattern reaches the
  * generation loop.
  */
-public final class OrePatternType extends ForgeRegistryEntry<OrePatternType> {
+public final class OrePatternType {
 	private final Codec<?> codec;
 	private final Function<Object, CompiledOrePattern> compiler;
 
@@ -37,7 +35,8 @@ public final class OrePatternType extends ForgeRegistryEntry<OrePatternType> {
 	public CompiledOrePattern decode(JsonElement configuration) {
 		DataResult<?> result = codec.parse(JsonOps.INSTANCE, configuration);
 		Object value = result.result().orElseThrow(() -> new IllegalArgumentException(
-				"Invalid settings for ore pattern " + getRegistryName() + ": "
+				"Invalid settings for ore pattern "
+						+ OreSpawnPatternRegistry.registry().getKey(this) + ": "
 						+ result.error().map(Object::toString).orElse("unknown codec error")));
 		return compile(value);
 	}

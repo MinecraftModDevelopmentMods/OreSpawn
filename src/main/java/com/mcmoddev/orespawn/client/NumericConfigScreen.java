@@ -12,8 +12,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 
 final class NumericConfigScreen extends Screen {
 	static final Field[] FORMATION_FIELDS = {
@@ -43,7 +41,7 @@ final class NumericConfigScreen extends Screen {
 	private Component error;
 
 	NumericConfigScreen(Screen parent, GeologyEditorSession session, String path, Field[] fields) {
-		super(new TranslatableComponent("screen.orespawn.numeric_settings"));
+		super(Component.translatable("screen.orespawn.numeric_settings"));
 		this.parent = parent;
 		this.session = session;
 		this.path = path;
@@ -60,7 +58,7 @@ final class NumericConfigScreen extends Screen {
 		for (int i = start; i < end; i++) {
 			Field field = fields[i];
 			EditBox editor = new EditBox(font, left, 44 + ((i - start) * 25), 145, 20,
-					new TextComponent(field.key));
+					Component.literal(field.key));
 			editor.setMaxLength(32);
 			JsonElement value = section.get(field.key);
 			editor.setValue(value == null ? "0" : value.getAsString());
@@ -68,14 +66,14 @@ final class NumericConfigScreen extends Screen {
 		}
 
 		int bottom = height - 28;
-		addRenderableWidget(new Button(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
-		Button previous = addRenderableWidget(new Button(width / 2 - 50, bottom, 45, 20,
-				new TextComponent("<"), button -> changePage(-1)));
-		Button next = addRenderableWidget(new Button(width / 2 + 5, bottom, 45, 20,
-				new TextComponent(">"), button -> changePage(1)));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 50, bottom, 45, 20,
+				Component.literal("<"), button -> changePage(-1)));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 + 5, bottom, 45, 20,
+				Component.literal(">"), button -> changePage(1)));
 		previous.active = page > 0;
 		next.active = (page + 1) * PAGE_SIZE < fields.length;
 	}
@@ -87,7 +85,7 @@ final class NumericConfigScreen extends Screen {
 		}
 	}
 
-	private void rebuildWidgets() {
+	protected void rebuildWidgets() {
 		clearWidgets();
 		init();
 	}
@@ -111,7 +109,7 @@ final class NumericConfigScreen extends Screen {
 				if (field.integer) section.addProperty(field.key, (int) value);
 				else section.addProperty(field.key, value);
 			} catch (NumberFormatException e) {
-				error = new TextComponent("Invalid value for " + field.key);
+				error = Component.literal("Invalid value for " + field.key);
 				return false;
 			}
 		}
@@ -154,7 +152,7 @@ final class NumericConfigScreen extends Screen {
 	}
 
 	private Component label(String key) {
-		return new TranslatableComponent("option.orespawn." + key);
+		return Component.translatable("option.orespawn." + key);
 	}
 
 	static final class Field {

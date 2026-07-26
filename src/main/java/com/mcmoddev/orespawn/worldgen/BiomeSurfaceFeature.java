@@ -1,25 +1,17 @@
 package com.mcmoddev.orespawn.worldgen;
 
-import java.util.Collections;
-
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 
 /** Applies explicit provider surface blocks after the source surface is built. */
 public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration> {
@@ -28,24 +20,10 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 
 	private BiomeSurfaceFeature() {
 		super(NoneFeatureConfiguration.CODEC);
-		setRegistryName(OreSpawn.MODID, "biome_surfaces");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "biome_surfaces");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-				BuiltinRegistries.CONFIGURED_FEATURE, id,
-				new ConfiguredFeature<NoneFeatureConfiguration, BiomeSurfaceFeature>(
-						FEATURE, NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION)
-					.add(placedFeature);
-		}
+		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
 	}
 
 	static Holder<PlacedFeature> placedFeature() {

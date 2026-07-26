@@ -15,7 +15,7 @@ import com.mcmoddev.orespawn.worldgen.WorldGeologyProfileManager;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -45,17 +45,17 @@ public final class OreSpawnCommands {
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		String providers = String.join(", ", WorldgenIntegrationManager.activeProviderIds());
 		if (providers.isEmpty()) providers = "none";
-		source.sendSuccess(new TextComponent("OreSpawn 4: mode=" + profile.geologyMode().name().toLowerCase()
+		source.sendSuccess(Component.literal("OreSpawn 4: mode=" + profile.geologyMode().name().toLowerCase()
 				+ ", providers=" + providers + ", queued_retrogen=" + OreRetrogenManager.queuedCount()), false);
 		return 1;
 	}
 
 	private static int reload(net.minecraft.commands.CommandSourceStack source) {
 		if (WorldGeologyProfileManager.reloadActiveProfile()) {
-			source.sendSuccess(new TextComponent("Reloaded this world's OreSpawn profile."), true);
+			source.sendSuccess(Component.literal("Reloaded this world's OreSpawn profile."), true);
 			return 1;
 		}
-		source.sendFailure(new TextComponent("No active OreSpawn world profile could be reloaded."));
+		source.sendFailure(Component.literal("No active OreSpawn world profile could be reloaded."));
 		return 0;
 	}
 
@@ -63,7 +63,7 @@ public final class OreSpawnCommands {
 		ChunkPos center = new ChunkPos((int) Math.floor(source.getPosition().x) >> 4,
 				(int) Math.floor(source.getPosition().z) >> 4);
 		int queued = OreRetrogenManager.queueLoadedArea(source.getLevel(), center, radius);
-		source.sendSuccess(new TextComponent("Queued " + queued
+		source.sendSuccess(Component.literal("Queued " + queued
 				+ " loaded chunk(s) for OreSpawn retrogen."), true);
 		return queued;
 	}
@@ -75,10 +75,10 @@ public final class OreSpawnCommands {
 		Path target = FMLPaths.CONFIGDIR.get().resolve("orespawn-biomes.txt");
 		try {
 			Files.write(target, ids, StandardCharsets.UTF_8);
-			source.sendSuccess(new TextComponent("Wrote " + ids.size() + " biome IDs to " + target), false);
+			source.sendSuccess(Component.literal("Wrote " + ids.size() + " biome IDs to " + target), false);
 			return ids.size();
 		} catch (IOException e) {
-			source.sendFailure(new TextComponent("Could not write " + target + ": " + e.getMessage()));
+			source.sendFailure(Component.literal("Could not write " + target + ": " + e.getMessage()));
 			return 0;
 		}
 	}

@@ -49,6 +49,8 @@ logs
 /evidence/
 /evidence-*/
 /*-evidence/
+/port-*.json
+/port-*.txt
 /*.jfr
 /*.hprof
 /hs_err_pid*.log

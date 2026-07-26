@@ -1,11 +1,12 @@
 package com.mcmoddev.orespawn.client;
 
+import net.minecraft.network.chat.Component;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TranslatableComponent;
 
 /** Less commonly changed numeric controls, kept off the world settings overview. */
 final class AdvancedGeologySettingsScreen extends Screen {
@@ -13,7 +14,7 @@ final class AdvancedGeologySettingsScreen extends Screen {
 	private final GeologyEditorSession session;
 
 	AdvancedGeologySettingsScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.advanced"));
+		super(Component.translatable("screen.orespawn.advanced"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -24,19 +25,19 @@ final class AdvancedGeologySettingsScreen extends Screen {
 		int top = 54;
 		int row = 0;
 		if (session.hasTerrainRules()) {
-			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.formation_details"),
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, top + (row++ * 28), 310, 20,
+					Component.translatable("button.orespawn.formation_details"),
 					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS)));
-			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.cyano_details"),
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, top + (row++ * 28), 310, 20,
+					Component.translatable("button.orespawn.cyano_details"),
 					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS)));
 		}
 		if (!session.fluidDepositIds().isEmpty()) {
-			addRenderableWidget(new Button(left, top + (row * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.fluid_deposit_details"),
+			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, top + (row * 28), 310, 20,
+					Component.translatable("button.orespawn.fluid_deposit_details"),
 					button -> minecraft.setScreen(new FluidDepositListScreen(this, session))));
 		}
-		addRenderableWidget(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 

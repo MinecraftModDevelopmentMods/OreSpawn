@@ -13,8 +13,6 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,7 +26,7 @@ final class FluidDepositEntryScreen extends Screen {
 	private int page;
 
 	FluidDepositEntryScreen(Screen parent, GeologyEditorSession session, String depositId) {
-		super(new TranslatableComponent("screen.orespawn.fluid_deposit"));
+		super(Component.translatable("screen.orespawn.fluid_deposit"));
 		this.parent = parent;
 		this.session = session;
 		this.depositId = depositId;
@@ -50,10 +48,10 @@ final class FluidDepositEntryScreen extends Screen {
 		List<String> ids = new ArrayList<>(dimensions.keySet());
 		Collections.sort(ids);
 		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 46, column, 20,
-				new TranslatableComponent("option.orespawn.enabled"),
+				Component.translatable("option.orespawn.enabled"),
 				(button, value) -> { enabled = value; session.fluidDeposit(depositId).addProperty("enabled", value); }));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + column + 5, 46, column, 20,
-				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
+				Component.translatable("button.orespawn.reset"), button -> reset()));
 
 		Button output = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left, 70, contentWidth, 20, fluidName(outputBlock), button -> {
@@ -72,13 +70,13 @@ final class FluidDepositEntryScreen extends Screen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, listTop + (i * 24),
-					contentWidth, 20, new TextComponent(id), button -> minecraft.setScreen(
+					contentWidth, 20, Component.literal(id), button -> minecraft.setScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, id))));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
+				Component.literal("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 50, controlsY, 45, 20,
+				Component.literal(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		List<String> available = session.availableDimensionIds();
@@ -86,14 +84,15 @@ final class FluidDepositEntryScreen extends Screen {
 				.orElse(available.get(0));
 		addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(available).withInitialValue(selected)
-				.withTooltip(value -> font.split(new TextComponent(value), 310))
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.literal(value)))
 				.create(left, pickerY, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.available_dimension"),
+						Component.translatable("option.orespawn.available_dimension"),
 						(button, value) -> addDimension(value)));
-		addRenderableWidget(new Button(width / 2 - 155, height - 28, 100, 20,
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 155, height - 28, 100, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, width / 2 + 55, height - 28, 100, 20,
-				new TranslatableComponent("button.orespawn.remove"), button -> {
+				Component.translatable("button.orespawn.remove"), button -> {
 					session.removeFluidDeposit(depositId); minecraft.setScreen(parent);
 				}));
 	}
@@ -150,17 +149,17 @@ final class FluidDepositEntryScreen extends Screen {
 	private Component fluidName(String id) {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-			return block == null ? new TextComponent(id) : new TranslatableComponent(block.getDescriptionId());
-		} catch (RuntimeException ignored) { return new TextComponent(id); }
+			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
+		} catch (RuntimeException ignored) { return Component.literal(id); }
 	}
 
 	private Component dimensionName(String id) {
 		String path = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : "";
-		return path.isEmpty() ? new TextComponent(id)
-				: new TranslatableComponent("value.orespawn.dimension." + path);
+		return path.isEmpty() ? Component.literal(id)
+				: Component.translatable("value.orespawn.dimension." + path);
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	protected void rebuildWidgets() { clearWidgets(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
@@ -168,7 +167,7 @@ final class FluidDepositEntryScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font,
-				new TextComponent(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
+				Component.literal(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
 		super.render(poseStack, mouseX, mouseY, partialTick);
 	}
 }

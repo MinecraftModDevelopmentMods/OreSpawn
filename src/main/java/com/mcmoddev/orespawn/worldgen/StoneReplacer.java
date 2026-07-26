@@ -1,33 +1,36 @@
 package com.mcmoddev.orespawn.worldgen;
 
-import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.mcmoddev.orespawn.OreSpawn;
 import com.mcmoddev.orespawn.OreSpawnConfig;
 import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
+import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
+
+import com.mojang.serialization.Codec;
 
 public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 	public static final StoneReplacer FEATURE = new StoneReplacer();
+	private static final MatchingStoneGateFeature MATCHING_STONE_GATE =
+			new MatchingStoneGateFeature();
 	private static final ResourceLocation[] VANILLA_MATCHING_STONE_FEATURES = new ResourceLocation[] {
 			new ResourceLocation("minecraft", "ore_granite_upper"),
 			new ResourceLocation("minecraft", "ore_granite_lower"),
@@ -38,6 +41,8 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			new ResourceLocation("minecraft", "ore_tuff")
 	};
 	private static Holder<PlacedFeature> placedFeature;
+	private static final Map<PlacedFeature, Holder<PlacedFeature>> MATCHING_STONE_GATES =
+			new IdentityHashMap<>();
 
 	private final Lock geologyLock = new ReentrantLock();
 	private final Map<net.minecraft.resources.ResourceKey<Level>, CachedGeology> geologyByDimension =
@@ -45,31 +50,10 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 
 	private StoneReplacer() {
 		super(NoneFeatureConfiguration.CODEC);
-		setRegistryName(OreSpawn.MODID, "stone_replacer");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "stone_replacer");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, StoneReplacer>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (WorldgenBenchmark.isVanillaBaseline()) {
-			return;
-		}
-
-		if (TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(event.getCategory(),
-				OreSpawnConfig.placeOreSpawnRock(), GeomeConfig.hasTerrainReplacement(Level.OVERWORLD))) {
-			removeVanillaMatchingStoneFeatures(event);
-		}
-		if (placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
-					.add(placedFeature);
-		}
+		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
 	}
 
 	static Holder<PlacedFeature> placedFeature() {
@@ -78,6 +62,23 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 
 	static boolean removeVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
+	}
+
+	static boolean wrapVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
+		boolean changed = false;
+		for (int i = 0; i < features.size(); i++) {
+			Holder<PlacedFeature> original = features.get(i);
+			if (!isVanillaMatchingStoneFeature(original)) continue;
+			Holder<PlacedFeature> wrapper = MATCHING_STONE_GATES.computeIfAbsent(
+					original.value(), ignored -> matchingStoneGate(original));
+			features.set(i, wrapper);
+			changed = true;
+		}
+		return changed;
+	}
+
+	public static Feature<?> matchingStoneGateFeature() {
+		return MATCHING_STONE_GATE;
 	}
 
 	@Override
@@ -101,18 +102,21 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 		return true;
 	}
 
-	private static void removeVanillaMatchingStoneFeatures(BiomeLoadingEvent event) {
-		event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
-				.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
-	}
-
-	private static boolean isVanillaMatchingStoneFeature(Holder<PlacedFeature> feature) {
+	static boolean isVanillaMatchingStoneFeature(Holder<PlacedFeature> feature) {
 		for (ResourceLocation id : VANILLA_MATCHING_STONE_FEATURES) {
 			if (feature.is(id)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private static Holder<PlacedFeature> matchingStoneGate(Holder<PlacedFeature> original) {
+		MatchingStoneConfig config = new MatchingStoneConfig(original.value().feature());
+		Holder<ConfiguredFeature<?, ?>> configured = Holder.direct(
+				new ConfiguredFeature<MatchingStoneConfig, MatchingStoneGateFeature>(
+						MATCHING_STONE_GATE, config));
+		return Holder.direct(new PlacedFeature(configured, original.value().placement()));
 	}
 
 	private CachedGeology geology(net.minecraft.resources.ResourceKey<Level> dimension, long seed,
@@ -136,6 +140,37 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			}
 		}
 		return current;
+	}
+
+	private static final class MatchingStoneConfig implements FeatureConfiguration {
+		static final Codec<MatchingStoneConfig> CODEC = ConfiguredFeature.CODEC
+				.fieldOf("delegate")
+				.xmap(MatchingStoneConfig::new, value -> value.delegate)
+				.codec();
+		final Holder<ConfiguredFeature<?, ?>> delegate;
+
+		MatchingStoneConfig(Holder<ConfiguredFeature<?, ?>> delegate) {
+			this.delegate = delegate;
+		}
+	}
+
+	private static final class MatchingStoneGateFeature extends Feature<MatchingStoneConfig> {
+		MatchingStoneGateFeature() {
+			super(MatchingStoneConfig.CODEC);
+		}
+
+		@Override
+		public boolean place(FeaturePlaceContext<MatchingStoneConfig> context) {
+			ResourceKey<Level> dimension = context.level().getLevel().dimension();
+			if (!WorldgenBenchmark.isVanillaBaseline()
+					&& TerrainFeaturePolicy.shouldSuppressVanillaMatchingStoneFeature(
+							dimension, OreSpawnConfig.placeOreSpawnRock(),
+							GeomeConfig.hasTerrainReplacement(dimension))) {
+				return false;
+			}
+			return context.config().delegate.value().place(context.level(),
+					context.chunkGenerator(), context.random(), context.origin());
+		}
 	}
 
 	public static void refreshWorldConfig() {

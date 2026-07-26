@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.Level;
 
 class OreSpawnOreGenerationTest {
@@ -39,7 +39,7 @@ class OreSpawnOreGenerationTest {
 	void broadSelectorNeverLeaksIntoNetherOrEnd() {
 		assertTrue(OreSpawnOreGeneration.selectorAllows(Level.OVERWORLD));
 		assertTrue(OreSpawnOreGeneration.selectorAllows(ResourceKey.create(
-				Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:moon"))));
+				Registries.DIMENSION, new ResourceLocation("examplemod:moon"))));
 		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.NETHER));
 		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.END));
 	}
@@ -50,15 +50,15 @@ class OreSpawnOreGenerationTest {
 		Set<ResourceKey<Level>> configured = new HashSet<>();
 		explicit.put(Level.OVERWORLD, "overworld");
 		configured.add(Level.OVERWORLD);
-		configured.add(ResourceKey.create(Registry.DIMENSION_REGISTRY,
+		configured.add(ResourceKey.create(Registries.DIMENSION,
 				new ResourceLocation("examplemod:disabled")));
 
 		assertEquals("overworld", OreSpawnOreGeneration.selectRule(
 				explicit, configured, "selector", Level.OVERWORLD));
 		assertEquals("selector", OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:moon"))));
+				ResourceKey.create(Registries.DIMENSION, new ResourceLocation("examplemod:moon"))));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:disabled"))));
+				ResourceKey.create(Registries.DIMENSION, new ResourceLocation("examplemod:disabled"))));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector", Level.NETHER));
 	}
 
