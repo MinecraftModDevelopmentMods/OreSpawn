@@ -26,6 +26,7 @@ public final class DocumentationExporter {
 			"FEATURES.md",
 			"TEMPLATES.md",
 			"DIMENSIONS.md",
+			"BIOMES.md",
 			"MIGRATION.md",
 			"TROUBLESHOOTING.md",
 			"AGENTS.md",

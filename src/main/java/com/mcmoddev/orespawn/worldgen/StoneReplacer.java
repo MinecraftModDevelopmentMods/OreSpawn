@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.worldgen;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -69,6 +70,14 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
 					.add(placedFeature);
 		}
+	}
+
+	static Holder<PlacedFeature> placedFeature() {
+		return placedFeature;
+	}
+
+	static boolean removeVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
+		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
 	@Override

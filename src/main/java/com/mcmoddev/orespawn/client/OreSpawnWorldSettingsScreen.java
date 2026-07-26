@@ -75,7 +75,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		boolean fluids = !session.fluidDepositIds().isEmpty();
 		int top = OreSpawnScreenLayout.mainTop(this.height);
 		int rows = (templateChoices.size() > 1 ? 1 : 0) + (terrain ? 8
-				: 4 + (fluids ? 1 : 0));
+				: 5 + (fluids ? 1 : 0));
 		int available = OreSpawnScreenLayout.footerY(height) - top - BUTTON_HEIGHT - 4;
 		int row = Math.min(OreSpawnScreenLayout.mainRowSpacing(this.height),
 				rows <= 1 ? 24 : Math.max(BUTTON_HEIGHT, available / (rows - 1)));
@@ -105,6 +105,10 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 				addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
 						columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()));
 			}
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex++),
+					contentWidth, BUTTON_HEIGHT,
+					new TranslatableComponent("button.orespawn.biomes_world_materials"),
+					button -> openBiomeWorldMaterials()));
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
 					contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.help"),
 					button -> openHelp()));
@@ -142,8 +146,9 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.materials"),
 					button -> openMaterials()));
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
-					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.geomes"),
-					button -> openGeomes()));
+					columnWidth, BUTTON_HEIGHT,
+					new TranslatableComponent("button.orespawn.biomes_world_materials"),
+					button -> openBiomeWorldMaterials()));
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.advanced"),
 					button -> openAdvanced()));
@@ -292,6 +297,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private void openAdvanced() {
 		syncSession();
 		minecraft.setScreen(new AdvancedGeologySettingsScreen(this, session));
+	}
+
+	private void openBiomeWorldMaterials() {
+		syncSession();
+		minecraft.setScreen(new BiomeWorldMaterialsScreen(this, session));
 	}
 
 	private void openFluidDeposits() {

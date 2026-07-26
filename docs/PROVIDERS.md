@@ -6,12 +6,12 @@ Provider mods may contribute through Forge IMC, a packaged resource at
 present malformed override leaves that provider inactive instead of silently
 falling back.
 
-Provider schema 3 supports `profile_defaults`, `rocks`, `ores`,
+Provider schema 4 supports `profile_defaults`, `rocks`, `ores`,
 `fluid_deposits`, `geomes`, `biome_rules`, `terrain_dimensions`, and
-`templates`. Each file requires a
+`templates`, plus `biome_palettes` and `dimension_materials`. Each file requires a
 matching `provider_modid`, a positive `provider_revision`, and at least one
-contribution. Legacy schemas 1 and 2 remain accepted; only schema 3 may declare
-fluid deposits.
+contribution. Legacy schemas 1-3 remain accepted; schema 3 introduced fluid
+deposits and schema 4 introduces biome and world-material controls.
 
 An ore-only provider does not need rocks, geomes, or terrain dimensions. Give
 each ore explicit host blocks or tags and OreSpawn will leave vanilla terrain,
@@ -105,5 +105,14 @@ Existing worlds merge newly introduced provider rule IDs but do not overwrite
 world edits. Disabled and unassigned rules remain tombstones; removed provider
 rules remain in the self-contained snapshot.
 
+Biome providers can add Forge biomes normally, then declare where those biomes
+belong through `biome_palettes`. The overlay wraps the dimension's existing
+biome source, so it composes after vanilla, TerraBlender, Biomes O' Plenty, or
+another source instead of taking a compile-time dependency on them. Use
+`minecraft_only` scope when the provider should leave other mods' biomes alone.
+Use `required_similar_biomes` only when an output truly cannot work without a
+referenced biome; ordinary compatibility hints belong in `similar_biomes`.
+
 See `examples/examplemod-orespawn.json` for rocks, weighted ore output, a
-fluid deposit, a custom dimension, and a selectable template.
+fluid deposit, a custom dimension, biome palette, world materials, and a
+selectable template.

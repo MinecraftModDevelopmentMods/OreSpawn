@@ -381,6 +381,141 @@ final class GeologyEditorSession {
 		return result;
 	}
 
+	List<String> installedBiomeIds() {
+		List<String> result = new ArrayList<>();
+		for (net.minecraft.world.level.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
+			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
+			if (id != null) result.add(id.toString());
+		}
+		Collections.sort(result);
+		return result;
+	}
+
+	String biomePaletteId(String dimensionId) {
+		for (Entry<String, JsonElement> entry : section("biome_palettes").entrySet()) {
+			if (entry.getValue().isJsonObject() && dimensionId.equals(string(
+					entry.getValue().getAsJsonObject(), "dimension", ""))) return entry.getKey();
+		}
+		return null;
+	}
+
+	JsonObject biomePalette(String dimensionId, boolean create) {
+		String id = biomePaletteId(dimensionId);
+		if (id != null) return objectEntry(section("biome_palettes"), id);
+		if (!create) return null;
+		id = "orespawn:ui/biome_palette/" + safePath(dimensionId);
+		JsonObject palette = new JsonObject();
+		palette.addProperty("dimension", dimensionId);
+		palette.addProperty("enabled", false);
+		palette.addProperty("mode", "augment");
+		palette.addProperty("scope", "minecraft_only");
+		palette.addProperty("region_size", "average");
+		palette.addProperty("coverage", 1.0D);
+		palette.addProperty("fallback_weight", 1.0D);
+		palette.add("include_namespaces", new JsonArray());
+		palette.add("exclude_namespaces", new JsonArray());
+		palette.add("biomes", new JsonObject());
+		section("biome_palettes").add(id, palette);
+		return palette;
+	}
+
+	List<String> biomePlacementIds(String dimensionId) {
+		JsonObject palette = biomePalette(dimensionId, false);
+		if (palette == null) return Collections.emptyList();
+		List<String> result = new ArrayList<>(object(palette, "biomes").keySet());
+		Collections.sort(result);
+		return result;
+	}
+
+	JsonObject biomePlacement(String dimensionId, String biomeId) {
+		return objectEntry(object(biomePalette(dimensionId, true), "biomes"), biomeId);
+	}
+
+	void addBiomePlacement(String dimensionId, String biomeId) {
+		if (!validResource(biomeId)
+				|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biomeId)) == null) return;
+		JsonObject palette = biomePalette(dimensionId, true);
+		JsonObject placement = new JsonObject();
+		placement.addProperty("enabled", true);
+		placement.addProperty("weight", 1.0D);
+		placement.add("similar_biomes", new JsonArray());
+		placement.add("required_similar_biomes", new JsonArray());
+		placement.addProperty("min_temperature", -2.0D);
+		placement.addProperty("max_temperature", 2.0D);
+		placement.addProperty("min_downfall", 0.0D);
+		placement.addProperty("max_downfall", 1.0D);
+		placement.add("surface", new JsonObject());
+		object(palette, "biomes").add(biomeId, placement);
+		palette.addProperty("enabled", true);
+	}
+
+	void removeBiomePlacement(String dimensionId, String biomeId) {
+		JsonObject palette = biomePalette(dimensionId, false);
+		if (palette == null) return;
+		JsonObject biomes = object(palette, "biomes");
+		biomes.remove(biomeId);
+		if (biomes.size() == 0) palette.addProperty("enabled", false);
+	}
+
+	String dimensionMaterialsId(String dimensionId) {
+		for (Entry<String, JsonElement> entry : section("dimension_materials").entrySet()) {
+			if (entry.getValue().isJsonObject() && dimensionId.equals(string(
+					entry.getValue().getAsJsonObject(), "dimension", ""))) return entry.getKey();
+		}
+		return null;
+	}
+
+	JsonObject dimensionMaterials(String dimensionId, boolean create) {
+		String id = dimensionMaterialsId(dimensionId);
+		if (id != null) return objectEntry(section("dimension_materials"), id);
+		if (!create) return null;
+		id = "orespawn:ui/dimension_materials/" + safePath(dimensionId);
+		JsonObject materials = new JsonObject();
+		materials.addProperty("dimension", dimensionId);
+		materials.addProperty("enabled", false);
+		materials.addProperty("deep_aquifer_max_y", -54);
+		section("dimension_materials").add(id, materials);
+		return materials;
+	}
+
+	void setMaterialBlock(String dimensionId, String key, String blockId, boolean fluid) {
+		if (blockId == null) {
+			JsonObject materials = dimensionMaterials(dimensionId, false);
+			if (materials != null) {
+				materials.remove(key);
+				if (!hasMaterialOutput(materials)) materials.addProperty("enabled", false);
+			}
+			return;
+		}
+		if (!validResource(blockId)) return;
+		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockId));
+		if (block == null || block == Blocks.AIR
+				|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return;
+		JsonObject materials = dimensionMaterials(dimensionId, true);
+		materials.addProperty(key, blockId);
+		materials.addProperty("enabled", true);
+	}
+
+	private static boolean hasMaterialOutput(JsonObject materials) {
+		return materials.has("default_fluid") || materials.has("deep_aquifer_fluid")
+				|| materials.has("snow_block") || materials.has("ice_block");
+	}
+
+	List<String> availableMaterialBlockIds(String search, boolean fluidOnly) {
+		String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+		List<String> result = new ArrayList<>();
+		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
+			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
+					|| (fluidOnly && block.defaultBlockState().getFluidState().isEmpty())
+					|| (!fluidOnly && block instanceof EntityBlock)
+					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
+			result.add(id.toString());
+		}
+		Collections.sort(result);
+		return result;
+	}
+
 	void removeFluidDeposit(String id) {
 		JsonObject deposits = section("fluid_deposits");
 		if (!deposits.has(id) || !deposits.get(id).isJsonObject()) return;
@@ -756,6 +891,56 @@ final class GeologyEditorSession {
 				validateGeomeWeights(errors, entry.getKey(), rule.get("geomes"), geomes);
 			}
 		}
+		for (Entry<String, JsonElement> entry : section("biome_palettes").entrySet()) {
+			if (!validResource(entry.getKey()) || !entry.getValue().isJsonObject()) {
+				errors.add("Invalid biome palette: " + entry.getKey());
+				continue;
+			}
+			JsonObject palette = entry.getValue().getAsJsonObject();
+			if (!validResource(string(palette, "dimension", ""))) {
+				errors.add("Invalid biome palette dimension: " + entry.getKey());
+			}
+			if (!bool(palette, "enabled", true)) continue;
+			JsonObject biomes = palette.has("biomes") && palette.get("biomes").isJsonObject()
+					? palette.getAsJsonObject("biomes") : new JsonObject();
+			if (biomes.size() == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
+			for (Entry<String, JsonElement> biome : biomes.entrySet()) {
+				if (!validResource(biome.getKey())
+						|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null
+						|| !biome.getValue().isJsonObject()) {
+					errors.add("Invalid biome placement: " + biome.getKey());
+					continue;
+				}
+				JsonObject placement = biome.getValue().getAsJsonObject();
+				if (decimal(placement, "weight", 1.0D) < 0.0D
+						|| decimal(placement, "min_temperature", -2.0D)
+								> decimal(placement, "max_temperature", 2.0D)
+						|| decimal(placement, "min_downfall", 0.0D)
+								> decimal(placement, "max_downfall", 1.0D)) {
+					errors.add("Invalid biome placement values: " + biome.getKey());
+				}
+			}
+		}
+		for (Entry<String, JsonElement> entry : section("dimension_materials").entrySet()) {
+			if (!validResource(entry.getKey()) || !entry.getValue().isJsonObject()) {
+				errors.add("Invalid dimension materials: " + entry.getKey());
+				continue;
+			}
+			JsonObject materials = entry.getValue().getAsJsonObject();
+			if (!validResource(string(materials, "dimension", ""))) {
+				errors.add("Invalid dimension materials target: " + entry.getKey());
+			}
+			for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
+				if (materials.has(key) && !validFluidBlock(string(materials, key, ""))) {
+					errors.add("Invalid fluid material in " + entry.getKey());
+				}
+			}
+			for (String key : new String[] { "snow_block", "ice_block" }) {
+				if (materials.has(key) && !validBlock(string(materials, key, ""))) {
+					errors.add("Invalid weather material in " + entry.getKey());
+				}
+			}
+		}
 		return errors;
 	}
 
@@ -963,6 +1148,11 @@ final class GeologyEditorSession {
 		if (!validResource(id)) return false;
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
 		return block != null && block != Blocks.AIR;
+	}
+
+	private static String safePath(String registryId) {
+		return registryId.toLowerCase(Locale.ROOT).replace(':', '/')
+				.replaceAll("[^a-z0-9_./-]", "_");
 	}
 
 	private static boolean validFluidBlock(String id) {

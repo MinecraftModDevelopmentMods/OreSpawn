@@ -6,6 +6,13 @@ Mineralogy. Nether and End remain untouched unless a global/world profile
 explicitly enables them. Providers may automatically opt in only dimensions
 in their own namespace.
 
+Biome palettes and dimension-material rules are separate from terrain
+replacement. They may target `minecraft:overworld`, `minecraft:the_nether`,
+`minecraft:the_end`, or a provider dimension without adding rock strata.
+Unconfigured dimensions keep their original biome source, aquifers, snow, and
+ice. OreSpawn wraps the source already installed by the dimension, so
+TerraBlender is supported when present but is never required.
+
 Each `terrain_dimensions` entry supplies replacement host blocks or tags and
 may restrict generation to explicit biome IDs or biome namespaces. With no
 biome restriction, all biomes in that dimension are eligible.

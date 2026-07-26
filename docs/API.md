@@ -45,8 +45,8 @@ coverage with `OreDefinition.Builder.dimensionSelector(...)` and
 `OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
 override that selector and prevent duplicate placement.
 
-The builder emits provider schema 3. Legacy provider schemas 1 and 2 remain
-readable, but cannot declare fluid deposits.
+The builder emits provider schema 4. Legacy provider schemas 1-3 remain
+readable. Schema 4 is required for biome palettes and dimension materials.
 
 Provider-owned fluid deposits are declarative and may target several dimensions:
 
@@ -76,6 +76,43 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
+
+Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
+provides a small optional convenience for cloning a known biome without adding
+TerraBlender:
+
+```java
+RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
+    BIOMES, "candy_plains",
+    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
+    builder -> builder.temperature(0.8F).downfall(0.4F));
+```
+
+Then declare placement and materials through the same provider:
+
+```java
+WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+    .biomePalette(new ResourceLocation("examplemod", "overworld"),
+        new ResourceLocation("minecraft", "overworld"), palette -> palette
+            .mode(BiomePlacementMode.REPLACE)
+            .scope(BiomeReplacementScope.MINECRAFT_ONLY)
+            .regionSize(BiomeRegionSize.LARGE)
+            .coverage(1.0)
+            .fallbackWeight(0.0)
+            .biome(new ResourceLocation("examplemod", "candy_plains"), biome -> biome
+                .weight(3.0)
+                .similarBiome(new ResourceLocation("minecraft", "plains"))))
+    .dimensionMaterials(new ResourceLocation("examplemod", "overworld_materials"),
+        new ResourceLocation("minecraft", "overworld"), materials -> materials
+            .defaultFluid(new ResourceLocation("examplemod", "lemonade"))
+            .snowBlock(new ResourceLocation("examplemod", "icing"))
+            .iceBlock(new ResourceLocation("examplemod", "frozen_lemonade")))
+    .build();
+```
+
+Biome selection stays declarative: arbitrary provider callbacks are not called
+inside chunk generation. See `BIOMES.md` for replacement modes, compatibility
+filters, surface blocks, materials, and automatic total-conversion templates.
 
 Query the active profile and sample exact production geology on the server:
 

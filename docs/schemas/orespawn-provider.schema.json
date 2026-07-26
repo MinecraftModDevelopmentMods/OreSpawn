@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["schema_version", "provider_modid", "provider_revision"],
   "properties": {
-    "schema_version": { "enum": [1, 2, 3] },
+    "schema_version": { "enum": [1, 2, 3, 4] },
     "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "provider_revision": { "type": "integer", "minimum": 1 },
     "rocks": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rock" } },
@@ -13,6 +13,8 @@
     "geomes": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/geome" } },
     "biome_rules": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/weights" } },
     "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/terrainDimension" } },
+    "biome_palettes": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/biomePalette" } },
+    "dimension_materials": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/dimensionMaterials" } },
     "profile_defaults": { "type": "object" },
     "templates": {
       "type": "object",
@@ -23,6 +25,8 @@
           "name_key": { "type": "string" },
           "description_key": { "type": "string" },
           "required_mods": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "auto_select": { "type": "boolean" },
+          "auto_select_priority": { "type": "integer" },
           "profile": { "type": "object" }
         }
       }
@@ -40,6 +44,8 @@
           "biome_rules": false,
           "terrain_dimensions": false,
           "fluid_deposits": false,
+          "biome_palettes": false,
+          "dimension_materials": false,
           "templates": false,
           "profile_defaults": false
         }
@@ -48,6 +54,15 @@
 	{
 	  "if": { "properties": { "schema_version": { "enum": [1, 2] } } },
 	  "then": { "properties": { "fluid_deposits": false } }
+	},
+	{
+	  "if": { "properties": { "schema_version": { "enum": [1, 2, 3] } } },
+	  "then": {
+	    "properties": {
+	      "biome_palettes": false,
+	      "dimension_materials": false
+	    }
+	  }
 	}
   ],
   "anyOf": [
@@ -57,6 +72,8 @@
     { "required": ["biome_rules"], "properties": { "biome_rules": { "minProperties": 1 } } },
     { "required": ["terrain_dimensions"], "properties": { "terrain_dimensions": { "minProperties": 1 } } },
     { "required": ["fluid_deposits"], "properties": { "fluid_deposits": { "minProperties": 1 } } },
+    { "required": ["biome_palettes"], "properties": { "biome_palettes": { "minProperties": 1 } } },
+    { "required": ["dimension_materials"], "properties": { "dimension_materials": { "minProperties": 1 } } },
     { "required": ["templates"], "properties": { "templates": { "minProperties": 1 } } }
   ],
   "additionalProperties": false

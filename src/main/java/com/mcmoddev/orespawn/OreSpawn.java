@@ -14,6 +14,9 @@ import com.mcmoddev.orespawn.worldgen.WorldGeologyProfile;
 import com.mcmoddev.orespawn.worldgen.WorldgenBenchmark;
 import com.mcmoddev.orespawn.worldgen.FlatBedrockFeature;
 import com.mcmoddev.orespawn.worldgen.OreRetrogenManager;
+import com.mcmoddev.orespawn.worldgen.BiomeSurfaceFeature;
+import com.mcmoddev.orespawn.worldgen.BiomeWorldgenBootstrap;
+import com.mcmoddev.orespawn.worldgen.WorldMaterialWeather;
 import com.mcmoddev.orespawn.commands.OreSpawnCommands;
 import com.mcmoddev.orespawn.documentation.DocumentationExporter;
 
@@ -58,7 +61,11 @@ public class OreSpawn {
 		MinecraftForge.EVENT_BUS.addListener(OreSpawnOreGeneration::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(FluidDepositFeature::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(FlatBedrockFeature::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(BiomeSurfaceFeature::onBiomeLoading);
+		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
+		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
@@ -98,11 +105,13 @@ public class OreSpawn {
 		GeomeConfig.bake();
 		logGeomeSampler();
 		event.enqueueWork(() -> {
+			BiomeWorldgenBootstrap.registerCodecs();
 			DocumentationExporter.exportBundledGuide();
 			StoneReplacer.registerConfiguredFeature();
 			OreSpawnOreGeneration.registerConfiguredFeatures();
 			FluidDepositFeature.registerConfiguredFeature();
 			FlatBedrockFeature.registerConfiguredFeature();
+			BiomeSurfaceFeature.registerConfiguredFeature();
 		});
 	}
 

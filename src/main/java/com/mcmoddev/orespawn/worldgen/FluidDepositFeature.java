@@ -100,6 +100,10 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		}
 	}
 
+	static Holder<PlacedFeature> placedFeature() {
+		return placedFeature;
+	}
+
 	@Override
 	public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
 		WorldGenLevel world = context.level();

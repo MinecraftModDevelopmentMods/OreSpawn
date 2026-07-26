@@ -1,6 +1,6 @@
 # Migration
 
-## OreSpawn 4.0.1 provider-aware OS3 imports
+## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now
 compares each converted primary output with that provider's ore declarations.
@@ -42,10 +42,16 @@ replacement, retrogen, forced retrogen, flat bedrock, and bedrock thickness.
 Unknown numeric dimensions and obsolete block states are reported instead of
 guessed. Review `config/orespawn-migration/migration-report.txt` after import.
 
-Global schemas 1-4 and world schemas 1-3 are upgraded in memory and persisted
+Global schemas 1-5 and world schemas 1-4 are upgraded in memory and persisted
 where safe. A schema-1 world held only mode/oil/formation choices and is
 overlaid on the effective installed-pack profile. A schema-2 world is already
 a full snapshot and preserves its geology. Existing terrain is not rewritten.
+
+Provider schemas 1-3 remain readable. Schema 4 adds `biome_palettes`,
+`dimension_materials`, and automatic fresh-world template metadata. Older
+profiles receive empty biome/material sections, so migration cannot change
+their terrain or biome output. Auto-selected templates are never applied to an
+existing world profile during migration.
 
 The old `place_crude_oil` and singleton `oil` fields migrate to
 `place_fluid_deposits` and a provider-owned rule. A valid block becomes

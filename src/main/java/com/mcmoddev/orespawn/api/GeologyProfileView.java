@@ -45,8 +45,24 @@ public final class GeologyProfileView {
 		return keys("ores");
 	}
 
+	public Set<ResourceLocation> fluidDepositIds() {
+		return keys("fluid_deposits");
+	}
+
+	public Set<ResourceLocation> geomeIds() {
+		return keys("geomes");
+	}
+
 	public Set<ResourceLocation> terrainDimensions() {
 		return keys("terrain_dimensions");
+	}
+
+	public Set<ResourceLocation> biomePaletteIds() {
+		return keys("biome_palettes");
+	}
+
+	public Set<ResourceLocation> dimensionMaterialIds() {
+		return keys("dimension_materials");
 	}
 
 	/** Returns a defensive copy suitable for diagnostics or tooling. */

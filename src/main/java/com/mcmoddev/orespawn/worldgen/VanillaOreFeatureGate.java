@@ -85,11 +85,12 @@ public final class VanillaOreFeatureGate {
 	}
 
 	static void wrapVanillaOres(BiomeLoadingEvent event) {
-		wrap(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES));
-		wrap(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_DECORATION));
+		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES));
+		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_DECORATION));
 	}
 
-	private static void wrap(List<Holder<PlacedFeature>> features) {
+	static boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
+		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Holder<PlacedFeature> feature = features.get(featureIndex);
 			boolean wrapped = false;
@@ -97,15 +98,20 @@ public final class VanillaOreFeatureGate {
 				if (feature.is(gate.originalId)) {
 					features.set(featureIndex, gate.wrapper);
 					wrapped = true;
+					changed = true;
 					break;
 				}
 			}
 			if (!wrapped) {
 				ResourceLocation id = BuiltinRegistries.PLACED_FEATURE.getKey(feature.value());
 				Holder<PlacedFeature> replacement = id == null ? null : suppressibleGates.get(id);
-				if (replacement != null) features.set(featureIndex, replacement);
+				if (replacement != null) {
+					features.set(featureIndex, replacement);
+					changed = true;
+				}
 			}
 		}
+		return changed;
 	}
 
 	private static void registerSuppressibleOreGates() {

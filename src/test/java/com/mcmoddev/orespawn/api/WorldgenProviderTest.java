@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 
 class WorldgenProviderTest {
 	@Test
-	void serializesTypedSchemaThreeProvider() {
+	void serializesTypedSchemaFourProvider() {
 		ResourceLocation overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
 				.rock(id("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
@@ -35,7 +35,7 @@ class WorldgenProviderTest {
 				.build();
 
 		JsonObject json = provider.toJson();
-		assertEquals(3, json.get("schema_version").getAsInt());
+		assertEquals(4, json.get("schema_version").getAsInt());
 		assertEquals("examplemod", json.get("provider_modid").getAsString());
 		assertTrue(json.getAsJsonObject("rocks").has("examplemod:rock/examplemod/slate"));
 		assertEquals("examplemod:slate", json.getAsJsonObject("rocks")
@@ -105,6 +105,54 @@ class WorldgenProviderTest {
 	}
 
 	@Test
+	void serializesBiomePaletteDimensionMaterialsAndAutoTemplate() {
+		ResourceLocation overworld = id("minecraft:overworld");
+		WorldgenProvider.BiomeSurfaceDefinition surface =
+				WorldgenProvider.BiomeSurfaceDefinition.builder()
+						.topBlock(id("minecraft:cake"))
+						.fillerBlock(id("minecraft:white_wool"))
+						.underwaterBlock(id("minecraft:sand"))
+						.fillerDepth(4)
+						.build();
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.biomePalette(id("examplemod:palette/cake"), overworld, palette -> palette
+						.mode(BiomePlacementMode.REPLACE)
+						.scope(BiomeReplacementScope.MINECRAFT_ONLY)
+						.regionSize(BiomeRegionSize.LARGE)
+						.coverage(0.8D)
+						.biome(id("minecraft:plains"), biome -> biome
+								.weight(3.0D)
+								.similarBiome(id("minecraft:forest"))
+								.temperature(0.1D, 1.5D)
+								.surface(surface)))
+				.dimensionMaterials(id("examplemod:materials/overworld"), overworld,
+						materials -> materials.defaultFluid(id("minecraft:water"))
+								.deepAquiferFluid(id("minecraft:lava"), -54)
+								.snowBlock(id("minecraft:snow_block"))
+								.iceBlock(id("minecraft:ice")))
+				.template(id("examplemod:cake"), template -> template
+						.autoSelect(true).autoSelectPriority(50)
+						.profile(profileDefaults()))
+				.build();
+
+		JsonObject json = provider.toJson();
+		JsonObject palette = json.getAsJsonObject("biome_palettes")
+				.getAsJsonObject("examplemod:palette/cake");
+		assertEquals("replace", palette.get("mode").getAsString());
+		assertEquals("large", palette.get("region_size").getAsString());
+		assertEquals("minecraft:cake", palette.getAsJsonObject("biomes")
+				.getAsJsonObject("minecraft:plains").getAsJsonObject("surface")
+				.get("top_block").getAsString());
+		JsonObject materials = json.getAsJsonObject("dimension_materials")
+				.getAsJsonObject("examplemod:materials/overworld");
+		assertEquals("minecraft:water", materials.get("default_fluid").getAsString());
+		JsonObject template = json.getAsJsonObject("templates")
+				.getAsJsonObject("examplemod:cake");
+		assertTrue(template.get("auto_select").getAsBoolean());
+		assertEquals(50, template.get("auto_select_priority").getAsInt());
+	}
+
+	@Test
 	void serializesCodecBackedPatternWithoutLeakingMutableSettings() {
 		JsonObject settings = new JsonObject();
 		settings.addProperty("radius", 12);
@@ -141,10 +189,18 @@ class WorldgenProviderTest {
 		root.add("rocks", rocks);
 		root.add("ores", new JsonObject());
 		root.add("terrain_dimensions", new JsonObject());
+		JsonObject palettes = new JsonObject();
+		palettes.add("examplemod:overworld", new JsonObject());
+		root.add("biome_palettes", palettes);
+		JsonObject materials = new JsonObject();
+		materials.add("examplemod:overworld", new JsonObject());
+		root.add("dimension_materials", materials);
 
 		GeologyProfileView view = new GeologyProfileView(root);
 		root.getAsJsonObject("rocks").remove("minecraft:calcite");
 		assertTrue(view.rockIds().contains(id("minecraft:calcite")));
+		assertTrue(view.biomePaletteIds().contains(id("examplemod:overworld")));
+		assertTrue(view.dimensionMaterialIds().contains(id("examplemod:overworld")));
 		assertEquals(id("examplemod:large_layers"), view.selectedTemplate().orElseThrow());
 		assertThrows(UnsupportedOperationException.class,
 				() -> view.rockIds().add(id("minecraft:stone")));
@@ -213,5 +269,11 @@ class WorldgenProviderTest {
 
 	private static ResourceLocation id(String value) {
 		return new ResourceLocation(value);
+	}
+
+	private static JsonObject profileDefaults() {
+		JsonObject profile = new JsonObject();
+		profile.addProperty("manage_vanilla_ores", true);
+		return profile;
 	}
 }

@@ -55,7 +55,8 @@ public final class WorldgenIntegrationManager {
 
 	static {
 		Collections.addAll(MERGED_SECTIONS, "rocks", "ores", "geomes", "biome_rules",
-				"terrain_dimensions", "fluid_deposits");
+				"terrain_dimensions", "fluid_deposits", "biome_palettes",
+				"dimension_materials");
 	}
 
 	private static final Map<String, WorldgenProvider> API_PROVIDERS = new LinkedHashMap<>();
@@ -133,9 +134,10 @@ public final class WorldgenIntegrationManager {
 		rebuildActiveProviders();
 		frozen = true;
 		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
-			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, {} fluid deposits, and {} templates",
+			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, {} fluid deposits, {} biome palettes, and {} templates",
 					provider.modId, provider.revision, provider.section("rocks").size(),
 					provider.section("ores").size(), provider.section("fluid_deposits").size(),
+					provider.section("biome_palettes").size(),
 					provider.section("templates").size());
 		}
 	}
@@ -252,6 +254,23 @@ public final class WorldgenIntegrationManager {
 
 	public static synchronized List<TemplateDefinition> templates() {
 		return Collections.unmodifiableList(new ArrayList<>(TEMPLATES.values()));
+	}
+
+	public static synchronized ResourceLocation autoSelectedTemplate() {
+		TemplateDefinition selected = null;
+		for (TemplateDefinition candidate : TEMPLATES.values()) {
+			if (!candidate.available || !candidate.autoSelect) continue;
+			if (selected == null || candidate.autoSelectPriority > selected.autoSelectPriority
+					|| (candidate.autoSelectPriority == selected.autoSelectPriority
+							&& candidate.id.toString().compareTo(selected.id.toString()) < 0)) {
+				if (selected != null && candidate.autoSelectPriority == selected.autoSelectPriority) {
+					LOGGER.warn("OreSpawn auto-select templates '{}' and '{}' share priority {}; using lexical order",
+							selected.id, candidate.id, candidate.autoSelectPriority);
+				}
+				selected = candidate;
+			}
+		}
+		return selected == null ? null : selected.id;
 	}
 
 	public static synchronized JsonObject applyTemplate(JsonObject base, ResourceLocation templateId) {
@@ -421,7 +440,7 @@ public final class WorldgenIntegrationManager {
 
 	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
-		if (schema != 1 && schema != 2 && schema != 3) {
+		if (schema != 1 && schema != 2 && schema != 3 && schema != 4) {
 			throw new JsonSyntaxException("unsupported schema_version");
 		}
 		if (!providerId.equals(string(root, "provider_modid", ""))) {
@@ -432,7 +451,8 @@ public final class WorldgenIntegrationManager {
 		}
 		if (schema == 1) {
 			for (String section : new String[] { "rocks", "geomes", "biome_rules",
-					"terrain_dimensions", "fluid_deposits", "templates", "profile_defaults" }) {
+					"terrain_dimensions", "fluid_deposits", "biome_palettes",
+					"dimension_materials", "templates", "profile_defaults" }) {
 				if (root.has(section)) {
 					throw new JsonSyntaxException("provider schema 1 is ore-only; found " + section);
 				}
@@ -443,6 +463,9 @@ public final class WorldgenIntegrationManager {
 		}
 		if (schema < 3 && root.has("fluid_deposits")) {
 			throw new JsonSyntaxException("fluid_deposits requires provider schema 3");
+		}
+		if (schema < 4 && (root.has("biome_palettes") || root.has("dimension_materials"))) {
+			throw new JsonSyntaxException("biome palettes and dimension materials require provider schema 4");
 		}
 
 		int entries = 0;
@@ -470,6 +493,10 @@ public final class WorldgenIntegrationManager {
 					validateTerrainDimension(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("fluid_deposits".equals(section)) {
 					validateFluidDeposit(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("biome_palettes".equals(section)) {
+					validateBiomePalette(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("dimension_materials".equals(section)) {
+					validateDimensionMaterials(entry.getKey(), entry.getValue().getAsJsonObject());
 				}
 			}
 		}
@@ -695,6 +722,119 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
+	private static void validateBiomePalette(String id, JsonObject palette) {
+		new ResourceLocation(string(palette, "dimension", ""));
+		if (!bool(palette, "enabled", true)) return;
+		String mode = string(palette, "mode", "augment");
+		if (!"augment".equals(mode) && !"replace".equals(mode)) {
+			throw new JsonSyntaxException("invalid biome placement mode: " + id);
+		}
+		String scope = string(palette, "scope", "minecraft_only");
+		if (!"all".equals(scope) && !"minecraft_only".equals(scope)
+				&& !"selected_namespaces".equals(scope)) {
+			throw new JsonSyntaxException("invalid biome replacement scope: " + id);
+		}
+		String region = string(palette, "region_size", "average");
+		if (!java.util.Arrays.asList("tiny", "small", "average", "large", "huge").contains(region)) {
+			throw new JsonSyntaxException("invalid biome region size: " + id);
+		}
+		double coverage = decimal(palette, "coverage", 1.0D);
+		double fallback = decimal(palette, "fallback_weight", 1.0D);
+		if (!Double.isFinite(coverage) || coverage < 0.0D || coverage > 1.0D
+				|| !Double.isFinite(fallback) || fallback < 0.0D) {
+			throw new JsonSyntaxException("invalid biome palette coverage or fallback weight: " + id);
+		}
+		validateNamespaces(palette.get("include_namespaces"), id);
+		validateNamespaces(palette.get("exclude_namespaces"), id);
+		if ("selected_namespaces".equals(scope)
+				&& (!palette.has("include_namespaces")
+						|| palette.getAsJsonArray("include_namespaces").size() == 0)) {
+			throw new JsonSyntaxException("selected-namespace biome palette has no namespaces: " + id);
+		}
+		JsonObject biomes = requiredObject(palette, "biomes");
+		if (biomes.size() == 0) {
+			throw new JsonSyntaxException("enabled biome palette has no biomes: " + id);
+		}
+		for (Entry<String, JsonElement> entry : biomes.entrySet()) {
+			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
+			if (!entry.getValue().isJsonObject()) {
+				throw new JsonSyntaxException("biome placement is not an object: " + biomeId);
+			}
+			if (ForgeRegistries.BIOMES.getValue(biomeId) == null) {
+				throw new JsonSyntaxException("unknown biome in palette: " + biomeId);
+			}
+			JsonObject placement = entry.getValue().getAsJsonObject();
+			double weight = decimal(placement, "weight", 1.0D);
+			double minTemperature = decimal(placement, "min_temperature", -2.0D);
+			double maxTemperature = decimal(placement, "max_temperature", 2.0D);
+			double minDownfall = decimal(placement, "min_downfall", 0.0D);
+			double maxDownfall = decimal(placement, "max_downfall", 1.0D);
+			if (!Double.isFinite(weight) || weight < 0.0D
+					|| minTemperature > maxTemperature || minDownfall > maxDownfall
+					|| minDownfall < 0.0D || maxDownfall > 1.0D) {
+				throw new JsonSyntaxException("invalid biome placement weights or climate: " + biomeId);
+			}
+			validateIds(placement.get("similar_biomes"));
+			validateIds(placement.get("required_similar_biomes"));
+			if (placement.has("surface")) {
+				validateBiomeSurface(biomeId.toString(), requiredObject(placement, "surface"));
+			}
+		}
+	}
+
+	private static void validateBiomeSurface(String id, JsonObject surface) {
+		for (String key : new String[] { "top_block", "filler_block", "underwater_block",
+				"ceiling_block" }) {
+			if (!surface.has(key)) continue;
+			Block value = block(surface.get(key).getAsString());
+			if (value == null || value == Blocks.AIR) {
+				throw new JsonSyntaxException("unknown biome surface block for " + id + ": "
+						+ surface.get(key).getAsString());
+			}
+		}
+		int fillerDepth = integer(surface, "filler_depth", 3);
+		if (fillerDepth < 0 || fillerDepth > 16) {
+			throw new JsonSyntaxException("invalid biome filler depth: " + id);
+		}
+	}
+
+	private static void validateDimensionMaterials(String id, JsonObject materials) {
+		new ResourceLocation(string(materials, "dimension", ""));
+		if (!bool(materials, "enabled", true)) return;
+		boolean any = false;
+		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
+			if (!materials.has(key)) continue;
+			Block value = block(materials.get(key).getAsString());
+			if (value == null || value == Blocks.AIR || value.defaultBlockState().getFluidState().isEmpty()) {
+				throw new JsonSyntaxException("dimension material is not a fluid block for " + id + ": "
+						+ materials.get(key).getAsString());
+			}
+			any = true;
+		}
+		for (String key : new String[] { "snow_block", "ice_block" }) {
+			if (!materials.has(key)) continue;
+			Block value = block(materials.get(key).getAsString());
+			if (value == null || value == Blocks.AIR) {
+				throw new JsonSyntaxException("unknown dimension material block for " + id + ": "
+						+ materials.get(key).getAsString());
+			}
+			any = true;
+		}
+		if (!any) throw new JsonSyntaxException("enabled dimension materials are empty: " + id);
+	}
+
+	private static void validateNamespaces(JsonElement element, String id) {
+		if (element == null) return;
+		if (!element.isJsonArray()) {
+			throw new JsonSyntaxException("biome namespace list is not an array: " + id);
+		}
+		for (JsonElement namespace : element.getAsJsonArray()) {
+			if (!MOD_ID.matcher(namespace.getAsString()).matches()) {
+				throw new JsonSyntaxException("invalid biome namespace in palette: " + id);
+			}
+		}
+	}
+
 	private static void validateStringList(JsonElement element) {
 		if (element == null) return;
 		if (!element.isJsonArray()) {
@@ -732,7 +872,8 @@ public final class WorldgenIntegrationManager {
 	}
 
 	static void claimOwnedEntries(String provider, JsonObject root, Map<String, String> owners) {
-		for (String section : new String[] { "rocks", "ores", "fluid_deposits" }) {
+		for (String section : new String[] { "rocks", "ores", "fluid_deposits",
+				"biome_palettes", "dimension_materials" }) {
 			for (String id : optionalObject(root, section).keySet()) {
 				String key = section + ':' + id;
 				String previous = owners.putIfAbsent(key, provider);
@@ -757,7 +898,9 @@ public final class WorldgenIntegrationManager {
 					string(json, "name_key", "orespawn.template." + id.getNamespace() + '.' + id.getPath()),
 					string(json, "description_key", "orespawn.template." + id.getNamespace() + '.'
 							+ id.getPath() + ".description"),
-					json.getAsJsonObject("profile").deepCopy(), available));
+					json.getAsJsonObject("profile").deepCopy(), available,
+					bool(json, "auto_select", false),
+					integer(json, "auto_select_priority", 0)));
 		}
 	}
 
@@ -896,19 +1039,25 @@ public final class WorldgenIntegrationManager {
 		private final String descriptionKey;
 		private final JsonObject profile;
 		private final boolean available;
+		private final boolean autoSelect;
+		private final int autoSelectPriority;
 
 		TemplateDefinition(ResourceLocation id, String nameKey, String descriptionKey,
-				JsonObject profile, boolean available) {
+				JsonObject profile, boolean available, boolean autoSelect, int autoSelectPriority) {
 			this.id = id;
 			this.nameKey = nameKey;
 			this.descriptionKey = descriptionKey;
 			this.profile = profile;
 			this.available = available;
+			this.autoSelect = autoSelect;
+			this.autoSelectPriority = autoSelectPriority;
 		}
 
 		public ResourceLocation id() { return id; }
 		public String nameKey() { return nameKey; }
 		public String descriptionKey() { return descriptionKey; }
 		public boolean available() { return available; }
+		public boolean autoSelect() { return autoSelect; }
+		public int autoSelectPriority() { return autoSelectPriority; }
 	}
 }

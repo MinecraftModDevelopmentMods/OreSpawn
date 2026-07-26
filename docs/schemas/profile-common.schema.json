@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mcmoddev.com/orespawn/schemas/profile-common.schema.json",
   "type": "object",
-  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "ores", "fluid_deposits"],
+  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "biome_palettes", "dimension_materials", "ores", "fluid_deposits"],
   "properties": {
     "geology_mode": { "enum": ["geome", "legacy"] },
     "place_fluid_deposits": { "type": "boolean" },
@@ -16,6 +16,8 @@
     "biomes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
     "biome_dictionary": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
     "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "#/$defs/terrainDimension" } },
+    "biome_palettes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/biomePalette" } },
+    "dimension_materials": { "type": "object", "additionalProperties": { "$ref": "#/$defs/dimensionMaterials" } },
     "ores": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ore" } },
     "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fluidDeposit" } },
     "worldgen_aliases": { "type": "object", "additionalProperties": { "$ref": "#/$defs/registryId" } },
@@ -260,6 +262,70 @@
         "revision": { "type": "integer", "minimum": 0 },
         "chunks_per_tick": { "type": "integer", "minimum": 1, "maximum": 16 }
       }
+    },
+    "biomeSurface": {
+      "type": "object",
+      "properties": {
+        "top_block": { "$ref": "#/$defs/registryId" },
+        "filler_block": { "$ref": "#/$defs/registryId" },
+        "underwater_block": { "$ref": "#/$defs/registryId" },
+        "ceiling_block": { "$ref": "#/$defs/registryId" },
+        "filler_depth": { "type": "integer", "minimum": 0, "maximum": 16 }
+      },
+      "additionalProperties": true
+    },
+    "biomePlacement": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "weight": { "type": "number", "minimum": 0 },
+        "similar_biomes": { "$ref": "#/$defs/registryIds" },
+        "required_similar_biomes": { "$ref": "#/$defs/registryIds" },
+        "min_temperature": { "type": "number", "minimum": -2, "maximum": 2 },
+        "max_temperature": { "type": "number", "minimum": -2, "maximum": 2 },
+        "min_downfall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "max_downfall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "surface": { "$ref": "#/$defs/biomeSurface" }
+      },
+      "additionalProperties": true
+    },
+    "biomePalette": {
+      "type": "object",
+      "required": ["dimension", "enabled", "mode", "scope", "region_size", "coverage", "fallback_weight", "biomes"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/registryId" },
+        "enabled": { "type": "boolean" },
+        "mode": { "enum": ["augment", "replace"] },
+        "scope": { "enum": ["all", "minecraft_only", "selected_namespaces"] },
+        "region_size": { "enum": ["tiny", "small", "average", "large", "huge"] },
+        "coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "fallback_weight": { "type": "number", "minimum": 0 },
+        "include_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
+        "exclude_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
+        "biomes": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/biomePlacement" } }
+      },
+      "additionalProperties": true
+    },
+    "dimensionMaterials": {
+      "type": "object",
+      "required": ["dimension", "enabled"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/registryId" },
+        "enabled": { "type": "boolean" },
+        "default_fluid": { "$ref": "#/$defs/registryId" },
+        "deep_aquifer_fluid": { "$ref": "#/$defs/registryId" },
+        "deep_aquifer_max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "snow_block": { "$ref": "#/$defs/registryId" },
+        "ice_block": { "$ref": "#/$defs/registryId" }
+      },
+      "anyOf": [
+        { "properties": { "enabled": { "const": false } }, "required": ["enabled"] },
+        { "required": ["default_fluid"] },
+        { "required": ["deep_aquifer_fluid"] },
+        { "required": ["snow_block"] },
+        { "required": ["ice_block"] }
+      ],
+      "additionalProperties": true
     },
     "flatBedrock": {
       "type": "object",

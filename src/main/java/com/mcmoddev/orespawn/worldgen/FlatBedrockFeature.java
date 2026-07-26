@@ -63,6 +63,10 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 		}
 	}
 
+	static Holder<PlacedFeature> placedFeature() {
+		return placedFeature;
+	}
+
 	public static void refreshWorldConfig() {
 		settings = readSettings(WorldGeologyProfileManager.activeProfile().rootCopy());
 	}

@@ -5,9 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import com.mojang.datafixers.util.Pair;
 import com.mcmoddev.orespawn.OreSpawnConfig.GeologyMode;
 import com.mcmoddev.orespawn.worldgen.FormationSettings.Preset;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -17,8 +19,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -80,6 +84,9 @@ public final class WorldgenBenchmark {
 		int chunks = squareDiameter(radius);
 		int baseCenterX = integer("orespawn.worldgenBenchmarkCenterX", 256);
 		int baseCenterZ = integer("orespawn.worldgenBenchmarkCenterZ", 256);
+		int[] locatedCenter = locateBiomeType(level, baseCenterX, baseCenterZ);
+		baseCenterX = locatedCenter[0];
+		baseCenterZ = locatedCenter[1];
 		int centerStep = integer("orespawn.worldgenBenchmarkCenterStep", 64);
 
 		LOGGER.info("ORESPAWN_BENCHMARK start mode={} dimension={} seed={} target_chunks={} repetitions={} "
@@ -143,6 +150,25 @@ public final class WorldgenBenchmark {
 	private static int squareDiameter(int radius) {
 		int diameter = (radius * 2) + 1;
 		return diameter * diameter;
+	}
+
+	private static int[] locateBiomeType(ServerLevel level, int centerX, int centerZ) {
+		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeType", "").trim();
+		if (configured.isEmpty()) {
+			return new int[] { centerX, centerZ };
+		}
+		BiomeDictionary.Type type = BiomeDictionary.Type.getType(configured);
+		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
+		Pair<BlockPos, Holder<Biome>> located = level.findNearestBiome(holder -> holder.unwrapKey()
+				.map(key -> BiomeDictionary.hasType(key, type)).orElse(false), origin, 16384, 32);
+		if (located == null) {
+			throw new IllegalStateException("Benchmark could not locate biome dictionary type " + configured);
+		}
+		int locatedX = located.getFirst().getX() >> 4;
+		int locatedZ = located.getFirst().getZ() >> 4;
+		LOGGER.info("ORESPAWN_BENCHMARK located biome_type={} center_chunk_x={} center_chunk_z={}",
+				configured.toUpperCase(Locale.ROOT), locatedX, locatedZ);
+		return new int[] { locatedX, locatedZ };
 	}
 
 	private static void auditOres(ServerLevel level, int centerX, int centerZ, int radius,

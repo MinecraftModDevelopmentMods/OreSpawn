@@ -31,9 +31,28 @@ logs
 
 # machine-specific agent context (public integration notes live under /docs)
 /AGENTS.md
+/AGENT.md
 /agent-notes/
+/.agent/
+/.agents/
 /.codex/
+/.claude/
+/.gemini/
 /CLAUDE.md
+/agent-*.md
+/codex-*.md
+
+# local regression, benchmark, and profiling evidence
+/run-*/
+/benchmark-*/
+/regression-*/
+/evidence/
+/evidence-*/
+/*-evidence/
+/*.jfr
+/*.hprof
+/hs_err_pid*.log
+/replay_pid*.log
 
 /README.txt
 /forge-*-changelog.txt

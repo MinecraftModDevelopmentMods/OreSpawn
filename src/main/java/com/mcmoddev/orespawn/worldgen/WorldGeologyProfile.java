@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 /** A complete, self-contained snapshot of the geology settings for one world. */
 public final class WorldGeologyProfile {
-	public static final int SCHEMA_VERSION = 4;
+	public static final int SCHEMA_VERSION = 5;
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -76,9 +76,10 @@ public final class WorldGeologyProfile {
 		if (schema >= SCHEMA_VERSION) {
 			return new WorldGeologyProfile(json, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
-		if (schema == 2 || schema == 3) {
+		if (schema == 2 || schema == 3 || schema == 4) {
 			JsonObject migrated = json.deepCopy();
-			for (String key : new String[] { "terrain_dimensions", "providers" }) {
+			for (String key : new String[] { "terrain_dimensions", "providers",
+					"biome_palettes", "dimension_materials" }) {
 				if (!migrated.has(key) && fallback.root.has(key)) {
 					migrated.add(key, fallback.root.get(key).deepCopy());
 				}
@@ -117,12 +118,13 @@ public final class WorldGeologyProfile {
 	}
 
 	public WorldGeologyProfile withTemplate(ResourceLocation templateId) {
-		return new WorldGeologyProfile(WorldgenIntegrationManager.applyTemplate(root, templateId),
+		return new WorldGeologyProfile(WorldgenIntegrationManager.applyTemplate(
+				GeomeConfig.globalBaseConfigSnapshot(), templateId),
 				geologyMode, placeFluidDeposits);
 	}
 
 	public WorldGeologyProfile withoutTemplate() {
-		JsonObject edited = rootCopy();
+		JsonObject edited = GeomeConfig.globalBaseConfigSnapshot();
 		edited.remove("selected_template");
 		return new WorldGeologyProfile(edited, geologyMode, placeFluidDeposits);
 	}

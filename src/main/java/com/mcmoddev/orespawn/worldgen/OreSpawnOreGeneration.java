@@ -371,6 +371,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 	}
 
+	static Holder<PlacedFeature> placedFeature() {
+		return placedFeature;
+	}
+
 	private static JsonObject objectOrEmpty(JsonObject root, String key) {
 		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key) : new JsonObject();
 	}

@@ -10,6 +10,8 @@
 | Construct definitions in Java | API provider sent through Forge IMC |
 | Offer an optional world style | Named template in a provider |
 | Add covered underground oil or another fluid | Provider schema 3 fluid deposit |
+| Add or place biomes without a framework dependency | Provider schema 4 biome palette |
+| Replace surfaces, aquifers, snow, or ice | Provider schema 4 dimension materials |
 | Inspect active geology at runtime | `GeologyProfileView` and `GeologySampler` |
 
 Strata are optional. If no enabled terrain dimension has eligible rocks,
@@ -19,7 +21,7 @@ blocks or tags.
 
 ## Provider JSON Quick Start
 
-Put a schema-3 file in your mod jar at:
+Put a schema-4 file in your mod jar at:
 
 ```text
 src/main/resources/data/examplemod/orespawn/provider.json
@@ -31,7 +33,7 @@ stone without enabling strata:
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "ores": {
@@ -59,7 +61,7 @@ stone without enabling strata:
 
 The complete example at `examples/examplemod-orespawn.json` adds a rock, a
 weighted ore output, a provider-owned fluid deposit, a geome, a biome influence,
-a custom dimension, and a selectable template.
+a custom dimension, a biome palette, world materials, and a selectable template.
 
 ## Java API Quick Start
 
@@ -158,6 +160,8 @@ did not validate. Never disable native generation for either state.
   for ordinary dimensions; explicit dimension rules override it.
 - Air-exposure discard: 0 keeps exposed candidates; 1 rejects all candidates
   touching cave air.
+- Biome placement: `augment` or `replace`; scope is `all`, `minecraft_only`, or
+  `selected_namespaces`; region sizes are 128-2048 block presets.
 
 See `CONFIGURATION.md` and the JSON Schemas for every field and numeric range.
 
@@ -173,6 +177,11 @@ Biome filters are baked as `ResourceKey<Biome>` values. Do not compare baked
 a dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
 chunk invocation and no registry lookup in the placement loop.
 
+Biome palettes wrap the dimension's already-selected biome source and bake
+registry holders, climate ranges, namespace filters, weights, surfaces, and
+world materials at server activation. No TerraBlender API is called. A
+dimension without a palette or material rule keeps the original generator path.
+
 Definitions normally change after a restart. `/orespawn reload` is intended for
 operator-controlled profile reloads. Existing chunks are unchanged unless
 bounded ore or bedrock retrogen is enabled.
@@ -184,5 +193,7 @@ bounded ore or bedrock retrogen is enabled.
    mandatory dependency.
 3. Keep native ore generation enabled until takeover status is active.
 4. Test every configured dimension and host tag.
-5. Confirm the provider appears in `/orespawn status`.
-6. Test a new world; profile edits do not rewrite already generated terrain.
+5. For biome providers, test required/optional similar-biome behavior both with
+   and without compatibility mods.
+6. Confirm the provider appears in `/orespawn status`.
+7. Test a new world; profile edits do not rewrite already generated terrain.

@@ -13,6 +13,7 @@ Choose the guide that matches what you are doing:
 - [Java API and custom patterns](API.md)
 - [Ore patterns and runtime tools](FEATURES.md)
 - [Templates](TEMPLATES.md)
+- [Biomes and world materials](BIOMES.md)
 - [Dimensions](DIMENSIONS.md)
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)

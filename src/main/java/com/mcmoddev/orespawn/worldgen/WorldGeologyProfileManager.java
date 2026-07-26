@@ -25,6 +25,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.world.WorldEvent;
+import net.minecraft.server.level.ServerLevel;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -108,6 +110,7 @@ public final class WorldGeologyProfileManager {
 			writeProfile(profilePath, profile);
 		}
 		activateProfile(profile);
+		BiomeWorldgenManager.apply(server, profile);
 		return true;
 	}
 
@@ -138,7 +141,7 @@ public final class WorldGeologyProfileManager {
 				profile = pending;
 				source = "Create World";
 			} else if (generatedWorld) {
-				profile = fallback;
+				profile = GeomeConfig.globalBaseProfile();
 				source = "instance (existing world)";
 			} else {
 				profile = fallback.copy();
@@ -150,6 +153,7 @@ public final class WorldGeologyProfileManager {
 		}
 
 		activateProfile(profile);
+		BiomeWorldgenManager.apply(event.getServer(), profile);
 		LOGGER.info("Activated OreSpawn world geology profile: mode={}, formations={}, horizontal={}, thickness={}, waviness={}, edge={}, continuity={}, fluidDeposits={}/{}",
 				profile.geologyMode(), profile.algorithm().configName(), profile.horizontalSize().configName(),
 				profile.verticalThickness().configName(), profile.waviness().configName(),
@@ -161,11 +165,20 @@ public final class WorldGeologyProfileManager {
 		activeServer = null;
 		activeProfile = null;
 		GeomeConfig.applyWorldProfile(globalProfile());
+		BiomeWorldgenManager.clear();
 		StoneReplacer.refreshWorldConfig();
 		OreSpawnOreGeneration.refreshWorldConfig();
 		FluidDepositFeature.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.clear();
+	}
+
+	public static void onWorldLoad(WorldEvent.Load event) {
+		if (!(event.getWorld() instanceof ServerLevel)) return;
+		WorldGeologyProfile profile = activeProfile;
+		if (profile != null) {
+			BiomeWorldgenManager.apply((ServerLevel) event.getWorld(), profile);
+		}
 	}
 
 	static void applyBenchmarkProfile(WorldGeologyProfile profile) {

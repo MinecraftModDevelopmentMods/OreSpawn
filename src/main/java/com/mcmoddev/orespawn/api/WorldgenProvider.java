@@ -45,7 +45,7 @@ public final class WorldgenProvider {
 		return revision;
 	}
 
-	/** Returns a defensive JSON representation matching provider schema 3. */
+	/** Returns a defensive JSON representation matching provider schema 4. */
 	public JsonObject toJson() {
 		return definition.deepCopy();
 	}
@@ -60,6 +60,10 @@ public final class WorldgenProvider {
 		private final LinkedHashMap<ResourceLocation, GeomeDefinition> geomes = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, BiomeRule> biomeRules = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, TerrainDimensionDefinition> terrainDimensions =
+				new LinkedHashMap<>();
+		private final LinkedHashMap<ResourceLocation, BiomePaletteDefinition> biomePalettes =
+				new LinkedHashMap<>();
+		private final LinkedHashMap<ResourceLocation, DimensionMaterialsDefinition> dimensionMaterials =
 				new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, GeologyTemplate> templates = new LinkedHashMap<>();
 
@@ -151,6 +155,31 @@ public final class WorldgenProvider {
 			return terrainDimension(builder.build());
 		}
 
+		public Builder biomePalette(BiomePaletteDefinition palette) {
+			putUnique(biomePalettes, palette.id(), palette, "biome palette");
+			return this;
+		}
+
+		public Builder biomePalette(ResourceLocation id, ResourceLocation dimension,
+				Consumer<BiomePaletteDefinition.Builder> edit) {
+			BiomePaletteDefinition.Builder builder = BiomePaletteDefinition.builder(id, dimension);
+			edit.accept(builder);
+			return biomePalette(builder.build());
+		}
+
+		public Builder dimensionMaterials(DimensionMaterialsDefinition materials) {
+			putUnique(dimensionMaterials, materials.id(), materials, "dimension materials");
+			return this;
+		}
+
+		public Builder dimensionMaterials(ResourceLocation id, ResourceLocation dimension,
+				Consumer<DimensionMaterialsDefinition.Builder> edit) {
+			DimensionMaterialsDefinition.Builder builder =
+					DimensionMaterialsDefinition.builder(id, dimension);
+			edit.accept(builder);
+			return dimensionMaterials(builder.build());
+		}
+
 		public Builder template(GeologyTemplate template) {
 			putUnique(templates, template.id(), template, "template");
 			return this;
@@ -165,7 +194,8 @@ public final class WorldgenProvider {
 		public WorldgenProvider build() {
 			if (rocks.isEmpty() && ores.isEmpty() && fluidDeposits.isEmpty()
 					&& geomes.isEmpty() && biomeRules.isEmpty()
-					&& terrainDimensions.isEmpty() && templates.isEmpty()) {
+					&& terrainDimensions.isEmpty() && biomePalettes.isEmpty()
+					&& dimensionMaterials.isEmpty() && templates.isEmpty()) {
 				throw new IllegalStateException("A provider must declare at least one contribution");
 			}
 			requireOwned(rocks.keySet(), "rock");
@@ -173,9 +203,11 @@ public final class WorldgenProvider {
 			requireOwned(fluidDeposits.keySet(), "fluid deposit");
 			requireOwned(geomes.keySet(), "geome");
 			requireOwned(terrainDimensions.keySet(), "terrain dimension");
+			requireOwned(biomePalettes.keySet(), "biome palette");
+			requireOwned(dimensionMaterials.keySet(), "dimension materials");
 			requireOwned(templates.keySet(), "template");
 			JsonObject root = new JsonObject();
-			root.addProperty("schema_version", 3);
+			root.addProperty("schema_version", 4);
 			root.addProperty("provider_modid", modId);
 			root.addProperty("provider_revision", revision);
 			root.add("rocks", object(rocks));
@@ -184,6 +216,8 @@ public final class WorldgenProvider {
 			root.add("geomes", object(geomes));
 			root.add("biome_rules", object(biomeRules));
 			root.add("terrain_dimensions", object(terrainDimensions));
+			root.add("biome_palettes", object(biomePalettes));
+			root.add("dimension_materials", object(dimensionMaterials));
 			root.add("templates", object(templates));
 			return new WorldgenProvider(modId, revision, root);
 		}
@@ -1173,6 +1207,8 @@ public final class WorldgenProvider {
 		private final String nameKey;
 		private final String descriptionKey;
 		private final Set<String> requiredMods;
+		private final boolean autoSelect;
+		private final int autoSelectPriority;
 		private final JsonObject profile;
 
 		private GeologyTemplate(Builder builder) {
@@ -1180,6 +1216,8 @@ public final class WorldgenProvider {
 			nameKey = builder.nameKey;
 			descriptionKey = builder.descriptionKey;
 			requiredMods = Collections.unmodifiableSet(new LinkedHashSet<>(builder.requiredMods));
+			autoSelect = builder.autoSelect;
+			autoSelectPriority = builder.autoSelectPriority;
 			profile = builder.profile.deepCopy();
 		}
 
@@ -1188,6 +1226,8 @@ public final class WorldgenProvider {
 		public String nameKey() { return nameKey; }
 		public String descriptionKey() { return descriptionKey; }
 		public Set<String> requiredMods() { return requiredMods; }
+		public boolean autoSelect() { return autoSelect; }
+		public int autoSelectPriority() { return autoSelectPriority; }
 		public JsonObject profile() { return profile.deepCopy(); }
 		@Override
 		public JsonObject toJson() {
@@ -1197,6 +1237,8 @@ public final class WorldgenProvider {
 			JsonArray mods = new JsonArray();
 			for (String mod : requiredMods) { mods.add(mod); }
 			json.add("required_mods", mods);
+			json.addProperty("auto_select", autoSelect);
+			json.addProperty("auto_select_priority", autoSelectPriority);
 			json.add("profile", profile.deepCopy());
 			return json;
 		}
@@ -1206,6 +1248,8 @@ public final class WorldgenProvider {
 			private String nameKey;
 			private String descriptionKey;
 			private final Set<String> requiredMods = new LinkedHashSet<>();
+			private boolean autoSelect;
+			private int autoSelectPriority;
 			private final JsonObject profile = new JsonObject();
 			private Builder(ResourceLocation id) {
 				this.id = Objects.requireNonNull(id, "id");
@@ -1214,6 +1258,8 @@ public final class WorldgenProvider {
 			}
 			public Builder translationKeys(String name, String description) { nameKey = name; descriptionKey = description; return this; }
 			public Builder requiresMod(String value) { requiredMods.add(requireModId(value)); return this; }
+			public Builder autoSelect(boolean value) { autoSelect = value; return this; }
+			public Builder autoSelectPriority(int value) { autoSelectPriority = value; return this; }
 			public Builder profile(JsonObject value) { profile.entrySet().clear(); value.entrySet().forEach(e -> profile.add(e.getKey(), e.getValue().deepCopy())); return this; }
 			public Builder formations(FormationDefinition value) { profile.add("formations", value.toJson()); return this; }
 			public Builder fluidDeposit(FluidDepositDefinition value) {
@@ -1264,6 +1310,346 @@ public final class WorldgenProvider {
 		JsonArray json = new JsonArray();
 		for (ResourceLocation value : values) { json.add(value.toString()); }
 		return json;
+	}
+
+	/**
+	 * A provider-owned set of biomes which can augment or replace an existing
+	 * dimension biome source without depending on a particular biome framework.
+	 */
+	public static final class BiomePaletteDefinition implements JsonDefinition {
+		private final ResourceLocation id;
+		private final ResourceLocation dimension;
+		private final boolean enabled;
+		private final BiomePlacementMode mode;
+		private final BiomeReplacementScope scope;
+		private final BiomeRegionSize regionSize;
+		private final double coverage;
+		private final double fallbackWeight;
+		private final Set<String> includedNamespaces;
+		private final Set<String> excludedNamespaces;
+		private final Map<ResourceLocation, BiomePlacementDefinition> biomes;
+
+		private BiomePaletteDefinition(Builder builder) {
+			id = builder.id;
+			dimension = builder.dimension;
+			enabled = builder.enabled;
+			mode = builder.mode;
+			scope = builder.scope;
+			regionSize = builder.regionSize;
+			coverage = builder.coverage;
+			fallbackWeight = builder.fallbackWeight;
+			includedNamespaces = Collections.unmodifiableSet(
+					new LinkedHashSet<>(builder.includedNamespaces));
+			excludedNamespaces = Collections.unmodifiableSet(
+					new LinkedHashSet<>(builder.excludedNamespaces));
+			biomes = Collections.unmodifiableMap(new LinkedHashMap<>(builder.biomes));
+		}
+
+		public static Builder builder(ResourceLocation id, ResourceLocation dimension) {
+			return new Builder(id, dimension);
+		}
+
+		public ResourceLocation id() { return id; }
+		public ResourceLocation dimension() { return dimension; }
+		public boolean enabled() { return enabled; }
+		public BiomePlacementMode mode() { return mode; }
+		public BiomeReplacementScope scope() { return scope; }
+		public BiomeRegionSize regionSize() { return regionSize; }
+		public double coverage() { return coverage; }
+		public double fallbackWeight() { return fallbackWeight; }
+		public Set<String> includedNamespaces() { return includedNamespaces; }
+		public Set<String> excludedNamespaces() { return excludedNamespaces; }
+		public Map<ResourceLocation, BiomePlacementDefinition> biomes() { return biomes; }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("dimension", dimension.toString());
+			json.addProperty("enabled", enabled);
+			json.addProperty("mode", mode.configName());
+			json.addProperty("scope", scope.configName());
+			json.addProperty("region_size", regionSize.configName());
+			json.addProperty("coverage", coverage);
+			json.addProperty("fallback_weight", fallbackWeight);
+			json.add("include_namespaces", strings(includedNamespaces));
+			json.add("exclude_namespaces", strings(excludedNamespaces));
+			json.add("biomes", object(biomes));
+			return json;
+		}
+
+		public static final class Builder {
+			private final ResourceLocation id;
+			private final ResourceLocation dimension;
+			private boolean enabled = true;
+			private BiomePlacementMode mode = BiomePlacementMode.AUGMENT;
+			private BiomeReplacementScope scope = BiomeReplacementScope.MINECRAFT_ONLY;
+			private BiomeRegionSize regionSize = BiomeRegionSize.AVERAGE;
+			private double coverage = 1.0D;
+			private double fallbackWeight = 1.0D;
+			private final Set<String> includedNamespaces = new LinkedHashSet<>();
+			private final Set<String> excludedNamespaces = new LinkedHashSet<>();
+			private final Map<ResourceLocation, BiomePlacementDefinition> biomes =
+					new LinkedHashMap<>();
+
+			private Builder(ResourceLocation id, ResourceLocation dimension) {
+				this.id = Objects.requireNonNull(id, "id");
+				this.dimension = Objects.requireNonNull(dimension, "dimension");
+			}
+
+			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder mode(BiomePlacementMode value) { mode = Objects.requireNonNull(value); return this; }
+			public Builder scope(BiomeReplacementScope value) { scope = Objects.requireNonNull(value); return this; }
+			public Builder regionSize(BiomeRegionSize value) { regionSize = Objects.requireNonNull(value); return this; }
+			public Builder coverage(double value) { coverage = value; return this; }
+			public Builder fallbackWeight(double value) { fallbackWeight = value; return this; }
+			public Builder includeNamespace(String value) { includedNamespaces.add(requireModId(value)); return this; }
+			public Builder excludeNamespace(String value) { excludedNamespaces.add(requireModId(value)); return this; }
+			public Builder biome(BiomePlacementDefinition value) {
+				putUnique(biomes, value.biome(), value, "biome placement");
+				return this;
+			}
+			public Builder biome(ResourceLocation biome,
+					Consumer<BiomePlacementDefinition.Builder> edit) {
+				BiomePlacementDefinition.Builder builder = BiomePlacementDefinition.builder(biome);
+				edit.accept(builder);
+				return biome(builder.build());
+			}
+
+			public BiomePaletteDefinition build() {
+				if (!Double.isFinite(coverage) || coverage < 0.0D || coverage > 1.0D
+						|| !Double.isFinite(fallbackWeight) || fallbackWeight < 0.0D) {
+					throw new IllegalStateException("Invalid biome palette coverage or fallback weight: " + id);
+				}
+				if (enabled && biomes.isEmpty()) {
+					throw new IllegalStateException("Enabled biome palette has no biomes: " + id);
+				}
+				if (scope == BiomeReplacementScope.SELECTED_NAMESPACES
+						&& includedNamespaces.isEmpty()) {
+					throw new IllegalStateException("Selected-namespace biome palette has no namespaces: " + id);
+				}
+				return new BiomePaletteDefinition(this);
+			}
+		}
+	}
+
+	/** Placement and optional surface settings for one registered biome. */
+	public static final class BiomePlacementDefinition implements JsonDefinition {
+		private final ResourceLocation biome;
+		private final boolean enabled;
+		private final double weight;
+		private final Set<ResourceLocation> similarBiomes;
+		private final Set<ResourceLocation> requiredSimilarBiomes;
+		private final double minTemperature;
+		private final double maxTemperature;
+		private final double minDownfall;
+		private final double maxDownfall;
+		private final BiomeSurfaceDefinition surface;
+
+		private BiomePlacementDefinition(Builder builder) {
+			biome = builder.biome;
+			enabled = builder.enabled;
+			weight = builder.weight;
+			similarBiomes = immutableSet(builder.similarBiomes);
+			requiredSimilarBiomes = immutableSet(builder.requiredSimilarBiomes);
+			minTemperature = builder.minTemperature;
+			maxTemperature = builder.maxTemperature;
+			minDownfall = builder.minDownfall;
+			maxDownfall = builder.maxDownfall;
+			surface = builder.surface;
+		}
+
+		public static Builder builder(ResourceLocation biome) { return new Builder(biome); }
+		public ResourceLocation biome() { return biome; }
+		public boolean enabled() { return enabled; }
+		public double weight() { return weight; }
+		public Set<ResourceLocation> similarBiomes() { return similarBiomes; }
+		public Set<ResourceLocation> requiredSimilarBiomes() { return requiredSimilarBiomes; }
+		public BiomeSurfaceDefinition surface() { return surface; }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("enabled", enabled);
+			json.addProperty("weight", weight);
+			json.add("similar_biomes", ids(similarBiomes));
+			json.add("required_similar_biomes", ids(requiredSimilarBiomes));
+			json.addProperty("min_temperature", minTemperature);
+			json.addProperty("max_temperature", maxTemperature);
+			json.addProperty("min_downfall", minDownfall);
+			json.addProperty("max_downfall", maxDownfall);
+			if (surface != null) json.add("surface", surface.toJson());
+			return json;
+		}
+
+		public static final class Builder {
+			private final ResourceLocation biome;
+			private boolean enabled = true;
+			private double weight = 1.0D;
+			private final Set<ResourceLocation> similarBiomes = new LinkedHashSet<>();
+			private final Set<ResourceLocation> requiredSimilarBiomes = new LinkedHashSet<>();
+			private double minTemperature = -2.0D;
+			private double maxTemperature = 2.0D;
+			private double minDownfall = 0.0D;
+			private double maxDownfall = 1.0D;
+			private BiomeSurfaceDefinition surface;
+
+			private Builder(ResourceLocation biome) {
+				this.biome = Objects.requireNonNull(biome, "biome");
+			}
+
+			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder weight(double value) { weight = value; return this; }
+			public Builder similarBiome(ResourceLocation value) { similarBiomes.add(value); return this; }
+			public Builder requiredSimilarBiome(ResourceLocation value) {
+				requiredSimilarBiomes.add(value);
+				return this;
+			}
+			public Builder temperature(double min, double max) {
+				minTemperature = min;
+				maxTemperature = max;
+				return this;
+			}
+			public Builder downfall(double min, double max) {
+				minDownfall = min;
+				maxDownfall = max;
+				return this;
+			}
+			public Builder surface(BiomeSurfaceDefinition value) { surface = value; return this; }
+
+			public BiomePlacementDefinition build() {
+				if (!Double.isFinite(weight) || weight < 0.0D
+						|| minTemperature > maxTemperature || minDownfall > maxDownfall
+						|| minDownfall < 0.0D || maxDownfall > 1.0D) {
+					throw new IllegalStateException("Invalid biome placement: " + biome);
+				}
+				return new BiomePlacementDefinition(this);
+			}
+		}
+	}
+
+	/** Surface block choices applied only to columns using this biome. */
+	public static final class BiomeSurfaceDefinition implements JsonDefinition {
+		private final ResourceLocation topBlock;
+		private final ResourceLocation fillerBlock;
+		private final ResourceLocation underwaterBlock;
+		private final ResourceLocation ceilingBlock;
+		private final int fillerDepth;
+
+		private BiomeSurfaceDefinition(Builder builder) {
+			topBlock = builder.topBlock;
+			fillerBlock = builder.fillerBlock;
+			underwaterBlock = builder.underwaterBlock;
+			ceilingBlock = builder.ceilingBlock;
+			fillerDepth = builder.fillerDepth;
+		}
+
+		public static Builder builder() { return new Builder(); }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			if (topBlock != null) json.addProperty("top_block", topBlock.toString());
+			if (fillerBlock != null) json.addProperty("filler_block", fillerBlock.toString());
+			if (underwaterBlock != null) json.addProperty("underwater_block", underwaterBlock.toString());
+			if (ceilingBlock != null) json.addProperty("ceiling_block", ceilingBlock.toString());
+			json.addProperty("filler_depth", fillerDepth);
+			return json;
+		}
+
+		public static final class Builder {
+			private ResourceLocation topBlock;
+			private ResourceLocation fillerBlock;
+			private ResourceLocation underwaterBlock;
+			private ResourceLocation ceilingBlock;
+			private int fillerDepth = 3;
+
+			private Builder() { }
+			public Builder topBlock(ResourceLocation value) { topBlock = value; return this; }
+			public Builder fillerBlock(ResourceLocation value) { fillerBlock = value; return this; }
+			public Builder underwaterBlock(ResourceLocation value) { underwaterBlock = value; return this; }
+			public Builder ceilingBlock(ResourceLocation value) { ceilingBlock = value; return this; }
+			public Builder fillerDepth(int value) { fillerDepth = value; return this; }
+			public BiomeSurfaceDefinition build() {
+				if (fillerDepth < 0 || fillerDepth > 16) {
+					throw new IllegalStateException("Biome surface filler depth must be within 0..16");
+				}
+				return new BiomeSurfaceDefinition(this);
+			}
+		}
+	}
+
+	/** Dimension-wide aquifer and weather materials. */
+	public static final class DimensionMaterialsDefinition implements JsonDefinition {
+		private final ResourceLocation id;
+		private final ResourceLocation dimension;
+		private final boolean enabled;
+		private final ResourceLocation defaultFluid;
+		private final ResourceLocation deepAquiferFluid;
+		private final int deepAquiferMaxY;
+		private final ResourceLocation snowBlock;
+		private final ResourceLocation iceBlock;
+
+		private DimensionMaterialsDefinition(Builder builder) {
+			id = builder.id;
+			dimension = builder.dimension;
+			enabled = builder.enabled;
+			defaultFluid = builder.defaultFluid;
+			deepAquiferFluid = builder.deepAquiferFluid;
+			deepAquiferMaxY = builder.deepAquiferMaxY;
+			snowBlock = builder.snowBlock;
+			iceBlock = builder.iceBlock;
+		}
+
+		public static Builder builder(ResourceLocation id, ResourceLocation dimension) {
+			return new Builder(id, dimension);
+		}
+		public ResourceLocation id() { return id; }
+		public ResourceLocation dimension() { return dimension; }
+
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("dimension", dimension.toString());
+			json.addProperty("enabled", enabled);
+			if (defaultFluid != null) json.addProperty("default_fluid", defaultFluid.toString());
+			if (deepAquiferFluid != null) json.addProperty("deep_aquifer_fluid", deepAquiferFluid.toString());
+			json.addProperty("deep_aquifer_max_y", deepAquiferMaxY);
+			if (snowBlock != null) json.addProperty("snow_block", snowBlock.toString());
+			if (iceBlock != null) json.addProperty("ice_block", iceBlock.toString());
+			return json;
+		}
+
+		public static final class Builder {
+			private final ResourceLocation id;
+			private final ResourceLocation dimension;
+			private boolean enabled = true;
+			private ResourceLocation defaultFluid;
+			private ResourceLocation deepAquiferFluid;
+			private int deepAquiferMaxY = -54;
+			private ResourceLocation snowBlock;
+			private ResourceLocation iceBlock;
+
+			private Builder(ResourceLocation id, ResourceLocation dimension) {
+				this.id = Objects.requireNonNull(id, "id");
+				this.dimension = Objects.requireNonNull(dimension, "dimension");
+			}
+			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder defaultFluid(ResourceLocation value) { defaultFluid = value; return this; }
+			public Builder deepAquiferFluid(ResourceLocation value, int maxY) {
+				deepAquiferFluid = value;
+				deepAquiferMaxY = maxY;
+				return this;
+			}
+			public Builder snowBlock(ResourceLocation value) { snowBlock = value; return this; }
+			public Builder iceBlock(ResourceLocation value) { iceBlock = value; return this; }
+			public DimensionMaterialsDefinition build() {
+				if (enabled && defaultFluid == null && deepAquiferFluid == null
+						&& snowBlock == null && iceBlock == null) {
+					throw new IllegalStateException("Enabled dimension materials are empty: " + id);
+				}
+				return new DimensionMaterialsDefinition(this);
+			}
+		}
 	}
 
 	private static JsonArray strings(Collection<String> values) {

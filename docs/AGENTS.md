@@ -16,9 +16,9 @@ Integration entry points:
 
 Configuration contracts:
 
-- Global `config/orespawn-worldgen.json`: schema 5.
-- World `serverconfig/orespawn-worldgen.json`: schema 4.
-- Provider files: schema 3; legacy schemas 1 and 2 remain accepted.
+- Global `config/orespawn-worldgen.json`: schema 6.
+- World `serverconfig/orespawn-worldgen.json`: schema 5.
+- Provider files: schema 4; legacy schemas 1-3 remain accepted.
 - Ore placement accepts fixed `quantity` or paired inclusive
   `min_quantity`/`max_quantity` values in the range 1-64. A complete range is
   authoritative when both forms exist.
@@ -26,6 +26,9 @@ Configuration contracts:
   dimensions but never Nether or End. Explicit dimension entries override it
   per ore and must also drive vanilla-feature suppression.
 - JSON Schemas and examples are under `META-INF/orespawn/docs/` in the jar.
+- Schema 4 providers may declare `biome_palettes` and `dimension_materials`.
+  Palettes wrap the native dimension biome source; they do not require
+  TerraBlender. Region presets are 128, 256, 512, 1024, and 2048 blocks.
 
 Lifecycle and ownership:
 
@@ -36,6 +39,9 @@ Lifecycle and ownership:
   output may reference any installed block.
 - Definitions freeze at load completion and change only after restart or an
   operator `/orespawn reload`.
+- Auto-selected templates apply only to fresh worlds with no explicit
+  `default_template`. Highest priority wins, then lexical ID. Existing world
+  profiles never auto-switch.
 
 Performance constraints:
 
@@ -43,6 +49,8 @@ Performance constraints:
 - Registry IDs remain `ResourceLocation` values until setup-time baking.
 - Dimension, tag, alias, biome, geome, family, pattern, and block-state
   resolution occurs before generation.
+- Biome palettes bake holders, climate bounds, namespace filters, weights,
+  surfaces, and dimension materials. Provider callbacks never run in selection.
 - Ore rules support `uniform`, `triangle`, `bottom_triangle`, and
   `uniform_bottom_triangle` height distributions plus a 0-1
   `discard_chance_on_air_exposure` value for buried deposits.
@@ -63,5 +71,6 @@ Compatibility defaults:
   removed `com.mcmoddev.mineralogy.api` classes.
 
 Common tasks are documented in `API.md`, `PROVIDERS.md`, `FEATURES.md`,
-`TEMPLATES.md`, and `DIMENSIONS.md`. Start with `DEVELOPER_GUIDE.md` when the
-task is broader than one isolated schema or API question.
+`TEMPLATES.md`, `BIOMES.md`, and `DIMENSIONS.md`. Start with
+`DEVELOPER_GUIDE.md` when the task is broader than one isolated schema or API
+question.

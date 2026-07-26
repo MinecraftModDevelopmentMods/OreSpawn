@@ -100,6 +100,20 @@ class WorldgenIntegrationManagerTest {
 				() -> WorldgenIntegrationManager.validateQuantityRange(incomplete));
 	}
 
+	@Test
+	void validatesBiomePaletteAndDimensionMaterialsOnlyInSchemaFour() {
+		JsonObject provider = biomeProvider(4, "minecraft:water");
+		assertDoesNotThrow(() -> WorldgenIntegrationManager.validateProvider("examplemod", provider));
+
+		JsonObject oldSchema = biomeProvider(3, "minecraft:water");
+		assertThrows(JsonSyntaxException.class,
+				() -> WorldgenIntegrationManager.validateProvider("examplemod", oldSchema));
+
+		JsonObject solidFluid = biomeProvider(4, "minecraft:stone");
+		assertThrows(JsonSyntaxException.class,
+				() -> WorldgenIntegrationManager.validateProvider("examplemod", solidFluid));
+	}
+
 	private static JsonObject provider(String block, boolean withHost, int schema) {
 		JsonObject root = new JsonObject();
 		root.addProperty("schema_version", schema);
@@ -130,6 +144,44 @@ class WorldgenIntegrationManagerTest {
 		JsonObject deposits = new JsonObject();
 		deposits.add("examplemod:fluid_deposit/test", deposit);
 		root.add("fluid_deposits", deposits);
+		return root;
+	}
+
+	private static JsonObject biomeProvider(int schema, String fluid) {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", schema);
+		root.addProperty("provider_modid", "examplemod");
+		root.addProperty("provider_revision", 1);
+
+		JsonObject placement = new JsonObject();
+		placement.addProperty("enabled", true);
+		placement.addProperty("weight", 1.0D);
+		placement.add("similar_biomes", new JsonArray());
+		placement.add("required_similar_biomes", new JsonArray());
+		JsonObject biomes = new JsonObject();
+		biomes.add("minecraft:plains", placement);
+		JsonObject palette = new JsonObject();
+		palette.addProperty("dimension", "minecraft:overworld");
+		palette.addProperty("enabled", true);
+		palette.addProperty("mode", "augment");
+		palette.addProperty("scope", "minecraft_only");
+		palette.addProperty("region_size", "average");
+		palette.addProperty("coverage", 1.0D);
+		palette.addProperty("fallback_weight", 1.0D);
+		palette.add("include_namespaces", new JsonArray());
+		palette.add("exclude_namespaces", new JsonArray());
+		palette.add("biomes", biomes);
+		JsonObject palettes = new JsonObject();
+		palettes.add("examplemod:palette/test", palette);
+		root.add("biome_palettes", palettes);
+
+		JsonObject material = new JsonObject();
+		material.addProperty("dimension", "minecraft:overworld");
+		material.addProperty("enabled", true);
+		material.addProperty("default_fluid", fluid);
+		JsonObject materials = new JsonObject();
+		materials.add("examplemod:materials/test", material);
+		root.add("dimension_materials", materials);
 		return root;
 	}
 }

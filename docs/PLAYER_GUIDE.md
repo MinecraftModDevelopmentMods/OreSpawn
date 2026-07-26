@@ -20,6 +20,12 @@ tuff. Calcite and dripstone keep their special vanilla placement unless a
 player deliberately adds them. You can remove the starter rocks or add blocks
 from installed mods before creating the world.
 
+Mods can also offer new biomes and world materials without enabling strata.
+Use **Biomes & World Materials** to inspect installed dimension palettes,
+surface blocks, aquifer fluids, snow, and ice. The picker only accepts real
+installed registry entries. Missing optional compatibility biomes are skipped
+safely instead of breaking world creation.
+
 ## What The Main Controls Mean
 
 - **Template** selects a complete setup supplied by OreSpawn, a mod, or a pack.
@@ -38,6 +44,11 @@ from installed mods before creating the world.
   installed mod. These are covered underground deposits, not exposed vanilla
   lakes. **Solid Cover** controls the roof thickness, while **Solid Shell**
   prevents a deposit from opening into a cave at its sides or underside.
+- **Biomes & World Materials** controls broad biome regions and what their
+  surfaces, underground water, snow, and ice are made from. **Augment** mixes
+  new biomes into the existing source; **Replace** creates a complete provider
+  style. Namespace scope protects other biome mods unless a pack deliberately
+  opts them in.
 
 ## Rocks, Ores, And Other Mods
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "rocks": {
@@ -94,19 +94,6 @@
           "excluded_biome_dictionary": [],
           "geomes": {}
         }
-      },
-      "dimension_selectors": {
-        "orespawn:all_except_nether_end": {
-          "enabled": true,
-          "min_y": -16,
-          "max_y": 96,
-          "frequency": 2.0,
-          "min_quantity": 4,
-          "max_quantity": 11,
-          "pattern": "vein",
-          "height_distribution": "uniform",
-          "host_tags": ["minecraft:stone_ore_replaceables"]
-        }
       }
     }
   },
@@ -136,11 +123,55 @@
       "host_tags": []
     }
   },
+  "biome_palettes": {
+    "examplemod:crystal_caverns": {
+      "dimension": "examplemod:crystal_caverns",
+      "enabled": true,
+      "mode": "replace",
+      "scope": "all",
+      "region_size": "large",
+      "coverage": 1.0,
+      "fallback_weight": 0.0,
+      "include_namespaces": [],
+      "exclude_namespaces": [],
+      "biomes": {
+        "examplemod:crystal_forest": {
+          "enabled": true,
+          "weight": 3.0,
+          "similar_biomes": ["minecraft:forest"],
+          "required_similar_biomes": [],
+          "min_temperature": 0.2,
+          "max_temperature": 1.0,
+          "min_downfall": 0.4,
+          "max_downfall": 1.0,
+          "surface": {
+            "top_block": "examplemod:crystal_grass",
+            "filler_block": "examplemod:crystal_soil",
+            "underwater_block": "examplemod:crystal_sand",
+            "filler_depth": 3
+          }
+        }
+      }
+    }
+  },
+  "dimension_materials": {
+    "examplemod:crystal_caverns": {
+      "dimension": "examplemod:crystal_caverns",
+      "enabled": true,
+      "default_fluid": "examplemod:liquid_crystal",
+      "deep_aquifer_fluid": "examplemod:liquid_crystal",
+      "deep_aquifer_max_y": -32,
+      "snow_block": "examplemod:crystal_snow",
+      "ice_block": "examplemod:crystal_ice"
+    }
+  },
   "templates": {
     "examplemod:crystal_world": {
       "name_key": "template.examplemod.crystal_world",
       "description_key": "template.examplemod.crystal_world.description",
       "required_mods": ["examplemod"],
+      "auto_select": false,
+      "auto_select_priority": 0,
       "profile": {
         "formations": {
           "horizontal_size": "large",

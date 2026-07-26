@@ -4,12 +4,13 @@ OreSpawn uses three JSON contracts:
 
 | File | Schema | Purpose |
 |---|---:|---|
-| `config/orespawn-worldgen.json` | 5 | Installed-pack defaults for new worlds |
-| `<world>/serverconfig/orespawn-worldgen.json` | 4 | Self-contained snapshot for one world |
-| `config/<modid>-orespawn.json` | 3 | Optional authoritative provider override |
+| `config/orespawn-worldgen.json` | 6 | Installed-pack defaults for new worlds |
+| `<world>/serverconfig/orespawn-worldgen.json` | 5 | Self-contained snapshot for one world |
+| `config/<modid>-orespawn.json` | 4 | Optional authoritative provider override |
 
-A provider may package schema 3 at `data/<modid>/orespawn/provider.json`.
-Legacy provider schemas 1 and 2 remain accepted; fluid deposits require schema 3.
+A provider may package schema 4 at `data/<modid>/orespawn/provider.json`.
+Legacy provider schemas 1-3 remain accepted. Fluid deposits require schema 3;
+biome palettes and dimension materials require schema 4.
 
 The profile for a new world is merged in this order: passive OreSpawn defaults,
 packaged or API providers, provider override files, the global configuration,
@@ -20,7 +21,7 @@ world. Restart after editing JSON by hand.
 
 | Field | Values | Meaning |
 |---|---|---|
-| `schema_version` | Contract-specific integer | Global 5, world 4, provider 3 |
+| `schema_version` | Contract-specific integer | Global 6, world 5, provider 4 |
 | `geology_mode` | `geome`, `legacy` | Sky/geome engine or Cyano legacy engine |
 | `place_fluid_deposits` | boolean | Master switch for configured fluid-deposit rules |
 | `manage_vanilla_ores` | boolean | Lets OreSpawn suppress and replace claimed vanilla ore features |
@@ -32,6 +33,8 @@ world. Restart after editing JSON by hand.
 | `biomes` | object keyed by biome ID | Explicit biome-to-geome weights |
 | `biome_dictionary` | object keyed by Forge biome type | Fallback biome-to-geome weights |
 | `terrain_dimensions` | object keyed by dimension ID | Dimensions and hosts eligible for terrain replacement |
+| `biome_palettes` | object keyed by provider-owned rule ID | Optional native-biome overlays and surfaces |
+| `dimension_materials` | object keyed by provider-owned rule ID | Aquifer fluid, snow, and ice substitutions |
 | `ores` | object keyed by rule ID | Ore outputs and per-dimension placement |
 | `fluid_deposits` | object keyed by rule ID | Provider-owned fluids and per-dimension placement |
 | `retrogen` | object | Bounded ore retrogen controls |
@@ -48,6 +51,9 @@ world. Restart after editing JSON by hand.
 | Ore pattern | `default`, `vein`, `normal_cloud`, `precision`, `clusters`, `underfluids` |
 | Legacy pattern aliases | `cluster`, `cloud` |
 | Height distribution | `uniform`, `triangle`, `bottom_triangle`, `uniform_bottom_triangle` |
+| Biome placement mode | `augment`, `replace` |
+| Biome replacement scope | `all`, `minecraft_only`, `selected_namespaces` |
+| Biome region size | `tiny`, `small`, `average`, `large`, `huge` |
 
 `sky_v1` exists to preserve migrated worlds. Use `stable_layers` for new packs.
 
@@ -89,6 +95,31 @@ Terrain dimensions require `enabled`, `host_blocks`, and `host_tags`.
 `biome_ids` and `biome_namespaces` can narrow a custom dimension. The Overworld
 is conventional but not automatic; Nether and End terrain remain untouched
 unless a profile explicitly opts them in.
+
+## Biome Palettes And World Materials
+
+Biome palettes are independent of rock strata. Each palette names a
+`dimension`, placement `mode`, replacement `scope`, `region_size`, `coverage`,
+`fallback_weight`, optional namespace filters, and one or more weighted biome
+entries. Region presets are 128, 256, 512, 1024, and 2048 blocks.
+
+`augment` keeps the source biome as a weighted fallback. `replace` selects only
+eligible palette biomes. Scope controls which source namespaces may be changed:
+`minecraft_only` protects modded biomes by default, `selected_namespaces`
+requires `include_namespaces`, and `all` permits every namespace except those
+in `exclude_namespaces`.
+
+Each biome entry may set `similar_biomes`, `required_similar_biomes`,
+temperature/downfall ranges, and a surface object. Optional similar biomes are
+ignored when absent. If a required similar biome is absent, that output entry
+is disabled with one setup warning. Surface fields are `top_block`,
+`filler_block`, `underwater_block`, `ceiling_block`, and `filler_depth`.
+
+Dimension-material rules may set `default_fluid`, `deep_aquifer_fluid`,
+`deep_aquifer_max_y`, `snow_block`, and `ice_block`. Fluid IDs must resolve to
+blocks with non-empty fluid states. These substitutions are opt-in; a dimension
+with no matching rule retains its native generator and weather materials.
+See `BIOMES.md` for complete examples and practical guidance.
 
 ## Ore Fields
 

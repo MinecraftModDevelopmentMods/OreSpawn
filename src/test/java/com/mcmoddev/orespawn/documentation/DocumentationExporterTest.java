@@ -20,6 +20,7 @@ class DocumentationExporterTest {
 		assertTrue(firstExport >= 19);
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("README.md")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("DEVELOPER_GUIDE.md")));
+		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("BIOMES.md")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("examples/examplemod-orespawn.json")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("schemas/orespawn-provider.schema.json")));
 

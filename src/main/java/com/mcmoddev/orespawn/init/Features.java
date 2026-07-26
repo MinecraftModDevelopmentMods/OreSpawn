@@ -5,6 +5,7 @@ import com.mcmoddev.orespawn.worldgen.OreSpawnOreGeneration;
 import com.mcmoddev.orespawn.worldgen.FlatBedrockFeature;
 import com.mcmoddev.orespawn.worldgen.FluidDepositFeature;
 import com.mcmoddev.orespawn.worldgen.StoneReplacer;
+import com.mcmoddev.orespawn.worldgen.BiomeSurfaceFeature;
 import com.mcmoddev.orespawn.worldgen.VanillaOreFeatureGate;
 
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -20,6 +21,7 @@ public final class Features {
 		event.getRegistry().register(OreSpawnOreGeneration.FEATURE);
 		event.getRegistry().register(FluidDepositFeature.FEATURE);
 		event.getRegistry().register(FlatBedrockFeature.FEATURE);
+		event.getRegistry().register(BiomeSurfaceFeature.FEATURE);
 		VanillaOreFeatureGate.registerFeatures(event.getRegistry());
 	}
 

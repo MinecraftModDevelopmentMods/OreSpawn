@@ -2,8 +2,8 @@
 
 OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.18.2.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
-rock strata and geomes, provider-owned underground fluid deposits, flat bedrock,
-and bounded ore retrogen.
+rock strata and geomes, provider-owned underground fluid deposits, biome
+palettes and world materials, flat bedrock, and bounded ore retrogen.
 
 Its OS3 compatibility layer preserves ranged legacy block budgets, exclusive
 legacy height ceilings, and the historical "all dimensions except Nether and
@@ -19,9 +19,11 @@ vanilla ores, or change the Nether merely because the jar is installed. A
 provider mod or a modpack profile must opt features in.
 
 Mineralogy 6 is the first full provider. It supplies its rocks, ores, crude-oil
-deposit, geomes, biome influences, and recommended settings to OreSpawn. An ore-only
-provider such as Base Metals can supply ores and host tags without enabling
-rock layers at all.
+deposit, geomes, biome influences, and recommended settings to OreSpawn. An
+ore-only provider such as Base Metals can supply ores and host tags without
+enabling rock layers or biome replacement. A total-conversion provider can add
+biomes and replace surfaces, aquifer fluids, snow, and ice without depending on
+TerraBlender.
 
 ## Players And Server Owners
 
@@ -66,6 +68,7 @@ Start with:
 - [Configuration reference](docs/CONFIGURATION.md)
 - [Provider JSON guide](docs/PROVIDERS.md)
 - [Java API guide](docs/API.md)
+- [Biome and world-material guide](docs/BIOMES.md)
 - [Schemas and examples](docs/README.md)
 
 The full documentation bundle is packaged under `META-INF/orespawn/docs/` and
