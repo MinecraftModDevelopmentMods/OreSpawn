@@ -88,8 +88,11 @@ final class FluidDepositDimensionScreen extends Screen {
 		biomeWidgets.clear();
 		JsonObject rule = rule();
 		int right = left + columnWidth + 5;
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 42, columnWidth, 20,
-				Component.translatable("option.orespawn.enabled"), (button, value) -> enabled = value));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(enabled).create(left, 42, columnWidth, 20,
+						Component.translatable("option.orespawn.enabled"),
+						(button, value) -> enabled = value),
+				"guide.orespawn.fluids.1"));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, 42, columnWidth, 20,
 				Component.translatable("button.orespawn.remove_dimension"), button -> removeDimension()));
 		int tabWidth = (contentWidth - 10) / 3;
@@ -120,10 +123,12 @@ final class FluidDepositDimensionScreen extends Screen {
 			RockFamily family = values[i];
 			int x = (i & 1) == 0 ? left : right;
 			int y = 136 + ((i / 2) * 24);
-			hostWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(families.contains(family))
-					.create(x, y, columnWidth, 20,
+			hostWidgets.add(addRenderableWidget(OreSpawnScreenLayout.explain(
+					CycleButton.onOffBuilder(families.contains(family)).create(x, y, columnWidth, 20,
 							Component.translatable("value.orespawn.family." + family.configName),
-							(button, selected) -> { if (selected) families.add(family); else families.remove(family); })));
+							(button, selected) -> {
+								if (selected) families.add(family); else families.remove(family);
+							}), "guide.orespawn.fluids.3")));
 		}
 
 		biomeIds = biomeField(0, "biome_ids", join(rule.get("biome_ids"), ""));
@@ -134,6 +139,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 180,
 				contentWidth, 20, Component.translatable("button.orespawn.geome_weights"),
 				button -> openWeights()));
+		OreSpawnScreenLayout.explain(weights, "guide.orespawn.fluids.3");
 		weights.active = "minecraft:overworld".equals(dimensionId) && !session.geomeIds().isEmpty();
 		biomeWidgets.add(weights);
 
@@ -151,6 +157,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, groupX + columnWidth - fieldWidth, 90 + (row * 24),
 				fieldWidth, 20, Component.literal(key));
 		box.setValue(value); box.setMaxLength(32);
+		OreSpawnScreenLayout.explain(box, placementHelp(key));
 		placementWidgets.add(addRenderableWidget(box));
 		return box;
 	}
@@ -159,6 +166,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		int x = index == 0 ? left : left + columnWidth + 5;
 		EditBox box = new EditBox(font, x, 106, columnWidth, 20, Component.literal(key));
 		box.setValue(value); box.setMaxLength(1024);
+		OreSpawnScreenLayout.explain(box, "guide.orespawn.fluids.3");
 		hostWidgets.add(addRenderableWidget(box));
 		return box;
 	}
@@ -168,8 +176,17 @@ final class FluidDepositDimensionScreen extends Screen {
 		int y = 106 + ((index / 2) * 44);
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
 		box.setValue(value); box.setMaxLength(1024);
+		OreSpawnScreenLayout.explain(box, "guide.orespawn.fluids.3");
 		biomeWidgets.add(addRenderableWidget(box));
 		return box;
+	}
+
+	private static String placementHelp(String key) {
+		return switch (key) {
+			case "min_y", "max_y" -> "guide.orespawn.fluids.1";
+			case "min_solid_cover", "min_solid_shell" -> "guide.orespawn.fluids.3";
+			default -> "guide.orespawn.fluids.2";
+		};
 	}
 
 	private void showPage(Page selected) {

@@ -32,11 +32,9 @@ final class AdvancedGeologySettingsScreen extends Screen {
 					Component.translatable("button.orespawn.cyano_details"),
 					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS)));
 		}
-		if (!session.fluidDepositIds().isEmpty()) {
-			addRenderableWidget(OreSpawnScreenLayout.plainButton(left, top + (row * 28), 310, 20,
-					Component.translatable("button.orespawn.fluid_deposit_details"),
-					button -> minecraft.setScreen(new FluidDepositListScreen(this, session))));
-		}
+		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, top + (row * 28), 310, 20,
+				Component.translatable("button.orespawn.fluid_deposit_details"),
+				button -> minecraft.setScreen(new FluidDepositListScreen(this, session))));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}

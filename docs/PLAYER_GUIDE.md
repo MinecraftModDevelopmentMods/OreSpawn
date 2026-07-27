@@ -12,6 +12,10 @@ For a normal game:
 3. Open **Help & Guide** for a plain-language tour of the controls.
 4. Press **Done**, then create the world normally.
 
+Hover over unfamiliar controls for a short explanation. The same explanations
+are collected in **Help & Guide**, so a setting can be learned either while
+editing it or one topic at a time.
+
 There is no requirement to use rock strata. Ore-only mods can use OreSpawn to
 place ores in ordinary vanilla stone while every geology control remains idle.
 When no provider supplies rocks, **Configure Rock Strata...** starts with a
@@ -49,6 +53,12 @@ safely instead of breaking world creation.
   new biomes into the existing source; **Replace** creates a complete provider
   style. Namespace scope protects other biome mods unless a pack deliberately
   opts them in.
+
+**World Materials** applies across an entire dimension. **Aquifer Fluid**
+changes the normal below-sea-level fluid, while **Deep Aquifer** can use a
+second fluid below a chosen Y level. Snow and ordinary ice can also be replaced.
+Use **Fluid Deposits**, not World Materials, for occasional underground lakes
+or pockets.
 
 ## Rocks, Ores, And Other Mods
 

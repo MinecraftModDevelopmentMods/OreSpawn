@@ -179,8 +179,8 @@ chunk invocation and no registry lookup in the placement loop.
 
 Biome palettes wrap the dimension's already-selected biome source and bake
 registry holders, climate ranges, namespace filters, weights, surfaces, and
-world materials at server activation. No TerraBlender API is called. A
-dimension without a palette or material rule keeps the original generator path.
+world materials at server activation. A dimension without a palette or material
+rule keeps the original generator path.
 
 Definitions normally change after a restart. `/orespawn reload` is intended for
 operator-controlled profile reloads. Existing chunks are unchanged unless

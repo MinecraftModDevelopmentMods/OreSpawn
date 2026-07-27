@@ -78,8 +78,7 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
 Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
-provides a small optional convenience for cloning a known biome without adding
-TerraBlender:
+provides a small optional convenience for cloning a known biome:
 
 ```java
 RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(

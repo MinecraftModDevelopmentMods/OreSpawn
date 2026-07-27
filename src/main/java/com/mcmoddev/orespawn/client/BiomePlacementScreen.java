@@ -52,10 +52,12 @@ final class BiomePlacementScreen extends Screen {
 			button.active = value != tab;
 		}
 		JsonObject placement = session.biomePlacement(dimension, biomeId);
-		addRenderableWidget(CycleButton.onOffBuilder(bool(placement, "enabled", true))
-				.create(left, 64, contentWidth, 20,
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(bool(placement, "enabled", true)).create(
+						left, 64, contentWidth, 20,
 						Component.translatable("option.orespawn.enabled"),
-						(button, value) -> placement.addProperty("enabled", value)));
+						(button, value) -> placement.addProperty("enabled", value)),
+				"guide.orespawn.biomes.1"));
 		if (tab == Tab.PLACEMENT) initPlacement(left, half, placement);
 		else if (tab == Tab.CLIMATE) initClimate(left, half, placement);
 		else initSurface(left, contentWidth, placement);
@@ -71,36 +73,45 @@ final class BiomePlacementScreen extends Screen {
 	private void initPlacement(int left, int half, JsonObject placement) {
 		int y = 90;
 		weight = field(left + half + 5, y, half, decimal(placement, "weight", 1.0D));
+		OreSpawnScreenLayout.explain(weight, "guide.orespawn.biomes.3");
 		label(left, y + 6, half, "option.orespawn.weight");
 		y += 28;
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y, half, 20,
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left, y, half, 20,
 				Component.translatable("button.orespawn.similar_biomes",
 						array(placement, "similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
-						this, session, placement, "similar_biomes")); }));
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + half + 5, y,
+						this, session, placement, "similar_biomes")); }),
+				"guide.orespawn.biomes.3"));
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left + half + 5, y,
 				half, 20, Component.translatable("button.orespawn.required_biomes",
 						array(placement, "required_similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
-						this, session, placement, "required_similar_biomes")); }));
+						this, session, placement, "required_similar_biomes")); }),
+				"guide.orespawn.biomes.3"));
 	}
 
 	private void initClimate(int left, int half, JsonObject placement) {
 		int y = 90;
 		minTemperature = field(left + half + 5, y, half,
 				decimal(placement, "min_temperature", -2.0D));
+		OreSpawnScreenLayout.explain(minTemperature, "guide.orespawn.biomes.3");
 		label(left, y + 6, half, "option.orespawn.min_temperature");
 		y += 24;
 		maxTemperature = field(left + half + 5, y, half,
 				decimal(placement, "max_temperature", 2.0D));
+		OreSpawnScreenLayout.explain(maxTemperature, "guide.orespawn.biomes.3");
 		label(left, y + 6, half, "option.orespawn.max_temperature");
 		y += 24;
 		minDownfall = field(left + half + 5, y, half,
 				decimal(placement, "min_downfall", 0.0D));
+		OreSpawnScreenLayout.explain(minDownfall, "guide.orespawn.biomes.3");
 		label(left, y + 6, half, "option.orespawn.min_downfall");
 		y += 24;
 		maxDownfall = field(left + half + 5, y, half,
 				decimal(placement, "max_downfall", 1.0D));
+		OreSpawnScreenLayout.explain(maxDownfall, "guide.orespawn.biomes.3");
 		label(left, y + 6, half, "option.orespawn.max_downfall");
 	}
 
@@ -110,19 +121,23 @@ final class BiomePlacementScreen extends Screen {
 		for (String key : Arrays.asList("top_block", "filler_block",
 				"underwater_block", "ceiling_block")) {
 			String current = string(surface, key, "");
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y,
+			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+					this, font, left, y,
 					width - 65, 20, materialLabel(key, current), button -> {
 						saveFields();
 						minecraft.setScreen(new MaterialBlockPickerScreen(this, session,
 								false, id -> surface.addProperty(key, id)));
-					}));
-			addRenderableWidget(OreSpawnScreenLayout.plainButton(left + width - 60, y, 60, 20,
+					}), "guide.orespawn.biomes.3"));
+			Button clear = addRenderableWidget(OreSpawnScreenLayout.plainButton(
+					left + width - 60, y, 60, 20,
 					Component.translatable("button.orespawn.clear"),
 					button -> { surface.remove(key); rebuildWidgets(); }));
+			clear.active = !current.isEmpty();
 			y += 24;
 		}
 		fillerDepth = field(left + width / 2, y, width / 2,
 				integer(surface, "filler_depth", 3));
+		OreSpawnScreenLayout.explain(fillerDepth, "guide.orespawn.biomes.3");
 		label(left, y + 6, width / 2 - 5, "option.orespawn.filler_depth");
 	}
 

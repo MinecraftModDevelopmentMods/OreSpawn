@@ -1,9 +1,9 @@
 # Biomes And World Materials
 
-OreSpawn can place provider biomes and replace their visible world materials
-without requiring TerraBlender. It does not register biomes for a child mod:
-the provider still registers ordinary Forge `Biome` objects, then supplies
-declarative placement and material rules to OreSpawn.
+OreSpawn can place provider biomes and replace their visible world materials.
+It does not register biomes for a child mod: the provider still registers
+ordinary Forge `Biome` objects, then supplies declarative placement and
+material rules to OreSpawn.
 
 This feature is optional. Ore-only providers and existing Mineralogy profiles
 with no biome palettes use Minecraft's original biome source unchanged.
@@ -11,13 +11,12 @@ with no biome palettes use Minecraft's original biome source unchanged.
 ## How Placement Composes
 
 OreSpawn waits until a server level has its final `ChunkGenerator`, then wraps
-the biome source already selected for that dimension. Vanilla, TerraBlender,
-Biomes O' Plenty, or another framework therefore runs first. OreSpawn reads the
-source biome once and applies pre-baked palette rules.
+the biome source already selected for that dimension. Vanilla or another
+installed biome source therefore runs first. OreSpawn reads the source biome
+once and applies pre-baked palette rules.
 
-The wrapper is native to OreSpawn and has no TerraBlender compile-time or
-runtime dependency. This keeps simple child mods small while still allowing a
-pack that already uses TerraBlender to compose safely.
+The wrapper is native to OreSpawn. This keeps simple child mods small and lets
+OreSpawn compose with the biome source already selected by the pack.
 
 Each palette has:
 

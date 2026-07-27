@@ -53,6 +53,8 @@ final class RockEntryScreen extends Screen {
 		int right = width / 2 + 5;
 		addRenderableWidget(CycleButton.builder(this::familyName)
 				.withValues(Arrays.asList(RockFamily.values())).withInitialValue(family)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("guide.orespawn.rocks.1")))
 				.create(left, 38, 190, 20, Component.translatable("option.orespawn.family"),
 						(button, value) -> family = value));
 		addRenderableWidget(CycleButton.onOffBuilder(enabled)
@@ -63,11 +65,16 @@ final class RockEntryScreen extends Screen {
 		spread = addField(right, 108, "depth_spread", value(rock, "depth_spread", 40));
 		minY = addField(right, 130, "min_y", value(rock, "min_y", -64));
 		maxY = addField(right, 152, "max_y", value(rock, "max_y", 319));
-		addRenderableWidget(CycleButton.onOffBuilder(oreReplaceable)
-				.create(left, 176, 150, 20, Component.translatable("option.orespawn.ore_replaceable"),
-						(button, value) -> oreReplaceable = value));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(right, 176, 150, 20,
-				Component.translatable("button.orespawn.geome_weights"), button -> openWeights()));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(oreReplaceable).create(left, 176, 150, 20,
+						Component.translatable("option.orespawn.ore_replaceable"),
+						(button, value) -> oreReplaceable = value),
+				"guide.orespawn.rocks.3"));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				OreSpawnScreenLayout.plainButton(right, 176, 150, 20,
+						Component.translatable("button.orespawn.geome_weights"),
+						button -> openWeights()),
+				"guide.orespawn.rocks.1"));
 		int bottom = height - 28;
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, bottom, 95, 20, CommonComponents.GUI_DONE, button -> saveAndClose()));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 100, bottom, 95, 20,
@@ -80,6 +87,7 @@ final class RockEntryScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, 150, 20, Component.literal(key));
 		box.setMaxLength(32);
 		box.setValue(initial);
+		OreSpawnScreenLayout.explain(box, "guide.orespawn.rocks.2");
 		return addRenderableWidget(box);
 	}
 

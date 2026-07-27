@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.client;
 
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -74,6 +75,11 @@ final class OreSpawnScreenLayout {
 			Component message, Button.OnPress onPress, Component tooltip) {
 		return Button.builder(message, onPress).bounds(x, y, width, height)
 				.tooltip(Tooltip.create(tooltip)).build();
+	}
+
+	static <T extends AbstractWidget> T explain(T widget, String translationKey) {
+		widget.setTooltip(Tooltip.create(Component.translatable(translationKey)));
+		return widget;
 	}
 
 	static Component tooltip(java.util.List<Component> lines) {

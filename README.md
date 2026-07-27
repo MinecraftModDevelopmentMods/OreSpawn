@@ -22,8 +22,8 @@ Mineralogy 6 is the first full provider. It supplies its rocks, ores, crude-oil
 deposit, geomes, biome influences, and recommended settings to OreSpawn. An
 ore-only provider such as Base Metals can supply ores and host tags without
 enabling rock layers or biome replacement. A total-conversion provider can add
-biomes and replace surfaces, aquifer fluids, snow, and ice without depending on
-TerraBlender.
+biomes and replace surfaces, aquifer fluids, snow, and ice through OreSpawn's
+declarative provider contract.
 
 ## Players And Server Owners
 

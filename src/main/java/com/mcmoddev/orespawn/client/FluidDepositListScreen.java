@@ -7,6 +7,8 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -30,7 +32,13 @@ final class FluidDepositListScreen extends Screen {
 		int contentWidth = Math.min(390, Math.max(260, width - 24));
 		int left = (width - contentWidth) / 2;
 		List<String> ids = session.fluidDepositIds();
-		int listTop = 44;
+		addRenderableWidget(CycleButton.onOffBuilder(session.placeFluidDeposits())
+				.withTooltip(value -> Tooltip.create(
+						Component.translatable("tooltip.orespawn.fluid_deposits")))
+				.create(left, 40, contentWidth, 20,
+						Component.translatable("option.orespawn.fluid_deposits"),
+						(button, value) -> session.setPlaceFluidDeposits(value)));
+		int listTop = 68;
 		int controlsY = height - 52;
 		int pageSize = Math.max(1, (controlsY - listTop) / 24);
 		int pageCount = Math.max(1, (ids.size() + pageSize - 1) / pageSize);

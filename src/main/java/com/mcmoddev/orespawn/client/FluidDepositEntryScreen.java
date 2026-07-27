@@ -1,6 +1,7 @@
 package com.mcmoddev.orespawn.client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -58,6 +59,7 @@ final class FluidDepositEntryScreen extends Screen {
 					if (!ids.isEmpty()) minecraft.setScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
+		OreSpawnScreenLayout.explain(output, "guide.orespawn.fluids.1");
 		output.active = !ids.isEmpty();
 
 		int listTop = 98;
@@ -85,7 +87,9 @@ final class FluidDepositEntryScreen extends Screen {
 		addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(available).withInitialValue(selected)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.literal(value)))
+						OreSpawnScreenLayout.tooltip(Arrays.asList(
+								Component.literal(value),
+								Component.translatable("guide.orespawn.fluids.3")))))
 				.create(left, pickerY, contentWidth, 20,
 						Component.translatable("option.orespawn.available_dimension"),
 						(button, value) -> addDimension(value)));

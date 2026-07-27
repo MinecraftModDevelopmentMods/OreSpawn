@@ -34,6 +34,8 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		if (!dimensions.contains(dimension)) dimension = dimensions.get(0);
 		addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(dimensions).withInitialValue(dimension)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.literal(value)))
 				.create(left, 34, contentWidth, 20,
 						Component.translatable("option.orespawn.dimension"),
 						(button, value) -> { dimension = value; rebuildWidgets(); }));
@@ -45,18 +47,24 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		String size = palette == null ? "average" : string(palette, "region_size", "average");
 		int y = 64;
 		addRenderableWidget(CycleButton.onOffBuilder(active)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("guide.orespawn.biomes.1")))
 				.create(left, y, contentWidth, 20,
 						Component.translatable("option.orespawn.biome_palette"),
 						(button, value) -> setPaletteEnabled(value)));
 		y += 26;
 		addRenderableWidget(CycleButton.builder(this::modeName)
 				.withValues(Arrays.asList("augment", "replace")).withInitialValue(mode)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("guide.orespawn.biomes.1")))
 				.create(left, y, half, 20,
 						Component.translatable("option.orespawn.biome_mode"),
 						(button, value) -> setPalette("mode", value)));
 		addRenderableWidget(CycleButton.builder(this::scopeName)
 				.withValues(Arrays.asList("all", "minecraft_only", "selected_namespaces"))
 				.withInitialValue(scope)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("guide.orespawn.biomes.2")))
 				.create(left + half + 5, y, half, 20,
 						Component.translatable("option.orespawn.biome_scope"),
 						(button, value) -> setPalette("scope", value)));
@@ -64,21 +72,29 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		addRenderableWidget(CycleButton.builder(this::regionName)
 				.withValues(Arrays.asList("tiny", "small", "average", "large", "huge"))
 				.withInitialValue(size)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("guide.orespawn.biomes.3")))
 				.create(left, y, contentWidth, 20,
 						Component.translatable("option.orespawn.biome_region_size"),
 						(button, value) -> setPalette("region_size", value)));
 		y += 30;
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y, half, 20,
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left, y, half, 20,
 				Component.translatable("button.orespawn.biome_palette_count",
 						session.biomePlacementIds(dimension).size()),
-				button -> minecraft.setScreen(new BiomePaletteScreen(this, session, dimension))));
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + half + 5, y, half, 20,
+				button -> minecraft.setScreen(new BiomePaletteScreen(this, session, dimension))),
+				"guide.orespawn.biomes.3"));
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left + half + 5, y, half, 20,
 				Component.translatable("button.orespawn.dimension_materials"),
-				button -> minecraft.setScreen(new DimensionMaterialsScreen(this, session, dimension))));
+				button -> minecraft.setScreen(new DimensionMaterialsScreen(this, session, dimension))),
+				"guide.orespawn.materials.1"));
 		y += 26;
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y, contentWidth, 20,
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left, y, contentWidth, 20,
 				Component.translatable("button.orespawn.geome_influences"),
-				button -> minecraft.setScreen(new GeomeBiomeScreen(this, session))));
+				button -> minecraft.setScreen(new GeomeBiomeScreen(this, session))),
+				"guide.orespawn.rocks.1"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, OreSpawnScreenLayout.footerY(height),
 				150, 20, CommonComponents.GUI_DONE, button -> onClose()));
 	}

@@ -18,7 +18,10 @@ final class OreSpawnGuideScreen extends Screen {
 			page("world", 3),
 			page("rocks", 3),
 			page("ores", 3),
+			page("patterns", 3),
+			page("fluids", 3),
 			page("biomes", 3),
+			page("materials", 3),
 			page("mods", 3),
 			page("server", 3));
 

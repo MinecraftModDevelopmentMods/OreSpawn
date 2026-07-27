@@ -382,6 +382,14 @@ final class GeologyEditorSession {
 		return result;
 	}
 
+	boolean placeFluidDeposits() {
+		return bool(root, "place_fluid_deposits", true);
+	}
+
+	void setPlaceFluidDeposits(boolean enabled) {
+		root.addProperty("place_fluid_deposits", enabled);
+	}
+
 	List<String> installedBiomeIds() {
 		List<String> result = new ArrayList<>();
 		for (net.minecraft.world.level.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {

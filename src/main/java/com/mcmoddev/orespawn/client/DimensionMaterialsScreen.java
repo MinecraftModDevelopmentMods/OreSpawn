@@ -33,8 +33,11 @@ final class DimensionMaterialsScreen extends Screen {
 		deepY = addRenderableWidget(new EditBox(font, left + contentWidth / 2, y,
 				contentWidth / 2, 20, Component.translatable("option.orespawn.deep_aquifer_y")));
 		deepY.setValue(Integer.toString(integer(materials, "deep_aquifer_max_y", -54)));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, y, contentWidth / 2 - 5, 20,
-				Component.translatable("option.orespawn.deep_aquifer_y"), button -> { })).active = false;
+		OreSpawnScreenLayout.explain(deepY, "guide.orespawn.materials.2");
+		Button deepLabel = addRenderableWidget(OreSpawnScreenLayout.plainButton(
+				left, y, contentWidth / 2 - 5, 20,
+				Component.translatable("option.orespawn.deep_aquifer_y"), button -> { }));
+		deepLabel.active = false;
 		y += 26;
 		y = materialRow(left, y, contentWidth, materials, "snow_block", false);
 		materialRow(left, y, contentWidth, materials, "ice_block", false);
@@ -45,18 +48,29 @@ final class DimensionMaterialsScreen extends Screen {
 	private int materialRow(int left, int y, int width, JsonObject materials,
 			String key, boolean fluid) {
 		String value = string(materials, key, "");
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y, width - 65, 20,
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+				this, font, left, y, width - 65, 20,
 				label(key, value), button -> {
 					save();
 					minecraft.setScreen(new MaterialBlockPickerScreen(this, session, fluid,
 							id -> session.setMaterialBlock(dimension, key, id, fluid)));
-				}));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + width - 60, y, 60, 20,
+				}), materialHelp(key)));
+		Button clear = addRenderableWidget(OreSpawnScreenLayout.plainButton(
+				left + width - 60, y, 60, 20,
 				Component.translatable("button.orespawn.clear"), button -> {
 					session.setMaterialBlock(dimension, key, null, fluid);
 					rebuildWidgets();
 				}));
+		clear.active = !value.isEmpty();
 		return y + 26;
+	}
+
+	private static String materialHelp(String key) {
+		return switch (key) {
+			case "default_fluid", "deep_aquifer_fluid" -> "guide.orespawn.materials.2";
+			case "snow_block", "ice_block" -> "guide.orespawn.materials.3";
+			default -> "guide.orespawn.materials.1";
+		};
 	}
 
 	private Component label(String key, String value) {

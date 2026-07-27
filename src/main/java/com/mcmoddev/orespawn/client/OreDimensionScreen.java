@@ -122,8 +122,11 @@ final class OreDimensionScreen extends Screen {
 		placementWidgets.clear();
 		patternWidgets.clear();
 		hostWidgets.clear();
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 32, contentWidth, 20,
-				Component.translatable("option.orespawn.enabled"), (button, value) -> enabled = value));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(enabled).create(left, 32, contentWidth, 20,
+						Component.translatable("option.orespawn.enabled"),
+						(button, value) -> enabled = value),
+				"guide.orespawn.ores.1"));
 		int tabWidth = (contentWidth - 10) / 3;
 		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 56, tabWidth, 20,
 				Component.translatable("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
@@ -169,12 +172,14 @@ final class OreDimensionScreen extends Screen {
 		if (externalPattern) {
 			Button external = OreSpawnScreenLayout.button(this, font, left, 80, contentWidth, 20,
 					Component.literal("Pattern: " + externalPatternId), button -> { });
+			OreSpawnScreenLayout.explain(external, "guide.orespawn.patterns.1");
 			external.active = false;
 			patternButton = addRenderableWidget(external);
 		} else {
 			patternButton = addRenderableWidget(CycleButton.builder(this::patternName)
 					.withValues(Arrays.asList(OrePattern.values()))
 					.withInitialValue(pattern)
+					.withTooltip(value -> tooltip("guide.orespawn.patterns.1"))
 					.create(left, 80, contentWidth, 20, Component.translatable("option.orespawn.pattern"),
 							(button, value) -> {
 								pattern = value;
@@ -185,6 +190,7 @@ final class OreDimensionScreen extends Screen {
 		patternWidgets.add(addRenderableWidget(CycleButton.builder(this::distributionName)
 				.withValues(Arrays.asList(OreHeightDistribution.values()))
 				.withInitialValue(heightDistribution)
+				.withTooltip(value -> tooltip("guide.orespawn.patterns.2"))
 				.create(left, 104, contentWidth, 20,
 						Component.translatable("option.orespawn.height_distribution"),
 						(button, value) -> heightDistribution = value)));
@@ -199,6 +205,7 @@ final class OreDimensionScreen extends Screen {
 		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left, 144, columnWidth, 20,
 				Component.translatable("button.orespawn.geome_weights"), button -> openWeights()));
+		OreSpawnScreenLayout.explain(weights, "guide.orespawn.ores.3");
 		weights.active = "minecraft:overworld".equals(dimensionId) || dimensionSelector;
 		hostWidgets.add(weights);
 		hostWidgets.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
@@ -210,11 +217,12 @@ final class OreDimensionScreen extends Screen {
 			RockFamily family = values[i];
 			int x = (i & 1) == 0 ? left : right;
 			int y = 168 + ((i / 2) * 22);
-			hostWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(families.contains(family)).create(x, y, columnWidth, 20,
+			hostWidgets.add(addRenderableWidget(OreSpawnScreenLayout.explain(
+					CycleButton.onOffBuilder(families.contains(family)).create(x, y, columnWidth, 20,
 					Component.translatable("value.orespawn.family." + family.configName),
 					(button, selected) -> {
 						if (selected) families.add(family); else families.remove(family);
-					})));
+					}), "guide.orespawn.ores.3")));
 		}
 
 		int bottom = height - 28;
@@ -232,6 +240,7 @@ final class OreDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(32);
+		OreSpawnScreenLayout.explain(box, placementHelp(key));
 		placementWidgets.add(addRenderableWidget(box));
 		return box;
 	}
@@ -244,6 +253,7 @@ final class OreDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, contentWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(1024);
+		OreSpawnScreenLayout.explain(box, "guide.orespawn.ores.3");
 		hostWidgets.add(addRenderableWidget(box));
 		return box;
 	}
@@ -252,8 +262,14 @@ final class OreDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
 		box.setValue(value);
 		box.setMaxLength(32);
+		OreSpawnScreenLayout.explain(box, "guide.orespawn.patterns.1");
 		patternWidgets.add(addRenderableWidget(box));
 		return box;
+	}
+
+	private static String placementHelp(String key) {
+		return "discard_air_exposure".equals(key)
+				? "guide.orespawn.patterns.3" : "guide.orespawn.ores.2";
 	}
 
 	private void showPage(Page selected) {

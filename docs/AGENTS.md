@@ -27,8 +27,8 @@ Configuration contracts:
   per ore and must also drive vanilla-feature suppression.
 - JSON Schemas and examples are under `META-INF/orespawn/docs/` in the jar.
 - Schema 4 providers may declare `biome_palettes` and `dimension_materials`.
-  Palettes wrap the native dimension biome source; they do not require
-  TerraBlender. Region presets are 128, 256, 512, 1024, and 2048 blocks.
+  Palettes wrap the native dimension biome source. Region presets are 128,
+  256, 512, 1024, and 2048 blocks.
 
 Lifecycle and ownership:
 
