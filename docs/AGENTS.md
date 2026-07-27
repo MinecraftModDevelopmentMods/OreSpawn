@@ -1,7 +1,7 @@
 # OreSpawn Integration Notes For Coding Agents
 
 OreSpawn 4.0 is a required Forge mod and declarative world-generation engine.
-Public API major version 1 consists only of `com.mcmoddev.orespawn.api`. Treat
+Public API major version 1 consists only of `zone.moddev.mc.orespawn.api`. Treat
 every other Java package as internal and unstable.
 
 Integration entry points:
@@ -68,7 +68,7 @@ Compatibility defaults:
 - The Overworld is the conventional geology target, but a provider must opt it
   in. Nether and End terrain remain untouched unless explicitly configured.
 - Mineralogy 6 is a provider, not a public-API compatibility facade. Do not use
-  removed `com.mcmoddev.mineralogy.api` classes.
+  removed `zone.moddev.mc.mineralogy.api` classes.
 
 Common tasks are documented in `API.md`, `PROVIDERS.md`, `FEATURES.md`,
 `TEMPLATES.md`, `BIOMES.md`, and `DIMENSIONS.md`. Start with

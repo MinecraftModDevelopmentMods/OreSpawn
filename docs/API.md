@@ -1,6 +1,6 @@
 # Java API
 
-Only `com.mcmoddev.orespawn.api` is supported API. Every other package is an
+Only `zone.moddev.mc.orespawn.api` is supported API. Every other package is an
 implementation detail. API major version is available as
 `OreSpawnApi.API_VERSION` and in the jar manifest as
 `OreSpawn-API-Version`.
