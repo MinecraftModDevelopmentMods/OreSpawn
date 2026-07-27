@@ -58,7 +58,7 @@ Modpacks can override a provider with `config/<modid>-orespawn.json`. A present
 override is authoritative and fails closed when invalid, so a broken pack file
 cannot silently disable another mod's native ore generation.
 
-Only `com.mcmoddev.orespawn.api` is supported Java API. API major version `1`
+Only `zone.moddev.mc.orespawn.api` is supported Java API. API major version `1`
 is also recorded in the jar manifest as `OreSpawn-API-Version`.
 
 Start with:

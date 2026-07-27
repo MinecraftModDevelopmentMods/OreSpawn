@@ -79,12 +79,12 @@ side="BOTH"
 Submit immutable definitions during `InterModEnqueueEvent`:
 
 ```java
-import com.mcmoddev.orespawn.api.GeologyFamily;
-import com.mcmoddev.orespawn.api.OreHeightDistribution;
-import com.mcmoddev.orespawn.api.OreDimensionSelector;
-import com.mcmoddev.orespawn.api.OrePattern;
-import com.mcmoddev.orespawn.api.OreSpawnApi;
-import com.mcmoddev.orespawn.api.WorldgenProvider;
+import zone.moddev.mc.orespawn.api.GeologyFamily;
+import zone.moddev.mc.orespawn.api.OreHeightDistribution;
+import zone.moddev.mc.orespawn.api.OreDimensionSelector;
+import zone.moddev.mc.orespawn.api.OrePattern;
+import zone.moddev.mc.orespawn.api.OreSpawnApi;
+import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 
@@ -107,7 +107,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 }
 ```
 
-Only `com.mcmoddev.orespawn.api` is stable. Do not call classes in
+Only `zone.moddev.mc.orespawn.api` is stable. Do not call classes in
 `worldgen`, `integration`, `client`, or other implementation packages.
 
 Use `.quantity(8)` when every attempt should have a fixed budget. The selector
