@@ -261,6 +261,7 @@ public final class GeomeConfig {
 				usableTerrain.put(entry.getKey(), entry.getValue());
 			}
 		}
+		VanillaSpringCompatibility.refresh(configs.get(Level.OVERWORLD));
 		bakedConfigs = Collections.unmodifiableMap(configs);
 		terrainDimensions = Collections.unmodifiableMap(usableTerrain);
 		bakedConfig = configs.get(Level.OVERWORLD);
