@@ -183,6 +183,12 @@ public final class BakedGeomeConfig {
 		return result;
 	}
 
+	void addRockBlocks(Set<Block> target) {
+		for (BlockState state : rockStates) {
+			target.add(state.getBlock());
+		}
+	}
+
 	int geomeCount() {
 		return geomes.length;
 	}
