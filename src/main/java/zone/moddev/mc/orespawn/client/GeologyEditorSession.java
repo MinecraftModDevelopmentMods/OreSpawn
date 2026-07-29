@@ -118,7 +118,7 @@ final class GeologyEditorSession {
 			JsonObject ore = oreElement.getAsJsonObject();
 			if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()) continue;
 			for (String id : ore.getAsJsonObject("dimensions").keySet()) {
-				if (validResource(id)) result.add(new ResourceLocation(id).toString());
+				if (validResource(id)) result.add(ResourceLocation.parse(id).toString());
 			}
 		}
 		List<String> ordered = new ArrayList<>();
@@ -131,7 +131,7 @@ final class GeologyEditorSession {
 	}
 
 	private void rememberDimension(String id) {
-		if (validResource(id)) availableDimensionIds.add(new ResourceLocation(id).toString());
+		if (validResource(id)) availableDimensionIds.add(ResourceLocation.parse(id).toString());
 	}
 
 	List<String> materialIds(MaterialTab tab, String search, boolean showAll) {
@@ -201,7 +201,7 @@ final class GeologyEditorSession {
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) continue;
 			for (String id : deposit.getAsJsonObject("dimensions").keySet()) {
-				if (validResource(id)) result.add(new ResourceLocation(id).toString());
+				if (validResource(id)) result.add(ResourceLocation.parse(id).toString());
 			}
 		}
 		return result;
@@ -318,7 +318,7 @@ final class GeologyEditorSession {
 		section("rocks").remove(canonicalId);
 		JsonObject ore = new JsonObject();
 		ore.addProperty("enabled", true);
-		ResourceLocation blockId = new ResourceLocation(canonicalId);
+		ResourceLocation blockId = ResourceLocation.parse(canonicalId);
 		ore.addProperty("source_mod", blockId.getNamespace());
 		JsonObject dimensions = new JsonObject();
 		JsonObject overworld = defaultOreDimension();
@@ -496,7 +496,7 @@ final class GeologyEditorSession {
 			return;
 		}
 		if (!validResource(blockId)) return;
-		Block block = registeredBlock(new ResourceLocation(blockId));
+		Block block = registeredBlock(ResourceLocation.parse(blockId));
 		if (block == null || block == Blocks.AIR || (fluid && !isFluidBlock(block))) return;
 		JsonObject materials = dimensionMaterials(dimensionId, true);
 		materials.addProperty(key, blockId);
@@ -559,7 +559,7 @@ final class GeologyEditorSession {
 			if (entry.getValue().isJsonObject() && canonicalId.equals(string(
 					entry.getValue().getAsJsonObject(), "block", ""))) return entry.getKey();
 		}
-		ResourceLocation fluid = new ResourceLocation(canonicalId);
+		ResourceLocation fluid = ResourceLocation.parse(canonicalId);
 		String baseId = "orespawn:fluid_deposit/" + fluid.getNamespace() + "/" + fluid.getPath();
 		String ruleId = baseId;
 		for (int suffix = 2; section("fluid_deposits").has(ruleId); suffix++) {
@@ -959,8 +959,8 @@ final class GeologyEditorSession {
 		String value = configured != null && configured.isJsonObject()
 				? string(configured.getAsJsonObject(), "type", "orespawn:vein")
 				: string(rule, "pattern", "vein");
-		ResourceLocation id = value.indexOf(':') >= 0 ? new ResourceLocation(value)
-				: new ResourceLocation("orespawn", value);
+		ResourceLocation id = value.indexOf(':') >= 0 ? ResourceLocation.parse(value)
+				: ResourceLocation.fromNamespaceAndPath("orespawn", value);
 		OrePattern.fromConfigName(id.getPath());
 	}
 
@@ -1060,14 +1060,14 @@ final class GeologyEditorSession {
 			return true;
 		}
 		return !(block instanceof EntityBlock)
-				&& block.defaultBlockState().getMaterial().blocksMotion()
+				&& block.defaultBlockState().blocksMotion()
 				&& Block.isShapeFullBlock(block.defaultBlockState().getCollisionShape(
 						EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
 	}
 
 	String canonicalBlockId(String id) {
 		try {
-			Block block = registeredBlock(new ResourceLocation(id));
+			Block block = registeredBlock(ResourceLocation.parse(id));
 			ResourceLocation canonical = block == null ? null : blockId(block);
 			return block == Blocks.AIR || canonical == null ? null : canonical.toString();
 		} catch (RuntimeException e) {
@@ -1108,7 +1108,7 @@ final class GeologyEditorSession {
 		JsonObject aliases = section("worldgen_aliases");
 		if (!aliases.has(id)) return false;
 		try {
-			return !id.equals(new ResourceLocation(aliases.get(id).getAsString()).toString());
+			return !id.equals(ResourceLocation.parse(aliases.get(id).getAsString()).toString());
 		} catch (RuntimeException e) {
 			return false;
 		}
@@ -1152,7 +1152,7 @@ final class GeologyEditorSession {
 
 	private static boolean validBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = registeredBlock(new ResourceLocation(id));
+		Block block = registeredBlock(ResourceLocation.parse(id));
 		return block != null && block != Blocks.AIR;
 	}
 
@@ -1163,7 +1163,7 @@ final class GeologyEditorSession {
 
 	private static boolean validFluidBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = registeredBlock(new ResourceLocation(id));
+		Block block = registeredBlock(ResourceLocation.parse(id));
 		return isFluidBlock(block);
 	}
 
@@ -1173,7 +1173,7 @@ final class GeologyEditorSession {
 	}
 
 	private static Iterable<Block> registeredBlocks() {
-		return ForgeRegistries.BLOCKS.containsKey(new ResourceLocation("minecraft", "stone"))
+		return ForgeRegistries.BLOCKS.containsKey(ResourceLocation.fromNamespaceAndPath("minecraft", "stone"))
 				? ForgeRegistries.BLOCKS.getValues() : BuiltInRegistries.BLOCK;
 	}
 
@@ -1192,15 +1192,15 @@ final class GeologyEditorSession {
 
 	private static boolean knownBiome(String id) {
 		if (!validResource(id)) return false;
-		// Biomes are dynamic in 1.19.4. Before the live registry is available,
+		// Biomes are dynamic in 1.20.6. Before the live registry is available,
 		// retain syntactically valid provider IDs for server-side resolution.
 		return ForgeRegistries.BIOMES.getKeys().isEmpty()
-				|| ForgeRegistries.BIOMES.containsKey(new ResourceLocation(id));
+				|| ForgeRegistries.BIOMES.containsKey(ResourceLocation.parse(id));
 	}
 
 	private static boolean validResource(String id) {
 		try {
-			new ResourceLocation(id);
+			ResourceLocation.parse(id);
 			return true;
 		} catch (RuntimeException e) {
 			return false;

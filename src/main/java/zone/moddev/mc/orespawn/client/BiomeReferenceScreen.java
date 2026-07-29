@@ -9,7 +9,7 @@ import java.util.Set;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -106,9 +106,9 @@ final class BiomeReferenceScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

@@ -136,7 +136,7 @@ public final class GeomeDistributionSampler {
 				int length = input.readUnsignedShort();
 				byte[] encoded = new byte[length];
 				input.readFully(encoded);
-				ResourceLocation biomeId = new ResourceLocation(new String(encoded, StandardCharsets.UTF_8));
+				ResourceLocation biomeId = ResourceLocation.parse(new String(encoded, StandardCharsets.UTF_8));
 				biomePalette[index] = ForgeRegistries.BIOMES.getValue(biomeId);
 				if (biomePalette[index] == null) {
 					throw new IOException("Unknown biome " + biomeId + " in " + path);
@@ -218,7 +218,7 @@ public final class GeomeDistributionSampler {
 		List<String> neutralBiomes = new ArrayList<>();
 		int biomeIndex = 0;
 		for (Entry<String, Biome> entry : biomes.entrySet()) {
-			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
+			ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
 			add(namespaceCounts, biomeId.getNamespace());
 			if (!config.hasDistinctBiomeWeights(entry.getValue())) {
 				neutralBiomes.add(entry.getKey());

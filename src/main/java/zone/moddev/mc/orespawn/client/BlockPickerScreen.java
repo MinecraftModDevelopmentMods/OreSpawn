@@ -4,7 +4,7 @@ import java.util.List;
 
 import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -115,13 +115,13 @@ final class BlockPickerScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 8, 0xFFFFFF);
-		drawCenteredString(poseStack, font,
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+		graphics.drawCenteredString(font,
 				Component.translatable("label.orespawn.adding_to",
 						Component.translatable("tab.orespawn." + target.key)),
 				width / 2, 20, 0xCCCCCC);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

@@ -3,8 +3,8 @@ package zone.moddev.mc.orespawn;
 import org.apache.commons.lang3.tuple.Pair;
 
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 /** Small bootstrap fallback; the JSON profile is the authoritative worldgen configuration. */
 public final class OreSpawnConfig {
@@ -26,8 +26,8 @@ public final class OreSpawnConfig {
 	private OreSpawnConfig() {
 	}
 
-	public static void register() {
-		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
+	public static void register(FMLJavaModLoadingContext context) {
+		context.registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
 	}
 
 	public static void bake() {

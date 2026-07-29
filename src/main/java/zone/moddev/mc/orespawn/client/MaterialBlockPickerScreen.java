@@ -3,7 +3,7 @@ package zone.moddev.mc.orespawn.client;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -70,9 +70,9 @@ final class MaterialBlockPickerScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

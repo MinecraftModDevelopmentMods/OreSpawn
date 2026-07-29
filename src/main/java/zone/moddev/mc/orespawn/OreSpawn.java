@@ -50,11 +50,10 @@ public class OreSpawn {
 		return version == null ? "DEV" : version;
 	}
 
-	public OreSpawn() {
+	public OreSpawn(FMLJavaModLoadingContext context) {
 		instance = this;
-		OreSpawnConfig.register();
-		net.minecraftforge.eventbus.api.IEventBus modBus =
-				FMLJavaModLoadingContext.get().getModEventBus();
+		OreSpawnConfig.register(context);
+		net.minecraftforge.eventbus.api.IEventBus modBus = context.getModEventBus();
 		OreSpawnPatterns.register(modBus);
 		Features.register(modBus);
 		BiomeModifiers.register(modBus);

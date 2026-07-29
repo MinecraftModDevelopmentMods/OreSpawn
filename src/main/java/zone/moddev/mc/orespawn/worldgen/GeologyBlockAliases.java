@@ -59,7 +59,7 @@ public final class GeologyBlockAliases {
 	private static Map<ResourceLocation, ResourceLocation> createDefaultAliases() {
 		Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<ResourceLocation, ResourceLocation>();
 		for (String name : MATCHING_VANILLA_STONES) {
-			aliases.put(new ResourceLocation(OreSpawn.MODID, name), new ResourceLocation("minecraft", name));
+			aliases.put(ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, name), ResourceLocation.fromNamespaceAndPath("minecraft", name));
 		}
 		return aliases;
 	}

@@ -7,7 +7,7 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -101,7 +101,7 @@ final class OreEntryScreen extends Screen {
 	private void addDimension() {
 		String id;
 		try {
-			id = new ResourceLocation(dimensionId.getValue().trim()).toString();
+			id = ResourceLocation.parse(dimensionId.getValue().trim()).toString();
 		} catch (RuntimeException e) {
 			return;
 		}
@@ -208,18 +208,18 @@ final class OreEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
 		Component blockName = Component.literal(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
+		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
 				width / 2, 25, 0xDDDDDD);
 		String source = GeologyEditorSession.string(session.ore(oreId), "source_provider",
 				GeologyEditorSession.string(session.ore(oreId), "source_mod", ""));
 		if (!source.isEmpty()) {
-			drawCenteredString(poseStack, font, Component.literal("Source: " + source), width / 2, 36, 0xAAAAAA);
+			graphics.drawCenteredString(font, Component.literal("Source: " + source), width / 2, 36, 0xAAAAAA);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

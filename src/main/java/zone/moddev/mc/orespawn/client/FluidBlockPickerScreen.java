@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -77,7 +77,7 @@ final class FluidBlockPickerScreen extends Screen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
+			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) {
 			return Component.literal(id);
@@ -95,9 +95,9 @@ final class FluidBlockPickerScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

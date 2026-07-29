@@ -22,6 +22,7 @@ import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -162,6 +163,7 @@ public final class WorldGeologyProfileManager {
 	}
 
 	public static void onServerStopped(ServerStoppedEvent event) {
+		VanillaSpringCompatibility.clear(event.getServer().registryAccess());
 		activeServer = null;
 		activeProfile = null;
 		GeomeConfig.applyWorldProfile(globalProfile());
@@ -188,6 +190,10 @@ public final class WorldGeologyProfileManager {
 	private static void activateProfile(WorldGeologyProfile profile) {
 		activeProfile = profile;
 		GeomeConfig.applyWorldProfile(profile);
+		if (activeServer != null) {
+			VanillaSpringCompatibility.refresh(activeServer.registryAccess(),
+					GeomeConfig.baked(Level.OVERWORLD));
+		}
 		StoneReplacer.refreshWorldConfig();
 		OreSpawnOreGeneration.refreshWorldConfig();
 		FluidDepositFeature.refreshWorldConfig();

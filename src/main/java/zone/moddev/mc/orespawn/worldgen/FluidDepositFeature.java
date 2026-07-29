@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -63,7 +64,6 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	public static void registerConfiguredFeature() {
 		placedFeature = WorldgenFeatureHolders.direct(FEATURE);
-		refreshWorldConfig();
 	}
 
 	public static void refreshWorldConfig() {
@@ -294,7 +294,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	static boolean isSealingState(BlockState state, BlockState output) {
 		return state.getBlock() == output.getBlock()
-				|| (state.getMaterial().blocksMotion() && state.getFluidState().isEmpty());
+				|| (state.getFluidState().isEmpty()
+						&& state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
 	}
 
 	private static Map<ResourceKey<Level>, BakedDeposit[]> bakeDeposits(JsonObject profile) {
@@ -481,7 +482,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static ResourceLocation resource(String value) {
-		try { return new ResourceLocation(value); } catch (RuntimeException ignored) { return null; }
+		try { return ResourceLocation.parse(value); } catch (RuntimeException ignored) { return null; }
 	}
 
 	private static boolean bool(JsonObject json, String key, boolean fallback) {

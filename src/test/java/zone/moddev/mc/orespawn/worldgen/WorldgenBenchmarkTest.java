@@ -17,7 +17,7 @@ class WorldgenBenchmarkTest {
 		assertEquals(Level.NETHER, WorldgenBenchmark.benchmarkDimensionKey("NETHER"));
 		assertEquals(Level.END, WorldgenBenchmark.benchmarkDimensionKey(" end "));
 		assertEquals(ResourceKey.create(Registries.DIMENSION,
-				new ResourceLocation("test", "ordinary")),
+				ResourceLocation.fromNamespaceAndPath("test", "ordinary")),
 				WorldgenBenchmark.benchmarkDimensionKey("test:ordinary"));
 	}
 

@@ -52,7 +52,7 @@ final class BiomeWorldgenManager {
 	}
 
 	static void registerBiomeSourceCodec() {
-		ResourceLocation id = new ResourceLocation("orespawn", "profile_overlay");
+		ResourceLocation id = ResourceLocation.fromNamespaceAndPath("orespawn", "profile_overlay");
 		if (!BuiltInRegistries.BIOME_SOURCE.containsKey(id)) {
 			Registry.register(BuiltInRegistries.BIOME_SOURCE, id, BiomeOverlaySource.CODEC);
 		}
@@ -131,7 +131,7 @@ final class BiomeWorldgenManager {
 			for (Entry<String, JsonElement> biomeEntry : biomeEntries.entrySet()) {
 				if (!biomeEntry.getValue().isJsonObject()) continue;
 				ResourceLocation biomeId;
-				try { biomeId = new ResourceLocation(biomeEntry.getKey()); }
+				try { biomeId = ResourceLocation.parse(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
 				Holder<Biome> holder = registry.getHolder(ResourceKey.create(
 						Registries.BIOME, biomeId)).orElse(null);
@@ -316,7 +316,7 @@ final class BiomeWorldgenManager {
 		if (!json.has(key)) return null;
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(
-					new ResourceLocation(json.get(key).getAsString()));
+					ResourceLocation.parse(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
 					|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return null;
 			return block.defaultBlockState();
@@ -345,7 +345,7 @@ final class BiomeWorldgenManager {
 		Set<ResourceLocation> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				try { result.add(new ResourceLocation(value.getAsString())); }
+				try { result.add(ResourceLocation.parse(value.getAsString())); }
 				catch (RuntimeException ignored) { }
 			}
 		}

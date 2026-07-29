@@ -1,7 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -58,11 +58,11 @@ final class BlockAssignmentScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		drawCenteredString(poseStack, font, Component.literal(blockId), width / 2, 42, 0xDDDDDD);
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, 155, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		graphics.drawCenteredString(font, Component.literal(blockId), width / 2, 42, 0xDDDDDD);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, 155, 0xFF5555);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

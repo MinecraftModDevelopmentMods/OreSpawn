@@ -134,7 +134,7 @@ public final class WorldGeologyProfile {
 			return Optional.empty();
 		}
 		try {
-			return Optional.of(new ResourceLocation(root.get("selected_template").getAsString()));
+			return Optional.of(ResourceLocation.parse(root.get("selected_template").getAsString()));
 		} catch (RuntimeException ignored) {
 			return Optional.empty();
 		}

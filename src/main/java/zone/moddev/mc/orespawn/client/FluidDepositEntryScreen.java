@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -152,7 +152,7 @@ final class FluidDepositEntryScreen extends Screen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
+			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { return Component.literal(id); }
 	}
@@ -167,11 +167,11 @@ final class FluidDepositEntryScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font,
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font,
 				Component.literal(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

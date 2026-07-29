@@ -231,7 +231,7 @@ public final class WorldgenProvider {
 		}
 
 		private ResourceLocation ownedId(String kind, ResourceLocation output) {
-			return new ResourceLocation(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
+			return ResourceLocation.fromNamespaceAndPath(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
 		}
 	}
 
@@ -320,7 +320,7 @@ public final class WorldgenProvider {
 				this.id = Objects.requireNonNull(id, "id");
 				this.block = Objects.requireNonNull(block, "block");
 				this.family = Objects.requireNonNull(family, "family");
-				dimensions.add(new ResourceLocation("minecraft", "overworld"));
+				dimensions.add(ResourceLocation.fromNamespaceAndPath("minecraft", "overworld"));
 			}
 
 			public Builder enabled(boolean value) { enabled = value; return this; }
@@ -1690,7 +1690,7 @@ public final class WorldgenProvider {
 
 	private static String requireModId(String value) {
 		Objects.requireNonNull(value, "modId");
-		ResourceLocation probe = new ResourceLocation(value, "provider");
+		ResourceLocation probe = ResourceLocation.fromNamespaceAndPath(value, "provider");
 		if (!probe.getNamespace().equals(value)) {
 			throw new IllegalArgumentException("Invalid mod ID: " + value);
 		}

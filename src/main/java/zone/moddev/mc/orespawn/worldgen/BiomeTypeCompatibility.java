@@ -73,7 +73,7 @@ final class BiomeTypeCompatibility {
 		if (known != null) return known;
 		if (normalized.isEmpty()) return Collections.emptyList();
 		return Collections.singletonList(TagKey.create(Registries.BIOME,
-				new ResourceLocation("forge", "is_" + normalized.toLowerCase(Locale.ROOT))));
+				ResourceLocation.fromNamespaceAndPath("forge", "is_" + normalized.toLowerCase(Locale.ROOT))));
 	}
 
 	private static boolean matches(Holder<Biome> holder,

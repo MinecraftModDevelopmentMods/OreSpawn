@@ -12,7 +12,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.TemplateDefinition;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -65,6 +65,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		clearWidgetReferences();
 		int contentWidth = Math.min(390, Math.max(310, this.width - 24));
 		columnWidth = (contentWidth - 5) / 2;
 		int left = (this.width - contentWidth) / 2;
@@ -145,7 +146,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			formationContinuityButton = addPresetButton(left, top + (row * rowIndex),
 					"option.orespawn.formation_continuity", "tooltip.orespawn.formation_continuity",
 					formationContinuity, value -> formationContinuity = value);
-			if (vanillaOresButton == null) vanillaOresButton = addVanillaOresButton(right,
+			if (fluids) vanillaOresButton = addVanillaOresButton(right,
 					top + (row * rowIndex), columnWidth);
 			rowIndex++;
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
@@ -175,6 +176,17 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_CANCEL, button -> onClose()));
 		updateFormationControls();
+	}
+
+	private void clearWidgetReferences() {
+		geologyModeButton = null;
+		fluidDepositsButton = null;
+		vanillaOresButton = null;
+		horizontalSizeButton = null;
+		verticalThicknessButton = null;
+		wavinessButton = null;
+		edgeIrregularityButton = null;
+		formationContinuityButton = null;
 	}
 
 	private CycleButton<Boolean> addVanillaOresButton(int x, int y, int width) {
@@ -331,15 +343,15 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2,
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2,
 				OreSpawnScreenLayout.mainTitleY(this.height), 0xFFFFFF);
 		if (validationError != null) {
-			drawCenteredString(poseStack, font, validationError, width / 2,
+			graphics.drawCenteredString(font, validationError, width / 2,
 					OreSpawnScreenLayout.mainErrorY(this.height), 0xFF5555);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 
 	private Component geologyModeName(GeologyMode mode) {
@@ -376,7 +388,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		private final com.google.gson.JsonObject value;
 		JsonObjectAccess(com.google.gson.JsonObject value) { this.value = value; }
 		ResourceLocation resource(String key) {
-			try { return new ResourceLocation(value.get(key).getAsString()); }
+			try { return ResourceLocation.parse(value.get(key).getAsString()); }
 			catch (RuntimeException ignored) { return null; }
 		}
 	}

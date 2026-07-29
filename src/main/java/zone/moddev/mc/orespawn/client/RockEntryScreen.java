@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -172,18 +172,18 @@ final class RockEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 6, 0xFFFFFF);
-		drawCenteredString(poseStack, font,
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 6, 0xFFFFFF);
+		graphics.drawCenteredString(font,
 				Component.literal(session.materialBlockId(GeologyEditorSession.MaterialTab.SEDIMENTARY, blockId)),
 				width / 2, 20, 0xDDDDDD);
 		String[] labels = { "weight", "depth_peak", "depth_spread", "min_y", "max_y" };
 		for (int i = 0; i < labels.length; i++) {
-			drawString(poseStack, font, Component.translatable("option.orespawn." + labels[i]),
+			graphics.drawString(font, Component.translatable("option.orespawn." + labels[i]),
 					width / 2 - 155, 70 + (i * 22), 0xDDDDDD);
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

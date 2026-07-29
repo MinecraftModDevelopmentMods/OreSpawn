@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -75,7 +75,7 @@ final class FluidDepositListScreen extends Screen {
 	private Component depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
+			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(
 					GeologyEditorSession.string(deposit, "block", "")));
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }
@@ -98,9 +98,9 @@ final class FluidDepositListScreen extends Screen {
 	public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -117,19 +117,19 @@ final class GeomeEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, Component.literal(geomeId), width / 2, 30, 0xDDDDDD);
-		drawString(poseStack, font, Component.translatable("option.orespawn.base_weight"),
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+		graphics.drawCenteredString(font, Component.literal(geomeId), width / 2, 30, 0xDDDDDD);
+		graphics.drawString(font, Component.translatable("option.orespawn.base_weight"),
 				width / 2 - 155, 58, 0xDDDDDD);
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
-			drawString(poseStack, font, Component.translatable("value.orespawn.family." + family.configName),
+			graphics.drawString(font, Component.translatable("value.orespawn.family." + family.configName),
 					width / 2 - 155, 88 + (index * 25), 0xDDDDDD);
 			index++;
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

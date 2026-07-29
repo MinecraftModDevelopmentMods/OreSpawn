@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkType;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.ChunkDataEvent;
@@ -36,7 +36,7 @@ public final class OreRetrogenManager {
 	public static void onChunkLoad(ChunkDataEvent.Load event) {
 		Settings current = settings;
 		if ((!current.oreEnabled && !current.bedrockEnabled)
-				|| event.getStatus() != ChunkStatus.ChunkType.LEVELCHUNK
+				|| event.getStatus() != ChunkType.LEVELCHUNK
 				|| !(event.getLevel() instanceof ServerLevel)
 				|| !(event.getChunk() instanceof LevelChunk)) return;
 		ServerLevel level = (ServerLevel) event.getLevel();
@@ -56,8 +56,7 @@ public final class OreRetrogenManager {
 		event.getData().put(ROOT_TAG, marker);
 	}
 
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) return;
+	public static void onServerTick(TickEvent.ServerTickEvent.Post event) {
 		for (int i = 0; i < settings.chunksPerTick; i++) {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;

@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.init;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.OreSpawnBiomeModifier;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 
 import net.minecraftforge.common.world.BiomeModifier;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -11,7 +11,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 /** Registers OreSpawn's data-driven biome modifier codec. */
 public final class BiomeModifiers {
-	private static final DeferredRegister<Codec<? extends BiomeModifier>> MODIFIERS =
+	private static final DeferredRegister<MapCodec<? extends BiomeModifier>> MODIFIERS =
 			DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS,
 					OreSpawn.MODID);
 

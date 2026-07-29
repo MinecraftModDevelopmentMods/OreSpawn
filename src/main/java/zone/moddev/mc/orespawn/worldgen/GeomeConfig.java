@@ -299,7 +299,7 @@ public final class GeomeConfig {
 		ResourceLocation selected = null;
 		if (!configured.isEmpty()) {
 			try {
-				selected = new ResourceLocation(configured);
+				selected = ResourceLocation.parse(configured);
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn default template '{}'", configured);
 			}
@@ -327,7 +327,7 @@ public final class GeomeConfig {
 				continue;
 			}
 			try {
-				ResourceLocation id = new ResourceLocation(entry.getKey());
+				ResourceLocation id = ResourceLocation.parse(entry.getKey());
 				Set<Block> hosts = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
 				addTerrainHostBlocks(hosts, json.get("host_blocks"));
 				addTerrainHostTags(hosts, json.get("host_tags"));
@@ -370,7 +370,7 @@ public final class GeomeConfig {
 		Set<ResourceLocation> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				result.add(new ResourceLocation(value.getAsString()));
+				result.add(ResourceLocation.parse(value.getAsString()));
 			}
 		}
 		return result;
@@ -395,7 +395,7 @@ public final class GeomeConfig {
 		}
 		for (JsonElement value : rock.getAsJsonArray("dimensions")) {
 			try {
-				if (dimension.equals(new ResourceLocation(value.getAsString()))) {
+				if (dimension.equals(ResourceLocation.parse(value.getAsString()))) {
 					return true;
 				}
 			} catch (RuntimeException ignored) {
@@ -563,8 +563,8 @@ public final class GeomeConfig {
 			ResourceLocation ruleId;
 			ResourceLocation id;
 			try {
-				ruleId = new ResourceLocation(entry.getKey());
-				id = new ResourceLocation(getString(json, "block", entry.getKey()));
+				ruleId = ResourceLocation.parse(entry.getKey());
+				id = ResourceLocation.parse(getString(json, "block", entry.getKey()));
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn geome rock rule or block id '{}'", entry.getKey());
 				continue;
@@ -993,8 +993,8 @@ public final class GeomeConfig {
 			ResourceLocation sourceId;
 			ResourceLocation targetId;
 			try {
-				sourceId = new ResourceLocation(entry.getKey());
-				targetId = new ResourceLocation(entry.getValue().getAsString());
+				sourceId = ResourceLocation.parse(entry.getKey());
+				targetId = ResourceLocation.parse(entry.getValue().getAsString());
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn worldgen alias '{}'", entry.getKey());
 				continue;
@@ -1131,8 +1131,8 @@ public final class GeomeConfig {
 	}
 
 	static String normalizeGeomeName(String geome) {
-		return geome.indexOf(':') >= 0 ? new ResourceLocation(geome).toString()
-				: new ResourceLocation("orespawn", geome).toString();
+		return geome.indexOf(':') >= 0 ? ResourceLocation.parse(geome).toString()
+				: ResourceLocation.fromNamespaceAndPath("orespawn", geome).toString();
 	}
 
 	private static double getDouble(JsonObject json, String key, double fallback) {

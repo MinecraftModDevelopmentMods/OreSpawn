@@ -3,7 +3,7 @@ package zone.moddev.mc.orespawn.client;
 import java.util.Arrays;
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -59,12 +59,12 @@ final class OreSpawnGuideScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
 		GuidePage current = PAGES.get(page);
-		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
-		drawCenteredString(poseStack, font, current.title, width / 2, 28, 0xFFFF55);
-		drawCenteredString(poseStack, font,
+		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+		graphics.drawCenteredString(font, current.title, width / 2, 28, 0xFFFF55);
+		graphics.drawCenteredString(font,
 				Component.literal((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
 
 		int textWidth = Math.min(330, width - 32);
@@ -72,12 +72,12 @@ final class OreSpawnGuideScreen extends Screen {
 		int y = 58;
 		for (Component paragraph : current.paragraphs) {
 			for (FormattedCharSequence line : font.split(paragraph, textWidth)) {
-				drawString(poseStack, font, line, x, y, 0xEEEEEE);
+				graphics.drawString(font, line, x, y, 0xEEEEEE);
 				y += 10;
 			}
 			y += 6;
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 
 	private static GuidePage page(String id, int paragraphCount) {

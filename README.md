@@ -1,6 +1,6 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.19.4.
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.20.6.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
@@ -76,7 +76,7 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 17 from the repository root:
+Use Java 21 from the repository root:
 
 ```powershell
 .\gradlew.bat test processResources build javadoc --no-daemon

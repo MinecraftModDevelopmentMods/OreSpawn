@@ -13,7 +13,7 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.worldgen.OreHeightDistribution;
 import zone.moddev.mc.orespawn.worldgen.OrePattern;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -85,7 +85,7 @@ final class OreDimensionScreen extends Screen {
 			JsonElement configured = rule.get("pattern");
 			if (configured != null && configured.isJsonObject()) {
 				externalPatternId = GeologyEditorSession.string(configured.getAsJsonObject(), "type", "orespawn:vein");
-				ResourceLocation id = new ResourceLocation(externalPatternId);
+				ResourceLocation id = ResourceLocation.parse(externalPatternId);
 				externalPattern = true;
 				pattern = "orespawn".equals(id.getNamespace())
 						? OrePattern.fromConfigName(id.getPath()) : OrePattern.VEIN;
@@ -392,7 +392,7 @@ final class OreDimensionScreen extends Screen {
 		for (String token : value.split(",")) {
 			String id = token.trim();
 			if (id.isEmpty()) continue;
-			new ResourceLocation(id);
+			ResourceLocation.parse(id);
 			result.add(id);
 		}
 		return result;
@@ -436,57 +436,57 @@ final class OreDimensionScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 2, 0xFFFFFF);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 2, 0xFFFFFF);
 		Component blockName = Component.literal(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
+		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
 				width / 2, 13, 0xDDDDDD);
 		Component dimensionName = dimensionSelector
 				? Component.translatable("value.orespawn.dimension.all_except_nether_end")
 				: Component.literal(dimensionId);
 		boolean compact = OreSpawnScreenLayout.compact(height);
 		if (error == null || !compact) {
-			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
+			graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
 					width / 2, 23, 0xAAAAAA);
 		}
 		if (page == Page.PLACEMENT) {
 			if (compact) {
-				drawCompactPlacementLabels(poseStack);
+				drawCompactPlacementLabels(graphics);
 			} else {
 				String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
 						"discard_air_exposure" };
 				for (int i = 0; i < labels.length; i++) {
 					Component label = Component.translatable("option.orespawn." + labels[i]);
-					drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
+					graphics.drawString(font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
 							contentLeft, 110 + (i * 24), 0xDDDDDD);
 				}
 			}
 		} else if (page == Page.PATTERN && !externalPattern) {
 			String[] labels = { "spread", "vertical_spread", "node_size" };
 			for (int i = 0; i < labels.length; i++) {
-				drawString(poseStack, font, Component.translatable("option.orespawn." + labels[i]),
+				graphics.drawString(font, Component.translatable("option.orespawn." + labels[i]),
 						contentLeft, 134 + (i * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.PATTERN) {
-			drawCenteredString(poseStack, font,
+			graphics.drawCenteredString(font,
 					Component.translatable("message.orespawn.external_pattern_read_only"),
 					width / 2, 132, 0xAAAAAA);
 		} else {
-			drawString(poseStack, font, Component.translatable("option.orespawn.host_blocks"),
+			graphics.drawString(font, Component.translatable("option.orespawn.host_blocks"),
 					contentLeft, 78, 0xDDDDDD);
-			drawString(poseStack, font, Component.translatable("option.orespawn.host_tags"),
+			graphics.drawString(font, Component.translatable("option.orespawn.host_tags"),
 					contentLeft, 110, 0xDDDDDD);
 		}
 		if (error != null) {
-			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, error, contentWidth),
+			graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, error, contentWidth),
 					width / 2, compact ? 23 : height - 40, 0xFF5555);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 
-	private void drawCompactPlacementLabels(PoseStack poseStack) {
+	private void drawCompactPlacementLabels(GuiGraphics graphics) {
 		String[][] labels = {
 				{ "min_y", "max_y" },
 				{ "frequency", "discard_air_exposure" },
@@ -496,7 +496,7 @@ final class OreDimensionScreen extends Screen {
 			for (int column = 0; column < labels[row].length; column++) {
 				Component label = Component.translatable("option.orespawn." + labels[row][column]);
 				int x = column == 0 ? contentLeft : contentLeft + columnWidth + 5;
-				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth),
+				graphics.drawString(font, OreSpawnScreenLayout.fit(font, label, columnWidth),
 						x, OreSpawnScreenLayout.compactOrePlacementLabelY(height, row), 0xDDDDDD);
 			}
 		}

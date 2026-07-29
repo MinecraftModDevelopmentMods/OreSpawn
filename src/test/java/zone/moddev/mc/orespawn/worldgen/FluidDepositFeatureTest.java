@@ -22,7 +22,7 @@ class FluidDepositFeatureTest {
 		rule.add("biome_ids", ids);
 
 		ResourceKey<Biome> expected = ResourceKey.create(Registries.BIOME,
-				new ResourceLocation("minecraft", "cold_ocean"));
+				ResourceLocation.fromNamespaceAndPath("minecraft", "cold_ocean"));
 		assertTrue(FluidDepositFeature.resolveBiomes(rule, "biome_ids", "biome_dictionary")
 				.contains(expected));
 	}

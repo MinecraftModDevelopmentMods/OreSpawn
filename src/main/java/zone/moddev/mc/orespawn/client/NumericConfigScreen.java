@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -137,18 +137,18 @@ final class NumericConfigScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 16, 0xFFFFFF);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 16, 0xFFFFFF);
 		int start = page * PAGE_SIZE;
 		for (int i = 0; i < editors.size(); i++) {
-			drawString(poseStack, font, label(fields[start + i].key), width / 2 - 155,
+			graphics.drawString(font, label(fields[start + i].key), width / 2 - 155,
 					50 + (i * 25), 0xDDDDDD);
 		}
 		if (error != null) {
-			drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
+			graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 
 	private Component label(String key) {

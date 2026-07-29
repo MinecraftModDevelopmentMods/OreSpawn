@@ -29,8 +29,8 @@ public final class WorldMaterialWeather {
 		convertChunk(event.getChunk(), config.materials);
 	}
 
-	public static void onWorldTick(TickEvent.LevelTickEvent event) {
-		if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel)
+	public static void onWorldTick(TickEvent.LevelTickEvent.Post event) {
+		if (!(event.level instanceof ServerLevel)
 				|| event.level.getGameTime() % 20L != 0L) return;
 		ServerLevel level = (ServerLevel) event.level;
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());

@@ -84,7 +84,7 @@ final class DimensionDiscovery {
 
 	static void addDimensionId(Set<String> target, String namespace, String path) {
 		try {
-			target.add(new ResourceLocation(namespace, path).toString());
+			target.add(ResourceLocation.fromNamespaceAndPath(namespace, path).toString());
 		} catch (RuntimeException ignored) {
 			// Ignore malformed resource paths from third-party jars.
 		}

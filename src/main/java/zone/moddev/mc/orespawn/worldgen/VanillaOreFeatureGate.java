@@ -150,8 +150,8 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static Definition definition(String placedFeature, String block) {
-		return new Definition(new ResourceLocation("minecraft", placedFeature),
-				new ResourceLocation("minecraft", block));
+		return new Definition(ResourceLocation.fromNamespaceAndPath("minecraft", placedFeature),
+				ResourceLocation.fromNamespaceAndPath("minecraft", block));
 	}
 
 	private static final class GateFeature extends Feature<NoneFeatureConfiguration> {
