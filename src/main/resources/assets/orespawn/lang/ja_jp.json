@@ -31,6 +31,8 @@
   "button.orespawn.previous": "前へ",
   "button.orespawn.next": "次へ",
   "button.orespawn.materials": "岩石と鉱石...",
+  "button.orespawn.manage_strata": "岩石層を管理...",
+  "tooltip.orespawn.manage_strata": "岩石層はすでに有効です。現在の岩石と鉱石のリストを開いて編集します。",
   "button.orespawn.geomes": "ジオームとバイオーム...",
   "button.orespawn.formation_details": "カスタム形状...",
   "button.orespawn.cyano_details": "シアノの設定...",

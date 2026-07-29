@@ -31,6 +31,8 @@
   "button.orespawn.previous": "이전",
   "button.orespawn.next": "다음",
   "button.orespawn.materials": "암석 및 광석...",
+  "button.orespawn.manage_strata": "암석층 관리...",
+  "tooltip.orespawn.manage_strata": "암석층이 이미 활성화되어 있습니다. 현재 암석 및 광석 목록을 열어 편집하세요.",
   "button.orespawn.geomes": "기하학과 생물군계...",
   "button.orespawn.formation_details": "사용자 정의 모양...",
   "button.orespawn.cyano_details": "시아노 설정...",

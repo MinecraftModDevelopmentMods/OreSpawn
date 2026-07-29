@@ -31,6 +31,8 @@
   "button.orespawn.previous": "上一页",
   "button.orespawn.next": "下一步",
   "button.orespawn.materials": "岩石和矿石...",
+  "button.orespawn.manage_strata": "管理岩层...",
+  "tooltip.orespawn.manage_strata": "岩层已启用。打开当前的岩石和矿石列表进行编辑。",
   "button.orespawn.geomes": "几何群落和生物群落...",
   "button.orespawn.formation_details": "自定义形状...",
   "button.orespawn.cyano_details": "Cyano 设置...",

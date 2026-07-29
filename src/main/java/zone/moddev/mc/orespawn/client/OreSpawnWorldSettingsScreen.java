@@ -151,8 +151,8 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			rowIndex++;
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex),
-					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.materials"),
-					button -> openMaterials()), "guide.orespawn.rocks.2"));
+					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.manage_strata"),
+					button -> openMaterials()), "tooltip.orespawn.manage_strata"));
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT,

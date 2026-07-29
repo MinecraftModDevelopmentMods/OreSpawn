@@ -31,6 +31,8 @@
   "button.orespawn.previous": "Previous",
   "button.orespawn.next": "Next",
   "button.orespawn.materials": "Rocks & Ores...",
+  "button.orespawn.manage_strata": "Manage Rock Strata...",
+  "tooltip.orespawn.manage_strata": "Rock strata are already enabled. Open the current rock and ore lists to edit them.",
   "button.orespawn.geomes": "Geomes & Biomes...",
   "button.orespawn.formation_details": "Custom Shapes...",
   "button.orespawn.cyano_details": "Cyano Settings...",

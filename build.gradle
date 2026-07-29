@@ -468,6 +468,7 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
         }
 
         int changedLaunches = 0
+        int changedTestExclusions = 0
         if (eclipseLaunchDir.isDirectory()) {
             File eclipseClasses = file('bin/main').canonicalFile
             String modClasses = "${mod_id}%%${eclipseClasses.absolutePath}"
@@ -484,6 +485,27 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                 synced = synced.replaceFirst(
                         /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
                     "<mapEntry key=\"MOD_CLASSES\" value=\"${modClasses}\"/>"
+                }
+                String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+                String excludeTestAttribute =
+                        "<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
+                String beforeTestExclusion = synced
+                if (synced.contains("key=\"${excludeTestKey}\"")) {
+                    synced = synced.replaceFirst(
+                            /<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+                            excludeTestAttribute)
+                } else {
+                    int launchHeaderEnd = synced.indexOf('\n', synced.indexOf('<launchConfiguration'))
+                    if (launchHeaderEnd < 0) {
+                        throw new GradleException("Malformed Eclipse Java launch configuration: ${launchFile}")
+                    }
+                    String lineSeparator = synced.contains('\r\n') ? '\r\n' : '\n'
+                    synced = "${synced.substring(0, launchHeaderEnd + 1)}" +
+                            "  ${excludeTestAttribute}${lineSeparator}" +
+                            synced.substring(launchHeaderEnd + 1)
+                }
+                if (beforeTestExclusion != synced) {
+                    changedTestExclusions++
                 }
                 if (original != synced) {
                     launchFile.setText(synced, 'UTF-8')
@@ -510,7 +532,7 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                 changedLaunchGroups++
             }
         }
-        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedLaunchGroups} direct project launches updated)")
+        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} test exclusions, ${changedLaunchGroups} direct project launches updated)")
     }
 }
 

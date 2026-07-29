@@ -31,6 +31,8 @@
   "button.orespawn.previous": "Zurück",
   "button.orespawn.next": "Als nächstes",
   "button.orespawn.materials": "Steine und Erze...",
+  "button.orespawn.manage_strata": "Gesteinsschichten verwalten...",
+  "tooltip.orespawn.manage_strata": "Gesteinsschichten sind bereits aktiviert. Öffnen Sie die aktuellen Gesteins- und Erzlisten, um sie zu bearbeiten.",
   "button.orespawn.geomes": "Geome & Biome...",
   "button.orespawn.formation_details": "Benutzerdefinierte Formen...",
   "button.orespawn.cyano_details": "Cyano-Einstellungen...",

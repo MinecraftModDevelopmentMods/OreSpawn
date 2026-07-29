@@ -31,6 +31,8 @@
   "button.orespawn.previous": "Предыдущий",
   "button.orespawn.next": "Далее",
   "button.orespawn.materials": "Камни и руды...",
+  "button.orespawn.manage_strata": "Управление слоями пород...",
+  "tooltip.orespawn.manage_strata": "Слои пород уже включены. Откройте текущие списки пород и руд для редактирования.",
   "button.orespawn.geomes": "Геомы и биомы...",
   "button.orespawn.formation_details": "Пользовательские фигуры...",
   "button.orespawn.cyano_details": "Настройки Cyano...",

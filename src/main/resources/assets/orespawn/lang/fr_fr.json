@@ -31,6 +31,8 @@
   "button.orespawn.previous": "Précédent",
   "button.orespawn.next": "Suivant",
   "button.orespawn.materials": "Roches et minerais...",
+  "button.orespawn.manage_strata": "Gérer les strates rocheuses...",
+  "tooltip.orespawn.manage_strata": "Les strates rocheuses sont déjà activées. Ouvrez les listes actuelles de roches et de minerais pour les modifier.",
   "button.orespawn.geomes": "Géomes & Biomes...",
   "button.orespawn.formation_details": "Formes personnalisées...",
   "button.orespawn.cyano_details": "Paramètres Cyano...",

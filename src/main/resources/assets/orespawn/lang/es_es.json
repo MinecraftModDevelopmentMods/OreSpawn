@@ -31,6 +31,8 @@
   "button.orespawn.previous": "Anterior",
   "button.orespawn.next": "Siguiente",
   "button.orespawn.materials": "Rocas y minerales...",
+  "button.orespawn.manage_strata": "Gestionar estratos de roca...",
+  "tooltip.orespawn.manage_strata": "Los estratos de roca ya están activados. Abre las listas actuales de rocas y minerales para editarlas.",
   "button.orespawn.geomes": "Geomas y Biomas...",
   "button.orespawn.formation_details": "Formas personalizadas...",
   "button.orespawn.cyano_details": "Ajustes de Cyano...",

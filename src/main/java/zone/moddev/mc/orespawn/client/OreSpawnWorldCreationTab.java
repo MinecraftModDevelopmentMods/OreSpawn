@@ -125,8 +125,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 				value -> formationContinuity = value), firstRow + 3, 0, terrainControls);
 		add(fluidEditorButton(COLUMN_WIDTH), firstRow + 3, 1, terrainControls);
 
-		add(button(Component.translatable("button.orespawn.materials"), COLUMN_WIDTH,
-				this::openMaterials, "guide.orespawn.rocks.2"), firstRow + 4, 0, terrainControls);
+		add(button(Component.translatable("button.orespawn.manage_strata"), COLUMN_WIDTH,
+				this::openMaterials, "tooltip.orespawn.manage_strata"), firstRow + 4, 0, terrainControls);
 		add(button(Component.translatable("button.orespawn.biomes_world_materials"),
 				COLUMN_WIDTH, this::openBiomeWorldMaterials, "guide.orespawn.biomes.1"),
 				firstRow + 4, 1, terrainControls);
