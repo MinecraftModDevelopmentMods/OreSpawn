@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class BakedGeomeConfig {
 	static final int MIN_Y = -64;
@@ -59,7 +59,7 @@ public final class BakedGeomeConfig {
 		this.biomeWeights = new IdentityHashMap<>(biomeWeights);
 		this.biomeWeightsById = new HashMap<>();
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(entry.getKey());
+			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(entry.getKey());
 			if (biomeId != null) {
 				biomeWeightsById.put(biomeId, entry.getValue());
 			}
@@ -213,7 +213,7 @@ public final class BakedGeomeConfig {
 		double[] weights = biomeWeights.get(biome);
 		String source = "identity";
 		if (weights == null) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
+			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
 			source = "registry-id";
 		}
@@ -232,7 +232,7 @@ public final class BakedGeomeConfig {
 	}
 
 	String dominantBiomeWeight(Biome biome) {
-		double[] weights = biomeWeightsFor(biome, ForgeRegistries.BIOMES.getKey(biome));
+		double[] weights = biomeWeightsFor(biome, zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome));
 		int best = 0;
 		for (int i = 1; i < weights.length; i++) {
 			if (weights[i] > weights[best]) {
@@ -243,7 +243,7 @@ public final class BakedGeomeConfig {
 	}
 
 	boolean hasDistinctBiomeWeights(Biome biome) {
-		double[] weights = biomeWeightsFor(biome, ForgeRegistries.BIOMES.getKey(biome));
+		double[] weights = biomeWeightsFor(biome, zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome));
 		double first = weights[0];
 		for (int i = 1; i < weights.length; i++) {
 			if (Math.abs(weights[i] - first) > 0.000001D) {

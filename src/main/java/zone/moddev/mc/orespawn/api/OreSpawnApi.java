@@ -9,7 +9,7 @@ import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.fml.InterModComms;
+import net.neoforged.fml.InterModComms;
 
 /** Entry point for OreSpawn API version 1. */
 public final class OreSpawnApi {
@@ -20,7 +20,7 @@ public final class OreSpawnApi {
 	}
 
 	/**
-	 * Enqueues a provider through Forge IMC. Call this during
+	 * Enqueues a provider through NeoForge IMC. Call this during
 	 * {@code InterModEnqueueEvent}.
 	 */
 	public static boolean enqueue(WorldgenProvider provider) {

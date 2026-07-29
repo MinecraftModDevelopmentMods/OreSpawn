@@ -2,8 +2,8 @@
 
 OreSpawn can place provider biomes and replace their visible world materials.
 It does not register biomes for a child mod: the provider still registers
-ordinary Forge `Biome` objects, then supplies declarative placement and
-material rules to OreSpawn.
+ordinary NeoForge data-driven `Biome` entries, then supplies declarative
+placement and material rules to OreSpawn.
 
 This feature is optional. Ore-only providers and existing Mineralogy profiles
 with no biome palettes use Minecraft's original biome source unchanged.
@@ -93,20 +93,28 @@ default states contain real fluids.
 
 ## Registration Helper
 
-`OreSpawnBiomes.copyAndRegister` copies a known biome's complete builder before
-applying small changes. This is useful for a simple content mod:
+Biomes are loaded from `data/<modid>/worldgen/biome/` when a world loads. A
+child mod may write those JSON files directly or generate them with
+`DatapackBuiltinEntriesProvider`. `OreSpawnBiomes.copyAndRegister` copies a
+known biome's complete builder inside a `RegistrySetBuilder` bootstrap:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
-    BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
-    builder -> builder.temperature(0.8F).downfall(0.4F));
+public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
+    Registries.BIOME, new ResourceLocation("examplemod", "candy_plains"));
+
+public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
+    .add(Registries.BIOME, context -> {
+        HolderGetter<Biome> biomes = context.lookup(Registries.BIOME);
+        OreSpawnBiomes.copyAndRegister(context, CANDY_PLAINS, biomes, Biomes.PLAINS,
+            builder -> builder.temperature(0.8F).downfall(0.4F));
+    });
 ```
 
 `blankAndRegister` starts from an empty builder and is intended for advanced
-providers that deliberately supply every required climate, effects, spawn, and
-generation field. Both helpers only register content; placement belongs in the
-provider declaration.
+datagen that deliberately supplies every required climate, effects, spawn, and
+generation field. Both helpers create datapack content; live placement belongs
+in the provider declaration. Do not use a static `DeferredRegister<Biome>`:
+NeoForge 20.6 biomes belong to the dynamic world registry.
 
 ## Surfaces And Materials
 

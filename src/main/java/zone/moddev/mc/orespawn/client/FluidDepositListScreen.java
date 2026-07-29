@@ -14,7 +14,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 final class FluidDepositListScreen extends Screen {
 	private final Screen parent;
@@ -75,7 +75,7 @@ final class FluidDepositListScreen extends Screen {
 	private Component depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(
+			Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }

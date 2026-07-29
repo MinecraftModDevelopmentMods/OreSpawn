@@ -8,11 +8,11 @@ import org.junit.platform.launcher.LauncherSessionListener;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
-import net.minecraftforge.registries.GameData;
+import net.neoforged.neoforge.registries.GameData;
 
 /**
  * Opens vanilla registry construction for headless unit tests without invoking
- * Forge's ModLauncher-only networking bootstrap.
+ * NeoForge's ModLauncher-only networking bootstrap.
  */
 public final class MinecraftBootstrapListener implements LauncherSessionListener {
 	@Override

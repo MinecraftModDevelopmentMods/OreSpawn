@@ -43,7 +43,7 @@ import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -241,7 +241,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				continue;
 			}
 			ResourceLocation oreId = resource(string(oreJson, "block", oreEntry.getKey()));
-			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
+			Block output = oreId == null ? null : BuiltInRegistries.BLOCK.get(oreId);
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
 			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
 			if (output == null || output == Blocks.AIR || (dimensions.size() == 0 && selectors.size() == 0)) {
@@ -437,7 +437,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			if (!element.isJsonObject()) continue;
 			JsonObject value = element.getAsJsonObject();
 			ResourceLocation id = resource(string(value, "block", ""));
-			Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
+			Block block = id == null ? null : BuiltInRegistries.BLOCK.get(id);
 			double weight = decimal(value, "weight", 1.0D);
 			int minY = integer(value, "min_y", Integer.MIN_VALUE);
 			int maxY = integer(value, "max_y", Integer.MAX_VALUE);
@@ -457,7 +457,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		for (JsonElement value : element.getAsJsonArray()) {
 			JsonObject object = value.isJsonObject() ? value.getAsJsonObject() : null;
 			ResourceLocation id = resource(object == null ? value.getAsString() : string(object, "block", ""));
-			Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
+			Block block = id == null ? null : BuiltInRegistries.BLOCK.get(id);
 			if (block != null && block != Blocks.AIR) {
 				target.put(block, Math.max(0.0D, Math.min(1.0D,
 						object == null ? 1.0D : decimal(object, "weight", 1.0D))));
@@ -489,7 +489,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				Biome biome = id == null ? null : ForgeRegistries.BIOMES.getValue(id);
+				Biome biome = id == null ? null : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.get(id);
 				if (biome != null) result.add(biome);
 			}
 		}
@@ -506,7 +506,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private static Set<Block> resolveTag(TagKey<Block> tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
+		for (Block block : BuiltInRegistries.BLOCK.stream().toList()) {
 			if (block.defaultBlockState().is(tag)) {
 				result.add(block);
 			}
@@ -538,7 +538,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private static ResourceLocation resource(String value) {
 		try {
-			return ResourceLocation.parse(value);
+			return new ResourceLocation(value);
 		} catch (RuntimeException e) {
 			return null;
 		}
@@ -585,7 +585,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			return fallback;
 		}
 		ResourceLocation id = resource(string(json, key, ""));
-		Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
+		Block block = id == null ? null : BuiltInRegistries.BLOCK.get(id);
 		return block == null || block == Blocks.AIR ? null : block.defaultBlockState();
 	}
 

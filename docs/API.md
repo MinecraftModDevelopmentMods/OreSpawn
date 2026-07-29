@@ -6,12 +6,12 @@ implementation detail. API major version is available as
 `OreSpawn-API-Version`.
 
 Provider mods must depend on the full OreSpawn mod at compile time and
-runtime. In `mods.toml` use a mandatory dependency, for example:
+runtime. In `neoforge.mods.toml` use a required dependency, for example:
 
 ```toml
 [[dependencies.examplemod]]
 modId="orespawn"
-mandatory=true
+type="required"
 versionRange="[4.0.0,5.0.0)"
 ordering="AFTER"
 side="BOTH"
@@ -34,7 +34,7 @@ patterns, and host tags, see `DEVELOPER_GUIDE.md`.
 
 Definitions are immutable after `build()`. Registry references remain
 `ResourceLocation` values until OreSpawn validates and bakes them. Provider
-messages are processed through Forge IMC and frozen at load completion; direct
+messages are processed through NeoForge IMC and frozen at load completion; direct
 cross-mod mutation during parallel setup is unsupported.
 
 Ore dimensions use `quantity(int)` for fixed budgets or
@@ -77,17 +77,25 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
-provides a small optional convenience for cloning a known biome:
+NeoForge 20.6 biomes are data-driven registry entries. Package biome JSON under
+`data/<modid>/worldgen/biome/`, or generate it with a
+`DatapackBuiltinEntriesProvider`. `OreSpawnBiomes.copyAndRegister` is an
+optional bootstrap/datagen convenience for cloning a known biome:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
-    BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
-    builder -> builder.temperature(0.8F).downfall(0.4F));
+public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
+    Registries.BIOME, new ResourceLocation("examplemod", "candy_plains"));
+
+public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
+    .add(Registries.BIOME, context -> {
+        HolderGetter<Biome> biomes = context.lookup(Registries.BIOME);
+        OreSpawnBiomes.copyAndRegister(context, CANDY_PLAINS, biomes, Biomes.PLAINS,
+            builder -> builder.temperature(0.8F).downfall(0.4F));
+    });
 ```
 
-Then declare placement and materials through the same provider:
+The generated biome JSON remains owned by the child mod. Declare placement and
+materials through the same OreSpawn provider:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
@@ -130,7 +138,7 @@ Y query. Sampling is read-only and is intended for gameplay decisions,
 diagnostics, and compatible generation outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
-Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
+Custom pattern mods create a NeoForge `DeferredRegister<OrePatternType>` using
 `OreSpawnPatternRegistry.REGISTRY_NAME`. An `OrePatternType` contains a codec
 and a compiler from decoded settings to `CompiledOrePattern`. Reference it from
 an ore dimension with `pattern(patternId, settingsJson)`. OreSpawn decodes and

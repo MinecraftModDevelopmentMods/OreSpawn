@@ -22,7 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class OreSpawnWorldSettingsScreen extends Screen {
 	private static final int BUTTON_HEIGHT = 20;
@@ -367,7 +367,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		if (ids.size() == 1) {
 			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
 			ResourceLocation blockId = access.resource("block");
-			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
+			Block block = blockId == null ? null : BuiltInRegistries.BLOCK.get(blockId);
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		}
 		return Component.translatable("option.orespawn.fluid_deposits");
@@ -388,7 +388,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		private final com.google.gson.JsonObject value;
 		JsonObjectAccess(com.google.gson.JsonObject value) { this.value = value; }
 		ResourceLocation resource(String key) {
-			try { return ResourceLocation.parse(value.get(key).getAsString()); }
+			try { return new ResourceLocation(value.get(key).getAsString()); }
 			catch (RuntimeException ignored) { return null; }
 		}
 	}

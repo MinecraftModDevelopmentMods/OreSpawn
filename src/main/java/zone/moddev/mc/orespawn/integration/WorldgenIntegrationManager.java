@@ -38,12 +38,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraftforge.fml.InterModComms;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.forgespi.language.IModInfo;
-import net.minecraftforge.forgespi.locating.IModFile;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.InterModComms;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforgespi.language.IModInfo;
+import net.neoforged.neoforgespi.locating.IModFile;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -481,7 +480,7 @@ public final class WorldgenIntegrationManager {
 				if (!"biome_rules".equals(section)) {
 					validateOwnedId(providerId, entry.getKey(), section);
 				} else {
-					ResourceLocation.parse(entry.getKey());
+					new ResourceLocation(entry.getKey());
 				}
 				if ("rocks".equals(section)) {
 					validateRock(entry.getKey(), entry.getValue().getAsJsonObject());
@@ -517,7 +516,7 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void validateOwnedId(String providerId, String idText, String section) {
-		ResourceLocation id = ResourceLocation.parse(idText);
+		ResourceLocation id = new ResourceLocation(idText);
 		if (!providerId.equals(id.getNamespace())) {
 			throw new JsonSyntaxException(section + " entry is outside provider namespace: " + id);
 		}
@@ -553,11 +552,11 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("ore has no dimensions or dimension selectors: " + idText);
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
-			ResourceLocation.parse(entry.getKey());
+			new ResourceLocation(entry.getKey());
 			validateOreRule(idText, entry);
 		}
 		for (Entry<String, JsonElement> entry : selectors.entrySet()) {
-			OreDimensionSelector.fromId(ResourceLocation.parse(entry.getKey()));
+			OreDimensionSelector.fromId(new ResourceLocation(entry.getKey()));
 			validateOreRule(idText, entry);
 		}
 	}
@@ -681,7 +680,7 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("fluid deposit has no dimensions: " + id);
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
-			ResourceLocation.parse(entry.getKey());
+			new ResourceLocation(entry.getKey());
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("fluid deposit dimension is not an object: " + entry.getKey());
 			}
@@ -725,7 +724,7 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void validateBiomePalette(String id, JsonObject palette) {
-		ResourceLocation.parse(string(palette, "dimension", ""));
+		new ResourceLocation(string(palette, "dimension", ""));
 		if (!bool(palette, "enabled", true)) return;
 		String mode = string(palette, "mode", "augment");
 		if (!"augment".equals(mode) && !"replace".equals(mode)) {
@@ -758,7 +757,7 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("enabled biome palette has no biomes: " + id);
 		}
 		for (Entry<String, JsonElement> entry : biomes.entrySet()) {
-			ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
+			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("biome placement is not an object: " + biomeId);
 			}
@@ -798,7 +797,7 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void validateDimensionMaterials(String id, JsonObject materials) {
-		ResourceLocation.parse(string(materials, "dimension", ""));
+		new ResourceLocation(string(materials, "dimension", ""));
 		if (!bool(materials, "enabled", true)) return;
 		boolean any = false;
 		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
@@ -885,7 +884,7 @@ public final class WorldgenIntegrationManager {
 
 	private static void readTemplates(ProviderDefinition provider) {
 		for (Entry<String, JsonElement> entry : provider.section("templates").entrySet()) {
-			ResourceLocation id = ResourceLocation.parse(entry.getKey());
+			ResourceLocation id = new ResourceLocation(entry.getKey());
 			JsonObject json = entry.getValue().getAsJsonObject();
 			boolean available = true;
 			if (json.has("required_mods") && json.get("required_mods").isJsonArray()) {
@@ -915,18 +914,18 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static ResourceLocation normalizeGeomeId(String value) {
-		return value.indexOf(':') >= 0 ? ResourceLocation.parse(value) : ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, value);
+		return value.indexOf(':') >= 0 ? new ResourceLocation(value) : new ResourceLocation(OreSpawn.MODID, value);
 	}
 
 	private static Block block(String idText) {
 		try {
-			ResourceLocation id = ResourceLocation.parse(idText);
+			ResourceLocation id = new ResourceLocation(idText);
 			Block builtIn = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
 			if (builtIn != null) {
 				return builtIn;
 			}
-			if (ForgeRegistries.BLOCKS.containsKey(id)) {
-				return ForgeRegistries.BLOCKS.getValue(id);
+			if (BuiltInRegistries.BLOCK.containsKey(id)) {
+				return BuiltInRegistries.BLOCK.get(id);
 			}
 			return null;
 		} catch (RuntimeException e) {
@@ -969,7 +968,7 @@ public final class WorldgenIntegrationManager {
 		for (JsonElement value : element.getAsJsonArray()) {
 			String id = value.isJsonObject() ? string(value.getAsJsonObject(), "tag", "")
 					: value.getAsString();
-			ResourceLocation.parse(id);
+			new ResourceLocation(id);
 			if (value.isJsonObject() && (decimal(value.getAsJsonObject(), "weight", 1.0D) < 0.0D
 					|| decimal(value.getAsJsonObject(), "weight", 1.0D) > 1.0D))
 				throw new JsonSyntaxException("invalid tag weight: " + id);

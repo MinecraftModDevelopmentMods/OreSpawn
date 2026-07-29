@@ -11,8 +11,8 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.status.ChunkType;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.ChunkDataEvent;
+import net.neoforged.neoforge.event.level.ChunkDataEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /** Bounded, marker-based ore and flat-bedrock retrogen with no reflected internals. */
 public final class OreRetrogenManager {
@@ -36,7 +36,7 @@ public final class OreRetrogenManager {
 	public static void onChunkLoad(ChunkDataEvent.Load event) {
 		Settings current = settings;
 		if ((!current.oreEnabled && !current.bedrockEnabled)
-				|| event.getStatus() != ChunkType.LEVELCHUNK
+				|| event.getType() != ChunkType.LEVELCHUNK
 				|| !(event.getLevel() instanceof ServerLevel)
 				|| !(event.getChunk() instanceof LevelChunk)) return;
 		ServerLevel level = (ServerLevel) event.getLevel();
@@ -56,7 +56,7 @@ public final class OreRetrogenManager {
 		event.getData().put(ROOT_TAG, marker);
 	}
 
-	public static void onServerTick(TickEvent.ServerTickEvent.Post event) {
+	public static void onServerTick(ServerTickEvent.Post event) {
 		for (int i = 0; i < settings.chunksPerTick; i++) {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;

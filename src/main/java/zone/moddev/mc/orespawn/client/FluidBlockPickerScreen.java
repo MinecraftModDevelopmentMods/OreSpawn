@@ -11,7 +11,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 final class FluidBlockPickerScreen extends Screen {
 	private final Screen parent;
@@ -77,7 +77,7 @@ final class FluidBlockPickerScreen extends Screen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(id));
+			Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) {
 			return Component.literal(id);

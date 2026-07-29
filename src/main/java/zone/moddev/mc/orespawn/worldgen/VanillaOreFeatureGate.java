@@ -19,8 +19,8 @@ import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.DeferredRegister;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -78,7 +78,7 @@ public final class VanillaOreFeatureGate {
 	private static Holder<PlacedFeature> vanillaGate(Holder<PlacedFeature> original,
 			int definitionIndex) {
 		Definition definition = DEFINITIONS[definitionIndex];
-		Block output = ForgeRegistries.BLOCKS.getValue(definition.oreBlockId);
+		Block output = BuiltInRegistries.BLOCK.get(definition.oreBlockId);
 		if (output == null) {
 			LOGGER.warn("Could not create OreSpawn gate for vanilla ore feature '{}'",
 					definition.placedFeatureId);
@@ -150,8 +150,8 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static Definition definition(String placedFeature, String block) {
-		return new Definition(ResourceLocation.fromNamespaceAndPath("minecraft", placedFeature),
-				ResourceLocation.fromNamespaceAndPath("minecraft", block));
+		return new Definition(new ResourceLocation("minecraft", placedFeature),
+				new ResourceLocation("minecraft", block));
 	}
 
 	private static final class GateFeature extends Feature<NoneFeatureConfiguration> {

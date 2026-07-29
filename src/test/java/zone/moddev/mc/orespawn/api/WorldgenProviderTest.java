@@ -268,7 +268,7 @@ class WorldgenProviderTest {
 	}
 
 	private static ResourceLocation id(String value) {
-		return ResourceLocation.parse(value);
+		return new ResourceLocation(value);
 	}
 
 	private static JsonObject profileDefaults() {

@@ -31,7 +31,7 @@ public final class GeologyProfileView {
 			return Optional.empty();
 		}
 		try {
-			return Optional.of(ResourceLocation.parse(root.get("selected_template").getAsString()));
+			return Optional.of(new ResourceLocation(root.get("selected_template").getAsString()));
 		} catch (RuntimeException ignored) {
 			return Optional.empty();
 		}
@@ -77,7 +77,7 @@ public final class GeologyProfileView {
 		Set<ResourceLocation> values = new LinkedHashSet<>();
 		for (String value : root.getAsJsonObject(section).keySet()) {
 			try {
-				values.add(ResourceLocation.parse(value));
+				values.add(new ResourceLocation(value));
 			} catch (RuntimeException ignored) {
 				// Invalid user data is omitted from the typed view.
 			}

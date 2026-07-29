@@ -35,7 +35,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,11 +51,10 @@ final class BiomeWorldgenManager {
 	private BiomeWorldgenManager() {
 	}
 
-	static void registerBiomeSourceCodec() {
-		ResourceLocation id = ResourceLocation.fromNamespaceAndPath("orespawn", "profile_overlay");
-		if (!BuiltInRegistries.BIOME_SOURCE.containsKey(id)) {
-			Registry.register(BuiltInRegistries.BIOME_SOURCE, id, BiomeOverlaySource.CODEC);
-		}
+	static void registerBiomeSourceCodec(RegisterEvent event) {
+		ResourceLocation id = new ResourceLocation("orespawn", "profile_overlay");
+		event.register(Registries.BIOME_SOURCE,
+				helper -> helper.register(id, BiomeOverlaySource.CODEC));
 	}
 
 	static synchronized void apply(MinecraftServer server, WorldGeologyProfile profile) {
@@ -131,7 +130,7 @@ final class BiomeWorldgenManager {
 			for (Entry<String, JsonElement> biomeEntry : biomeEntries.entrySet()) {
 				if (!biomeEntry.getValue().isJsonObject()) continue;
 				ResourceLocation biomeId;
-				try { biomeId = ResourceLocation.parse(biomeEntry.getKey()); }
+				try { biomeId = new ResourceLocation(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
 				Holder<Biome> holder = registry.getHolder(ResourceKey.create(
 						Registries.BIOME, biomeId)).orElse(null);
@@ -315,8 +314,8 @@ final class BiomeWorldgenManager {
 	private static BlockState state(JsonObject json, String key, boolean fluid) {
 		if (!json.has(key)) return null;
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(
-					ResourceLocation.parse(json.get(key).getAsString()));
+			Block block = BuiltInRegistries.BLOCK.get(
+					new ResourceLocation(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
 					|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return null;
 			return block.defaultBlockState();
@@ -345,7 +344,7 @@ final class BiomeWorldgenManager {
 		Set<ResourceLocation> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				try { result.add(ResourceLocation.parse(value.getAsString())); }
+				try { result.add(new ResourceLocation(value.getAsString())); }
 				catch (RuntimeException ignored) { }
 			}
 		}

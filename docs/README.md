@@ -1,6 +1,6 @@
 # OreSpawn 4 Documentation
 
-OreSpawn is a required Forge mod and a declarative world-generation engine.
+OreSpawn is a required NeoForge mod and a declarative world-generation engine.
 The normal jar is both the compile-time and runtime dependency; there is no
 shaded or embeddable engine artifact.
 

@@ -1,6 +1,6 @@
 # OreSpawn Integration Notes For Coding Agents
 
-OreSpawn 4.0 is a required Forge mod and declarative world-generation engine.
+OreSpawn 4.0 is a required NeoForge mod and declarative world-generation engine.
 Public API major version 1 consists only of `zone.moddev.mc.orespawn.api`. Treat
 every other Java package as internal and unstable.
 
@@ -32,7 +32,7 @@ Configuration contracts:
 
 Lifecycle and ownership:
 
-- Forge setup is parallel. Never mutate OreSpawn internals directly.
+- NeoForge setup is parallel. Never mutate OreSpawn internals directly.
 - A pack override file is authoritative over packaged and API definitions for
   the same provider. A malformed override fails closed.
 - Provider rule IDs use the provider namespace. A rule's `block` or weighted

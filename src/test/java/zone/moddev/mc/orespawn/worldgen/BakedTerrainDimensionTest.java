@@ -15,7 +15,7 @@ class BakedTerrainDimensionTest {
 		BakedTerrainDimension dimension = new BakedTerrainDimension(null, Collections.emptySet(),
 				Collections.singleton("examplemod"), Collections.emptySet());
 
-		assertTrue(dimension.acceptsBiome(ResourceLocation.parse("examplemod:crystal_fields")));
-		assertFalse(dimension.acceptsBiome(ResourceLocation.parse("minecraft:plains")));
+		assertTrue(dimension.acceptsBiome(new ResourceLocation("examplemod:crystal_fields")));
+		assertFalse(dimension.acceptsBiome(new ResourceLocation("minecraft:plains")));
 	}
 }

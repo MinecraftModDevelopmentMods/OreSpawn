@@ -116,7 +116,7 @@ final class GeomeBiomeScreen extends Screen {
 			minecraft.setScreen(new GeomeEntryScreen(this, session, id.toLowerCase(Locale.ROOT)));
 		} else {
 			if (tab == Tab.BIOMES) {
-				try { ResourceLocation.parse(id); }
+				try { new ResourceLocation(id); }
 				catch (RuntimeException e) { return; }
 			}
 			open(id);

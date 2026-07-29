@@ -14,31 +14,32 @@ import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Registry;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {
 	private static final DeferredRegister<OrePatternType> TYPES =
 			DeferredRegister.create(OreSpawnPatternRegistry.REGISTRY_NAME, OreSpawn.MODID);
-	private static final Supplier<IForgeRegistry<OrePatternType>> REGISTRY = TYPES.makeRegistry(
-			() -> new RegistryBuilder<OrePatternType>().disableSaving().disableSync());
+	private static final Registry<OrePatternType> REGISTRY = TYPES.makeRegistry(
+			builder -> builder.sync(false));
 
-	public static final RegistryObject<OrePatternType> DEFAULT = register("default", OreSpawnPatterns::compact);
-	public static final RegistryObject<OrePatternType> VEIN = register("vein", OreSpawnPatterns::vein);
-	public static final RegistryObject<OrePatternType> NORMAL_CLOUD =
+	public static final DeferredHolder<OrePatternType, OrePatternType> DEFAULT =
+			register("default", OreSpawnPatterns::compact);
+	public static final DeferredHolder<OrePatternType, OrePatternType> VEIN =
+			register("vein", OreSpawnPatterns::vein);
+	public static final DeferredHolder<OrePatternType, OrePatternType> NORMAL_CLOUD =
 			register("normal_cloud", OreSpawnPatterns::cloud);
-	public static final RegistryObject<OrePatternType> PRECISION =
+	public static final DeferredHolder<OrePatternType, OrePatternType> PRECISION =
 			register("precision", OreSpawnPatterns::precision);
-	public static final RegistryObject<OrePatternType> CLUSTERS =
+	public static final DeferredHolder<OrePatternType, OrePatternType> CLUSTERS =
 			register("clusters", OreSpawnPatterns::clusters);
-	public static final RegistryObject<OrePatternType> UNDERFLUIDS =
+	public static final DeferredHolder<OrePatternType, OrePatternType> UNDERFLUIDS =
 			register("underfluids", OreSpawnPatterns::underFluids);
 
 	private OreSpawnPatterns() {
@@ -48,12 +49,12 @@ public final class OreSpawnPatterns {
 		TYPES.register(bus);
 	}
 
-	public static IForgeRegistry<OrePatternType> registry() {
-		return REGISTRY.get();
+	public static Registry<OrePatternType> registry() {
+		return REGISTRY;
 	}
 
-	public static Supplier<IForgeRegistry<OrePatternType>> registrySupplier() {
-		return REGISTRY;
+	public static Supplier<Registry<OrePatternType>> registrySupplier() {
+		return () -> REGISTRY;
 	}
 
 	public static CompiledOrePattern decode(JsonObject rule) {
@@ -62,7 +63,7 @@ public final class OreSpawnPatterns {
 		String text = patternObject == null
 				? string(rule, "pattern", "vein") : string(patternObject, "type", "orespawn:vein");
 		ResourceLocation id = patternId(text);
-		OrePatternType type = registry().getValue(id);
+		OrePatternType type = registry().get(id);
 		if (type == null) {
 			throw new IllegalArgumentException("Unknown ore pattern type: " + id);
 		}
@@ -84,7 +85,7 @@ public final class OreSpawnPatterns {
 		}
 	}
 
-	private static RegistryObject<OrePatternType> register(String name,
+	private static DeferredHolder<OrePatternType, OrePatternType> register(String name,
 			java.util.function.Function<StandardPatternSettings, CompiledOrePattern> compiler) {
 		return TYPES.register(name, () -> OrePatternType.create(StandardPatternSettings.CODEC, compiler));
 	}
@@ -108,8 +109,8 @@ public final class OreSpawnPatterns {
 		if ("cluster".equals(normalized)) normalized = "clusters";
 		if ("cloud".equals(normalized) || "normal-cloud".equals(normalized)) normalized = "normal_cloud";
 		if ("under_fluid".equals(normalized) || "under-fluid".equals(normalized)) normalized = "underfluids";
-		return normalized.indexOf(':') >= 0 ? ResourceLocation.parse(normalized)
-				: ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, normalized);
+		return normalized.indexOf(':') >= 0 ? new ResourceLocation(normalized)
+				: new ResourceLocation(OreSpawn.MODID, normalized);
 	}
 
 	private static CompiledOrePattern compact(StandardPatternSettings settings) {
@@ -195,7 +196,7 @@ public final class OreSpawnPatterns {
 	}
 
 	private static CompiledOrePattern underFluids(StandardPatternSettings settings) {
-		Fluid fluid = ForgeRegistries.FLUIDS.getValue(ResourceLocation.parse(settings.fluid()));
+		Fluid fluid = BuiltInRegistries.FLUID.get(new ResourceLocation(settings.fluid()));
 		if (fluid == null) fluid = Fluids.WATER;
 		final Fluid targetFluid = fluid;
 		return context -> {

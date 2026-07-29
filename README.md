@@ -80,7 +80,7 @@ Use Java 21 from the repository root:
 
 ```powershell
 .\gradlew.bat test processResources build javadoc --no-daemon
-.\gradlew.bat genEclipseRuns eclipse --no-daemon
+.\gradlew.bat eclipse --no-daemon
 ```
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.

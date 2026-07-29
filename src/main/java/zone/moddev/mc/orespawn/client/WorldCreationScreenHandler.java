@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import net.minecraft.network.chat.Component;
 
 import zone.moddev.mc.orespawn.OreSpawn;
+import zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.client.Minecraft;
@@ -20,17 +21,14 @@ import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
-@Mod.EventBusSubscriber(modid = OreSpawn.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = OreSpawn.MODID, value = Dist.CLIENT)
 public final class WorldCreationScreenHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static final String TAB_MANAGER_FIELD = "f_267424_";
-	private static final String TAB_NAVIGATION_BAR_FIELD = "f_267490_";
 
 	private WorldCreationScreenHandler() {
 	}
@@ -43,6 +41,7 @@ public final class WorldCreationScreenHandler {
 		}
 
 		CreateWorldScreen createWorldScreen = (CreateWorldScreen) screen;
+		BiomeRegistryAccess.bind(createWorldScreen.getUiState().getSettings().worldgenLoadContext());
 		WorldGeologyProfileManager.beginNewWorldCreation(screen);
 		installOreSpawnTab(event, createWorldScreen);
 	}
@@ -64,8 +63,7 @@ public final class WorldCreationScreenHandler {
 		}
 
 		try {
-			TabManager tabManager = ObfuscationReflectionHelper.getPrivateValue(
-					CreateWorldScreen.class, screen, TAB_MANAGER_FIELD);
+			TabManager tabManager = screen.tabManager;
 			if (tabManager == null) {
 				throw new IllegalStateException("CreateWorldScreen tab manager is unavailable");
 			}
@@ -77,8 +75,7 @@ public final class WorldCreationScreenHandler {
 			TabNavigationBar replacement = TabNavigationBar.builder(tabManager, screen.width)
 					.addTabs(tabs.toArray(new Tab[0]))
 					.build();
-			ObfuscationReflectionHelper.setPrivateValue(CreateWorldScreen.class, screen,
-					replacement, TAB_NAVIGATION_BAR_FIELD);
+			screen.tabNavigationBar = replacement;
 			event.removeListener(original);
 			event.addListener(replacement);
 			if (restoreOreSpawnTab) {

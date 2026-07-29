@@ -10,8 +10,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 /**
  * Converts vanilla weather products in loaded columns to configured materials.
@@ -29,10 +29,10 @@ public final class WorldMaterialWeather {
 		convertChunk(event.getChunk(), config.materials);
 	}
 
-	public static void onWorldTick(TickEvent.LevelTickEvent.Post event) {
-		if (!(event.level instanceof ServerLevel)
-				|| event.level.getGameTime() % 20L != 0L) return;
-		ServerLevel level = (ServerLevel) event.level;
+	public static void onWorldTick(LevelTickEvent.Post event) {
+		if (!(event.getLevel() instanceof ServerLevel)
+				|| event.getLevel().getGameTime() % 20L != 0L) return;
+		ServerLevel level = (ServerLevel) event.getLevel();
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
 		if (config == null || config.materials == null) return;
 		DimensionMaterials materials = config.materials;

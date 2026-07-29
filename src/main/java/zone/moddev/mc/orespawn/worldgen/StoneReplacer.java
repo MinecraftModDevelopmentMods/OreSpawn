@@ -32,13 +32,13 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 	private static final MatchingStoneGateFeature MATCHING_STONE_GATE =
 			new MatchingStoneGateFeature();
 	private static final ResourceLocation[] VANILLA_MATCHING_STONE_FEATURES = new ResourceLocation[] {
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_granite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_granite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_diorite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_diorite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_andesite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_andesite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_tuff")
+			new ResourceLocation("minecraft", "ore_granite_upper"),
+			new ResourceLocation("minecraft", "ore_granite_lower"),
+			new ResourceLocation("minecraft", "ore_diorite_upper"),
+			new ResourceLocation("minecraft", "ore_diorite_lower"),
+			new ResourceLocation("minecraft", "ore_andesite_upper"),
+			new ResourceLocation("minecraft", "ore_andesite_lower"),
+			new ResourceLocation("minecraft", "ore_tuff")
 	};
 	private static Holder<PlacedFeature> placedFeature;
 	private static final Map<PlacedFeature, Holder<PlacedFeature>> MATCHING_STONE_GATES =

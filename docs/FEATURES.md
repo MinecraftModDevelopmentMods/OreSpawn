@@ -29,7 +29,7 @@ the codec object below are equivalent:
 }
 ```
 
-Other mods may register `OrePatternType` values in the Forge registry named by
+Other mods may register `OrePatternType` values in the NeoForge registry named by
 `OreSpawnPatternRegistry.REGISTRY_NAME`. Each type supplies a Mojang `Codec`
 and compiles decoded settings into a `CompiledOrePattern`. Compilation occurs
 during profile baking. The generation loop invokes only the compiled object.
@@ -58,5 +58,5 @@ Retrogen records a deterministic profile revision in chunk NBT under
 bounded by `chunks_per_tick`; no terrain strata retrogen exists.
 
 Flat bedrock is disabled by default. When enabled it flattens the configured
-number of bottom layers and, in the Nether, the ceiling. It uses normal Forge
+number of bottom layers and, in the Nether, the ceiling. It uses normal NeoForge
 features and chunk events, with no reflection.

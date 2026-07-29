@@ -8,14 +8,14 @@ import zone.moddev.mc.orespawn.worldgen.StoneReplacer;
 import zone.moddev.mc.orespawn.worldgen.BiomeSurfaceFeature;
 import zone.moddev.mc.orespawn.worldgen.VanillaOreFeatureGate;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class Features {
 	private static final DeferredRegister<Feature<?>> FEATURES =
-			DeferredRegister.create(ForgeRegistries.FEATURES, OreSpawn.MODID);
+			DeferredRegister.create(BuiltInRegistries.FEATURE, OreSpawn.MODID);
 
 	static {
 		FEATURES.register("stone_replacer", () -> StoneReplacer.FEATURE);

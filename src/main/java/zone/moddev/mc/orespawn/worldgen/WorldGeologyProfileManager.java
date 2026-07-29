@@ -18,15 +18,16 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
+import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import net.minecraft.server.level.ServerLevel;
 
 import org.apache.logging.log4j.LogManager;
@@ -117,6 +118,8 @@ public final class WorldGeologyProfileManager {
 
 	public static void onServerAboutToStart(ServerAboutToStartEvent event) {
 		activeServer = event.getServer();
+		BiomeRegistryAccess.bind(event.getServer().registryAccess());
+		OreSpawn.runGeomeSamplerIfRequested();
 		Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT).normalize();
 		Path profilePath = worldRoot.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile fallback = globalProfile();
@@ -173,6 +176,7 @@ public final class WorldGeologyProfileManager {
 		FluidDepositFeature.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.clear();
+		BiomeRegistryAccess.clear();
 	}
 
 	public static void onWorldLoad(LevelEvent.Load event) {

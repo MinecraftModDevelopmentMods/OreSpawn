@@ -7,7 +7,7 @@
 | Add ores to vanilla stone | Ore-only provider with explicit host tags |
 | Let a modpack tune another mod's rules | `config/<modid>-orespawn.json` |
 | Ship rocks, geomes, or custom terrain | Full packaged provider |
-| Construct definitions in Java | API provider sent through Forge IMC |
+| Construct definitions in Java | API provider sent through NeoForge IMC |
 | Offer an optional world style | Named template in a provider |
 | Add covered underground oil or another fluid | Provider schema 3 fluid deposit |
 | Add or place biomes without a framework dependency | Provider schema 4 biome palette |
@@ -65,12 +65,12 @@ a custom dimension, a biome palette, world materials, and a selectable template.
 
 ## Java API Quick Start
 
-Declare OreSpawn as a mandatory dependency in `mods.toml`:
+Declare OreSpawn as a required dependency in `neoforge.mods.toml`:
 
 ```toml
 [[dependencies.examplemod]]
 modId="orespawn"
-mandatory=true
+type="required"
 versionRange="[4.0.0,5.0.0)"
 ordering="AFTER"
 side="BOTH"
@@ -86,7 +86,7 @@ import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
+import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
 
 private void enqueueWorldgen(InterModEnqueueEvent event) {
     ResourceLocation tin = new ResourceLocation("examplemod", "tin_ore");

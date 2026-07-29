@@ -85,7 +85,7 @@ final class OreDimensionScreen extends Screen {
 			JsonElement configured = rule.get("pattern");
 			if (configured != null && configured.isJsonObject()) {
 				externalPatternId = GeologyEditorSession.string(configured.getAsJsonObject(), "type", "orespawn:vein");
-				ResourceLocation id = ResourceLocation.parse(externalPatternId);
+				ResourceLocation id = new ResourceLocation(externalPatternId);
 				externalPattern = true;
 				pattern = "orespawn".equals(id.getNamespace())
 						? OrePattern.fromConfigName(id.getPath()) : OrePattern.VEIN;
@@ -392,7 +392,7 @@ final class OreDimensionScreen extends Screen {
 		for (String token : value.split(",")) {
 			String id = token.trim();
 			if (id.isEmpty()) continue;
-			ResourceLocation.parse(id);
+			new ResourceLocation(id);
 			result.add(id);
 		}
 		return result;

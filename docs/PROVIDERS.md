@@ -1,6 +1,6 @@
 # Worldgen Providers
 
-Provider mods may contribute through Forge IMC, a packaged resource at
+Provider mods may contribute through NeoForge IMC, a packaged resource at
 `data/<provider-modid>/orespawn/provider.json`, or a pack override at
 `config/<provider-modid>-orespawn.json`. A valid override is authoritative. A
 present malformed override leaves that provider inactive instead of silently
@@ -81,8 +81,8 @@ An enabled ore dimension requires a Y range, expected attempts per chunk in
 quantity and a complete range are both present, the range is authoritative; a
 lone range bound is invalid. Host arrays accept either registry-ID strings or weighted
 objects such as `{ "block": "minecraft:stone", "weight": 1.0 }` and
-`{ "tag": "forge:stone", "weight": 0.5 }`. Biome include/exclude IDs and
-Forge biome-dictionary names may further restrict a rule.
+`{ "tag": "c:stones", "weight": 0.5 }`. Biome include/exclude IDs and
+NeoForge biome tag/type names may further restrict a rule.
 
 For OS3-compatible placement in ordinary modded dimensions, put a rule under
 `dimension_selectors.orespawn:all_except_nether_end`. It applies to every
@@ -105,11 +105,11 @@ Existing worlds merge newly introduced provider rule IDs but do not overwrite
 world edits. Disabled and unassigned rules remain tombstones; removed provider
 rules remain in the self-contained snapshot.
 
-Biome providers can add Forge biomes normally, then declare where those biomes
-belong through `biome_palettes`. The overlay wraps the dimension's existing
-biome source, so it composes after vanilla or another installed source instead
-of taking a compile-time dependency on it. Use `minecraft_only` scope when the
-provider should leave other mods' biomes alone.
+Biome providers package their biomes in the standard dynamic-registry path
+`data/<modid>/worldgen/biome/`, then declare where those IDs belong through
+`biome_palettes`. The overlay wraps the dimension's existing biome source, so
+it composes after vanilla or another installed source. Use `minecraft_only`
+scope when the provider should leave other mods' biomes alone.
 Use `required_similar_biomes` only when an output truly cannot work without a
 referenced biome; ordinary compatibility hints belong in `similar_biomes`.
 

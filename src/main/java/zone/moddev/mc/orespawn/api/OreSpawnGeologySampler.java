@@ -22,7 +22,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.server.level.ServerLevel;
 
 final class OreSpawnGeologySampler implements GeologySampler {
-	private static final ResourceLocation CYANO_GEOME = ResourceLocation.fromNamespaceAndPath("orespawn", "cyano");
+	private static final ResourceLocation CYANO_GEOME = new ResourceLocation("orespawn", "cyano");
 
 	private final ServerLevel level;
 	private final ResourceLocation dimension;
@@ -59,7 +59,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
 		Holder<Biome> holder = level.getBiome(position);
 		ResourceLocation biomeId = holder.unwrapKey().map(ResourceKey::location)
-				.orElse(ResourceLocation.fromNamespaceAndPath("orespawn", "unregistered_biome"));
+				.orElse(new ResourceLocation("orespawn", "unregistered_biome"));
 		if (mode == GeologyMode.LEGACY) {
 			return new CyanoColumn(biomeId, blockX, blockZ, surfaceY);
 		}
@@ -127,10 +127,10 @@ final class OreSpawnGeologySampler implements GeologySampler {
 
 	private static ResourceLocation geomeId(String name) {
 		try {
-			return name.indexOf(':') >= 0 ? ResourceLocation.parse(name)
-					: ResourceLocation.fromNamespaceAndPath("orespawn", name.toLowerCase(Locale.ROOT));
+			return name.indexOf(':') >= 0 ? new ResourceLocation(name)
+					: new ResourceLocation("orespawn", name.toLowerCase(Locale.ROOT));
 		} catch (RuntimeException ignored) {
-			return ResourceLocation.fromNamespaceAndPath("orespawn", "unknown");
+			return new ResourceLocation("orespawn", "unknown");
 		}
 	}
 }

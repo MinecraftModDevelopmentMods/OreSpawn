@@ -22,14 +22,15 @@ import zone.moddev.mc.orespawn.worldgen.WorldMaterialWeather;
 import zone.moddev.mc.orespawn.commands.OreSpawnCommands;
 import zone.moddev.mc.orespawn.documentation.DocumentationExporter;
 
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
+import net.neoforged.fml.event.lifecycle.InterModProcessEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,27 +51,27 @@ public class OreSpawn {
 		return version == null ? "DEV" : version;
 	}
 
-	public OreSpawn(FMLJavaModLoadingContext context) {
+	public OreSpawn(IEventBus modBus, ModContainer modContainer) {
 		instance = this;
-		OreSpawnConfig.register(context);
-		net.minecraftforge.eventbus.api.IEventBus modBus = context.getModEventBus();
+		OreSpawnConfig.register(modContainer);
 		OreSpawnPatterns.register(modBus);
 		Features.register(modBus);
 		BiomeModifiers.register(modBus);
+		modBus.addListener(BiomeWorldgenBootstrap::registerCodecs);
 
 		modBus.addListener(this::setup);
 		modBus.addListener(this::enqueueInterMod);
 		modBus.addListener(this::processInterMod);
 		modBus.addListener(this::loadComplete);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
-		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
+		NeoForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
+		NeoForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
+		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
+		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
+		NeoForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
+		NeoForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
+		NeoForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
+		NeoForge.EVENT_BUS.addListener(OreSpawnCommands::register);
 		WorldgenBenchmark.register();
 	}
 
@@ -103,9 +104,7 @@ public class OreSpawn {
 		OreSpawnConfig.bake();
 		WorldgenIntegrationManager.initialize();
 		GeomeConfig.bake();
-		logGeomeSampler();
 		event.enqueueWork(() -> {
-			BiomeWorldgenBootstrap.registerCodecs();
 			DocumentationExporter.exportBundledGuide();
 			StoneReplacer.registerConfiguredFeature();
 			OreSpawnOreGeneration.registerConfiguredFeatures();
@@ -115,7 +114,7 @@ public class OreSpawn {
 		});
 	}
 
-	private static void logGeomeSampler() {
+	public static void runGeomeSamplerIfRequested() {
 		if (!Boolean.getBoolean("orespawn.geomeSampler")) {
 			return;
 		}
@@ -169,7 +168,7 @@ public class OreSpawn {
 		String terrainSample = System.getProperty("orespawn.geomeSamplerTerrain");
 		if (terrainSample == null || terrainSample.trim().isEmpty()) {
 			LOGGER.info("\n{} sampler\n{}", label,
-					GeomeDistributionSampler.sample(seed, ForgeRegistries.BIOMES.getValues(), 8, 8,
+					GeomeDistributionSampler.sample(seed, zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values(), 8, 8,
 							includeBiomeAudit));
 			return;
 		}

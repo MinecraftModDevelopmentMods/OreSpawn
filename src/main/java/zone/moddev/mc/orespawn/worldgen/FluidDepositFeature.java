@@ -36,7 +36,7 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -420,7 +420,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	private static Set<Block> resolveTag(TagKey<Block> tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
+		for (Block block : BuiltInRegistries.BLOCK.stream().toList()) {
 			if (block.defaultBlockState().is(tag)) result.add(block);
 		}
 		return result;
@@ -478,11 +478,11 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	private static Block block(String value) {
 		ResourceLocation id = resource(value);
-		return id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
+		return id == null ? null : BuiltInRegistries.BLOCK.get(id);
 	}
 
 	private static ResourceLocation resource(String value) {
-		try { return ResourceLocation.parse(value); } catch (RuntimeException ignored) { return null; }
+		try { return new ResourceLocation(value); } catch (RuntimeException ignored) { return null; }
 	}
 
 	private static boolean bool(JsonObject json, String key, boolean fallback) {

@@ -21,7 +21,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class GeomeDistributionSampler {
 	private static final int TERRAIN_SAMPLE_MAGIC = 0x4D54524E;
@@ -49,7 +49,7 @@ public final class GeomeDistributionSampler {
 		long selectionSignature = 0xCBF29CE484222325L;
 		int step = Math.max(1, yStep);
 		for (Biome biome : biomes) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
+			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (!isOverworldGeologyBiome(biomeId, biome)) {
 				continue;
 			}
@@ -63,7 +63,7 @@ public final class GeomeDistributionSampler {
 				shape.addDrift(geology, x, z);
 				for (int y = 8; y <= 96; y += step) {
 					Block block = geology.getStoneAt(biome, x, y, z, 96);
-					ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+					ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
 					selectionSignature ^= id == null ? 0 : id.toString().hashCode();
 					selectionSignature *= 0x100000001B3L;
 					add(rockCounts, id == null ? "<unregistered>" : id.toString());
@@ -136,8 +136,8 @@ public final class GeomeDistributionSampler {
 				int length = input.readUnsignedShort();
 				byte[] encoded = new byte[length];
 				input.readFully(encoded);
-				ResourceLocation biomeId = ResourceLocation.parse(new String(encoded, StandardCharsets.UTF_8));
-				biomePalette[index] = ForgeRegistries.BIOMES.getValue(biomeId);
+				ResourceLocation biomeId = new ResourceLocation(new String(encoded, StandardCharsets.UTF_8));
+				biomePalette[index] = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.get(biomeId);
 				if (biomePalette[index] == null) {
 					throw new IOException("Unknown biome " + biomeId + " in " + path);
 				}
@@ -165,7 +165,7 @@ public final class GeomeDistributionSampler {
 						}
 						Block block = geology.getStoneAt(geomeIndex, stratumOffset, formationRegion,
 								x, minY + yIndex, z);
-						ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+						ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
 						String rockId = id == null ? "<unregistered>" : id.toString();
 						selectionSignature ^= rockId.hashCode();
 						selectionSignature *= 0x100000001B3L;
@@ -218,7 +218,7 @@ public final class GeomeDistributionSampler {
 		List<String> neutralBiomes = new ArrayList<>();
 		int biomeIndex = 0;
 		for (Entry<String, Biome> entry : biomes.entrySet()) {
-			ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
+			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
 			add(namespaceCounts, biomeId.getNamespace());
 			if (!config.hasDistinctBiomeWeights(entry.getValue())) {
 				neutralBiomes.add(entry.getKey());
@@ -267,7 +267,7 @@ public final class GeomeDistributionSampler {
 
 	private static String biomeTypes(ResourceLocation biomeId) {
 		List<String> names = new ArrayList<>();
-		Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
+		Biome biome = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.get(biomeId);
 		if (biome != null) names.addAll(BiomeTypeCompatibility.types(biome));
 		Collections.sort(names);
 		return names.toString();

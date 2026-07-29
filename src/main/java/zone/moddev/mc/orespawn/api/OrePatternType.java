@@ -9,7 +9,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 
 /**
- * Forge-registered ore pattern type. Its codec is evaluated once while a
+ * NeoForge-registered ore pattern type. Its codec is evaluated once while a
  * geology profile is baked; only the resulting compiled pattern reaches the
  * generation loop.
  */

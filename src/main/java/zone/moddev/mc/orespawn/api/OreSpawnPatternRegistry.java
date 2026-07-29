@@ -4,22 +4,22 @@ import java.util.function.Supplier;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
 
 /** Stable entry point for mods that register codec-backed ore patterns. */
 public final class OreSpawnPatternRegistry {
 	public static final ResourceLocation REGISTRY_NAME =
-			ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, "ore_pattern_types");
+			new ResourceLocation(OreSpawn.MODID, "ore_pattern_types");
 
 	private OreSpawnPatternRegistry() {
 	}
 
-	public static IForgeRegistry<OrePatternType> registry() {
+	public static Registry<OrePatternType> registry() {
 		return zone.moddev.mc.orespawn.init.OreSpawnPatterns.registry();
 	}
 
-	public static Supplier<IForgeRegistry<OrePatternType>> registrySupplier() {
+	public static Supplier<Registry<OrePatternType>> registrySupplier() {
 		return zone.moddev.mc.orespawn.init.OreSpawnPatterns.registrySupplier();
 	}
 }

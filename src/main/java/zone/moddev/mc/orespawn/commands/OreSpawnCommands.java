@@ -18,9 +18,9 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.fml.loading.FMLPaths;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /** Server-side diagnostics and bounded maintenance commands. */
 public final class OreSpawnCommands {
@@ -71,7 +71,7 @@ public final class OreSpawnCommands {
 
 	private static int dumpBiomes(net.minecraft.commands.CommandSourceStack source) {
 		List<String> ids = new ArrayList<>();
-		for (ResourceLocation id : ForgeRegistries.BIOMES.getKeys()) ids.add(id.toString());
+		for (ResourceLocation id : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.keys()) ids.add(id.toString());
 		Collections.sort(ids);
 		Path target = FMLPaths.CONFIGDIR.get().resolve("orespawn-biomes.txt");
 		try {

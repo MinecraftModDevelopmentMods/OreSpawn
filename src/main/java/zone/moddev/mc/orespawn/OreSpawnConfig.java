@@ -2,14 +2,14 @@ package zone.moddev.mc.orespawn;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 
 /** Small bootstrap fallback; the JSON profile is the authoritative worldgen configuration. */
 public final class OreSpawnConfig {
 	private static final Common COMMON;
-	private static final ForgeConfigSpec SPEC;
+	private static final ModConfigSpec SPEC;
 
 	private static volatile boolean placeTerrain = true;
 	private static volatile GeologyMode geologyMode = GeologyMode.GEOME;
@@ -18,7 +18,7 @@ public final class OreSpawnConfig {
 	private static volatile int layerThickness = 8;
 
 	static {
-		Pair<Common, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Common::new);
+		Pair<Common, ModConfigSpec> pair = new ModConfigSpec.Builder().configure(Common::new);
 		COMMON = pair.getLeft();
 		SPEC = pair.getRight();
 	}
@@ -26,8 +26,8 @@ public final class OreSpawnConfig {
 	private OreSpawnConfig() {
 	}
 
-	public static void register(FMLJavaModLoadingContext context) {
-		context.registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
+	public static void register(ModContainer container) {
+		container.registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
 	}
 
 	public static void bake() {
@@ -48,13 +48,13 @@ public final class OreSpawnConfig {
 	public static boolean placeCrudeOil() { return false; }
 
 	private static final class Common {
-		final ForgeConfigSpec.BooleanValue placeTerrain;
-		final ForgeConfigSpec.EnumValue<GeologyMode> geologyMode;
-		final ForgeConfigSpec.IntValue geomeSize;
-		final ForgeConfigSpec.DoubleValue rockLayerNoise;
-		final ForgeConfigSpec.IntValue layerThickness;
+		final ModConfigSpec.BooleanValue placeTerrain;
+		final ModConfigSpec.EnumValue<GeologyMode> geologyMode;
+		final ModConfigSpec.IntValue geomeSize;
+		final ModConfigSpec.DoubleValue rockLayerNoise;
+		final ModConfigSpec.IntValue layerThickness;
 
-		Common(ForgeConfigSpec.Builder builder) {
+		Common(ModConfigSpec.Builder builder) {
 			builder.comment("Bootstrap fallbacks. Detailed settings live in orespawn-worldgen.json.")
 					.push("worldgen");
 			placeTerrain = builder.comment("Master switch for configured terrain replacement.")

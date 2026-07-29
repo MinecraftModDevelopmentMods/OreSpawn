@@ -17,12 +17,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.Tags;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /**
  * Preserves OreSpawn's legacy biome-dictionary vocabulary on versions where
- * Forge expresses biome traits through tags.
+ * NeoForge expresses biome traits through tags.
  */
 final class BiomeTypeCompatibility {
 	private static final Map<String, List<TagKey<Biome>>> TYPES = types();
@@ -31,8 +31,7 @@ final class BiomeTypeCompatibility {
 	}
 
 	static Set<String> types(Biome biome) {
-		Holder<Biome> holder = ForgeRegistries.BIOMES.getHolder(biome).orElse(null);
-		if (holder == null) return Collections.emptySet();
+		Holder<Biome> holder = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.holder(biome);
 		Set<String> result = new LinkedHashSet<>();
 		for (Map.Entry<String, List<TagKey<Biome>>> entry : TYPES.entrySet()) {
 			if (matches(holder, entry.getValue())) result.add(entry.getKey());
@@ -42,7 +41,7 @@ final class BiomeTypeCompatibility {
 
 	static Set<Biome> biomes(String type) {
 		Set<Biome> result = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-		for (Biome biome : ForgeRegistries.BIOMES.getValues()) {
+		for (Biome biome : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values()) {
 			if (hasType(biome, type)) result.add(biome);
 		}
 		return result;
@@ -51,20 +50,19 @@ final class BiomeTypeCompatibility {
 	static Set<ResourceKey<Biome>> biomeKeys(String type) {
 		Set<ResourceKey<Biome>> result = new LinkedHashSet<>();
 		for (Biome biome : biomes(type)) {
-			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
+			ResourceLocation id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (id != null) result.add(ResourceKey.create(Registries.BIOME, id));
 		}
 		return result;
 	}
 
 	static boolean hasType(ResourceKey<Biome> key, String type) {
-		return ForgeRegistries.BIOMES.getHolder(key)
+		return zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.holder(key)
 				.map(holder -> matches(holder, tags(type))).orElse(false);
 	}
 
 	static boolean hasType(Biome biome, String type) {
-		return ForgeRegistries.BIOMES.getHolder(biome)
-				.map(holder -> matches(holder, tags(type))).orElse(false);
+		return matches(zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.holder(biome), tags(type));
 	}
 
 	private static List<TagKey<Biome>> tags(String type) {
@@ -73,7 +71,7 @@ final class BiomeTypeCompatibility {
 		if (known != null) return known;
 		if (normalized.isEmpty()) return Collections.emptyList();
 		return Collections.singletonList(TagKey.create(Registries.BIOME,
-				ResourceLocation.fromNamespaceAndPath("forge", "is_" + normalized.toLowerCase(Locale.ROOT))));
+				new ResourceLocation("c", "is_" + normalized.toLowerCase(Locale.ROOT))));
 	}
 
 	private static boolean matches(Holder<Biome> holder,
@@ -100,19 +98,19 @@ final class BiomeTypeCompatibility {
 		add(result, "FOREST", BiomeTags.IS_FOREST);
 		add(result, "PLAINS", Tags.Biomes.IS_PLAINS);
 		add(result, "SAVANNA", BiomeTags.IS_SAVANNA);
-		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS, BiomeTags.IS_TAIGA);
+		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS_TREE, BiomeTags.IS_TAIGA);
 		add(result, "JUNGLE", BiomeTags.IS_JUNGLE);
 		add(result, "LUSH", Tags.Biomes.IS_LUSH);
 		add(result, "MUSHROOM", Tags.Biomes.IS_MUSHROOM);
 		add(result, "PLATEAU", Tags.Biomes.IS_PLATEAU);
-		add(result, "PEAK", Tags.Biomes.IS_PEAK);
-		add(result, "SLOPE", Tags.Biomes.IS_SLOPE);
+		add(result, "PEAK", Tags.Biomes.IS_MOUNTAIN_PEAK);
+		add(result, "SLOPE", Tags.Biomes.IS_MOUNTAIN_SLOPE);
 		add(result, "UNDERGROUND", Tags.Biomes.IS_UNDERGROUND, Tags.Biomes.IS_CAVE);
 		add(result, "WASTELAND", Tags.Biomes.IS_WASTELAND);
-		add(result, "WATER", Tags.Biomes.IS_WATER, BiomeTags.IS_OCEAN,
+		add(result, "WATER", Tags.Biomes.IS_AQUATIC, BiomeTags.IS_OCEAN,
 				BiomeTags.IS_RIVER);
-		add(result, "DENSE", Tags.Biomes.IS_DENSE);
-		add(result, "SPARSE", Tags.Biomes.IS_SPARSE);
+		add(result, "DENSE", Tags.Biomes.IS_DENSE_VEGETATION);
+		add(result, "SPARSE", Tags.Biomes.IS_SPARSE_VEGETATION);
 		add(result, "DEAD", Tags.Biomes.IS_DEAD);
 		add(result, "MAGICAL", Tags.Biomes.IS_MAGICAL);
 		add(result, "SPOOKY", Tags.Biomes.IS_SPOOKY);

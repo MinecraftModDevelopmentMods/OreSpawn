@@ -25,9 +25,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,8 +48,8 @@ public final class WorldgenBenchmark {
 		if (!ENABLED) {
 			return;
 		}
-		MinecraftForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerAboutToStart);
-		MinecraftForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerStarted);
+		NeoForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerAboutToStart);
+		NeoForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerStarted);
 	}
 
 	public static boolean isVanillaBaseline() {

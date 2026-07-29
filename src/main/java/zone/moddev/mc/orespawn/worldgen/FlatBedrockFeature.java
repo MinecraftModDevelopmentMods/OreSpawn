@@ -24,7 +24,7 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /** Optional flat bedrock generation compatible with OreSpawn 3 profiles. */
 public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> {
@@ -128,7 +128,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 			for (JsonElement element : json.getAsJsonArray("dimensions")) {
 				try {
 					dimensions.add(ResourceKey.create(Registries.DIMENSION,
-							ResourceLocation.parse(element.getAsString())));
+							new ResourceLocation(element.getAsString())));
 				} catch (RuntimeException ignored) {
 				}
 			}
@@ -144,7 +144,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 
 	private static BlockState blockState(JsonObject json, String key, BlockState fallback) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(
+			Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(
 					json.has(key) ? json.get(key).getAsString() : ""));
 			return block == null || block == Blocks.AIR ? fallback : block.defaultBlockState();
 		} catch (RuntimeException e) {

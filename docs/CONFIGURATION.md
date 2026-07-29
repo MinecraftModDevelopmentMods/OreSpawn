@@ -25,13 +25,13 @@ world. Restart after editing JSON by hand.
 | `geology_mode` | `geome`, `legacy` | Sky/geome engine or Cyano legacy engine |
 | `place_fluid_deposits` | boolean | Master switch for configured fluid-deposit rules |
 | `manage_vanilla_ores` | boolean | Lets OreSpawn suppress and replace claimed vanilla ore features |
-| `suppress_all_ore_features` | boolean | Suppresses all standard Forge ore features; use only in complete packs |
+| `suppress_all_ore_features` | boolean | Suppresses all standard NeoForge ore features; use only in complete packs |
 | `default_template` | registry ID or empty string | Template selected for newly created server worlds |
 | `formations` | object | Shape controls used only when terrain strata are active |
 | `rocks` | object keyed by rule ID | Eligible rock definitions |
 | `geomes` | object keyed by geome ID | Geological province weights |
 | `biomes` | object keyed by biome ID | Explicit biome-to-geome weights |
-| `biome_dictionary` | object keyed by Forge biome type | Fallback biome-to-geome weights |
+| `biome_dictionary` | object keyed by NeoForge biome tag/type name | Fallback biome-to-geome weights |
 | `terrain_dimensions` | object keyed by dimension ID | Dimensions and hosts eligible for terrain replacement |
 | `biome_palettes` | object keyed by provider-owned rule ID | Optional native-biome overlays and surfaces |
 | `dimension_materials` | object keyed by provider-owned rule ID | Aquifer fluid, snow, and ice substitutions |

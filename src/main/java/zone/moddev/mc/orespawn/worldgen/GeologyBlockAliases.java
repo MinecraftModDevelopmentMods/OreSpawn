@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class GeologyBlockAliases {
 	private static final String[] MATCHING_VANILLA_STONES = new String[] {
@@ -30,7 +30,7 @@ public final class GeologyBlockAliases {
 	}
 
 	public static BlockState aliasState(BlockState original) {
-		ResourceLocation id = ForgeRegistries.BLOCKS.getKey(original.getBlock());
+		ResourceLocation id = BuiltInRegistries.BLOCK.getKey(original.getBlock());
 		return aliasState(id, original, null);
 	}
 
@@ -49,7 +49,7 @@ public final class GeologyBlockAliases {
 			return original;
 		}
 
-		Block target = ForgeRegistries.BLOCKS.getValue(targetId);
+		Block target = BuiltInRegistries.BLOCK.get(targetId);
 		if (target == null || target == Blocks.AIR) {
 			return original;
 		}
@@ -59,7 +59,7 @@ public final class GeologyBlockAliases {
 	private static Map<ResourceLocation, ResourceLocation> createDefaultAliases() {
 		Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<ResourceLocation, ResourceLocation>();
 		for (String name : MATCHING_VANILLA_STONES) {
-			aliases.put(ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, name), ResourceLocation.fromNamespaceAndPath("minecraft", name));
+			aliases.put(new ResourceLocation(OreSpawn.MODID, name), new ResourceLocation("minecraft", name));
 		}
 		return aliases;
 	}

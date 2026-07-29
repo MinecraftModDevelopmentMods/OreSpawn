@@ -47,7 +47,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -299,7 +299,7 @@ public final class GeomeConfig {
 		ResourceLocation selected = null;
 		if (!configured.isEmpty()) {
 			try {
-				selected = ResourceLocation.parse(configured);
+				selected = new ResourceLocation(configured);
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn default template '{}'", configured);
 			}
@@ -327,7 +327,7 @@ public final class GeomeConfig {
 				continue;
 			}
 			try {
-				ResourceLocation id = ResourceLocation.parse(entry.getKey());
+				ResourceLocation id = new ResourceLocation(entry.getKey());
 				Set<Block> hosts = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
 				addTerrainHostBlocks(hosts, json.get("host_blocks"));
 				addTerrainHostTags(hosts, json.get("host_tags"));
@@ -348,7 +348,7 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostBlocks(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			Block block = ForgeRegistries.BLOCKS.getValue(id);
+			Block block = BuiltInRegistries.BLOCK.get(id);
 			if (block != null && block != Blocks.AIR) {
 				target.add(block);
 			}
@@ -358,7 +358,7 @@ public final class GeomeConfig {
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
 			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
-			for (Block block : ForgeRegistries.BLOCKS.getValues()) {
+			for (Block block : BuiltInRegistries.BLOCK.stream().toList()) {
 				if (block.defaultBlockState().is(tag)) {
 					target.add(block);
 				}
@@ -370,7 +370,7 @@ public final class GeomeConfig {
 		Set<ResourceLocation> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				result.add(ResourceLocation.parse(value.getAsString()));
+				result.add(new ResourceLocation(value.getAsString()));
 			}
 		}
 		return result;
@@ -395,7 +395,7 @@ public final class GeomeConfig {
 		}
 		for (JsonElement value : rock.getAsJsonArray("dimensions")) {
 			try {
-				if (dimension.equals(ResourceLocation.parse(value.getAsString()))) {
+				if (dimension.equals(new ResourceLocation(value.getAsString()))) {
 					return true;
 				}
 			} catch (RuntimeException ignored) {
@@ -563,14 +563,14 @@ public final class GeomeConfig {
 			ResourceLocation ruleId;
 			ResourceLocation id;
 			try {
-				ruleId = ResourceLocation.parse(entry.getKey());
-				id = ResourceLocation.parse(getString(json, "block", entry.getKey()));
+				ruleId = new ResourceLocation(entry.getKey());
+				id = new ResourceLocation(getString(json, "block", entry.getKey()));
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn geome rock rule or block id '{}'", entry.getKey());
 				continue;
 			}
 
-			Block block = ForgeRegistries.BLOCKS.getValue(id);
+			Block block = BuiltInRegistries.BLOCK.get(id);
 			if (block == null || block == Blocks.AIR) {
 				LOGGER.warn("Ignoring unknown OreSpawn geome rock block '{}'", id);
 				continue;
@@ -993,14 +993,14 @@ public final class GeomeConfig {
 			ResourceLocation sourceId;
 			ResourceLocation targetId;
 			try {
-				sourceId = ResourceLocation.parse(entry.getKey());
-				targetId = ResourceLocation.parse(entry.getValue().getAsString());
+				sourceId = new ResourceLocation(entry.getKey());
+				targetId = new ResourceLocation(entry.getValue().getAsString());
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn worldgen alias '{}'", entry.getKey());
 				continue;
 			}
 
-			Block target = ForgeRegistries.BLOCKS.getValue(targetId);
+			Block target = BuiltInRegistries.BLOCK.get(targetId);
 			if (target == null || target == Blocks.AIR) {
 				LOGGER.warn("Ignoring OreSpawn worldgen alias '{}' -> '{}' because the target block is unknown",
 						sourceId, targetId);
@@ -1015,13 +1015,13 @@ public final class GeomeConfig {
 	private static Map<Biome, double[]> bakeBiomeWeights(Map<String, Integer> geomeIndexes,
 			Map<String, double[]> biomeRules, Map<String, double[]> dictionaryRules) {
 		Map<Biome, double[]> result = new IdentityHashMap<>();
-		for (Biome biome : ForgeRegistries.BIOMES.getValues()) {
+		for (Biome biome : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values()) {
 			double[] weights = new double[geomeIndexes.size()];
 			for (int i = 0; i < weights.length; i++) {
 				weights[i] = 1.0D;
 			}
 
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
+			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
 				for (String type : BiomeTypeCompatibility.types(biome)) {
@@ -1131,8 +1131,8 @@ public final class GeomeConfig {
 	}
 
 	static String normalizeGeomeName(String geome) {
-		return geome.indexOf(':') >= 0 ? ResourceLocation.parse(geome).toString()
-				: ResourceLocation.fromNamespaceAndPath("orespawn", geome).toString();
+		return geome.indexOf(':') >= 0 ? new ResourceLocation(geome).toString()
+				: new ResourceLocation("orespawn", geome).toString();
 	}
 
 	private static double getDouble(JsonObject json, String key, double fallback) {

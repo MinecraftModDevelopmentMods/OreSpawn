@@ -39,7 +39,7 @@ class OreSpawnOreGenerationTest {
 	void broadSelectorNeverLeaksIntoNetherOrEnd() {
 		assertTrue(OreSpawnOreGeneration.selectorAllows(Level.OVERWORLD));
 		assertTrue(OreSpawnOreGeneration.selectorAllows(ResourceKey.create(
-				Registries.DIMENSION, ResourceLocation.parse("examplemod:moon"))));
+				Registries.DIMENSION, new ResourceLocation("examplemod:moon"))));
 		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.NETHER));
 		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.END));
 	}
@@ -51,14 +51,14 @@ class OreSpawnOreGenerationTest {
 		explicit.put(Level.OVERWORLD, "overworld");
 		configured.add(Level.OVERWORLD);
 		configured.add(ResourceKey.create(Registries.DIMENSION,
-				ResourceLocation.parse("examplemod:disabled")));
+				new ResourceLocation("examplemod:disabled")));
 
 		assertEquals("overworld", OreSpawnOreGeneration.selectRule(
 				explicit, configured, "selector", Level.OVERWORLD));
 		assertEquals("selector", OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse("examplemod:moon"))));
+				ResourceKey.create(Registries.DIMENSION, new ResourceLocation("examplemod:moon"))));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse("examplemod:disabled"))));
+				ResourceKey.create(Registries.DIMENSION, new ResourceLocation("examplemod:disabled"))));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector", Level.NETHER));
 	}
 
