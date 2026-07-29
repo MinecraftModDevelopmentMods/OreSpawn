@@ -65,6 +65,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		clearWidgetReferences();
 		int contentWidth = Math.min(390, Math.max(310, this.width - 24));
 		columnWidth = (contentWidth - 5) / 2;
 		int left = (this.width - contentWidth) / 2;
@@ -145,7 +146,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			formationContinuityButton = addPresetButton(left, top + (row * rowIndex),
 					"option.orespawn.formation_continuity", "tooltip.orespawn.formation_continuity",
 					formationContinuity, value -> formationContinuity = value);
-			if (vanillaOresButton == null) vanillaOresButton = addVanillaOresButton(right,
+			if (fluids) vanillaOresButton = addVanillaOresButton(right,
 					top + (row * rowIndex), columnWidth);
 			rowIndex++;
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
@@ -175,6 +176,17 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_CANCEL, button -> onClose()));
 		updateFormationControls();
+	}
+
+	private void clearWidgetReferences() {
+		geologyModeButton = null;
+		fluidDepositsButton = null;
+		vanillaOresButton = null;
+		horizontalSizeButton = null;
+		verticalThicknessButton = null;
+		wavinessButton = null;
+		edgeIrregularityButton = null;
+		formationContinuityButton = null;
 	}
 
 	private CycleButton<Boolean> addVanillaOresButton(int x, int y, int width) {
