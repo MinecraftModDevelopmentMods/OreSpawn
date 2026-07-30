@@ -9,6 +9,14 @@ import net.minecraft.network.chat.Component;
 
 /** Shared dimensions for the compact world-creation screens. */
 final class OreSpawnScreenLayout {
+	static final int TEXT_PRIMARY = 0xFFFFFFFF;
+	static final int TEXT_SECONDARY = 0xFFDDDDDD;
+	static final int TEXT_SOFT = 0xFFCCCCCC;
+	static final int TEXT_MUTED = 0xFFAAAAAA;
+	static final int TEXT_BODY = 0xFFEEEEEE;
+	static final int TEXT_HIGHLIGHT = 0xFFFFFF55;
+	static final int TEXT_ERROR = 0xFFFF5555;
+
 	private static final int COMPACT_HEIGHT = 260;
 
 	private OreSpawnScreenLayout() { }

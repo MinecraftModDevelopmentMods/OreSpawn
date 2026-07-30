@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
-final class FluidBlockPickerScreen extends Screen {
+final class FluidBlockPickerScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private EditBox search;
@@ -95,9 +95,7 @@ final class FluidBlockPickerScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 18, OreSpawnScreenLayout.TEXT_PRIMARY);
 	}
 }

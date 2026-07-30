@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class BlockAssignmentScreen extends Screen {
+final class BlockAssignmentScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String blockId;
@@ -58,11 +58,9 @@ final class BlockAssignmentScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-		graphics.drawCenteredString(font, Component.literal(blockId), width / 2, 42, 0xDDDDDD);
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, 155, 0xFF5555);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 18, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.drawCenteredString(font, Component.literal(blockId), width / 2, 42, OreSpawnScreenLayout.TEXT_SECONDARY);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, 155, OreSpawnScreenLayout.TEXT_ERROR);
 	}
 }

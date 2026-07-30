@@ -18,7 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
-final class OreEntryScreen extends Screen {
+final class OreEntryScreen extends OreSpawnScreen {
 	private static final String BROAD_SELECTOR =
 			OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString();
 	private final Screen parent;
@@ -208,18 +208,16 @@ final class OreEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
 		Component blockName = Component.literal(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
 		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
-				width / 2, 25, 0xDDDDDD);
+				width / 2, 25, OreSpawnScreenLayout.TEXT_SECONDARY);
 		String source = GeologyEditorSession.string(session.ore(oreId), "source_provider",
 				GeologyEditorSession.string(session.ore(oreId), "source_mod", ""));
 		if (!source.isEmpty()) {
-			graphics.drawCenteredString(font, Component.literal("Source: " + source), width / 2, 36, 0xAAAAAA);
+			graphics.drawCenteredString(font, Component.literal("Source: " + source), width / 2, 36, OreSpawnScreenLayout.TEXT_MUTED);
 		}
-		super.render(graphics, mouseX, mouseY, partialTick);
 	}
 }

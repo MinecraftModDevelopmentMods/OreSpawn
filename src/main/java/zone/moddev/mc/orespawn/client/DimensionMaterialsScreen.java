@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class DimensionMaterialsScreen extends Screen {
+final class DimensionMaterialsScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
@@ -91,11 +91,9 @@ final class DimensionMaterialsScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-		graphics.drawCenteredString(font, Component.literal(dimension), width / 2, 30, 0xCCCCCC);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.drawCenteredString(font, Component.literal(dimension), width / 2, 30, OreSpawnScreenLayout.TEXT_SOFT);
 	}
 
 	private static String string(JsonObject root, String key, String fallback) {
