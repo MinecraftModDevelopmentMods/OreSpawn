@@ -6,14 +6,14 @@ import java.util.Map;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class GeomeEntryScreen extends Screen {
+final class GeomeEntryScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String geomeId;
@@ -117,19 +117,19 @@ final class GeomeEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-		graphics.drawCenteredString(font, Component.literal(geomeId), width / 2, 30, 0xDDDDDD);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.drawCenteredString(font, Component.literal(geomeId), width / 2, 30, OreSpawnScreenLayout.TEXT_SECONDARY);
 		graphics.drawString(font, Component.translatable("option.orespawn.base_weight"),
-				width / 2 - 155, 58, 0xDDDDDD);
+				width / 2 - 155, 58, OreSpawnScreenLayout.TEXT_SECONDARY);
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
 			graphics.drawString(font, Component.translatable("value.orespawn.family." + family.configName),
-					width / 2 - 155, 88 + (index * 25), 0xDDDDDD);
+					width / 2 - 155, 88 + (index * 25), OreSpawnScreenLayout.TEXT_SECONDARY);
 			index++;
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
-		super.render(graphics, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+
 	}
 }

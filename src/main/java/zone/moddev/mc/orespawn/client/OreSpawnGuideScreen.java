@@ -4,15 +4,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
 /** A short, player-facing guide available while a world is being configured. */
-final class OreSpawnGuideScreen extends Screen {
+final class OreSpawnGuideScreen extends OreSpawnScreen {
 	private static final List<GuidePage> PAGES = Arrays.asList(
 			page("welcome", 3),
 			page("world", 3),
@@ -59,25 +59,25 @@ final class OreSpawnGuideScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
 		GuidePage current = PAGES.get(page);
-		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-		graphics.drawCenteredString(font, current.title, width / 2, 28, 0xFFFF55);
+		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.drawCenteredString(font, current.title, width / 2, 28, OreSpawnScreenLayout.TEXT_HIGHLIGHT);
 		graphics.drawCenteredString(font,
-				Component.literal((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
+				Component.literal((page + 1) + " / " + PAGES.size()), width / 2, 42, OreSpawnScreenLayout.TEXT_MUTED);
 
 		int textWidth = Math.min(330, width - 32);
 		int x = (width - textWidth) / 2;
 		int y = 58;
 		for (Component paragraph : current.paragraphs) {
 			for (FormattedCharSequence line : font.split(paragraph, textWidth)) {
-				graphics.drawString(font, line, x, y, 0xEEEEEE);
+				graphics.drawString(font, line, x, y, OreSpawnScreenLayout.TEXT_BODY);
 				y += 10;
 			}
 			y += 6;
 		}
-		super.render(graphics, mouseX, mouseY, partialTick);
+
 	}
 
 	private static GuidePage page(String id, int paragraphCount) {

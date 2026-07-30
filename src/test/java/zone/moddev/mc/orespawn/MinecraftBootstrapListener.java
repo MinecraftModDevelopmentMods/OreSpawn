@@ -1,14 +1,19 @@
 package zone.moddev.mc.orespawn;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Optional;
 
 import org.junit.platform.launcher.LauncherSession;
 import org.junit.platform.launcher.LauncherSessionListener;
 
+import cpw.mods.modlauncher.api.IModuleLayerManager;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
 import net.minecraftforge.registries.GameData;
+import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.fml.loading.LoadingModList;
 
 /**
  * Opens vanilla registry construction for headless unit tests without invoking
@@ -22,6 +27,17 @@ public final class MinecraftBootstrapListener implements LauncherSessionListener
 			Field bootstrapped = Bootstrap.class.getDeclaredField("isBootstrapped");
 			bootstrapped.setAccessible(true);
 			bootstrapped.setBoolean(null, true);
+			LoadingModList emptyMods = LoadingModList.of(Collections.emptyList(),
+					Collections.emptyList(), null);
+			emptyMods.setBrokenFiles(Collections.emptyList());
+			Field loadingModList = FMLLoader.class.getDeclaredField("loadingModList");
+			loadingModList.setAccessible(true);
+			loadingModList.set(null, emptyMods);
+			Field moduleLayerManager = FMLLoader.class.getDeclaredField("moduleLayerManager");
+			moduleLayerManager.setAccessible(true);
+			IModuleLayerManager testLayers =
+					layer -> Optional.of(ModuleLayer.boot());
+			moduleLayerManager.set(null, testLayers);
 			BuiltInRegistries.BLOCK.size();
 			BuiltInRegistries.bootStrap();
 			GameData.vanillaSnapshot();

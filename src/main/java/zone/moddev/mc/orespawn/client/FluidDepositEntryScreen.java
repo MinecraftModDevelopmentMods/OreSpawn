@@ -8,17 +8,17 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
-final class FluidDepositEntryScreen extends Screen {
+final class FluidDepositEntryScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String depositId;
@@ -167,11 +167,11 @@ final class FluidDepositEntryScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
 		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font,
-				Component.literal(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
-		super.render(graphics, mouseX, mouseY, partialTick);
+				Component.literal(depositId), Math.min(390, width - 24)), width / 2, 26, OreSpawnScreenLayout.TEXT_MUTED);
+
 	}
 }

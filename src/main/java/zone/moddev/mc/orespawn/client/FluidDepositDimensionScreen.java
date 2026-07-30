@@ -10,17 +10,17 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-final class FluidDepositDimensionScreen extends Screen {
+final class FluidDepositDimensionScreen extends OreSpawnScreen {
 	private enum Page { PLACEMENT, HOSTS, BIOMES }
 
 	private final Screen parent;
@@ -328,12 +328,12 @@ final class FluidDepositDimensionScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
 		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font,
 				Component.literal(depositId + " / " + dimensionId), Math.min(390, width - 24)),
-				width / 2, 24, 0xAAAAAA);
+				width / 2, 24, OreSpawnScreenLayout.TEXT_MUTED);
 		if (page == Page.PLACEMENT) {
 			String[] keys = { "min_y", "max_y", "frequency", "min_radius", "max_radius",
 					"min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover",
@@ -345,15 +345,15 @@ final class FluidDepositDimensionScreen extends Screen {
 				int labelWidth = columnWidth - fieldWidth - 5;
 				graphics.drawString(font, OreSpawnScreenLayout.fit(font,
 						Component.translatable("option.orespawn." + keys[i]), labelWidth),
-						groupX, 96 + (row * 24), 0xDDDDDD);
+						groupX, 96 + (row * 24), OreSpawnScreenLayout.TEXT_SECONDARY);
 			}
 		} else if (page == Page.HOSTS) {
 			graphics.drawString(font, OreSpawnScreenLayout.fit(font,
 					Component.translatable("option.orespawn.host_blocks_short"), columnWidth),
-					left, 94, 0xDDDDDD);
+					left, 94, OreSpawnScreenLayout.TEXT_SECONDARY);
 			graphics.drawString(font, OreSpawnScreenLayout.fit(font,
 					Component.translatable("option.orespawn.host_tags_short"), columnWidth),
-					left + columnWidth + 5, 94, 0xDDDDDD);
+					left + columnWidth + 5, 94, OreSpawnScreenLayout.TEXT_SECONDARY);
 		} else {
 			String[] keys = { "biome_ids_short", "excluded_biome_ids_short",
 					"biome_dictionary_short", "excluded_biome_dictionary_short" };
@@ -362,10 +362,10 @@ final class FluidDepositDimensionScreen extends Screen {
 				int y = 94 + ((i / 2) * 44);
 				graphics.drawString(font, OreSpawnScreenLayout.fit(font,
 						Component.translatable("option.orespawn." + keys[i]), columnWidth),
-						x, y, 0xDDDDDD);
+						x, y, OreSpawnScreenLayout.TEXT_SECONDARY);
 			}
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 40, 0xFF5555);
-		super.render(graphics, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 40, OreSpawnScreenLayout.TEXT_ERROR);
+
 	}
 }

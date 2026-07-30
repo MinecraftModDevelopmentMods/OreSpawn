@@ -100,19 +100,20 @@ final class BiomeTypeCompatibility {
 		add(result, "FOREST", BiomeTags.IS_FOREST);
 		add(result, "PLAINS", Tags.Biomes.IS_PLAINS);
 		add(result, "SAVANNA", BiomeTags.IS_SAVANNA);
-		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS, BiomeTags.IS_TAIGA);
+		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS_TREE,
+				Tags.Biomes.IS_TAIGA, BiomeTags.IS_TAIGA);
 		add(result, "JUNGLE", BiomeTags.IS_JUNGLE);
 		add(result, "LUSH", Tags.Biomes.IS_LUSH);
 		add(result, "MUSHROOM", Tags.Biomes.IS_MUSHROOM);
 		add(result, "PLATEAU", Tags.Biomes.IS_PLATEAU);
-		add(result, "PEAK", Tags.Biomes.IS_PEAK);
-		add(result, "SLOPE", Tags.Biomes.IS_SLOPE);
+		add(result, "PEAK", Tags.Biomes.IS_MOUNTAIN_PEAK);
+		add(result, "SLOPE", Tags.Biomes.IS_MOUNTAIN_SLOPE);
 		add(result, "UNDERGROUND", Tags.Biomes.IS_UNDERGROUND, Tags.Biomes.IS_CAVE);
 		add(result, "WASTELAND", Tags.Biomes.IS_WASTELAND);
-		add(result, "WATER", Tags.Biomes.IS_WATER, BiomeTags.IS_OCEAN,
+		add(result, "WATER", Tags.Biomes.IS_AQUATIC, BiomeTags.IS_OCEAN,
 				BiomeTags.IS_RIVER);
-		add(result, "DENSE", Tags.Biomes.IS_DENSE);
-		add(result, "SPARSE", Tags.Biomes.IS_SPARSE);
+		add(result, "DENSE", Tags.Biomes.IS_DENSE_VEGETATION);
+		add(result, "SPARSE", Tags.Biomes.IS_SPARSE_VEGETATION);
 		add(result, "DEAD", Tags.Biomes.IS_DEAD);
 		add(result, "MAGICAL", Tags.Biomes.IS_MAGICAL);
 		add(result, "SPOOKY", Tags.Biomes.IS_SPOOKY);

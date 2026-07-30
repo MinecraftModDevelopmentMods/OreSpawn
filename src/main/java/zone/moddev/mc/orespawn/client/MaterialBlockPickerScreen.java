@@ -4,15 +4,15 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /** Registry-backed block picker for surface, fluid, snow, and ice materials. */
-final class MaterialBlockPickerScreen extends Screen {
+final class MaterialBlockPickerScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final boolean fluidOnly;
@@ -70,9 +70,9 @@ final class MaterialBlockPickerScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 14, OreSpawnScreenLayout.TEXT_PRIMARY);
+
 	}
 }

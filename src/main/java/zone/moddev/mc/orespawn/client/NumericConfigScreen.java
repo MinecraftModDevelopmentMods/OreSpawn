@@ -6,14 +6,14 @@ import java.util.List;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class NumericConfigScreen extends Screen {
+final class NumericConfigScreen extends OreSpawnScreen {
 	static final Field[] FORMATION_FIELDS = {
 			new Field("stratum_wavelength", 16, 8192, false),
 			new Field("family_region_wavelength", 16, 8192, false),
@@ -137,18 +137,18 @@ final class NumericConfigScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 16, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 16, OreSpawnScreenLayout.TEXT_PRIMARY);
 		int start = page * PAGE_SIZE;
 		for (int i = 0; i < editors.size(); i++) {
 			graphics.drawString(font, label(fields[start + i].key), width / 2 - 155,
-					50 + (i * 25), 0xDDDDDD);
+					50 + (i * 25), OreSpawnScreenLayout.TEXT_SECONDARY);
 		}
 		if (error != null) {
-			graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
+			graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
 		}
-		super.render(graphics, mouseX, mouseY, partialTick);
+
 	}
 
 	private Component label(String key) {

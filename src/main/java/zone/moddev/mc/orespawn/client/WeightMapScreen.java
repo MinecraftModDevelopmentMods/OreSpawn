@@ -5,14 +5,14 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class WeightMapScreen extends Screen {
+final class WeightMapScreen extends OreSpawnScreen {
 	private static final int PAGE_SIZE = 7;
 	private final Screen parent;
 	private final JsonObject weights;
@@ -109,14 +109,14 @@ final class WeightMapScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.drawCenteredString(font, title, width / 2, 14, OreSpawnScreenLayout.TEXT_PRIMARY);
 		int start = page * PAGE_SIZE;
 		for (int i = 0; i < editors.size(); i++) {
-			graphics.drawString(font, keys.get(start + i), width / 2 - 155, 44 + (i * 24), 0xDDDDDD);
+			graphics.drawString(font, keys.get(start + i), width / 2 - 155, 44 + (i * 24), OreSpawnScreenLayout.TEXT_SECONDARY);
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
-		super.render(graphics, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+
 	}
 }
