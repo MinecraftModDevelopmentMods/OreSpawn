@@ -13,7 +13,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class RockEntryScreen extends Screen {
+final class RockEntryScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String blockId;
@@ -172,18 +172,16 @@ final class RockEntryScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 6, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 6, OreSpawnScreenLayout.TEXT_PRIMARY);
 		graphics.drawCenteredString(font,
 				Component.literal(session.materialBlockId(GeologyEditorSession.MaterialTab.SEDIMENTARY, blockId)),
-				width / 2, 20, 0xDDDDDD);
+				width / 2, 20, OreSpawnScreenLayout.TEXT_SECONDARY);
 		String[] labels = { "weight", "depth_peak", "depth_spread", "min_y", "max_y" };
 		for (int i = 0; i < labels.length; i++) {
 			graphics.drawString(font, Component.translatable("option.orespawn." + labels[i]),
-					width / 2 - 155, 70 + (i * 22), 0xDDDDDD);
+					width / 2 - 155, 70 + (i * 22), OreSpawnScreenLayout.TEXT_SECONDARY);
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
-		super.render(graphics, mouseX, mouseY, partialTick);
+		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
 	}
 }

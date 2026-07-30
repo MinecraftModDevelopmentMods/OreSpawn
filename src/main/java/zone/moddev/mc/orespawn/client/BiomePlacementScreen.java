@@ -13,7 +13,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-final class BiomePlacementScreen extends Screen {
+final class BiomePlacementScreen extends OreSpawnScreen {
 	private enum Tab { PLACEMENT, CLIMATE, SURFACE }
 
 	private final Screen parent;
@@ -186,11 +186,9 @@ final class BiomePlacementScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-		graphics.drawCenteredString(font, Component.literal(biomeId), width / 2, 28, 0xCCCCCC);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.drawCenteredString(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
 	}
 
 	private static JsonObject object(JsonObject root, String key) {

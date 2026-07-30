@@ -14,7 +14,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /** Registry-backed picker; text narrows installed blocks but never creates an ID. */
-final class BlockPickerScreen extends Screen {
+final class BlockPickerScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final MaterialTab target;
@@ -115,13 +115,11 @@ final class BlockPickerScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
 		graphics.drawCenteredString(font,
 				Component.translatable("label.orespawn.adding_to",
 						Component.translatable("tab.orespawn." + target.key)),
-				width / 2, 20, 0xCCCCCC);
-		super.render(graphics, mouseX, mouseY, partialTick);
+				width / 2, 20, OreSpawnScreenLayout.TEXT_SOFT);
 	}
 }
