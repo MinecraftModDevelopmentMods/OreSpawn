@@ -14,7 +14,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-final class GeomeBiomeScreen extends Screen {
+final class GeomeBiomeScreen extends OreSpawnScreen {
 	private enum Tab { GEOMES, BIOMES, DICTIONARY }
 	private final Screen parent;
 	private final GeologyEditorSession session;
@@ -129,9 +129,7 @@ final class GeomeBiomeScreen extends Screen {
 	}
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
 	}
 }
