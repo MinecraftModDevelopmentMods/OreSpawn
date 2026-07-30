@@ -71,7 +71,7 @@ final class BiomeTypeCompatibility {
 		if (known != null) return known;
 		if (normalized.isEmpty()) return Collections.emptyList();
 		return Collections.singletonList(TagKey.create(Registries.BIOME,
-				new ResourceLocation("c", "is_" + normalized.toLowerCase(Locale.ROOT))));
+				ResourceLocation.fromNamespaceAndPath("c", "is_" + normalized.toLowerCase(Locale.ROOT))));
 	}
 
 	private static boolean matches(Holder<Biome> holder,
@@ -98,7 +98,8 @@ final class BiomeTypeCompatibility {
 		add(result, "FOREST", BiomeTags.IS_FOREST);
 		add(result, "PLAINS", Tags.Biomes.IS_PLAINS);
 		add(result, "SAVANNA", BiomeTags.IS_SAVANNA);
-		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS_TREE, BiomeTags.IS_TAIGA);
+		add(result, "CONIFEROUS", Tags.Biomes.IS_CONIFEROUS_TREE,
+				Tags.Biomes.IS_TAIGA, BiomeTags.IS_TAIGA);
 		add(result, "JUNGLE", BiomeTags.IS_JUNGLE);
 		add(result, "LUSH", Tags.Biomes.IS_LUSH);
 		add(result, "MUSHROOM", Tags.Biomes.IS_MUSHROOM);

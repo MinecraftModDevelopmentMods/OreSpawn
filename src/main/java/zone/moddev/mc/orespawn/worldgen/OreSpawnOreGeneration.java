@@ -538,7 +538,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private static ResourceLocation resource(String value) {
 		try {
-			return new ResourceLocation(value);
+			return ResourceLocation.parse(value);
 		} catch (RuntimeException e) {
 			return null;
 		}

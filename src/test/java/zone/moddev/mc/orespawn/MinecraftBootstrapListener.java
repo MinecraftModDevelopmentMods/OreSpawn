@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 
 import org.junit.platform.launcher.LauncherSession;
 import org.junit.platform.launcher.LauncherSessionListener;
@@ -8,6 +9,7 @@ import org.junit.platform.launcher.LauncherSessionListener;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
+import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.neoforge.registries.GameData;
 
 /**
@@ -22,6 +24,9 @@ public final class MinecraftBootstrapListener implements LauncherSessionListener
 			Field bootstrapped = Bootstrap.class.getDeclaredField("isBootstrapped");
 			bootstrapped.setAccessible(true);
 			bootstrapped.setBoolean(null, true);
+			LoadingModList.of(Collections.emptyList(), Collections.emptyList(),
+					Collections.emptyList(), Collections.emptyList(),
+					Collections.emptyMap());
 			BuiltInRegistries.BLOCK.size();
 			BuiltInRegistries.bootStrap();
 			GameData.vanillaSnapshot();

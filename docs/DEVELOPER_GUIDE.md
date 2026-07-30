@@ -89,7 +89,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
 
 private void enqueueWorldgen(InterModEnqueueEvent event) {
-    ResourceLocation tin = new ResourceLocation("examplemod", "tin_ore");
+    ResourceLocation tin = ResourceLocation.fromNamespaceAndPath("examplemod", "tin_ore");
     WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
         .ore(tin, ore -> ore
             .retrogen(false)
@@ -100,7 +100,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
-					.hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables"))))
+					.hostTag(ResourceLocation.fromNamespaceAndPath("minecraft", "stone_ore_replaceables"))))
         .build();
 
     OreSpawnApi.enqueue(provider);

@@ -100,7 +100,7 @@ known biome's complete builder inside a `RegistrySetBuilder` bootstrap:
 
 ```java
 public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
-    Registries.BIOME, new ResourceLocation("examplemod", "candy_plains"));
+    Registries.BIOME, ResourceLocation.fromNamespaceAndPath("examplemod", "candy_plains"));
 
 public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
     .add(Registries.BIOME, context -> {
@@ -114,7 +114,7 @@ public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
 datagen that deliberately supplies every required climate, effects, spawn, and
 generation field. Both helpers create datapack content; live placement belongs
 in the provider declaration. Do not use a static `DeferredRegister<Biome>`:
-NeoForge 20.6 biomes belong to the dynamic world registry.
+NeoForge 21.1 biomes belong to the dynamic world registry.
 
 ## Surfaces And Materials
 

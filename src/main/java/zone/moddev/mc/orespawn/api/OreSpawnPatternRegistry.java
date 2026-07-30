@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 /** Stable entry point for mods that register codec-backed ore patterns. */
 public final class OreSpawnPatternRegistry {
 	public static final ResourceLocation REGISTRY_NAME =
-			new ResourceLocation(OreSpawn.MODID, "ore_pattern_types");
+			ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, "ore_pattern_types");
 
 	private OreSpawnPatternRegistry() {
 	}

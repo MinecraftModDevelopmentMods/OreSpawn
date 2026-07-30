@@ -11,7 +11,7 @@ public enum OreDimensionSelector {
 	private final ResourceLocation id;
 
 	OreDimensionSelector(String path) {
-		this.id = new ResourceLocation("orespawn", path);
+		this.id = ResourceLocation.fromNamespaceAndPath("orespawn", path);
 	}
 
 	public ResourceLocation id() {
@@ -27,8 +27,8 @@ public enum OreDimensionSelector {
 
 	public static OreDimensionSelector fromName(String value) {
 		ResourceLocation id = value.indexOf(':') >= 0
-				? new ResourceLocation(value)
-				: new ResourceLocation("orespawn", value.toLowerCase(Locale.ROOT));
+				? ResourceLocation.parse(value)
+				: ResourceLocation.fromNamespaceAndPath("orespawn", value.toLowerCase(Locale.ROOT));
 		return fromId(id);
 	}
 }

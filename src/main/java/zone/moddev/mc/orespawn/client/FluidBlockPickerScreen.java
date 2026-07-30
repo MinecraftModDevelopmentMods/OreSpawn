@@ -77,7 +77,7 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(id));
+			Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) {
 			return Component.literal(id);

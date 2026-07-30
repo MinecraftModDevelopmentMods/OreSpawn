@@ -386,7 +386,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		private final com.google.gson.JsonObject value;
 		JsonObjectAccess(com.google.gson.JsonObject value) { this.value = value; }
 		ResourceLocation resource(String key) {
-			try { return new ResourceLocation(value.get(key).getAsString()); }
+			try { return ResourceLocation.parse(value.get(key).getAsString()); }
 			catch (RuntimeException ignored) { return null; }
 		}
 	}

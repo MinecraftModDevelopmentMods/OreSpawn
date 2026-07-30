@@ -101,7 +101,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 	private void addDimension() {
 		String id;
 		try {
-			id = new ResourceLocation(dimensionId.getValue().trim()).toString();
+			id = ResourceLocation.parse(dimensionId.getValue().trim()).toString();
 		} catch (RuntimeException e) {
 			return;
 		}

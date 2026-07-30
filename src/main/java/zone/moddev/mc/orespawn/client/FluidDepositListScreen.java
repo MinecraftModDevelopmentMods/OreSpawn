@@ -75,7 +75,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 	private Component depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(
+			Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(
 					GeologyEditorSession.string(deposit, "block", "")));
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }

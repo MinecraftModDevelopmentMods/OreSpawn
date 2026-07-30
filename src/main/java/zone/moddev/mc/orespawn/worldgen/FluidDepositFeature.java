@@ -482,7 +482,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static ResourceLocation resource(String value) {
-		try { return new ResourceLocation(value); } catch (RuntimeException ignored) { return null; }
+		try { return ResourceLocation.parse(value); } catch (RuntimeException ignored) { return null; }
 	}
 
 	private static boolean bool(JsonObject json, String key, boolean fallback) {

@@ -16,7 +16,7 @@ import net.minecraft.world.level.biome.Biome;
 /**
  * Holds the active datapack biome registry outside worldgen hot loops.
  *
- * <p>Unlike Forge 50, NeoForge 20.6 does not expose dynamic biomes through a
+ * <p>NeoForge 21.1 does not expose dynamic biomes through a
  * static registry. The registry is bound from world creation or server
  * lifecycle state and all geology tables are baked after that binding.</p>
  */

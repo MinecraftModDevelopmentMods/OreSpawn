@@ -13,7 +13,7 @@ import net.minecraft.world.level.biome.Biome;
  * Small bootstrap helpers for provider mods which define data-driven biomes
  * without taking a compile-time dependency on a separate biome framework.
  *
- * <p>Biomes are dynamic registry entries in NeoForge 20.6. A provider should
+ * <p>Biomes are dynamic registry entries in NeoForge 21.1. A provider should
  * package biome JSON or use these methods from a
  * {@link net.minecraft.core.RegistrySetBuilder} bootstrap used by datagen.
  */

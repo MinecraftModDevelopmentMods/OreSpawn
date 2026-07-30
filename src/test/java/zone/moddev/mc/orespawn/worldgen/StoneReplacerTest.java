@@ -34,7 +34,7 @@ class StoneReplacerTest {
 	@Test
 	void explicitlyConfiguredCustomDimensionsCanSuppressMatchingStoneFeatures() {
 		ResourceKey<Level> moon = ResourceKey.create(Registries.DIMENSION,
-				new ResourceLocation("examplemod", "moon"));
+				ResourceLocation.fromNamespaceAndPath("examplemod", "moon"));
 		assertTrue(TerrainFeaturePolicy.shouldSuppressVanillaMatchingStoneFeature(
 				moon, true, true));
 	}

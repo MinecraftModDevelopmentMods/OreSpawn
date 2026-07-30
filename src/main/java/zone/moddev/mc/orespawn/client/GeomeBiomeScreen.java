@@ -116,7 +116,7 @@ final class GeomeBiomeScreen extends OreSpawnScreen {
 			minecraft.setScreen(new GeomeEntryScreen(this, session, id.toLowerCase(Locale.ROOT)));
 		} else {
 			if (tab == Tab.BIOMES) {
-				try { new ResourceLocation(id); }
+				try { ResourceLocation.parse(id); }
 				catch (RuntimeException e) { return; }
 			}
 			open(id);

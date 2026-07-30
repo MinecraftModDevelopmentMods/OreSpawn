@@ -109,8 +109,8 @@ public final class OreSpawnPatterns {
 		if ("cluster".equals(normalized)) normalized = "clusters";
 		if ("cloud".equals(normalized) || "normal-cloud".equals(normalized)) normalized = "normal_cloud";
 		if ("under_fluid".equals(normalized) || "under-fluid".equals(normalized)) normalized = "underfluids";
-		return normalized.indexOf(':') >= 0 ? new ResourceLocation(normalized)
-				: new ResourceLocation(OreSpawn.MODID, normalized);
+		return normalized.indexOf(':') >= 0 ? ResourceLocation.parse(normalized)
+				: ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, normalized);
 	}
 
 	private static CompiledOrePattern compact(StandardPatternSettings settings) {
@@ -196,7 +196,7 @@ public final class OreSpawnPatterns {
 	}
 
 	private static CompiledOrePattern underFluids(StandardPatternSettings settings) {
-		Fluid fluid = BuiltInRegistries.FLUID.get(new ResourceLocation(settings.fluid()));
+		Fluid fluid = BuiltInRegistries.FLUID.get(ResourceLocation.parse(settings.fluid()));
 		if (fluid == null) fluid = Fluids.WATER;
 		final Fluid targetFluid = fluid;
 		return context -> {

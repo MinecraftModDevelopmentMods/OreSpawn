@@ -292,7 +292,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 
 	private static JsonArray ids(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(new ResourceLocation(value).toString());
+		for (String value : split(text)) result.add(ResourceLocation.parse(value).toString());
 		return result;
 	}
 

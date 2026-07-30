@@ -31,7 +31,7 @@ final class FluidDepositMigration {
 			JsonObject oil = root.getAsJsonObject("oil");
 			ResourceLocation block = resource(string(oil, "block", "minecraft:air"));
 			if (block != null && !"minecraft:air".equals(block.toString())) {
-				ResourceLocation ruleId = new ResourceLocation(block.getNamespace(),
+				ResourceLocation ruleId = ResourceLocation.fromNamespaceAndPath(block.getNamespace(),
 						"fluid_deposit/" + block.getPath());
 				if (!deposits.has(ruleId.toString())) {
 					deposits.add(ruleId.toString(), legacyRule(block, oil));
@@ -105,7 +105,7 @@ final class FluidDepositMigration {
 
 	private static ResourceLocation resource(String value) {
 		try {
-			return new ResourceLocation(value);
+			return ResourceLocation.parse(value);
 		} catch (RuntimeException ignored) {
 			return null;
 		}

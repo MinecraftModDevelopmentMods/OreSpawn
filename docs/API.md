@@ -21,7 +21,7 @@ Submit declarations during `InterModEnqueueEvent`:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .rock(new ResourceLocation("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
+    .rock(ResourceLocation.fromNamespaceAndPath("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
         .depth(12, 36)
         .weight(1.2)
         .oreReplaceable(true))
@@ -56,9 +56,9 @@ FormationDefinition formations = FormationDefinition.builder()
     .waviness(FormationPreset.LARGE)
     .build();
 FluidDepositDefinition brine = FluidDepositDefinition.builder(
-        new ResourceLocation("examplemod", "fluid_deposit/brine"),
-        new ResourceLocation("examplemod", "brine"))
-    .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
+        ResourceLocation.fromNamespaceAndPath("examplemod", "fluid_deposit/brine"),
+        ResourceLocation.fromNamespaceAndPath("examplemod", "brine"))
+    .dimension(ResourceLocation.fromNamespaceAndPath("minecraft", "overworld"), placement -> placement
         .yRange(-48, 32)
         .attempts(0.05)
         .radius(4, 10)
@@ -66,7 +66,7 @@ FluidDepositDefinition brine = FluidDepositDefinition.builder(
         .maxLobes(3)
         .minSolidCover(2)
         .minSolidShell(1)
-        .hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables")))
+        .hostTag(ResourceLocation.fromNamespaceAndPath("minecraft", "stone_ore_replaceables")))
     .build();
 
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
@@ -77,14 +77,14 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-NeoForge 20.6 biomes are data-driven registry entries. Package biome JSON under
+NeoForge 21.1 biomes are data-driven registry entries. Package biome JSON under
 `data/<modid>/worldgen/biome/`, or generate it with a
 `DatapackBuiltinEntriesProvider`. `OreSpawnBiomes.copyAndRegister` is an
 optional bootstrap/datagen convenience for cloning a known biome:
 
 ```java
 public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
-    Registries.BIOME, new ResourceLocation("examplemod", "candy_plains"));
+    Registries.BIOME, ResourceLocation.fromNamespaceAndPath("examplemod", "candy_plains"));
 
 public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
     .add(Registries.BIOME, context -> {
@@ -99,21 +99,21 @@ materials through the same OreSpawn provider:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .biomePalette(new ResourceLocation("examplemod", "overworld"),
-        new ResourceLocation("minecraft", "overworld"), palette -> palette
+    .biomePalette(ResourceLocation.fromNamespaceAndPath("examplemod", "overworld"),
+        ResourceLocation.fromNamespaceAndPath("minecraft", "overworld"), palette -> palette
             .mode(BiomePlacementMode.REPLACE)
             .scope(BiomeReplacementScope.MINECRAFT_ONLY)
             .regionSize(BiomeRegionSize.LARGE)
             .coverage(1.0)
             .fallbackWeight(0.0)
-            .biome(new ResourceLocation("examplemod", "candy_plains"), biome -> biome
+            .biome(ResourceLocation.fromNamespaceAndPath("examplemod", "candy_plains"), biome -> biome
                 .weight(3.0)
-                .similarBiome(new ResourceLocation("minecraft", "plains"))))
-    .dimensionMaterials(new ResourceLocation("examplemod", "overworld_materials"),
-        new ResourceLocation("minecraft", "overworld"), materials -> materials
-            .defaultFluid(new ResourceLocation("examplemod", "lemonade"))
-            .snowBlock(new ResourceLocation("examplemod", "icing"))
-            .iceBlock(new ResourceLocation("examplemod", "frozen_lemonade")))
+                .similarBiome(ResourceLocation.fromNamespaceAndPath("minecraft", "plains"))))
+    .dimensionMaterials(ResourceLocation.fromNamespaceAndPath("examplemod", "overworld_materials"),
+        ResourceLocation.fromNamespaceAndPath("minecraft", "overworld"), materials -> materials
+            .defaultFluid(ResourceLocation.fromNamespaceAndPath("examplemod", "lemonade"))
+            .snowBlock(ResourceLocation.fromNamespaceAndPath("examplemod", "icing"))
+            .iceBlock(ResourceLocation.fromNamespaceAndPath("examplemod", "frozen_lemonade")))
     .build();
 ```
 
