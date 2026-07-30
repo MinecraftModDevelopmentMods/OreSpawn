@@ -16,7 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.registries.BuiltInRegistries;
 
-final class FluidDepositListScreen extends Screen {
+final class FluidDepositListScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private int page;
@@ -98,9 +98,7 @@ final class FluidDepositListScreen extends Screen {
 	public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-		super.render(graphics, mouseX, mouseY, partialTick);
+	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		graphics.drawCenteredString(font, title, width / 2, 18, OreSpawnScreenLayout.TEXT_PRIMARY);
 	}
 }
