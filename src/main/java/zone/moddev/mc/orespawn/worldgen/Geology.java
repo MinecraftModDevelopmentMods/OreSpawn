@@ -13,7 +13,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 
 public class Geology {
@@ -72,7 +72,7 @@ public class Geology {
 				if (terrain.hasBiomeFilter()) {
 					cursor.set(x, y, z);
 					Holder<Biome> biome = world.getBiome(cursor);
-					ResourceLocation biomeId = biome.unwrapKey().map(key -> key.location()).orElse(null);
+					Identifier biomeId = biome.unwrapKey().map(key -> key.identifier()).orElse(null);
 					if (!terrain.acceptsBiome(biomeId)) {
 						continue;
 					}
@@ -80,10 +80,10 @@ public class Geology {
 				int baseRockVal = (int) rockNoiseLayer.valueAt(x, z);
 				int geomeBase = (int) geomeNoiseLayer.valueAt(x, z);
 
-				for (; y >= chunk.getMinBuildHeight(); y--) {
+				for (; y >= chunk.getMinY(); y--) {
 					cursor.set(x, y, z);
 					if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-						chunk.setBlockState(cursor, pickReplacement(baseRockVal, geomeBase, y), false);
+						chunk.setBlockState(cursor, pickReplacement(baseRockVal, geomeBase, y), 0);
 						changed = true;
 					}
 				}
@@ -91,7 +91,7 @@ public class Geology {
 		}
 
 		if (changed) {
-			chunk.setUnsaved(true);
+			chunk.markUnsaved();
 		}
 	}
 

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 
 class StoneReplacerTest {
@@ -34,7 +34,7 @@ class StoneReplacerTest {
 	@Test
 	void explicitlyConfiguredCustomDimensionsCanSuppressMatchingStoneFeatures() {
 		ResourceKey<Level> moon = ResourceKey.create(Registries.DIMENSION,
-				ResourceLocation.fromNamespaceAndPath("examplemod", "moon"));
+				Identifier.fromNamespaceAndPath("examplemod", "moon"));
 		assertTrue(TerrainFeaturePolicy.shouldSuppressVanillaMatchingStoneFeature(
 				moon, true, true));
 	}

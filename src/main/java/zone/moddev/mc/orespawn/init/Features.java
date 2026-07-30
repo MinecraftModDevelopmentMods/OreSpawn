@@ -9,7 +9,7 @@ import zone.moddev.mc.orespawn.worldgen.BiomeSurfaceFeature;
 import zone.moddev.mc.orespawn.worldgen.VanillaOreFeatureGate;
 
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -27,8 +27,8 @@ public final class Features {
 		VanillaOreFeatureGate.registerFeatures(FEATURES);
 	}
 
-	public static void register(IEventBus bus) {
-		FEATURES.register(bus);
+	public static void register(BusGroup busGroup) {
+		FEATURES.register(busGroup);
 	}
 
 	private Features() {

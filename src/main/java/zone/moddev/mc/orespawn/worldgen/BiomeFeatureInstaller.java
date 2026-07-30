@@ -12,7 +12,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeGenerationSettings;
-import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
 
 /**
  * Adds OreSpawn's dynamic features to code-registered palette biomes before
@@ -45,8 +44,8 @@ final class BiomeFeatureInstaller {
 
 	private static void install(Biome biome, ResourceKey<Level> dimension) {
 		BiomeGenerationSettings original = biome.getGenerationSettings();
-		BiomeGenerationSettingsBuilder builder =
-				new BiomeGenerationSettingsBuilder(original);
+		BiomeGenerationSettings.PlainBuilder builder =
+				new BiomeGenerationSettings.PlainBuilder().addFrom(original);
 		if (!OreSpawnBiomeModifier.apply(builder)) return;
 		ORIGINALS.putIfAbsent(biome, original);
 		biome.generationSettings = builder.build();

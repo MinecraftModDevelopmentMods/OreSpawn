@@ -41,8 +41,8 @@ public final class OreRetrogenManager {
 				|| !(event.getChunk() instanceof LevelChunk)) return;
 		ServerLevel level = (ServerLevel) event.getLevel();
 		LevelChunk chunk = (LevelChunk) event.getChunk();
-		CompoundTag marker = event.getData().getCompound(ROOT_TAG);
-		if (!current.force && marker.getInt(REVISION_TAG) == current.revision) return;
+		CompoundTag marker = event.getData().structureData().getCompoundOrEmpty(ROOT_TAG);
+		if (!current.force && marker.getIntOr(REVISION_TAG, Integer.MIN_VALUE) == current.revision) return;
 		enqueue(level, chunk);
 	}
 
@@ -51,9 +51,9 @@ public final class OreRetrogenManager {
 		ServerLevel level = (ServerLevel) event.getLevel();
 		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().toLong());
 		if (!COMPLETE.contains(key)) return;
-		CompoundTag marker = event.getData().getCompound(ROOT_TAG);
+		CompoundTag marker = event.getData().structureData().getCompoundOrEmpty(ROOT_TAG);
 		marker.putInt(REVISION_TAG, settings.revision);
-		event.getData().put(ROOT_TAG, marker);
+		event.getData().structureData().put(ROOT_TAG, marker);
 	}
 
 	public static void onServerTick(TickEvent.ServerTickEvent.Post event) {
@@ -66,7 +66,7 @@ public final class OreRetrogenManager {
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
-			queued.chunk.setUnsaved(true);
+			queued.chunk.markUnsaved();
 			COMPLETE.add(queued.key);
 		}
 	}

@@ -23,7 +23,7 @@ import net.minecraft.client.gui.components.tabs.GridLayoutTab;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private static final int BUTTON_HEIGHT = 20;
@@ -47,7 +47,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private Preset formationContinuity;
 	private boolean placeFluidDeposits;
 	private boolean manageVanillaOres;
-	private ResourceLocation selectedTemplate;
+	private Identifier selectedTemplate;
 
 	OreSpawnWorldCreationTab(CreateWorldScreen worldScreen, WorldGeologyProfile profile,
 			List<String> availableDimensions) {
@@ -64,9 +64,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		int row = 0;
 		if (templateChoices.size() > 1) {
 			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
-			addFull(CycleButton.builder(TemplateChoice::label)
+			addFull(CycleButton.builder(TemplateChoice::label, initialTemplate)
 					.withValues(templateChoices)
-					.withInitialValue(initialTemplate)
 					.withTooltip(value -> tooltip("guide.orespawn.world.1"))
 					.create(0, 0, FULL_WIDTH, BUTTON_HEIGHT,
 							Component.translatable("option.orespawn.template"),
@@ -94,9 +93,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	}
 
 	private void buildTerrainControls(int firstRow) {
-		CycleButton<GeologyMode> geologyButton = CycleButton.builder(this::geologyModeName)
+		CycleButton<GeologyMode> geologyButton = CycleButton.builder(this::geologyModeName, geologyMode)
 				.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
-				.withInitialValue(geologyMode)
 				.withTooltip(value -> tooltip("tooltip.orespawn.geology_mode"))
 				.create(0, 0, COLUMN_WIDTH, BUTTON_HEIGHT,
 						Component.translatable("option.orespawn.geology_mode"),
@@ -158,9 +156,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private CycleButton<Preset> presetButton(String labelKey, String tooltipKey,
 			Preset initialValue, PresetConsumer consumer) {
-		CycleButton<Preset> button = CycleButton.builder(this::presetName)
+		CycleButton<Preset> button = CycleButton.builder(this::presetName, initialValue)
 				.withValues(Arrays.asList(Preset.values()))
-				.withInitialValue(initialValue)
 				.withTooltip(value -> tooltip(tooltipKey))
 				.create(0, 0, COLUMN_WIDTH, BUTTON_HEIGHT, Component.translatable(labelKey),
 						(widget, value) -> {
@@ -240,7 +237,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		refreshControlState();
 	}
 
-	private void selectTemplate(ResourceLocation templateId) {
+	private void selectTemplate(Identifier templateId) {
 		if (Objects.equals(selectedTemplate, templateId)) {
 			return;
 		}
@@ -336,7 +333,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		return Tooltip.create(Component.translatable(key));
 	}
 
-	private TemplateChoice templateChoice(ResourceLocation id) {
+	private TemplateChoice templateChoice(Identifier id) {
 		for (TemplateChoice choice : templateChoices) {
 			if (Objects.equals(choice.id, id)) {
 				return choice;
@@ -355,7 +352,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 						Component.translatable(template.nameKey())));
 			}
 		}
-		ResourceLocation selected = profile.selectedTemplate().orElse(null);
+		Identifier selected = profile.selectedTemplate().orElse(null);
 		if (selected != null && result.stream().noneMatch(choice -> selected.equals(choice.id))) {
 			result.add(new TemplateChoice(selected, Component.literal(selected.toString())));
 		}
@@ -368,10 +365,10 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	}
 
 	private static final class TemplateChoice {
-		private final ResourceLocation id;
+		private final Identifier id;
 		private final Component label;
 
-		private TemplateChoice(ResourceLocation id, Component label) {
+		private TemplateChoice(Identifier id, Component label) {
 			this.id = id;
 			this.label = label;
 		}

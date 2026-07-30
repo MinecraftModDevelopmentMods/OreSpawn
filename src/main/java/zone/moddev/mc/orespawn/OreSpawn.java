@@ -22,7 +22,14 @@ import zone.moddev.mc.orespawn.worldgen.WorldMaterialWeather;
 import zone.moddev.mc.orespawn.commands.OreSpawnCommands;
 import zone.moddev.mc.orespawn.documentation.DocumentationExporter;
 
-import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.ChunkDataEvent;
+import net.minecraftforge.event.level.ChunkEvent;
+import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
@@ -53,24 +60,25 @@ public class OreSpawn {
 	public OreSpawn(FMLJavaModLoadingContext context) {
 		instance = this;
 		OreSpawnConfig.register(context);
-		net.minecraftforge.eventbus.api.IEventBus modBus = context.getModEventBus();
-		OreSpawnPatterns.register(modBus);
-		Features.register(modBus);
-		BiomeModifiers.register(modBus);
+		BusGroup modBusGroup = context.getModBusGroup();
+		OreSpawnPatterns.register(modBusGroup);
+		Features.register(modBusGroup);
+		BiomeModifiers.register(modBusGroup);
+		BiomeWorldgenBootstrap.register(modBusGroup);
 
-		modBus.addListener(this::setup);
-		modBus.addListener(this::enqueueInterMod);
-		modBus.addListener(this::processInterMod);
-		modBus.addListener(this::loadComplete);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
-		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
+		FMLCommonSetupEvent.getBus(modBusGroup).addListener(this::setup);
+		InterModEnqueueEvent.getBus(modBusGroup).addListener(this::enqueueInterMod);
+		InterModProcessEvent.getBus(modBusGroup).addListener(this::processInterMod);
+		FMLLoadCompleteEvent.getBus(modBusGroup).addListener(this::loadComplete);
+		ChunkEvent.Load.BUS.addListener(WorldMaterialWeather::onChunkLoad);
+		TickEvent.LevelTickEvent.Post.BUS.addListener(WorldMaterialWeather::onWorldTick);
+		ServerAboutToStartEvent.BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		LevelEvent.Load.BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
+		ServerStoppedEvent.BUS.addListener(WorldGeologyProfileManager::onServerStopped);
+		ChunkDataEvent.Load.BUS.addListener(OreRetrogenManager::onChunkLoad);
+		ChunkDataEvent.Save.BUS.addListener(OreRetrogenManager::onChunkSave);
+		TickEvent.ServerTickEvent.Post.BUS.addListener(OreRetrogenManager::onServerTick);
+		RegisterCommandsEvent.BUS.addListener(OreSpawnCommands::register);
 		WorldgenBenchmark.register();
 	}
 
@@ -105,7 +113,6 @@ public class OreSpawn {
 		GeomeConfig.bake();
 		logGeomeSampler();
 		event.enqueueWork(() -> {
-			BiomeWorldgenBootstrap.registerCodecs();
 			DocumentationExporter.exportBundledGuide();
 			StoneReplacer.registerConfiguredFeature();
 			OreSpawnOreGeneration.registerConfiguredFeatures();

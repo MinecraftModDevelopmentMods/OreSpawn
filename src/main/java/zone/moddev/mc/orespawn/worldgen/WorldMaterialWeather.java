@@ -30,9 +30,9 @@ public final class WorldMaterialWeather {
 	}
 
 	public static void onWorldTick(TickEvent.LevelTickEvent.Post event) {
-		if (!(event.level instanceof ServerLevel)
-				|| event.level.getGameTime() % 20L != 0L) return;
-		ServerLevel level = (ServerLevel) event.level;
+		if (!(event.level() instanceof ServerLevel)
+				|| event.level().getGameTime() % 20L != 0L) return;
+		ServerLevel level = (ServerLevel) event.level();
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
 		if (config == null || config.materials == null) return;
 		DimensionMaterials materials = config.materials;
@@ -58,9 +58,9 @@ public final class WorldMaterialWeather {
 					cursor.set(minX + localX, top - offset, minZ + localZ);
 					BlockState state = chunk.getBlockState(cursor);
 					if (materials.snow != null && state.is(Blocks.SNOW)) {
-						chunk.setBlockState(cursor, materials.snow, false);
+						chunk.setBlockState(cursor, materials.snow, 0);
 					} else if (materials.ice != null && state.is(Blocks.ICE)) {
-						chunk.setBlockState(cursor, materials.ice, false);
+						chunk.setBlockState(cursor, materials.ice, 0);
 					}
 				}
 			}

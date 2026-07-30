@@ -5,7 +5,7 @@ import zone.moddev.mc.orespawn.worldgen.OreSpawnBiomeModifier;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -22,7 +22,7 @@ public final class BiomeModifiers {
 	private BiomeModifiers() {
 	}
 
-	public static void register(IEventBus bus) {
-		MODIFIERS.register(bus);
+	public static void register(BusGroup busGroup) {
+		MODIFIERS.register(busGroup);
 	}
 }

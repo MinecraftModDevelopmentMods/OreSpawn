@@ -14,7 +14,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -84,8 +84,8 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		List<String> available = session.availableDimensionIds();
 		String selected = available.stream().filter(id -> !dimensions.has(id)).findFirst()
 				.orElse(available.get(0));
-		addRenderableWidget(CycleButton.builder(this::dimensionName)
-				.withValues(available).withInitialValue(selected)
+		addRenderableWidget(CycleButton.builder(this::dimensionName, selected)
+				.withValues(available)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						OreSpawnScreenLayout.tooltip(Arrays.asList(
 								Component.literal(value),
@@ -152,7 +152,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(id));
+			Block block = ForgeRegistries.BLOCKS.getValue(Identifier.parse(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { return Component.literal(id); }
 	}

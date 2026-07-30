@@ -16,7 +16,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -30,14 +31,17 @@ public final class OreSpawnCommands {
 	public static void register(RegisterCommandsEvent event) {
 		event.getDispatcher().register(Commands.literal("orespawn")
 				.then(Commands.literal("status").executes(context -> status(context.getSource())))
-				.then(Commands.literal("reload").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("reload").requires(
+						source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
 						.executes(context -> reload(context.getSource())))
-				.then(Commands.literal("retrogen").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("retrogen").requires(
+						source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
 						.executes(context -> retrogen(context.getSource(), 0))
 						.then(Commands.argument("radius", IntegerArgumentType.integer(0, 32))
 								.executes(context -> retrogen(context.getSource(),
 										IntegerArgumentType.getInteger(context, "radius")))))
-				.then(Commands.literal("dump-biomes").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("dump-biomes").requires(
+						source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
 						.executes(context -> dumpBiomes(context.getSource()))));
 	}
 
@@ -71,7 +75,7 @@ public final class OreSpawnCommands {
 
 	private static int dumpBiomes(net.minecraft.commands.CommandSourceStack source) {
 		List<String> ids = new ArrayList<>();
-		for (ResourceLocation id : ForgeRegistries.BIOMES.getKeys()) ids.add(id.toString());
+		for (Identifier id : ForgeRegistries.BIOMES.getKeys()) ids.add(id.toString());
 		Collections.sort(ids);
 		Path target = FMLPaths.CONFIGDIR.get().resolve("orespawn-biomes.txt");
 		try {

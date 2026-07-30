@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Immutable declarative world-generation contribution submitted to OreSpawn.
@@ -53,19 +53,19 @@ public final class WorldgenProvider {
 	public static final class Builder {
 		private final String modId;
 		private final int revision;
-		private final LinkedHashMap<ResourceLocation, RockDefinition> rocks = new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, OreDefinition> ores = new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, FluidDepositDefinition> fluidDeposits =
+		private final LinkedHashMap<Identifier, RockDefinition> rocks = new LinkedHashMap<>();
+		private final LinkedHashMap<Identifier, OreDefinition> ores = new LinkedHashMap<>();
+		private final LinkedHashMap<Identifier, FluidDepositDefinition> fluidDeposits =
 				new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, GeomeDefinition> geomes = new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, BiomeRule> biomeRules = new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, TerrainDimensionDefinition> terrainDimensions =
+		private final LinkedHashMap<Identifier, GeomeDefinition> geomes = new LinkedHashMap<>();
+		private final LinkedHashMap<Identifier, BiomeRule> biomeRules = new LinkedHashMap<>();
+		private final LinkedHashMap<Identifier, TerrainDimensionDefinition> terrainDimensions =
 				new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, BiomePaletteDefinition> biomePalettes =
+		private final LinkedHashMap<Identifier, BiomePaletteDefinition> biomePalettes =
 				new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, DimensionMaterialsDefinition> dimensionMaterials =
+		private final LinkedHashMap<Identifier, DimensionMaterialsDefinition> dimensionMaterials =
 				new LinkedHashMap<>();
-		private final LinkedHashMap<ResourceLocation, GeologyTemplate> templates = new LinkedHashMap<>();
+		private final LinkedHashMap<Identifier, GeologyTemplate> templates = new LinkedHashMap<>();
 
 		private Builder(String modId, int revision) {
 			this.modId = requireModId(modId);
@@ -80,13 +80,13 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder rock(ResourceLocation block, GeologyFamily family, Consumer<RockDefinition.Builder> edit) {
+		public Builder rock(Identifier block, GeologyFamily family, Consumer<RockDefinition.Builder> edit) {
 			RockDefinition.Builder builder = RockDefinition.builder(ownedId("rock", block), block, family);
 			edit.accept(builder);
 			return rock(builder.build());
 		}
 
-		public Builder rock(ResourceLocation id, ResourceLocation block, GeologyFamily family,
+		public Builder rock(Identifier id, Identifier block, GeologyFamily family,
 				Consumer<RockDefinition.Builder> edit) {
 			RockDefinition.Builder builder = RockDefinition.builder(id, block, family);
 			edit.accept(builder);
@@ -98,13 +98,13 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder ore(ResourceLocation block, Consumer<OreDefinition.Builder> edit) {
+		public Builder ore(Identifier block, Consumer<OreDefinition.Builder> edit) {
 			OreDefinition.Builder builder = OreDefinition.builder(ownedId("ore", block), block);
 			edit.accept(builder);
 			return ore(builder.build());
 		}
 
-		public Builder ore(ResourceLocation id, ResourceLocation block,
+		public Builder ore(Identifier id, Identifier block,
 				Consumer<OreDefinition.Builder> edit) {
 			OreDefinition.Builder builder = OreDefinition.builder(id, block);
 			edit.accept(builder);
@@ -116,7 +116,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder fluidDeposit(ResourceLocation id, ResourceLocation block,
+		public Builder fluidDeposit(Identifier id, Identifier block,
 				Consumer<FluidDepositDefinition.Builder> edit) {
 			FluidDepositDefinition.Builder builder = FluidDepositDefinition.builder(id, block);
 			edit.accept(builder);
@@ -128,7 +128,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder geome(ResourceLocation id, Consumer<GeomeDefinition.Builder> edit) {
+		public Builder geome(Identifier id, Consumer<GeomeDefinition.Builder> edit) {
 			GeomeDefinition.Builder builder = GeomeDefinition.builder(id);
 			edit.accept(builder);
 			return geome(builder.build());
@@ -139,7 +139,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder biome(ResourceLocation biome, Map<ResourceLocation, Double> geomeWeights) {
+		public Builder biome(Identifier biome, Map<Identifier, Double> geomeWeights) {
 			return biome(new BiomeRule(biome, geomeWeights));
 		}
 
@@ -148,7 +148,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder terrainDimension(ResourceLocation dimension,
+		public Builder terrainDimension(Identifier dimension,
 				Consumer<TerrainDimensionDefinition.Builder> edit) {
 			TerrainDimensionDefinition.Builder builder = TerrainDimensionDefinition.builder(dimension);
 			edit.accept(builder);
@@ -160,7 +160,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder biomePalette(ResourceLocation id, ResourceLocation dimension,
+		public Builder biomePalette(Identifier id, Identifier dimension,
 				Consumer<BiomePaletteDefinition.Builder> edit) {
 			BiomePaletteDefinition.Builder builder = BiomePaletteDefinition.builder(id, dimension);
 			edit.accept(builder);
@@ -172,7 +172,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder dimensionMaterials(ResourceLocation id, ResourceLocation dimension,
+		public Builder dimensionMaterials(Identifier id, Identifier dimension,
 				Consumer<DimensionMaterialsDefinition.Builder> edit) {
 			DimensionMaterialsDefinition.Builder builder =
 					DimensionMaterialsDefinition.builder(id, dimension);
@@ -185,7 +185,7 @@ public final class WorldgenProvider {
 			return this;
 		}
 
-		public Builder template(ResourceLocation id, Consumer<GeologyTemplate.Builder> edit) {
+		public Builder template(Identifier id, Consumer<GeologyTemplate.Builder> edit) {
 			GeologyTemplate.Builder builder = GeologyTemplate.builder(id);
 			edit.accept(builder);
 			return template(builder.build());
@@ -222,22 +222,22 @@ public final class WorldgenProvider {
 			return new WorldgenProvider(modId, revision, root);
 		}
 
-		private void requireOwned(Collection<ResourceLocation> ids, String type) {
-			for (ResourceLocation id : ids) {
+		private void requireOwned(Collection<Identifier> ids, String type) {
+			for (Identifier id : ids) {
 				if (!modId.equals(id.getNamespace())) {
 					throw new IllegalStateException("Provider " + modId + " does not own " + type + " " + id);
 				}
 			}
 		}
 
-		private ResourceLocation ownedId(String kind, ResourceLocation output) {
-			return ResourceLocation.fromNamespaceAndPath(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
+		private Identifier ownedId(String kind, Identifier output) {
+			return Identifier.fromNamespaceAndPath(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
 		}
 	}
 
 	public static final class RockDefinition implements JsonDefinition {
-		private final ResourceLocation id;
-		private final ResourceLocation block;
+		private final Identifier id;
+		private final Identifier block;
 		private final boolean enabled;
 		private final GeologyFamily family;
 		private final int depthPeak;
@@ -246,8 +246,8 @@ public final class WorldgenProvider {
 		private final int maxY;
 		private final double weight;
 		private final boolean oreReplaceable;
-		private final Map<ResourceLocation, Double> geomes;
-		private final Set<ResourceLocation> dimensions;
+		private final Map<Identifier, Double> geomes;
+		private final Set<Identifier> dimensions;
 
 		private RockDefinition(Builder builder) {
 			id = builder.id;
@@ -264,16 +264,16 @@ public final class WorldgenProvider {
 			dimensions = immutableSet(builder.dimensions);
 		}
 
-		public static Builder builder(ResourceLocation block, GeologyFamily family) {
+		public static Builder builder(Identifier block, GeologyFamily family) {
 			return new Builder(block, block, family);
 		}
 
-		public static Builder builder(ResourceLocation id, ResourceLocation block, GeologyFamily family) {
+		public static Builder builder(Identifier id, Identifier block, GeologyFamily family) {
 			return new Builder(id, block, family);
 		}
 
-		public ResourceLocation id() { return id; }
-		public ResourceLocation block() { return block; }
+		public Identifier id() { return id; }
+		public Identifier block() { return block; }
 		public boolean enabled() { return enabled; }
 		public GeologyFamily family() { return family; }
 		public int depthPeak() { return depthPeak; }
@@ -282,8 +282,8 @@ public final class WorldgenProvider {
 		public int maxY() { return maxY; }
 		public double weight() { return weight; }
 		public boolean oreReplaceable() { return oreReplaceable; }
-		public Map<ResourceLocation, Double> geomes() { return geomes; }
-		public Set<ResourceLocation> dimensions() { return dimensions; }
+		public Map<Identifier, Double> geomes() { return geomes; }
+		public Set<Identifier> dimensions() { return dimensions; }
 
 		@Override
 		public JsonObject toJson() {
@@ -303,8 +303,8 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
-			private final ResourceLocation block;
+			private final Identifier id;
+			private final Identifier block;
 			private final GeologyFamily family;
 			private boolean enabled = true;
 			private int depthPeak = 48;
@@ -313,14 +313,14 @@ public final class WorldgenProvider {
 			private int maxY = 319;
 			private double weight = 1.0D;
 			private boolean oreReplaceable = true;
-			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
-			private final Set<ResourceLocation> dimensions = new LinkedHashSet<>();
+			private final Map<Identifier, Double> geomes = new LinkedHashMap<>();
+			private final Set<Identifier> dimensions = new LinkedHashSet<>();
 
-			private Builder(ResourceLocation id, ResourceLocation block, GeologyFamily family) {
+			private Builder(Identifier id, Identifier block, GeologyFamily family) {
 				this.id = Objects.requireNonNull(id, "id");
 				this.block = Objects.requireNonNull(block, "block");
 				this.family = Objects.requireNonNull(family, "family");
-				dimensions.add(ResourceLocation.fromNamespaceAndPath("minecraft", "overworld"));
+				dimensions.add(Identifier.fromNamespaceAndPath("minecraft", "overworld"));
 			}
 
 			public Builder enabled(boolean value) { enabled = value; return this; }
@@ -328,9 +328,9 @@ public final class WorldgenProvider {
 			public Builder yRange(int min, int max) { minY = min; maxY = max; return this; }
 			public Builder weight(double value) { weight = value; return this; }
 			public Builder oreReplaceable(boolean value) { oreReplaceable = value; return this; }
-			public Builder geomeWeight(ResourceLocation geome, double value) { geomes.put(geome, value); return this; }
-			public Builder dimensions(Collection<ResourceLocation> values) { dimensions.clear(); dimensions.addAll(values); return this; }
-			public Builder dimension(ResourceLocation value) { dimensions.add(value); return this; }
+			public Builder geomeWeight(Identifier geome, double value) { geomes.put(geome, value); return this; }
+			public Builder dimensions(Collection<Identifier> values) { dimensions.clear(); dimensions.addAll(values); return this; }
+			public Builder dimension(Identifier value) { dimensions.add(value); return this; }
 
 			public RockDefinition build() {
 				requireRange(minY, maxY, "rock Y range");
@@ -343,16 +343,16 @@ public final class WorldgenProvider {
 	}
 
 	public static final class OreDefinition implements JsonDefinition {
-		private final ResourceLocation id;
-		private final ResourceLocation block;
+		private final Identifier id;
+		private final Identifier block;
 		private final boolean enabled;
 		private final boolean nativeGeneration;
-		private final ResourceLocation deepOutput;
+		private final Identifier deepOutput;
 		private final int deepOutputMaxY;
 		private final List<OreOutputDefinition> outputs;
 		private final boolean suppressVanilla;
 		private final boolean retrogen;
-		private final Map<ResourceLocation, OreDimensionDefinition> dimensions;
+		private final Map<Identifier, OreDimensionDefinition> dimensions;
 		private final Map<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors;
 
 		private OreDefinition(Builder builder) {
@@ -369,15 +369,15 @@ public final class WorldgenProvider {
 			dimensionSelectors = Collections.unmodifiableMap(new LinkedHashMap<>(builder.dimensionSelectors));
 		}
 
-		public static Builder builder(ResourceLocation block) { return new Builder(block, block); }
-		public static Builder builder(ResourceLocation id, ResourceLocation block) { return new Builder(id, block); }
-		public ResourceLocation id() { return id; }
-		public ResourceLocation block() { return block; }
+		public static Builder builder(Identifier block) { return new Builder(block, block); }
+		public static Builder builder(Identifier id, Identifier block) { return new Builder(id, block); }
+		public Identifier id() { return id; }
+		public Identifier block() { return block; }
 		public boolean enabled() { return enabled; }
 		public List<OreOutputDefinition> outputs() { return outputs; }
 		public boolean suppressVanilla() { return suppressVanilla; }
 		public boolean retrogen() { return retrogen; }
-		public Map<ResourceLocation, OreDimensionDefinition> dimensions() { return dimensions; }
+		public Map<Identifier, OreDimensionDefinition> dimensions() { return dimensions; }
 		public Map<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors() { return dimensionSelectors; }
 
 		@Override
@@ -407,20 +407,20 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
-			private final ResourceLocation block;
+			private final Identifier id;
+			private final Identifier block;
 			private boolean enabled = true;
 			private boolean nativeGeneration;
-			private ResourceLocation deepOutput;
+			private Identifier deepOutput;
 			private int deepOutputMaxY = -1;
 			private final List<OreOutputDefinition> outputs = new ArrayList<>();
 			private boolean suppressVanilla;
 			private boolean retrogen = true;
-			private final LinkedHashMap<ResourceLocation, OreDimensionDefinition> dimensions = new LinkedHashMap<>();
+			private final LinkedHashMap<Identifier, OreDimensionDefinition> dimensions = new LinkedHashMap<>();
 			private final LinkedHashMap<OreDimensionSelector, OreDimensionDefinition> dimensionSelectors =
 					new LinkedHashMap<>();
 
-			private Builder(ResourceLocation id, ResourceLocation block) {
+			private Builder(Identifier id, Identifier block) {
 				this.id = Objects.requireNonNull(id, "id");
 				this.block = Objects.requireNonNull(block, "block");
 			}
@@ -428,11 +428,11 @@ public final class WorldgenProvider {
 			public Builder nativeGeneration(boolean value) { nativeGeneration = value; return this; }
 			public Builder suppressVanilla(boolean value) { suppressVanilla = value; return this; }
 			public Builder retrogen(boolean value) { retrogen = value; return this; }
-			public Builder deepOutput(ResourceLocation value, int maxY) { deepOutput = value; deepOutputMaxY = maxY; return this; }
-			public Builder output(ResourceLocation value, double weight) {
+			public Builder deepOutput(Identifier value, int maxY) { deepOutput = value; deepOutputMaxY = maxY; return this; }
+			public Builder output(Identifier value, double weight) {
 				return output(value, weight, -2048, 2048);
 			}
-			public Builder output(ResourceLocation value, double weight, int minY, int maxY) {
+			public Builder output(Identifier value, double weight, int minY, int maxY) {
 				outputs.add(new OreOutputDefinition(value, weight, minY, maxY));
 				return this;
 			}
@@ -440,7 +440,7 @@ public final class WorldgenProvider {
 				putUnique(dimensions, value.dimension(), value, "ore dimension");
 				return this;
 			}
-			public Builder dimension(ResourceLocation id, Consumer<OreDimensionDefinition.Builder> edit) {
+			public Builder dimension(Identifier id, Consumer<OreDimensionDefinition.Builder> edit) {
 				OreDimensionDefinition.Builder builder = OreDimensionDefinition.builder(id);
 				edit.accept(builder);
 				return dimension(builder.build());
@@ -474,12 +474,12 @@ public final class WorldgenProvider {
 
 	/** One weighted output choice for an ore rule, optionally restricted by Y. */
 	public static final class OreOutputDefinition implements JsonDefinition {
-		private final ResourceLocation block;
+		private final Identifier block;
 		private final double weight;
 		private final int minY;
 		private final int maxY;
 
-		private OreOutputDefinition(ResourceLocation block, double weight, int minY, int maxY) {
+		private OreOutputDefinition(Identifier block, double weight, int minY, int maxY) {
 			this.block = Objects.requireNonNull(block, "block");
 			if (!Double.isFinite(weight) || weight <= 0.0D) {
 				throw new IllegalArgumentException("Output weight must be positive for " + block);
@@ -490,7 +490,7 @@ public final class WorldgenProvider {
 			this.maxY = maxY;
 		}
 
-		public ResourceLocation block() { return block; }
+		public Identifier block() { return block; }
 		public double weight() { return weight; }
 		public int minY() { return minY; }
 		public int maxY() { return maxY; }
@@ -507,7 +507,7 @@ public final class WorldgenProvider {
 	}
 
 	public static final class OreDimensionDefinition implements JsonDefinition {
-		private final ResourceLocation dimension;
+		private final Identifier dimension;
 		private final boolean enabled;
 		private final int minY;
 		private final int maxY;
@@ -515,7 +515,7 @@ public final class WorldgenProvider {
 		private final int minQuantity;
 		private final int maxQuantity;
 		private final OrePattern pattern;
-		private final ResourceLocation patternType;
+		private final Identifier patternType;
 		private final JsonObject patternSettings;
 		private final OreHeightDistribution heightDistribution;
 		private final double discardChanceOnAirExposure;
@@ -523,11 +523,11 @@ public final class WorldgenProvider {
 		private final int verticalSpread;
 		private final int nodeSize;
 		private final Set<GeologyFamily> hostFamilies;
-		private final Map<ResourceLocation, Double> geomes;
-		private final Set<ResourceLocation> hostBlocks;
-		private final Set<ResourceLocation> hostTags;
-		private final Map<ResourceLocation, Double> hostBlockWeights;
-		private final Map<ResourceLocation, Double> hostTagWeights;
+		private final Map<Identifier, Double> geomes;
+		private final Set<Identifier> hostBlocks;
+		private final Set<Identifier> hostTags;
+		private final Map<Identifier, Double> hostBlockWeights;
+		private final Map<Identifier, Double> hostTagWeights;
 
 		private OreDimensionDefinition(Builder builder) {
 			dimension = builder.dimension;
@@ -553,8 +553,8 @@ public final class WorldgenProvider {
 			hostTagWeights = immutableMap(builder.hostTagWeights);
 		}
 
-		public static Builder builder(ResourceLocation dimension) { return new Builder(dimension); }
-		public ResourceLocation dimension() { return dimension; }
+		public static Builder builder(Identifier dimension) { return new Builder(dimension); }
+		public Identifier dimension() { return dimension; }
 		public boolean enabled() { return enabled; }
 		public int minY() { return minY; }
 		public int maxY() { return maxY; }
@@ -564,7 +564,7 @@ public final class WorldgenProvider {
 		public int minQuantity() { return minQuantity; }
 		public int maxQuantity() { return maxQuantity; }
 		public OrePattern pattern() { return pattern; }
-		public ResourceLocation patternType() { return patternType; }
+		public Identifier patternType() { return patternType; }
 		public JsonObject patternSettings() { return patternSettings.deepCopy(); }
 		public OreHeightDistribution heightDistribution() { return heightDistribution; }
 		public double discardChanceOnAirExposure() { return discardChanceOnAirExposure; }
@@ -572,11 +572,11 @@ public final class WorldgenProvider {
 		public int verticalSpread() { return verticalSpread; }
 		public int nodeSize() { return nodeSize; }
 		public Set<GeologyFamily> hostFamilies() { return hostFamilies; }
-		public Map<ResourceLocation, Double> geomes() { return geomes; }
-		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
-		public Set<ResourceLocation> hostTags() { return hostTags; }
-		public Map<ResourceLocation, Double> hostBlockWeights() { return hostBlockWeights; }
-		public Map<ResourceLocation, Double> hostTagWeights() { return hostTagWeights; }
+		public Map<Identifier, Double> geomes() { return geomes; }
+		public Set<Identifier> hostBlocks() { return hostBlocks; }
+		public Set<Identifier> hostTags() { return hostTags; }
+		public Map<Identifier, Double> hostBlockWeights() { return hostBlockWeights; }
+		public Map<Identifier, Double> hostTagWeights() { return hostTagWeights; }
 
 		@Override
 		public JsonObject toJson() {
@@ -614,7 +614,7 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation dimension;
+			private final Identifier dimension;
 			private boolean enabled = true;
 			private int minY = -64;
 			private int maxY = 319;
@@ -622,7 +622,7 @@ public final class WorldgenProvider {
 			private int minQuantity = 8;
 			private int maxQuantity = 8;
 			private OrePattern pattern = OrePattern.VEIN;
-			private ResourceLocation patternType;
+			private Identifier patternType;
 			private JsonObject patternSettings = new JsonObject();
 			private OreHeightDistribution heightDistribution = OreHeightDistribution.UNIFORM;
 			private double discardChanceOnAirExposure;
@@ -630,13 +630,13 @@ public final class WorldgenProvider {
 			private int verticalSpread = 4;
 			private int nodeSize = 4;
 			private final Set<GeologyFamily> hostFamilies = new LinkedHashSet<>();
-			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
-			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
-			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
-			private final Map<ResourceLocation, Double> hostBlockWeights = new LinkedHashMap<>();
-			private final Map<ResourceLocation, Double> hostTagWeights = new LinkedHashMap<>();
+			private final Map<Identifier, Double> geomes = new LinkedHashMap<>();
+			private final Set<Identifier> hostBlocks = new LinkedHashSet<>();
+			private final Set<Identifier> hostTags = new LinkedHashSet<>();
+			private final Map<Identifier, Double> hostBlockWeights = new LinkedHashMap<>();
+			private final Map<Identifier, Double> hostTagWeights = new LinkedHashMap<>();
 
-			private Builder(ResourceLocation dimension) { this.dimension = Objects.requireNonNull(dimension, "dimension"); }
+			private Builder(Identifier dimension) { this.dimension = Objects.requireNonNull(dimension, "dimension"); }
 			public Builder enabled(boolean value) { enabled = value; return this; }
 			public Builder yRange(int min, int max) { minY = min; maxY = max; return this; }
 			public Builder attempts(double value) { frequency = value; return this; }
@@ -650,7 +650,7 @@ public final class WorldgenProvider {
 				return this;
 			}
 			/** Uses a codec-backed pattern registered through {@link OreSpawnPatternRegistry}. */
-			public Builder pattern(ResourceLocation type, JsonObject settings) {
+			public Builder pattern(Identifier type, JsonObject settings) {
 				patternType = Objects.requireNonNull(type, "type");
 				patternSettings = Objects.requireNonNull(settings, "settings").deepCopy();
 				return this;
@@ -660,15 +660,15 @@ public final class WorldgenProvider {
 			public Builder spread(int horizontal, int vertical) { spread = horizontal; verticalSpread = vertical; return this; }
 			public Builder nodeSize(int value) { nodeSize = value; return this; }
 			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
-			public Builder geomeWeight(ResourceLocation geome, double value) { geomes.put(geome, value); return this; }
-			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
-			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
-			public Builder hostBlock(ResourceLocation value, double weight) {
+			public Builder geomeWeight(Identifier geome, double value) { geomes.put(geome, value); return this; }
+			public Builder hostBlock(Identifier value) { hostBlocks.add(value); return this; }
+			public Builder hostTag(Identifier value) { hostTags.add(value); return this; }
+			public Builder hostBlock(Identifier value, double weight) {
 				hostBlocks.add(value);
 				hostBlockWeights.put(value, replacementWeight(weight));
 				return this;
 			}
-			public Builder hostTag(ResourceLocation value, double weight) {
+			public Builder hostTag(Identifier value, double weight) {
 				hostTags.add(value);
 				hostTagWeights.put(value, replacementWeight(weight));
 				return this;
@@ -694,10 +694,10 @@ public final class WorldgenProvider {
 
 	/** A provider-owned underground deposit made from a registered fluid block. */
 	public static final class FluidDepositDefinition implements JsonDefinition {
-		private final ResourceLocation id;
-		private final ResourceLocation block;
+		private final Identifier id;
+		private final Identifier block;
 		private final boolean enabled;
-		private final Map<ResourceLocation, FluidDepositDimensionDefinition> dimensions;
+		private final Map<Identifier, FluidDepositDimensionDefinition> dimensions;
 
 		private FluidDepositDefinition(Builder builder) {
 			id = builder.id;
@@ -706,14 +706,14 @@ public final class WorldgenProvider {
 			dimensions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.dimensions));
 		}
 
-		public static Builder builder(ResourceLocation id, ResourceLocation block) {
+		public static Builder builder(Identifier id, Identifier block) {
 			return new Builder(id, block);
 		}
 
-		public ResourceLocation id() { return id; }
-		public ResourceLocation block() { return block; }
+		public Identifier id() { return id; }
+		public Identifier block() { return block; }
 		public boolean enabled() { return enabled; }
-		public Map<ResourceLocation, FluidDepositDimensionDefinition> dimensions() { return dimensions; }
+		public Map<Identifier, FluidDepositDimensionDefinition> dimensions() { return dimensions; }
 
 		@Override
 		public JsonObject toJson() {
@@ -725,13 +725,13 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
-			private final ResourceLocation block;
+			private final Identifier id;
+			private final Identifier block;
 			private boolean enabled = true;
-			private final LinkedHashMap<ResourceLocation, FluidDepositDimensionDefinition> dimensions =
+			private final LinkedHashMap<Identifier, FluidDepositDimensionDefinition> dimensions =
 					new LinkedHashMap<>();
 
-			private Builder(ResourceLocation id, ResourceLocation block) {
+			private Builder(Identifier id, Identifier block) {
 				this.id = Objects.requireNonNull(id, "id");
 				this.block = Objects.requireNonNull(block, "block");
 			}
@@ -741,7 +741,7 @@ public final class WorldgenProvider {
 				putUnique(dimensions, value.dimension(), value, "fluid deposit dimension");
 				return this;
 			}
-			public Builder dimension(ResourceLocation id,
+			public Builder dimension(Identifier id,
 					Consumer<FluidDepositDimensionDefinition.Builder> edit) {
 				FluidDepositDimensionDefinition.Builder builder = FluidDepositDimensionDefinition.builder(id);
 				edit.accept(builder);
@@ -759,7 +759,7 @@ public final class WorldgenProvider {
 
 	/** Placement and host rules for one fluid deposit in one dimension. */
 	public static final class FluidDepositDimensionDefinition implements JsonDefinition {
-		private final ResourceLocation dimension;
+		private final Identifier dimension;
 		private final boolean enabled;
 		private final int minY;
 		private final int maxY;
@@ -772,13 +772,13 @@ public final class WorldgenProvider {
 		private final int minSolidCover;
 		private final int minSolidShell;
 		private final Set<GeologyFamily> hostFamilies;
-		private final Set<ResourceLocation> hostBlocks;
-		private final Set<ResourceLocation> hostTags;
-		private final Set<ResourceLocation> biomeIds;
-		private final Set<ResourceLocation> excludedBiomeIds;
+		private final Set<Identifier> hostBlocks;
+		private final Set<Identifier> hostTags;
+		private final Set<Identifier> biomeIds;
+		private final Set<Identifier> excludedBiomeIds;
 		private final Set<String> biomeDictionary;
 		private final Set<String> excludedBiomeDictionary;
-		private final Map<ResourceLocation, Double> geomes;
+		private final Map<Identifier, Double> geomes;
 
 		private FluidDepositDimensionDefinition(Builder builder) {
 			dimension = builder.dimension;
@@ -804,8 +804,8 @@ public final class WorldgenProvider {
 			geomes = immutableMap(builder.geomes);
 		}
 
-		public static Builder builder(ResourceLocation dimension) { return new Builder(dimension); }
-		public ResourceLocation dimension() { return dimension; }
+		public static Builder builder(Identifier dimension) { return new Builder(dimension); }
+		public Identifier dimension() { return dimension; }
 		public boolean enabled() { return enabled; }
 		public int minY() { return minY; }
 		public int maxY() { return maxY; }
@@ -818,13 +818,13 @@ public final class WorldgenProvider {
 		public int minSolidCover() { return minSolidCover; }
 		public int minSolidShell() { return minSolidShell; }
 		public Set<GeologyFamily> hostFamilies() { return hostFamilies; }
-		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
-		public Set<ResourceLocation> hostTags() { return hostTags; }
-		public Set<ResourceLocation> biomeIds() { return biomeIds; }
-		public Set<ResourceLocation> excludedBiomeIds() { return excludedBiomeIds; }
+		public Set<Identifier> hostBlocks() { return hostBlocks; }
+		public Set<Identifier> hostTags() { return hostTags; }
+		public Set<Identifier> biomeIds() { return biomeIds; }
+		public Set<Identifier> excludedBiomeIds() { return excludedBiomeIds; }
 		public Set<String> biomeDictionary() { return biomeDictionary; }
 		public Set<String> excludedBiomeDictionary() { return excludedBiomeDictionary; }
-		public Map<ResourceLocation, Double> geomes() { return geomes; }
+		public Map<Identifier, Double> geomes() { return geomes; }
 
 		@Override
 		public JsonObject toJson() {
@@ -854,7 +854,7 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation dimension;
+			private final Identifier dimension;
 			private boolean enabled = true;
 			private int minY = -48;
 			private int maxY = 48;
@@ -867,15 +867,15 @@ public final class WorldgenProvider {
 			private int minSolidCover = 2;
 			private int minSolidShell = 1;
 			private final Set<GeologyFamily> hostFamilies = new LinkedHashSet<>();
-			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
-			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
-			private final Set<ResourceLocation> biomeIds = new LinkedHashSet<>();
-			private final Set<ResourceLocation> excludedBiomeIds = new LinkedHashSet<>();
+			private final Set<Identifier> hostBlocks = new LinkedHashSet<>();
+			private final Set<Identifier> hostTags = new LinkedHashSet<>();
+			private final Set<Identifier> biomeIds = new LinkedHashSet<>();
+			private final Set<Identifier> excludedBiomeIds = new LinkedHashSet<>();
 			private final Set<String> biomeDictionary = new LinkedHashSet<>();
 			private final Set<String> excludedBiomeDictionary = new LinkedHashSet<>();
-			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
+			private final Map<Identifier, Double> geomes = new LinkedHashMap<>();
 
-			private Builder(ResourceLocation dimension) {
+			private Builder(Identifier dimension) {
 				this.dimension = Objects.requireNonNull(dimension, "dimension");
 			}
 
@@ -890,15 +890,15 @@ public final class WorldgenProvider {
 			public Builder minSolidCover(int value) { minSolidCover = value; return this; }
 			public Builder minSolidShell(int value) { minSolidShell = value; return this; }
 			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
-			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
-			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
-			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
-			public Builder excludeBiome(ResourceLocation value) { excludedBiomeIds.add(value); return this; }
+			public Builder hostBlock(Identifier value) { hostBlocks.add(value); return this; }
+			public Builder hostTag(Identifier value) { hostTags.add(value); return this; }
+			public Builder biome(Identifier value) { biomeIds.add(value); return this; }
+			public Builder excludeBiome(Identifier value) { excludedBiomeIds.add(value); return this; }
 			public Builder biomeDictionary(String value) { biomeDictionary.add(nonBlank(value)); return this; }
 			public Builder excludeBiomeDictionary(String value) {
 				excludedBiomeDictionary.add(nonBlank(value)); return this;
 			}
-			public Builder geomeWeight(ResourceLocation geome, double value) {
+			public Builder geomeWeight(Identifier geome, double value) {
 				if (!Double.isFinite(value) || value < 0.0D) {
 					throw new IllegalArgumentException("Geome weight must be finite and non-negative");
 				}
@@ -925,7 +925,7 @@ public final class WorldgenProvider {
 	}
 
 	public static final class GeomeDefinition implements JsonDefinition {
-		private final ResourceLocation id;
+		private final Identifier id;
 		private final double baseWeight;
 		private final Map<GeologyFamily, Double> familyWeights;
 
@@ -935,8 +935,8 @@ public final class WorldgenProvider {
 			familyWeights = Collections.unmodifiableMap(new LinkedHashMap<>(builder.familyWeights));
 		}
 
-		public static Builder builder(ResourceLocation id) { return new Builder(id); }
-		public ResourceLocation id() { return id; }
+		public static Builder builder(Identifier id) { return new Builder(id); }
+		public Identifier id() { return id; }
 		public double baseWeight() { return baseWeight; }
 		public Map<GeologyFamily, Double> familyWeights() { return familyWeights; }
 
@@ -951,10 +951,10 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
+			private final Identifier id;
 			private double baseWeight = 1.0D;
 			private final Map<GeologyFamily, Double> familyWeights = new LinkedHashMap<>();
-			private Builder(ResourceLocation id) { this.id = Objects.requireNonNull(id, "id"); }
+			private Builder(Identifier id) { this.id = Objects.requireNonNull(id, "id"); }
 			public Builder baseWeight(double value) { baseWeight = value; return this; }
 			public Builder familyWeight(GeologyFamily family, double value) { familyWeights.put(family, value); return this; }
 			public GeomeDefinition build() {
@@ -967,24 +967,24 @@ public final class WorldgenProvider {
 	}
 
 	public static final class BiomeRule implements JsonDefinition {
-		private final ResourceLocation biome;
-		private final Map<ResourceLocation, Double> geomeWeights;
-		public BiomeRule(ResourceLocation biome, Map<ResourceLocation, Double> geomeWeights) {
+		private final Identifier biome;
+		private final Map<Identifier, Double> geomeWeights;
+		public BiomeRule(Identifier biome, Map<Identifier, Double> geomeWeights) {
 			this.biome = Objects.requireNonNull(biome, "biome");
 			this.geomeWeights = immutableMap(geomeWeights);
 		}
-		public ResourceLocation biome() { return biome; }
-		public Map<ResourceLocation, Double> geomeWeights() { return geomeWeights; }
+		public Identifier biome() { return biome; }
+		public Map<Identifier, Double> geomeWeights() { return geomeWeights; }
 		@Override public JsonObject toJson() { return weights(geomeWeights); }
 	}
 
 	public static final class TerrainDimensionDefinition implements JsonDefinition {
-		private final ResourceLocation dimension;
+		private final Identifier dimension;
 		private final boolean enabled;
-		private final Set<ResourceLocation> biomeIds;
+		private final Set<Identifier> biomeIds;
 		private final Set<String> biomeNamespaces;
-		private final Set<ResourceLocation> hostBlocks;
-		private final Set<ResourceLocation> hostTags;
+		private final Set<Identifier> hostBlocks;
+		private final Set<Identifier> hostTags;
 
 		private TerrainDimensionDefinition(Builder builder) {
 			dimension = builder.dimension;
@@ -995,13 +995,13 @@ public final class WorldgenProvider {
 			hostTags = immutableSet(builder.hostTags);
 		}
 
-		public static Builder builder(ResourceLocation id) { return new Builder(id); }
-		public ResourceLocation dimension() { return dimension; }
+		public static Builder builder(Identifier id) { return new Builder(id); }
+		public Identifier dimension() { return dimension; }
 		public boolean enabled() { return enabled; }
-		public Set<ResourceLocation> biomeIds() { return biomeIds; }
+		public Set<Identifier> biomeIds() { return biomeIds; }
 		public Set<String> biomeNamespaces() { return biomeNamespaces; }
-		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
-		public Set<ResourceLocation> hostTags() { return hostTags; }
+		public Set<Identifier> hostBlocks() { return hostBlocks; }
+		public Set<Identifier> hostTags() { return hostTags; }
 		@Override
 		public JsonObject toJson() {
 			JsonObject json = new JsonObject();
@@ -1016,18 +1016,18 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation dimension;
+			private final Identifier dimension;
 			private boolean enabled = true;
-			private final Set<ResourceLocation> biomeIds = new LinkedHashSet<>();
+			private final Set<Identifier> biomeIds = new LinkedHashSet<>();
 			private final Set<String> biomeNamespaces = new LinkedHashSet<>();
-			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
-			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
-			private Builder(ResourceLocation id) { dimension = Objects.requireNonNull(id, "dimension"); }
+			private final Set<Identifier> hostBlocks = new LinkedHashSet<>();
+			private final Set<Identifier> hostTags = new LinkedHashSet<>();
+			private Builder(Identifier id) { dimension = Objects.requireNonNull(id, "dimension"); }
 			public Builder enabled(boolean value) { enabled = value; return this; }
-			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
+			public Builder biome(Identifier value) { biomeIds.add(value); return this; }
 			public Builder biomeNamespace(String value) { biomeNamespaces.add(requireModId(value)); return this; }
-			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
-			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
+			public Builder hostBlock(Identifier value) { hostBlocks.add(value); return this; }
+			public Builder hostTag(Identifier value) { hostTags.add(value); return this; }
 			public TerrainDimensionDefinition build() {
 				if (enabled && hostBlocks.isEmpty() && hostTags.isEmpty()) {
 					throw new IllegalStateException("Enabled terrain dimension has no replacement hosts: " + dimension);
@@ -1203,7 +1203,7 @@ public final class WorldgenProvider {
 	}
 
 	public static final class GeologyTemplate implements JsonDefinition {
-		private final ResourceLocation id;
+		private final Identifier id;
 		private final String nameKey;
 		private final String descriptionKey;
 		private final Set<String> requiredMods;
@@ -1221,8 +1221,8 @@ public final class WorldgenProvider {
 			profile = builder.profile.deepCopy();
 		}
 
-		public static Builder builder(ResourceLocation id) { return new Builder(id); }
-		public ResourceLocation id() { return id; }
+		public static Builder builder(Identifier id) { return new Builder(id); }
+		public Identifier id() { return id; }
 		public String nameKey() { return nameKey; }
 		public String descriptionKey() { return descriptionKey; }
 		public Set<String> requiredMods() { return requiredMods; }
@@ -1244,14 +1244,14 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
+			private final Identifier id;
 			private String nameKey;
 			private String descriptionKey;
 			private final Set<String> requiredMods = new LinkedHashSet<>();
 			private boolean autoSelect;
 			private int autoSelectPriority;
 			private final JsonObject profile = new JsonObject();
-			private Builder(ResourceLocation id) {
+			private Builder(Identifier id) {
 				this.id = Objects.requireNonNull(id, "id");
 				nameKey = "orespawn.template." + id.getNamespace() + "." + id.getPath();
 				descriptionKey = nameKey + ".description";
@@ -1290,25 +1290,25 @@ public final class WorldgenProvider {
 		JsonObject toJson();
 	}
 
-	private static <T extends JsonDefinition> JsonObject object(Map<ResourceLocation, T> values) {
+	private static <T extends JsonDefinition> JsonObject object(Map<Identifier, T> values) {
 		JsonObject json = new JsonObject();
-		for (Map.Entry<ResourceLocation, T> entry : values.entrySet()) {
+		for (Map.Entry<Identifier, T> entry : values.entrySet()) {
 			json.add(entry.getKey().toString(), entry.getValue().toJson());
 		}
 		return json;
 	}
 
-	private static JsonObject weights(Map<ResourceLocation, Double> values) {
+	private static JsonObject weights(Map<Identifier, Double> values) {
 		JsonObject json = new JsonObject();
-		for (Map.Entry<ResourceLocation, Double> entry : values.entrySet()) {
+		for (Map.Entry<Identifier, Double> entry : values.entrySet()) {
 			json.addProperty(entry.getKey().toString(), entry.getValue());
 		}
 		return json;
 	}
 
-	private static JsonArray ids(Collection<ResourceLocation> values) {
+	private static JsonArray ids(Collection<Identifier> values) {
 		JsonArray json = new JsonArray();
-		for (ResourceLocation value : values) { json.add(value.toString()); }
+		for (Identifier value : values) { json.add(value.toString()); }
 		return json;
 	}
 
@@ -1317,8 +1317,8 @@ public final class WorldgenProvider {
 	 * dimension biome source without depending on a particular biome framework.
 	 */
 	public static final class BiomePaletteDefinition implements JsonDefinition {
-		private final ResourceLocation id;
-		private final ResourceLocation dimension;
+		private final Identifier id;
+		private final Identifier dimension;
 		private final boolean enabled;
 		private final BiomePlacementMode mode;
 		private final BiomeReplacementScope scope;
@@ -1327,7 +1327,7 @@ public final class WorldgenProvider {
 		private final double fallbackWeight;
 		private final Set<String> includedNamespaces;
 		private final Set<String> excludedNamespaces;
-		private final Map<ResourceLocation, BiomePlacementDefinition> biomes;
+		private final Map<Identifier, BiomePlacementDefinition> biomes;
 
 		private BiomePaletteDefinition(Builder builder) {
 			id = builder.id;
@@ -1345,12 +1345,12 @@ public final class WorldgenProvider {
 			biomes = Collections.unmodifiableMap(new LinkedHashMap<>(builder.biomes));
 		}
 
-		public static Builder builder(ResourceLocation id, ResourceLocation dimension) {
+		public static Builder builder(Identifier id, Identifier dimension) {
 			return new Builder(id, dimension);
 		}
 
-		public ResourceLocation id() { return id; }
-		public ResourceLocation dimension() { return dimension; }
+		public Identifier id() { return id; }
+		public Identifier dimension() { return dimension; }
 		public boolean enabled() { return enabled; }
 		public BiomePlacementMode mode() { return mode; }
 		public BiomeReplacementScope scope() { return scope; }
@@ -1359,7 +1359,7 @@ public final class WorldgenProvider {
 		public double fallbackWeight() { return fallbackWeight; }
 		public Set<String> includedNamespaces() { return includedNamespaces; }
 		public Set<String> excludedNamespaces() { return excludedNamespaces; }
-		public Map<ResourceLocation, BiomePlacementDefinition> biomes() { return biomes; }
+		public Map<Identifier, BiomePlacementDefinition> biomes() { return biomes; }
 
 		@Override
 		public JsonObject toJson() {
@@ -1378,8 +1378,8 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
-			private final ResourceLocation dimension;
+			private final Identifier id;
+			private final Identifier dimension;
 			private boolean enabled = true;
 			private BiomePlacementMode mode = BiomePlacementMode.AUGMENT;
 			private BiomeReplacementScope scope = BiomeReplacementScope.MINECRAFT_ONLY;
@@ -1388,10 +1388,10 @@ public final class WorldgenProvider {
 			private double fallbackWeight = 1.0D;
 			private final Set<String> includedNamespaces = new LinkedHashSet<>();
 			private final Set<String> excludedNamespaces = new LinkedHashSet<>();
-			private final Map<ResourceLocation, BiomePlacementDefinition> biomes =
+			private final Map<Identifier, BiomePlacementDefinition> biomes =
 					new LinkedHashMap<>();
 
-			private Builder(ResourceLocation id, ResourceLocation dimension) {
+			private Builder(Identifier id, Identifier dimension) {
 				this.id = Objects.requireNonNull(id, "id");
 				this.dimension = Objects.requireNonNull(dimension, "dimension");
 			}
@@ -1408,7 +1408,7 @@ public final class WorldgenProvider {
 				putUnique(biomes, value.biome(), value, "biome placement");
 				return this;
 			}
-			public Builder biome(ResourceLocation biome,
+			public Builder biome(Identifier biome,
 					Consumer<BiomePlacementDefinition.Builder> edit) {
 				BiomePlacementDefinition.Builder builder = BiomePlacementDefinition.builder(biome);
 				edit.accept(builder);
@@ -1434,11 +1434,11 @@ public final class WorldgenProvider {
 
 	/** Placement and optional surface settings for one registered biome. */
 	public static final class BiomePlacementDefinition implements JsonDefinition {
-		private final ResourceLocation biome;
+		private final Identifier biome;
 		private final boolean enabled;
 		private final double weight;
-		private final Set<ResourceLocation> similarBiomes;
-		private final Set<ResourceLocation> requiredSimilarBiomes;
+		private final Set<Identifier> similarBiomes;
+		private final Set<Identifier> requiredSimilarBiomes;
 		private final double minTemperature;
 		private final double maxTemperature;
 		private final double minDownfall;
@@ -1458,12 +1458,12 @@ public final class WorldgenProvider {
 			surface = builder.surface;
 		}
 
-		public static Builder builder(ResourceLocation biome) { return new Builder(biome); }
-		public ResourceLocation biome() { return biome; }
+		public static Builder builder(Identifier biome) { return new Builder(biome); }
+		public Identifier biome() { return biome; }
 		public boolean enabled() { return enabled; }
 		public double weight() { return weight; }
-		public Set<ResourceLocation> similarBiomes() { return similarBiomes; }
-		public Set<ResourceLocation> requiredSimilarBiomes() { return requiredSimilarBiomes; }
+		public Set<Identifier> similarBiomes() { return similarBiomes; }
+		public Set<Identifier> requiredSimilarBiomes() { return requiredSimilarBiomes; }
 		public BiomeSurfaceDefinition surface() { return surface; }
 
 		@Override
@@ -1482,25 +1482,25 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation biome;
+			private final Identifier biome;
 			private boolean enabled = true;
 			private double weight = 1.0D;
-			private final Set<ResourceLocation> similarBiomes = new LinkedHashSet<>();
-			private final Set<ResourceLocation> requiredSimilarBiomes = new LinkedHashSet<>();
+			private final Set<Identifier> similarBiomes = new LinkedHashSet<>();
+			private final Set<Identifier> requiredSimilarBiomes = new LinkedHashSet<>();
 			private double minTemperature = -2.0D;
 			private double maxTemperature = 2.0D;
 			private double minDownfall = 0.0D;
 			private double maxDownfall = 1.0D;
 			private BiomeSurfaceDefinition surface;
 
-			private Builder(ResourceLocation biome) {
+			private Builder(Identifier biome) {
 				this.biome = Objects.requireNonNull(biome, "biome");
 			}
 
 			public Builder enabled(boolean value) { enabled = value; return this; }
 			public Builder weight(double value) { weight = value; return this; }
-			public Builder similarBiome(ResourceLocation value) { similarBiomes.add(value); return this; }
-			public Builder requiredSimilarBiome(ResourceLocation value) {
+			public Builder similarBiome(Identifier value) { similarBiomes.add(value); return this; }
+			public Builder requiredSimilarBiome(Identifier value) {
 				requiredSimilarBiomes.add(value);
 				return this;
 			}
@@ -1529,10 +1529,10 @@ public final class WorldgenProvider {
 
 	/** Surface block choices applied only to columns using this biome. */
 	public static final class BiomeSurfaceDefinition implements JsonDefinition {
-		private final ResourceLocation topBlock;
-		private final ResourceLocation fillerBlock;
-		private final ResourceLocation underwaterBlock;
-		private final ResourceLocation ceilingBlock;
+		private final Identifier topBlock;
+		private final Identifier fillerBlock;
+		private final Identifier underwaterBlock;
+		private final Identifier ceilingBlock;
 		private final int fillerDepth;
 
 		private BiomeSurfaceDefinition(Builder builder) {
@@ -1557,17 +1557,17 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private ResourceLocation topBlock;
-			private ResourceLocation fillerBlock;
-			private ResourceLocation underwaterBlock;
-			private ResourceLocation ceilingBlock;
+			private Identifier topBlock;
+			private Identifier fillerBlock;
+			private Identifier underwaterBlock;
+			private Identifier ceilingBlock;
 			private int fillerDepth = 3;
 
 			private Builder() { }
-			public Builder topBlock(ResourceLocation value) { topBlock = value; return this; }
-			public Builder fillerBlock(ResourceLocation value) { fillerBlock = value; return this; }
-			public Builder underwaterBlock(ResourceLocation value) { underwaterBlock = value; return this; }
-			public Builder ceilingBlock(ResourceLocation value) { ceilingBlock = value; return this; }
+			public Builder topBlock(Identifier value) { topBlock = value; return this; }
+			public Builder fillerBlock(Identifier value) { fillerBlock = value; return this; }
+			public Builder underwaterBlock(Identifier value) { underwaterBlock = value; return this; }
+			public Builder ceilingBlock(Identifier value) { ceilingBlock = value; return this; }
 			public Builder fillerDepth(int value) { fillerDepth = value; return this; }
 			public BiomeSurfaceDefinition build() {
 				if (fillerDepth < 0 || fillerDepth > 16) {
@@ -1580,14 +1580,14 @@ public final class WorldgenProvider {
 
 	/** Dimension-wide aquifer and weather materials. */
 	public static final class DimensionMaterialsDefinition implements JsonDefinition {
-		private final ResourceLocation id;
-		private final ResourceLocation dimension;
+		private final Identifier id;
+		private final Identifier dimension;
 		private final boolean enabled;
-		private final ResourceLocation defaultFluid;
-		private final ResourceLocation deepAquiferFluid;
+		private final Identifier defaultFluid;
+		private final Identifier deepAquiferFluid;
 		private final int deepAquiferMaxY;
-		private final ResourceLocation snowBlock;
-		private final ResourceLocation iceBlock;
+		private final Identifier snowBlock;
+		private final Identifier iceBlock;
 
 		private DimensionMaterialsDefinition(Builder builder) {
 			id = builder.id;
@@ -1600,11 +1600,11 @@ public final class WorldgenProvider {
 			iceBlock = builder.iceBlock;
 		}
 
-		public static Builder builder(ResourceLocation id, ResourceLocation dimension) {
+		public static Builder builder(Identifier id, Identifier dimension) {
 			return new Builder(id, dimension);
 		}
-		public ResourceLocation id() { return id; }
-		public ResourceLocation dimension() { return dimension; }
+		public Identifier id() { return id; }
+		public Identifier dimension() { return dimension; }
 
 		@Override
 		public JsonObject toJson() {
@@ -1620,28 +1620,28 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private final ResourceLocation id;
-			private final ResourceLocation dimension;
+			private final Identifier id;
+			private final Identifier dimension;
 			private boolean enabled = true;
-			private ResourceLocation defaultFluid;
-			private ResourceLocation deepAquiferFluid;
+			private Identifier defaultFluid;
+			private Identifier deepAquiferFluid;
 			private int deepAquiferMaxY = -54;
-			private ResourceLocation snowBlock;
-			private ResourceLocation iceBlock;
+			private Identifier snowBlock;
+			private Identifier iceBlock;
 
-			private Builder(ResourceLocation id, ResourceLocation dimension) {
+			private Builder(Identifier id, Identifier dimension) {
 				this.id = Objects.requireNonNull(id, "id");
 				this.dimension = Objects.requireNonNull(dimension, "dimension");
 			}
 			public Builder enabled(boolean value) { enabled = value; return this; }
-			public Builder defaultFluid(ResourceLocation value) { defaultFluid = value; return this; }
-			public Builder deepAquiferFluid(ResourceLocation value, int maxY) {
+			public Builder defaultFluid(Identifier value) { defaultFluid = value; return this; }
+			public Builder deepAquiferFluid(Identifier value, int maxY) {
 				deepAquiferFluid = value;
 				deepAquiferMaxY = maxY;
 				return this;
 			}
-			public Builder snowBlock(ResourceLocation value) { snowBlock = value; return this; }
-			public Builder iceBlock(ResourceLocation value) { iceBlock = value; return this; }
+			public Builder snowBlock(Identifier value) { snowBlock = value; return this; }
+			public Builder iceBlock(Identifier value) { iceBlock = value; return this; }
 			public DimensionMaterialsDefinition build() {
 				if (enabled && defaultFluid == null && deepAquiferFluid == null
 						&& snowBlock == null && iceBlock == null) {
@@ -1658,10 +1658,10 @@ public final class WorldgenProvider {
 		return json;
 	}
 
-	private static JsonArray weightedIds(Collection<ResourceLocation> values,
-			Map<ResourceLocation, Double> weights, String idKey) {
+	private static JsonArray weightedIds(Collection<Identifier> values,
+			Map<Identifier, Double> weights, String idKey) {
 		JsonArray json = new JsonArray();
-		for (ResourceLocation value : values) {
+		for (Identifier value : values) {
 			Double weight = weights.get(value);
 			if (weight == null || weight.doubleValue() == 1.0D) {
 				json.add(value.toString());
@@ -1690,7 +1690,7 @@ public final class WorldgenProvider {
 
 	private static String requireModId(String value) {
 		Objects.requireNonNull(value, "modId");
-		ResourceLocation probe = ResourceLocation.fromNamespaceAndPath(value, "provider");
+		Identifier probe = Identifier.fromNamespaceAndPath(value, "provider");
 		if (!probe.getNamespace().equals(value)) {
 			throw new IllegalArgumentException("Invalid mod ID: " + value);
 		}

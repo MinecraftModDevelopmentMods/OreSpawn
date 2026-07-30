@@ -13,7 +13,7 @@ import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -31,14 +31,14 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 	public static final StoneReplacer FEATURE = new StoneReplacer();
 	private static final MatchingStoneGateFeature MATCHING_STONE_GATE =
 			new MatchingStoneGateFeature();
-	private static final ResourceLocation[] VANILLA_MATCHING_STONE_FEATURES = new ResourceLocation[] {
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_granite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_granite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_diorite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_diorite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_andesite_upper"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_andesite_lower"),
-			ResourceLocation.fromNamespaceAndPath("minecraft", "ore_tuff")
+	private static final Identifier[] VANILLA_MATCHING_STONE_FEATURES = new Identifier[] {
+			Identifier.fromNamespaceAndPath("minecraft", "ore_granite_upper"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_granite_lower"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_diorite_upper"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_diorite_lower"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_andesite_upper"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_andesite_lower"),
+			Identifier.fromNamespaceAndPath("minecraft", "ore_tuff")
 	};
 	private static Holder<PlacedFeature> placedFeature;
 	private static final Map<PlacedFeature, Holder<PlacedFeature>> MATCHING_STONE_GATES =
@@ -103,7 +103,7 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 	}
 
 	static boolean isVanillaMatchingStoneFeature(Holder<PlacedFeature> feature) {
-		for (ResourceLocation id : VANILLA_MATCHING_STONE_FEATURES) {
+		for (Identifier id : VANILLA_MATCHING_STONE_FEATURES) {
 			if (feature.is(id)) {
 				return true;
 			}

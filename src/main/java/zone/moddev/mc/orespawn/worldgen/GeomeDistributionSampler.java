@@ -18,7 +18,7 @@ import java.util.TreeMap;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -49,7 +49,7 @@ public final class GeomeDistributionSampler {
 		long selectionSignature = 0xCBF29CE484222325L;
 		int step = Math.max(1, yStep);
 		for (Biome biome : biomes) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
+			Identifier biomeId = ForgeRegistries.BIOMES.getKey(biome);
 			if (!isOverworldGeologyBiome(biomeId, biome)) {
 				continue;
 			}
@@ -63,7 +63,7 @@ public final class GeomeDistributionSampler {
 				shape.addDrift(geology, x, z);
 				for (int y = 8; y <= 96; y += step) {
 					Block block = geology.getStoneAt(biome, x, y, z, 96);
-					ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+					Identifier id = ForgeRegistries.BLOCKS.getKey(block);
 					selectionSignature ^= id == null ? 0 : id.toString().hashCode();
 					selectionSignature *= 0x100000001B3L;
 					add(rockCounts, id == null ? "<unregistered>" : id.toString());
@@ -136,7 +136,7 @@ public final class GeomeDistributionSampler {
 				int length = input.readUnsignedShort();
 				byte[] encoded = new byte[length];
 				input.readFully(encoded);
-				ResourceLocation biomeId = ResourceLocation.parse(new String(encoded, StandardCharsets.UTF_8));
+				Identifier biomeId = Identifier.parse(new String(encoded, StandardCharsets.UTF_8));
 				biomePalette[index] = ForgeRegistries.BIOMES.getValue(biomeId);
 				if (biomePalette[index] == null) {
 					throw new IOException("Unknown biome " + biomeId + " in " + path);
@@ -165,7 +165,7 @@ public final class GeomeDistributionSampler {
 						}
 						Block block = geology.getStoneAt(geomeIndex, stratumOffset, formationRegion,
 								x, minY + yIndex, z);
-						ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+						Identifier id = ForgeRegistries.BLOCKS.getKey(block);
 						String rockId = id == null ? "<unregistered>" : id.toString();
 						selectionSignature ^= rockId.hashCode();
 						selectionSignature *= 0x100000001B3L;
@@ -201,7 +201,7 @@ public final class GeomeDistributionSampler {
 		}
 	}
 
-	private static boolean isOverworldGeologyBiome(ResourceLocation biomeId, Biome biome) {
+	private static boolean isOverworldGeologyBiome(Identifier biomeId, Biome biome) {
 		if (biomeId == null || "minecraft:the_void".equals(biomeId.toString())) {
 			return false;
 		}
@@ -218,7 +218,7 @@ public final class GeomeDistributionSampler {
 		List<String> neutralBiomes = new ArrayList<>();
 		int biomeIndex = 0;
 		for (Entry<String, Biome> entry : biomes.entrySet()) {
-			ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
+			Identifier biomeId = Identifier.parse(entry.getKey());
 			add(namespaceCounts, biomeId.getNamespace());
 			if (!config.hasDistinctBiomeWeights(entry.getValue())) {
 				neutralBiomes.add(entry.getKey());
@@ -265,7 +265,7 @@ public final class GeomeDistributionSampler {
 		report.append('\n');
 	}
 
-	private static String biomeTypes(ResourceLocation biomeId) {
+	private static String biomeTypes(Identifier biomeId) {
 		List<String> names = new ArrayList<>();
 		Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
 		if (biome != null) names.addAll(BiomeTypeCompatibility.types(biome));

@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
@@ -13,6 +13,6 @@ public final class ClientSetup {
 
 	@SubscribeEvent
 	public static void clientSetup(FMLClientSetupEvent event) {
-		// The world-creation editor registers through its Forge screen events.
+		WorldCreationScreenHandler.register();
 	}
 }

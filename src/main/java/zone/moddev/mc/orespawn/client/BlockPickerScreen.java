@@ -47,8 +47,8 @@ final class BlockPickerScreen extends OreSpawnScreen {
 
 		List<String> namespaces = session.installedBlockNamespaces();
 		if (!namespaces.contains(namespace)) namespace = "";
-		addRenderableWidget(CycleButton.builder(this::namespaceName)
-				.withValues(namespaces).withInitialValue(namespace)
+		addRenderableWidget(CycleButton.builder(this::namespaceName, namespace)
+				.withValues(namespaces)
 				.create(left, 58, 150, 20, Component.translatable("option.orespawn.mod_filter"),
 						(button, value) -> { namespace = value; page = 0; rebuildWidgets(); }));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 160, 58, 150, 20,

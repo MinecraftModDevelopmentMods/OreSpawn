@@ -1,6 +1,10 @@
 {
   "pack": {
     "description": "OreSpawn resources",
-    "pack_format": 34
+    "max_format": 94,
+    "min_format": [
+      94,
+      1
+    ]
   }
 }

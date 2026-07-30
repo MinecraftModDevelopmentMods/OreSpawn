@@ -18,7 +18,7 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class FluidDepositDimensionScreen extends OreSpawnScreen {
 	private enum Page { PLACEMENT, HOSTS, BIOMES }
@@ -292,7 +292,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 
 	private static JsonArray ids(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(ResourceLocation.parse(value).toString());
+		for (String value : split(text)) result.add(Identifier.parse(value).toString());
 		return result;
 	}
 

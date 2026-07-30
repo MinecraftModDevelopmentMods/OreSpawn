@@ -10,7 +10,7 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Algorithm;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -117,7 +117,7 @@ public final class WorldGeologyProfile {
 		return new WorldGeologyProfile(editedRoot, geologyMode, placeFluidDeposits);
 	}
 
-	public WorldGeologyProfile withTemplate(ResourceLocation templateId) {
+	public WorldGeologyProfile withTemplate(Identifier templateId) {
 		return new WorldGeologyProfile(WorldgenIntegrationManager.applyTemplate(
 				GeomeConfig.globalBaseConfigSnapshot(), templateId),
 				geologyMode, placeFluidDeposits);
@@ -129,12 +129,12 @@ public final class WorldGeologyProfile {
 		return new WorldGeologyProfile(edited, geologyMode, placeFluidDeposits);
 	}
 
-	public Optional<ResourceLocation> selectedTemplate() {
+	public Optional<Identifier> selectedTemplate() {
 		if (!root.has("selected_template")) {
 			return Optional.empty();
 		}
 		try {
-			return Optional.of(ResourceLocation.parse(root.get("selected_template").getAsString()));
+			return Optional.of(Identifier.parse(root.get("selected_template").getAsString()));
 		} catch (RuntimeException ignored) {
 			return Optional.empty();
 		}

@@ -2,23 +2,23 @@ package zone.moddev.mc.orespawn.api;
 
 import java.util.Locale;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Built-in dimension policies available to declarative ore providers. */
 public enum OreDimensionSelector {
 	ALL_EXCEPT_NETHER_AND_END("all_except_nether_end");
 
-	private final ResourceLocation id;
+	private final Identifier id;
 
 	OreDimensionSelector(String path) {
-		this.id = ResourceLocation.fromNamespaceAndPath("orespawn", path);
+		this.id = Identifier.fromNamespaceAndPath("orespawn", path);
 	}
 
-	public ResourceLocation id() {
+	public Identifier id() {
 		return id;
 	}
 
-	public static OreDimensionSelector fromId(ResourceLocation id) {
+	public static OreDimensionSelector fromId(Identifier id) {
 		for (OreDimensionSelector selector : values()) {
 			if (selector.id.equals(id)) return selector;
 		}
@@ -26,9 +26,9 @@ public enum OreDimensionSelector {
 	}
 
 	public static OreDimensionSelector fromName(String value) {
-		ResourceLocation id = value.indexOf(':') >= 0
-				? ResourceLocation.parse(value)
-				: ResourceLocation.fromNamespaceAndPath("orespawn", value.toLowerCase(Locale.ROOT));
+		Identifier id = value.indexOf(':') >= 0
+				? Identifier.parse(value)
+				: Identifier.fromNamespaceAndPath("orespawn", value.toLowerCase(Locale.ROOT));
 		return fromId(id);
 	}
 }

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 
@@ -22,7 +22,7 @@ class FluidDepositFeatureTest {
 		rule.add("biome_ids", ids);
 
 		ResourceKey<Biome> expected = ResourceKey.create(Registries.BIOME,
-				ResourceLocation.fromNamespaceAndPath("minecraft", "cold_ocean"));
+				Identifier.fromNamespaceAndPath("minecraft", "cold_ocean"));
 		assertTrue(FluidDepositFeature.resolveBiomes(rule, "biome_ids", "biome_dictionary")
 				.contains(expected));
 	}

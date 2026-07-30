@@ -15,7 +15,7 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 
 final class OreEntryScreen extends OreSpawnScreen {
@@ -81,9 +81,8 @@ final class OreEntryScreen extends OreSpawnScreen {
 		if (dimensionText.isEmpty()) dimensionText = selectedDimension;
 		dimensionId.setValue(dimensionText);
 		dimensionId.setResponder(value -> dimensionText = value);
-		addRenderableWidget(CycleButton.builder(this::dimensionName)
+		addRenderableWidget(CycleButton.builder(this::dimensionName, selectedDimension)
 				.withValues(availableDimensions)
-				.withInitialValue(selectedDimension)
 				.withTooltip(value -> tooltip("tooltip.orespawn.available_dimension"))
 				.create(width / 2 - 155, pickerY, 310, 20,
 						Component.translatable("option.orespawn.available_dimension"),
@@ -101,7 +100,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 	private void addDimension() {
 		String id;
 		try {
-			id = ResourceLocation.parse(dimensionId.getValue().trim()).toString();
+			id = Identifier.parse(dimensionId.getValue().trim()).toString();
 		} catch (RuntimeException e) {
 			return;
 		}

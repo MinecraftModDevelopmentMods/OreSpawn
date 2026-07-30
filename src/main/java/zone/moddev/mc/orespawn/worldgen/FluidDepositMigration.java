@@ -3,7 +3,7 @@ package zone.moddev.mc.orespawn.worldgen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Normalizes the pre-schema-5 singleton oil fields into named deposit rules. */
 final class FluidDepositMigration {
@@ -29,9 +29,9 @@ final class FluidDepositMigration {
 
 		if (root.has("oil") && root.get("oil").isJsonObject()) {
 			JsonObject oil = root.getAsJsonObject("oil");
-			ResourceLocation block = resource(string(oil, "block", "minecraft:air"));
+			Identifier block = resource(string(oil, "block", "minecraft:air"));
 			if (block != null && !"minecraft:air".equals(block.toString())) {
-				ResourceLocation ruleId = ResourceLocation.fromNamespaceAndPath(block.getNamespace(),
+				Identifier ruleId = Identifier.fromNamespaceAndPath(block.getNamespace(),
 						"fluid_deposit/" + block.getPath());
 				if (!deposits.has(ruleId.toString())) {
 					deposits.add(ruleId.toString(), legacyRule(block, oil));
@@ -45,7 +45,7 @@ final class FluidDepositMigration {
 		return changed;
 	}
 
-	private static JsonObject legacyRule(ResourceLocation block, JsonObject oil) {
+	private static JsonObject legacyRule(Identifier block, JsonObject oil) {
 		JsonObject deposit = new JsonObject();
 		deposit.addProperty("enabled", true);
 		deposit.addProperty("block", block.toString());
@@ -103,9 +103,9 @@ final class FluidDepositMigration {
 		}
 	}
 
-	private static ResourceLocation resource(String value) {
+	private static Identifier resource(String value) {
 		try {
-			return ResourceLocation.parse(value);
+			return Identifier.parse(value);
 		} catch (RuntimeException ignored) {
 			return null;
 		}

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,28 +19,28 @@ public final class GeologyBlockAliases {
 			"granite",
 			"tuff"
 	};
-	private static final Map<ResourceLocation, ResourceLocation> DEFAULT_ALIASES = createDefaultAliases();
+	private static final Map<Identifier, Identifier> DEFAULT_ALIASES = createDefaultAliases();
 
 	private GeologyBlockAliases() {
 		throw new IllegalAccessError("Not an instantiable class");
 	}
 
-	public static Map<ResourceLocation, ResourceLocation> defaultAliases() {
-		return new LinkedHashMap<ResourceLocation, ResourceLocation>(DEFAULT_ALIASES);
+	public static Map<Identifier, Identifier> defaultAliases() {
+		return new LinkedHashMap<Identifier, Identifier>(DEFAULT_ALIASES);
 	}
 
 	public static BlockState aliasState(BlockState original) {
-		ResourceLocation id = ForgeRegistries.BLOCKS.getKey(original.getBlock());
+		Identifier id = ForgeRegistries.BLOCKS.getKey(original.getBlock());
 		return aliasState(id, original, null);
 	}
 
-	public static BlockState aliasState(ResourceLocation sourceId, BlockState original,
-			Map<ResourceLocation, ResourceLocation> configuredAliases) {
+	public static BlockState aliasState(Identifier sourceId, BlockState original,
+			Map<Identifier, Identifier> configuredAliases) {
 		if (sourceId == null) {
 			return original;
 		}
 
-		ResourceLocation targetId = null;
+		Identifier targetId = null;
 		targetId = configuredAliases == null
 				? DEFAULT_ALIASES.get(sourceId)
 				: configuredAliases.get(sourceId);
@@ -56,10 +56,10 @@ public final class GeologyBlockAliases {
 		return target.defaultBlockState();
 	}
 
-	private static Map<ResourceLocation, ResourceLocation> createDefaultAliases() {
-		Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<ResourceLocation, ResourceLocation>();
+	private static Map<Identifier, Identifier> createDefaultAliases() {
+		Map<Identifier, Identifier> aliases = new LinkedHashMap<Identifier, Identifier>();
 		for (String name : MATCHING_VANILLA_STONES) {
-			aliases.put(ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, name), ResourceLocation.fromNamespaceAndPath("minecraft", name));
+			aliases.put(Identifier.fromNamespaceAndPath(OreSpawn.MODID, name), Identifier.fromNamespaceAndPath("minecraft", name));
 		}
 		return aliases;
 	}

@@ -21,7 +21,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -123,7 +123,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				changed |= placed;
 			}
 		}
-		if (changed) chunk.setUnsaved(true);
+		if (changed) chunk.markUnsaved();
 		return changed;
 	}
 
@@ -139,7 +139,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		int maxCenterY = Math.min(deposit.maxY,
 				surface - 1 - Math.max(deposit.minSolidCover, deposit.minSolidShell) - verticalRadius);
 		int minCenterY = Math.max(deposit.minY,
-				chunk.getMinBuildHeight() + verticalRadius + deposit.minSolidShell);
+				chunk.getMinY() + verticalRadius + deposit.minSolidShell);
 		if (maxCenterY < minCenterY) return false;
 
 		int centerX = chunk.getPos().getMinBlockX() + dx;
@@ -172,8 +172,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		int minX = Math.max(chunkMinX, centerX - radius);
 		int maxX = Math.min(chunkMinX + CHUNK_WIDTH - 1, centerX + radius);
-		int minY = Math.max(chunk.getMinBuildHeight(), centerY - verticalRadius);
-		int maxY = Math.min(chunk.getMaxBuildHeight() - 1, centerY + verticalRadius);
+		int minY = Math.max(chunk.getMinY(), centerY - verticalRadius);
+		int maxY = Math.min(chunk.getMaxY() - 1, centerY + verticalRadius);
 		int minZ = Math.max(chunkMinZ, centerZ - radius);
 		int maxZ = Math.min(chunkMinZ + CHUNK_WIDTH - 1, centerZ + radius);
 		double inverseRadiusSquared = 1.0D / (radius * radius);
@@ -205,7 +205,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 						cursor.set(x, y, z);
 						// Output was validated while baking; keep a final runtime guard for registry oddities.
 						if (deposit.output.getBlock() != Blocks.AIR && !deposit.output.getFluidState().isEmpty()) {
-							chunk.setBlockState(cursor, deposit.output, false);
+							chunk.setBlockState(cursor, deposit.output, 0);
 							changed = true;
 						}
 					}
@@ -280,7 +280,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		if (x < chunkMinX || x >= chunkMinX + CHUNK_WIDTH
 				|| z < chunkMinZ || z >= chunkMinZ + CHUNK_WIDTH
-				|| y < chunk.getMinBuildHeight() || y >= chunk.getMaxBuildHeight()) return false;
+				|| y < chunk.getMinY() || y >= chunk.getMaxY()) return false;
 		double xDistance = x - centerX;
 		double yDistance = y - centerY;
 		double zDistance = z - centerZ;
@@ -321,7 +321,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				if (!dimensionEntry.getValue().isJsonObject()) continue;
 				JsonObject rule = dimensionEntry.getValue().getAsJsonObject();
 				if (!bool(rule, "enabled", true)) continue;
-				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
+				Identifier dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) continue;
 				ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionId);
 				BakedGeomeConfig config = Level.OVERWORLD.equals(dimension)
@@ -410,7 +410,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			Map<TagKey<Block>, Set<Block>> resolvedTags) {
 		if (element == null || !element.isJsonArray()) return;
 		for (JsonElement value : element.getAsJsonArray()) {
-			ResourceLocation id = resource(value.isJsonObject()
+			Identifier id = resource(value.isJsonObject()
 					? string(value.getAsJsonObject(), "tag", "") : value.getAsString());
 			if (id == null) continue;
 			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
@@ -430,7 +430,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		Set<ResourceKey<Biome>> result = new HashSet<>();
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
-				ResourceLocation id = resource(element.getAsString());
+				Identifier id = resource(element.getAsString());
 				if (id != null) result.add(ResourceKey.create(Registries.BIOME, id));
 			}
 		}
@@ -477,12 +477,12 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static Block block(String value) {
-		ResourceLocation id = resource(value);
+		Identifier id = resource(value);
 		return id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
 	}
 
-	private static ResourceLocation resource(String value) {
-		try { return ResourceLocation.parse(value); } catch (RuntimeException ignored) { return null; }
+	private static Identifier resource(String value) {
+		try { return Identifier.parse(value); } catch (RuntimeException ignored) { return null; }
 	}
 
 	private static boolean bool(JsonObject json, String key, boolean fallback) {

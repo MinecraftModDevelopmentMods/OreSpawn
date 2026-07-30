@@ -8,7 +8,6 @@ import org.apache.logging.log4j.Logger;
 
 import net.minecraft.network.chat.Component;
 
-import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.client.Minecraft;
@@ -20,22 +19,25 @@ import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 
-@Mod.EventBusSubscriber(modid = OreSpawn.MODID, value = Dist.CLIENT)
 public final class WorldCreationScreenHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static final String TAB_MANAGER_FIELD = "f_267424_";
 	private static final String TAB_NAVIGATION_BAR_FIELD = "f_267490_";
+	private static boolean registered;
 
 	private WorldCreationScreenHandler() {
 	}
 
-	@SubscribeEvent
+	static synchronized void register() {
+		if (registered) return;
+		registered = true;
+		ScreenEvent.Init.Post.BUS.addListener(WorldCreationScreenHandler::onScreenInit);
+		ScreenEvent.Opening.BUS.addListener(WorldCreationScreenHandler::onScreenOpen);
+	}
+
 	public static void onScreenInit(ScreenEvent.Init.Post event) {
 		Screen screen = event.getScreen();
 		if (!(screen instanceof CreateWorldScreen)) {
@@ -134,7 +136,6 @@ public final class WorldCreationScreenHandler {
 				DimensionDiscovery.availableDimensionIds(screen)));
 	}
 
-	@SubscribeEvent
 	public static void onScreenOpen(ScreenEvent.Opening event) {
 		if (event.getNewScreen() instanceof SelectWorldScreen) {
 			WorldGeologyProfileManager.clearPendingNewWorldProfile();

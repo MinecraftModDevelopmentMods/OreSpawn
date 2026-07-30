@@ -41,14 +41,14 @@ final class VanillaSpringCompatibility {
 
 	private static void refreshBlocks(RegistryAccess registries, Iterable<Block> rocks) {
 		Registry<ConfiguredFeature<?, ?>> features =
-				registries.registryOrThrow(Registries.CONFIGURED_FEATURE);
+				registries.lookupOrThrow(Registries.CONFIGURED_FEATURE);
 		update(features, MiscOverworldFeatures.SPRING_LAVA_OVERWORLD, rocks);
 		update(features, MiscOverworldFeatures.SPRING_WATER, rocks);
 	}
 
 	private static void update(Registry<ConfiguredFeature<?, ?>> features,
 			ResourceKey<ConfiguredFeature<?, ?>> key, Iterable<Block> rocks) {
-		ConfiguredFeature<?, ?> feature = features.get(key);
+		ConfiguredFeature<?, ?> feature = features.get(key).map(Holder::value).orElse(null);
 		if (feature != null && feature.config() instanceof SpringConfiguration spring) {
 			update(spring, rocks);
 		}

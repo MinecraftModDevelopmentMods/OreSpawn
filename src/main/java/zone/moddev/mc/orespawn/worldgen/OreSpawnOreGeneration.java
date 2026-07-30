@@ -26,7 +26,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
@@ -129,7 +129,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	private static void setCenter(BlockPos.MutableBlockPos cursor, ChunkAccess chunk) {
 		ChunkPos chunkPos = chunk.getPos();
 		cursor.set(chunkPos.getMinBlockX() + 8,
-				Math.max(chunk.getMinBuildHeight(), 0), chunkPos.getMinBlockZ() + 8);
+				Math.max(chunk.getMinY(), 0), chunkPos.getMinBlockZ() + 8);
 	}
 
 	private static boolean generateChunk(WorldGenLevel world, ChunkAccess chunk, Holder<Biome> biome,
@@ -160,7 +160,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			}
 		}
 		if (changed) {
-			chunk.setUnsaved(true);
+			chunk.markUnsaved();
 		}
 		return changed;
 	}
@@ -177,8 +177,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	private static boolean placeAttempt(WorldGenLevel world, ChunkAccess chunk, Random random,
 			BakedOre ore, int geome,
 			GenerationScratch scratch) {
-		int minY = Math.max(ore.minY, chunk.getMinBuildHeight());
-		int maxY = Math.min(ore.maxY, chunk.getMaxBuildHeight() - 1);
+		int minY = Math.max(ore.minY, chunk.getMinY());
+		int maxY = Math.min(ore.maxY, chunk.getMaxY() - 1);
 		if (maxY < minY) {
 			return false;
 		}
@@ -215,7 +215,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		ChunkPos pos = chunk.getPos();
 		return x >= pos.getMinBlockX() && x <= pos.getMaxBlockX()
 				&& z >= pos.getMinBlockZ() && z <= pos.getMaxBlockZ()
-				&& y >= chunk.getMinBuildHeight() && y < chunk.getMaxBuildHeight();
+				&& y >= chunk.getMinY() && y < chunk.getMaxY();
 	}
 
 	private static BakedOres bakeOres(JsonObject profile, BakedGeomeConfig config) {
@@ -240,7 +240,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			if (nativeGeneration && !manageVanillaOres) {
 				continue;
 			}
-			ResourceLocation oreId = resource(string(oreJson, "block", oreEntry.getKey()));
+			Identifier oreId = resource(string(oreJson, "block", oreEntry.getKey()));
 			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
 			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
@@ -259,7 +259,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			BakedOreRule rule = new BakedOreRule(output, manageVanillaOres && suppressVanilla);
 
 			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
-				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
+				Identifier dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) {
 					reportBakeProblem("Ignoring invalid dimension '{}' for OreSpawn-managed ore '{}'",
 							dimensionEntry.getKey(), oreEntry.getKey());
@@ -285,7 +285,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				}
 			}
 			for (Entry<String, JsonElement> selectorEntry : selectors.entrySet()) {
-				ResourceLocation selectorId = resource(selectorEntry.getKey());
+				Identifier selectorId = resource(selectorEntry.getKey());
 				if (selectorId == null
 						|| !OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().equals(selectorId)) {
 					reportBakeProblem("Ignoring unknown dimension selector '{}' for OreSpawn-managed ore '{}'",
@@ -436,7 +436,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		for (JsonElement element : ore.getAsJsonArray("outputs")) {
 			if (!element.isJsonObject()) continue;
 			JsonObject value = element.getAsJsonObject();
-			ResourceLocation id = resource(string(value, "block", ""));
+			Identifier id = resource(string(value, "block", ""));
 			Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
 			double weight = decimal(value, "weight", 1.0D);
 			int minY = integer(value, "min_y", Integer.MIN_VALUE);
@@ -456,7 +456,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 		for (JsonElement value : element.getAsJsonArray()) {
 			JsonObject object = value.isJsonObject() ? value.getAsJsonObject() : null;
-			ResourceLocation id = resource(object == null ? value.getAsString() : string(object, "block", ""));
+			Identifier id = resource(object == null ? value.getAsString() : string(object, "block", ""));
 			Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
 			if (block != null && block != Blocks.AIR) {
 				target.put(block, Math.max(0.0D, Math.min(1.0D,
@@ -472,7 +472,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 		for (JsonElement value : element.getAsJsonArray()) {
 			JsonObject object = value.isJsonObject() ? value.getAsJsonObject() : null;
-			ResourceLocation id = resource(object == null ? value.getAsString() : string(object, "tag", ""));
+			Identifier id = resource(object == null ? value.getAsString() : string(object, "tag", ""));
 			if (id == null) {
 				continue;
 			}
@@ -488,7 +488,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		Set<Biome> result = Collections.newSetFromMap(new IdentityHashMap<Biome, Boolean>());
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
-				ResourceLocation id = resource(element.getAsString());
+				Identifier id = resource(element.getAsString());
 				Biome biome = id == null ? null : ForgeRegistries.BIOMES.getValue(id);
 				if (biome != null) result.add(biome);
 			}
@@ -536,9 +536,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return attempts;
 	}
 
-	private static ResourceLocation resource(String value) {
+	private static Identifier resource(String value) {
 		try {
-			return ResourceLocation.parse(value);
+			return Identifier.parse(value);
 		} catch (RuntimeException e) {
 			return null;
 		}
@@ -584,7 +584,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		if (!json.has(key)) {
 			return fallback;
 		}
-		ResourceLocation id = resource(string(json, key, ""));
+		Identifier id = resource(string(json, key, ""));
 		Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
 		return block == null || block == Blocks.AIR ? null : block.defaultBlockState();
 	}
@@ -783,8 +783,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 		@Override
 		public boolean inside(int x, int y, int z) {
-			if (y < minY || y > maxY || y < chunk.getMinBuildHeight()
-					|| y >= chunk.getMaxBuildHeight()) return false;
+			if (y < minY || y > maxY || y < chunk.getMinY()
+					|| y >= chunk.getMaxY()) return false;
 			if (world == null) return insideChunk(chunk, x, y, z);
 			cursor.set(x, y, z);
 			return world.ensureCanWrite(cursor);
@@ -810,7 +810,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				return false;
 			}
 			BlockState output = ore.outputAt(y, random);
-			if (world == null) chunk.setBlockState(cursor, output, false);
+			if (world == null) chunk.setBlockState(cursor, output, 0);
 			else world.setBlock(cursor, output, 2);
 			return true;
 		}
@@ -822,7 +822,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 
 		private boolean isAir(int x, int y, int z) {
-			if (y < chunk.getMinBuildHeight() || y >= chunk.getMaxBuildHeight()) {
+			if (y < chunk.getMinY() || y >= chunk.getMaxY()) {
 				return false;
 			}
 			if (world == null && !insideChunk(chunk, x, y, z)) {

@@ -13,10 +13,10 @@ import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -44,8 +44,8 @@ public final class OreSpawnPatterns {
 	private OreSpawnPatterns() {
 	}
 
-	public static void register(IEventBus bus) {
-		TYPES.register(bus);
+	public static void register(BusGroup busGroup) {
+		TYPES.register(busGroup);
 	}
 
 	public static IForgeRegistry<OrePatternType> registry() {
@@ -61,7 +61,7 @@ public final class OreSpawnPatterns {
 				? rule.getAsJsonObject("pattern") : null;
 		String text = patternObject == null
 				? string(rule, "pattern", "vein") : string(patternObject, "type", "orespawn:vein");
-		ResourceLocation id = patternId(text);
+		Identifier id = patternId(text);
 		OrePatternType type = registry().getValue(id);
 		if (type == null) {
 			throw new IllegalArgumentException("Unknown ore pattern type: " + id);
@@ -76,7 +76,7 @@ public final class OreSpawnPatterns {
 		try {
 			JsonObject pattern = rule.has("pattern") && rule.get("pattern").isJsonObject()
 					? rule.getAsJsonObject("pattern") : null;
-			ResourceLocation id = patternId(pattern == null
+			Identifier id = patternId(pattern == null
 					? string(rule, "pattern", "vein") : string(pattern, "type", ""));
 			return OreSpawn.MODID.equals(id.getNamespace());
 		} catch (RuntimeException e) {
@@ -103,13 +103,13 @@ public final class OreSpawnPatterns {
 		return settings;
 	}
 
-	private static ResourceLocation patternId(String value) {
+	private static Identifier patternId(String value) {
 		String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
 		if ("cluster".equals(normalized)) normalized = "clusters";
 		if ("cloud".equals(normalized) || "normal-cloud".equals(normalized)) normalized = "normal_cloud";
 		if ("under_fluid".equals(normalized) || "under-fluid".equals(normalized)) normalized = "underfluids";
-		return normalized.indexOf(':') >= 0 ? ResourceLocation.parse(normalized)
-				: ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, normalized);
+		return normalized.indexOf(':') >= 0 ? Identifier.parse(normalized)
+				: Identifier.fromNamespaceAndPath(OreSpawn.MODID, normalized);
 	}
 
 	private static CompiledOrePattern compact(StandardPatternSettings settings) {
@@ -195,7 +195,7 @@ public final class OreSpawnPatterns {
 	}
 
 	private static CompiledOrePattern underFluids(StandardPatternSettings settings) {
-		Fluid fluid = ForgeRegistries.FLUIDS.getValue(ResourceLocation.parse(settings.fluid()));
+		Fluid fluid = ForgeRegistries.FLUIDS.getValue(Identifier.parse(settings.fluid()));
 		if (fluid == null) fluid = Fluids.WATER;
 		final Fluid targetFluid = fluid;
 		return context -> {

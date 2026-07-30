@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class BakedGeomeConfig {
@@ -33,7 +33,7 @@ public final class BakedGeomeConfig {
 	final FormationSettings formations;
 
 	private final Map<Biome, double[]> biomeWeights;
-	private final Map<ResourceLocation, double[]> biomeWeightsById;
+	private final Map<Identifier, double[]> biomeWeightsById;
 	private final double[] fallbackWeights;
 	private final BlockState[] rockStates;
 	private final Set<Block> sedimentaryBlocks;
@@ -59,7 +59,7 @@ public final class BakedGeomeConfig {
 		this.biomeWeights = new IdentityHashMap<>(biomeWeights);
 		this.biomeWeightsById = new HashMap<>();
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(entry.getKey());
+			Identifier biomeId = ForgeRegistries.BIOMES.getKey(entry.getKey());
 			if (biomeId != null) {
 				biomeWeightsById.put(biomeId, entry.getValue());
 			}
@@ -91,7 +91,7 @@ public final class BakedGeomeConfig {
 		return pickGeome(biome, null, regionalNoise, boundaryNoise);
 	}
 
-	int pickGeome(Biome biome, ResourceLocation biomeId, double[] regionalNoise, double boundaryNoise) {
+	int pickGeome(Biome biome, Identifier biomeId, double[] regionalNoise, double boundaryNoise) {
 		double[] weights = biomeWeightsFor(biome, biomeId);
 
 		double bestScore = Double.NEGATIVE_INFINITY;
@@ -213,7 +213,7 @@ public final class BakedGeomeConfig {
 		double[] weights = biomeWeights.get(biome);
 		String source = "identity";
 		if (weights == null) {
-			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
+			Identifier biomeId = ForgeRegistries.BIOMES.getKey(biome);
 			weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
 			source = "registry-id";
 		}
@@ -253,7 +253,7 @@ public final class BakedGeomeConfig {
 		return false;
 	}
 
-	private double[] biomeWeightsFor(Biome biome, ResourceLocation biomeId) {
+	private double[] biomeWeightsFor(Biome biome, Identifier biomeId) {
 		double[] weights = biomeWeights.get(biome);
 		if (weights == null && biomeId != null) {
 			weights = biomeWeightsById.get(biomeId);
