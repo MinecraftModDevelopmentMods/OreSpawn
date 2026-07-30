@@ -101,19 +101,6 @@ sourceSets.main.resources {
     srcDir 'src/generated/resources'
 }
 
-eclipse {
-    classpath {
-        // Eclipse forbids source outputs nested beneath the project default.
-        // ForgeGradle uses build/sourceSets/main and test for the real outputs.
-        defaultOutputDir = file('build/eclipse-default')
-        file.whenMerged { classpath ->
-            classpath.entries.findAll { it.kind == 'output' }.each {
-                it.path = 'build/eclipse-default'
-            }
-        }
-    }
-}
-
 // ForgeGradle's merged Eclipse output and Gradle 9.3 cannot safely share the
 // JavaCompile and ProcessResources output directory. Compile into staging,
 // then copy classes into the merged mod root after resources are ready.
