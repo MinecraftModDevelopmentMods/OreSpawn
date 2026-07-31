@@ -66,13 +66,13 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
 			addFull(CycleButton.builder(TemplateChoice::label, initialTemplate)
 					.withValues(templateChoices)
-					.withTooltip(value -> tooltip("guide.orespawn.world.1"))
+					.withTooltip(value -> tooltip("tooltip.orespawn.main.template"))
 					.create(0, 0, FULL_WIDTH, BUTTON_HEIGHT,
 							Component.translatable("option.orespawn.template"),
 							(button, value) -> selectTemplate(value.id)), row++);
 		}
 		addFull(button(Component.translatable("button.orespawn.recommended"), FULL_WIDTH,
-				this::resetRecommended, "guide.orespawn.welcome.3"), row++);
+				this::resetRecommended, "tooltip.orespawn.main.recommended"), row++);
 		buildStandaloneControls(row);
 		buildTerrainControls(row);
 		refreshControlState();
@@ -81,15 +81,15 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private void buildStandaloneControls(int firstRow) {
 		add(vanillaOresButton(), firstRow, 0, compactControls);
 		add(button(Component.translatable("button.orespawn.materials"), COLUMN_WIDTH,
-				this::openMaterials, "guide.orespawn.rocks.2"), firstRow, 1, compactControls);
+				this::openMaterials, "tooltip.orespawn.main.materials"), firstRow, 1, compactControls);
 		addFull(button(Component.translatable("button.orespawn.configure_strata"), FULL_WIDTH,
-				this::configureRockStrata, "guide.orespawn.rocks.3"), firstRow + 1, compactControls);
+				this::configureRockStrata, "tooltip.orespawn.main.configure_strata"), firstRow + 1, compactControls);
 		addFull(fluidEditorButton(FULL_WIDTH), firstRow + 2, compactControls);
 		addFull(button(Component.translatable("button.orespawn.biomes_world_materials"),
-				FULL_WIDTH, this::openBiomeWorldMaterials, "guide.orespawn.biomes.1"),
+				FULL_WIDTH, this::openBiomeWorldMaterials, "tooltip.orespawn.main.biomes_materials"),
 				firstRow + 3, compactControls);
 		addFull(button(Component.translatable("button.orespawn.help"), FULL_WIDTH,
-				this::openHelp, "guide.orespawn.welcome.1"), firstRow + 4, compactControls);
+				this::openHelp), firstRow + 4, compactControls);
 	}
 
 	private void buildTerrainControls(int firstRow) {
@@ -126,12 +126,12 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		add(button(Component.translatable("button.orespawn.manage_strata"), COLUMN_WIDTH,
 				this::openMaterials, "tooltip.orespawn.manage_strata"), firstRow + 4, 0, terrainControls);
 		add(button(Component.translatable("button.orespawn.biomes_world_materials"),
-				COLUMN_WIDTH, this::openBiomeWorldMaterials, "guide.orespawn.biomes.1"),
+				COLUMN_WIDTH, this::openBiomeWorldMaterials, "tooltip.orespawn.main.biomes_materials"),
 				firstRow + 4, 1, terrainControls);
 		add(button(Component.translatable("button.orespawn.advanced"), COLUMN_WIDTH,
-				this::openAdvanced, "guide.orespawn.world.3"), firstRow + 5, 0, terrainControls);
+				this::openAdvanced, "tooltip.orespawn.main.advanced"), firstRow + 5, 0, terrainControls);
 		add(button(Component.translatable("button.orespawn.help"), COLUMN_WIDTH,
-				this::openHelp, "guide.orespawn.welcome.1"), firstRow + 5, 1, terrainControls);
+				this::openHelp), firstRow + 5, 1, terrainControls);
 	}
 
 	private CycleButton<Boolean> vanillaOresButton() {
@@ -149,7 +149,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private Button fluidEditorButton(int width) {
 		Button button = button(fluidEditorLabel(), width, this::openFluidDeposits,
-				"guide.orespawn.fluids.1");
+				"tooltip.orespawn.main.fluid_editor");
 		fluidEditorButtons.add(button);
 		return button;
 	}
@@ -209,7 +209,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 			Component label = fluidEditorLabel();
 			button.setMessage(OreSpawnScreenLayout.fit(
 					Minecraft.getInstance().font, label, button.getWidth() - 8));
-			button.setTooltip(tooltip("guide.orespawn.fluids.1"));
+			button.setTooltip(tooltip("tooltip.orespawn.main.fluid_editor"));
 		}
 		updateFormationControls();
 	}

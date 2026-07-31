@@ -44,6 +44,7 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 					tabX, 26 + (tabRow * 24), tabWidth, 20,
 					Component.translatable("tab.orespawn." + value.key), selected -> changeTab(value)));
 			button.active = value != tab;
+			OreSpawnScreenLayout.explain(button, "tooltip.orespawn.material.tab." + value.key);
 		}
 
 		int tabRows = (MaterialTab.values().length + tabsPerRow - 1) / tabsPerRow;
@@ -64,6 +65,8 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 				Component.translatable(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
 				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
 		advanced.visible = tab == MaterialTab.UNASSIGNED;
+		OreSpawnScreenLayout.explain(advanced,
+				showAll ? "tooltip.orespawn.material.safe_only" : "tooltip.orespawn.material.show_all");
 
 		List<String> ids = currentIds();
 		int listTop = searchY + 28;
@@ -104,6 +107,7 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 				contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
 				Component.translatable("button.orespawn.add_block"), button -> openBlockPicker()));
 		add.visible = tab != MaterialTab.UNASSIGNED;
+		OreSpawnScreenLayout.explain(add, "tooltip.orespawn.material.add_block");
 		int doneWidth = Math.min(150, contentWidth);
 		addRenderableWidget(OreSpawnScreenLayout.plainButton((width - doneWidth) / 2, height - 28, doneWidth, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));

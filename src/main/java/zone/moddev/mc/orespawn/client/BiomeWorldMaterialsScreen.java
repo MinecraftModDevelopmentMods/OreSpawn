@@ -35,7 +35,9 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		addRenderableWidget(CycleButton.builder(this::dimensionName, dimension)
 				.withValues(dimensions)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.literal(value)))
+						OreSpawnScreenLayout.tooltip(Arrays.asList(
+								Component.literal(value),
+								Component.translatable("tooltip.orespawn.biome.dimension")))))
 				.create(left, 34, contentWidth, 20,
 						Component.translatable("option.orespawn.dimension"),
 						(button, value) -> { dimension = value; rebuildWidgets(); }));
@@ -48,7 +50,7 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		int y = 64;
 		addRenderableWidget(CycleButton.onOffBuilder(active)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.translatable("guide.orespawn.biomes.1")))
+						Component.translatable("tooltip.orespawn.biome.palette_enabled")))
 				.create(left, y, contentWidth, 20,
 						Component.translatable("option.orespawn.biome_palette"),
 						(button, value) -> setPaletteEnabled(value)));
@@ -56,14 +58,14 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		addRenderableWidget(CycleButton.builder(this::modeName, mode)
 				.withValues(Arrays.asList("augment", "replace"))
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.translatable("guide.orespawn.biomes.1")))
+						Component.translatable("tooltip.orespawn.biome.mode")))
 				.create(left, y, half, 20,
 						Component.translatable("option.orespawn.biome_mode"),
 						(button, value) -> setPalette("mode", value)));
 		addRenderableWidget(CycleButton.builder(this::scopeName, scope)
 				.withValues(Arrays.asList("all", "minecraft_only", "selected_namespaces"))
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.translatable("guide.orespawn.biomes.2")))
+						Component.translatable("tooltip.orespawn.biome.scope")))
 				.create(left + half + 5, y, half, 20,
 						Component.translatable("option.orespawn.biome_scope"),
 						(button, value) -> setPalette("scope", value)));
@@ -71,7 +73,7 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		addRenderableWidget(CycleButton.builder(this::regionName, size)
 				.withValues(Arrays.asList("tiny", "small", "average", "large", "huge"))
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.translatable("guide.orespawn.biomes.3")))
+						Component.translatable("tooltip.orespawn.biome.region_size")))
 				.create(left, y, contentWidth, 20,
 						Component.translatable("option.orespawn.biome_region_size"),
 						(button, value) -> setPalette("region_size", value)));
@@ -81,18 +83,18 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 				Component.translatable("button.orespawn.biome_palette_count",
 						session.biomePlacementIds(dimension).size()),
 				button -> minecraft.setScreen(new BiomePaletteScreen(this, session, dimension))),
-				"guide.orespawn.biomes.3"));
+				"tooltip.orespawn.biome.entries"));
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 				this, font, left + half + 5, y, half, 20,
 				Component.translatable("button.orespawn.dimension_materials"),
 				button -> minecraft.setScreen(new DimensionMaterialsScreen(this, session, dimension))),
-				"guide.orespawn.materials.1"));
+				"tooltip.orespawn.biome.dimension_materials"));
 		y += 26;
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 				this, font, left, y, contentWidth, 20,
 				Component.translatable("button.orespawn.geome_influences"),
 				button -> minecraft.setScreen(new GeomeBiomeScreen(this, session))),
-				"guide.orespawn.rocks.1"));
+				"tooltip.orespawn.biome.geome_influences"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, OreSpawnScreenLayout.footerY(height),
 				150, 20, CommonComponents.GUI_DONE, button -> onClose()));
 	}

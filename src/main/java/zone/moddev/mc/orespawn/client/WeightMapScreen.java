@@ -18,22 +18,29 @@ final class WeightMapScreen extends OreSpawnScreen {
 	private final JsonObject weights;
 	private final List<String> keys;
 	private final double defaultWeight;
+	private final String tooltipKey;
 	private final Runnable removeAction;
 	private final List<EditBox> editors = new ArrayList<>();
 	private int page;
 	private Component error;
 
 	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight) {
-		this(parent, title, weights, keys, defaultWeight, null);
+		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.entry_weight", null);
 	}
 
 	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight,
 			Runnable removeAction) {
+		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.biome_weight", removeAction);
+	}
+
+	private WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys,
+			double defaultWeight, String tooltipKey, Runnable removeAction) {
 		super(title);
 		this.parent = parent;
 		this.weights = weights;
 		this.keys = new ArrayList<>(keys);
 		this.defaultWeight = defaultWeight;
+		this.tooltipKey = tooltipKey;
 		this.removeAction = removeAction;
 	}
 
@@ -48,7 +55,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 					Component.literal(key));
 			box.setMaxLength(24);
 			box.setValue(weights.has(key) ? weights.get(key).getAsString() : Double.toString(defaultWeight));
-			editors.add(addRenderableWidget(box));
+			editors.add(OreSpawnScreenLayout.explain(addRenderableWidget(box), tooltipKey));
 		}
 		int bottom = height - 28;
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
