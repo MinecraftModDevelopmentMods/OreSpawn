@@ -29,6 +29,18 @@ class TooltipAlignmentTest {
 			"OreDimensionScreen.java",
 			"OreEntryScreen.java",
 			"RockEntryScreen.java");
+	private static final List<String> OVERVIEW_SCREENS = Arrays.asList(
+			"AdvancedGeologySettingsScreen.java",
+			"BlockAssignmentScreen.java",
+			"BlockPickerScreen.java",
+			"FluidDepositListScreen.java",
+			"GeologyMaterialsScreen.java",
+			"GeomeBiomeScreen.java",
+			"GeomeEntryScreen.java",
+			"NumericConfigScreen.java",
+			"OreSpawnWorldSettingsScreen.java",
+			"OreSpawnWorldCreationTab.java",
+			"WeightMapScreen.java");
 	private static final List<String> REQUIRED_TOOLTIPS = Arrays.asList(
 			"tooltip.orespawn.enabled",
 			"tooltip.orespawn.weight",
@@ -92,7 +104,53 @@ class TooltipAlignmentTest {
 			"tooltip.orespawn.material.deep_aquifer_fluid",
 			"tooltip.orespawn.material.deep_aquifer_y",
 			"tooltip.orespawn.material.snow_block",
-			"tooltip.orespawn.material.ice_block");
+			"tooltip.orespawn.material.ice_block",
+			"tooltip.orespawn.main.template",
+			"tooltip.orespawn.main.recommended",
+			"tooltip.orespawn.main.materials",
+			"tooltip.orespawn.main.configure_strata",
+			"tooltip.orespawn.main.biomes_materials",
+			"tooltip.orespawn.main.advanced",
+			"tooltip.orespawn.main.fluid_editor",
+			"tooltip.orespawn.manage_vanilla_ores",
+			"tooltip.orespawn.fluid_deposits",
+			"tooltip.orespawn.advanced.formations",
+			"tooltip.orespawn.advanced.cyano",
+			"tooltip.orespawn.advanced.fluid_deposits",
+			"tooltip.orespawn.numeric.stratum_wavelength",
+			"tooltip.orespawn.numeric.family_region_wavelength",
+			"tooltip.orespawn.numeric.vertical_thickness",
+			"tooltip.orespawn.numeric.waviness_wavelength",
+			"tooltip.orespawn.numeric.waviness_amplitude",
+			"tooltip.orespawn.numeric.edge_wavelength",
+			"tooltip.orespawn.numeric.edge_amplitude",
+			"tooltip.orespawn.numeric.edge_octaves",
+			"tooltip.orespawn.numeric.continuity",
+			"tooltip.orespawn.numeric.geome_size",
+			"tooltip.orespawn.numeric.rock_layer_noise",
+			"tooltip.orespawn.numeric.rock_layer_thickness",
+			"tooltip.orespawn.geome.base_weight",
+			"tooltip.orespawn.geome.family_weight",
+			"tooltip.orespawn.geome.entry_weight",
+			"tooltip.orespawn.geome.biome_weight",
+			"tooltip.orespawn.geome.tab.geomes",
+			"tooltip.orespawn.geome.tab.biomes",
+			"tooltip.orespawn.geome.tab.dictionary",
+			"tooltip.orespawn.geome.new_id.geomes",
+			"tooltip.orespawn.geome.new_id.biomes",
+			"tooltip.orespawn.geome.new_id.dictionary",
+			"tooltip.orespawn.material.tab.sedimentary",
+			"tooltip.orespawn.material.tab.metamorphic",
+			"tooltip.orespawn.material.tab.igneous",
+			"tooltip.orespawn.material.tab.ores",
+			"tooltip.orespawn.material.tab.unassigned",
+			"tooltip.orespawn.material.show_all",
+			"tooltip.orespawn.material.safe_only",
+			"tooltip.orespawn.material.add_block",
+			"tooltip.orespawn.picker.mod_filter",
+			"tooltip.orespawn.assignment.rock_family",
+			"tooltip.orespawn.assignment.ore",
+			"tooltip.orespawn.fluid.add_deposit");
 
 	@Test
 	void detailedFormsDoNotReuseMultiControlGuideParagraphs() throws Exception {
@@ -103,6 +161,19 @@ class TooltipAlignmentTest {
 			assertTrue(source.contains("tooltip.orespawn.") || source.contains("external_pattern_read_only"),
 					screen + " must retain explicit tooltip assignments");
 		}
+	}
+
+	@Test
+	void overviewControlsUseFocusedHelpAndHelpButtonDoesNotExplainItself() throws Exception {
+		for (String screen : OVERVIEW_SCREENS) {
+			String source = Files.readString(CLIENT_DIR.resolve(screen), StandardCharsets.UTF_8);
+			assertFalse(source.contains("guide.orespawn."),
+					screen + " must use control-specific help instead of guide paragraphs");
+		}
+		String main = Files.readString(CLIENT_DIR.resolve("OreSpawnWorldSettingsScreen.java"),
+				StandardCharsets.UTF_8);
+		assertFalse(main.contains("tooltip.orespawn.help"),
+				"Help & Guide opens the guide and must not carry a self-describing tooltip");
 	}
 
 	@Test
