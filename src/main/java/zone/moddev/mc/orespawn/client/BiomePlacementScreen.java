@@ -57,7 +57,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 						left, 64, contentWidth, 20,
 						Component.translatable("option.orespawn.enabled"),
 						(button, value) -> placement.addProperty("enabled", value)),
-				"guide.orespawn.biomes.1"));
+				"tooltip.orespawn.enabled"));
 		if (tab == Tab.PLACEMENT) initPlacement(left, half, placement);
 		else if (tab == Tab.CLIMATE) initClimate(left, half, placement);
 		else initSurface(left, contentWidth, placement);
@@ -73,7 +73,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	private void initPlacement(int left, int half, JsonObject placement) {
 		int y = 90;
 		weight = field(left + half + 5, y, half, decimal(placement, "weight", 1.0D));
-		OreSpawnScreenLayout.explain(weight, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(weight, "tooltip.orespawn.weight");
 		label(left, y + 6, half, "option.orespawn.weight");
 		y += 28;
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
@@ -82,36 +82,36 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 						array(placement, "similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "similar_biomes")); }),
-				"guide.orespawn.biomes.3"));
+				"tooltip.orespawn.biome.similar_biomes"));
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 				this, font, left + half + 5, y,
 				half, 20, Component.translatable("button.orespawn.required_biomes",
 						array(placement, "required_similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "required_similar_biomes")); }),
-				"guide.orespawn.biomes.3"));
+				"tooltip.orespawn.biome.required_similar_biomes"));
 	}
 
 	private void initClimate(int left, int half, JsonObject placement) {
 		int y = 90;
 		minTemperature = field(left + half + 5, y, half,
 				decimal(placement, "min_temperature", -2.0D));
-		OreSpawnScreenLayout.explain(minTemperature, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(minTemperature, "tooltip.orespawn.biome.min_temperature");
 		label(left, y + 6, half, "option.orespawn.min_temperature");
 		y += 24;
 		maxTemperature = field(left + half + 5, y, half,
 				decimal(placement, "max_temperature", 2.0D));
-		OreSpawnScreenLayout.explain(maxTemperature, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(maxTemperature, "tooltip.orespawn.biome.max_temperature");
 		label(left, y + 6, half, "option.orespawn.max_temperature");
 		y += 24;
 		minDownfall = field(left + half + 5, y, half,
 				decimal(placement, "min_downfall", 0.0D));
-		OreSpawnScreenLayout.explain(minDownfall, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(minDownfall, "tooltip.orespawn.biome.min_downfall");
 		label(left, y + 6, half, "option.orespawn.min_downfall");
 		y += 24;
 		maxDownfall = field(left + half + 5, y, half,
 				decimal(placement, "max_downfall", 1.0D));
-		OreSpawnScreenLayout.explain(maxDownfall, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(maxDownfall, "tooltip.orespawn.biome.max_downfall");
 		label(left, y + 6, half, "option.orespawn.max_downfall");
 	}
 
@@ -127,7 +127,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 						saveFields();
 						minecraft.setScreen(new MaterialBlockPickerScreen(this, session,
 								false, id -> surface.addProperty(key, id)));
-					}), "guide.orespawn.biomes.3"));
+					}), "tooltip.orespawn.biome." + key));
 			Button clear = addRenderableWidget(OreSpawnScreenLayout.plainButton(
 					left + width - 60, y, 60, 20,
 					Component.translatable("button.orespawn.clear"),
@@ -137,7 +137,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 		}
 		fillerDepth = field(left + width / 2, y, width / 2,
 				integer(surface, "filler_depth", 3));
-		OreSpawnScreenLayout.explain(fillerDepth, "guide.orespawn.biomes.3");
+		OreSpawnScreenLayout.explain(fillerDepth, "tooltip.orespawn.biome.filler_depth");
 		label(left, y + 6, width / 2 - 5, "option.orespawn.filler_depth");
 	}
 
