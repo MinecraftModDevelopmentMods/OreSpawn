@@ -12,7 +12,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
@@ -72,12 +72,12 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 		if (Level.NETHER.equals(level.dimension())) {
 			changed |= flattenTop(chunk, current.layers, current.netherReplacement);
 		}
-		if (changed) chunk.setUnsaved(true);
+		if (changed) chunk.markUnsaved();
 		return changed;
 	}
 
 	private static boolean flattenBottom(ChunkAccess chunk, int layers, BlockState replacement) {
-		int minY = chunk.getMinBuildHeight();
+		int minY = chunk.getMinY();
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		for (int x = 0; x < 16; x++) {
@@ -88,7 +88,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 					BlockState next = offset < layers ? Blocks.BEDROCK.defaultBlockState()
 							: old.is(Blocks.BEDROCK) ? replacement : old;
 					if (old != next) {
-						chunk.setBlockState(cursor, next, false);
+						chunk.setBlockState(cursor, next, 0);
 						changed = true;
 					}
 				}
@@ -98,7 +98,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 	}
 
 	private static boolean flattenTop(ChunkAccess chunk, int layers, BlockState replacement) {
-		int maxY = chunk.getMaxBuildHeight() - 1;
+		int maxY = chunk.getMaxY() - 1;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		for (int x = 0; x < 16; x++) {
@@ -109,7 +109,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 					BlockState next = offset < layers ? Blocks.BEDROCK.defaultBlockState()
 							: old.is(Blocks.BEDROCK) ? replacement : old;
 					if (old != next) {
-						chunk.setBlockState(cursor, next, false);
+						chunk.setBlockState(cursor, next, 0);
 						changed = true;
 					}
 				}
@@ -128,7 +128,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 			for (JsonElement element : json.getAsJsonArray("dimensions")) {
 				try {
 					dimensions.add(ResourceKey.create(Registries.DIMENSION,
-							ResourceLocation.parse(element.getAsString())));
+							Identifier.parse(element.getAsString())));
 				} catch (RuntimeException ignored) {
 				}
 			}
@@ -144,7 +144,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 
 	private static BlockState blockState(JsonObject json, String key, BlockState fallback) {
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(
+			Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(
 					json.has(key) ? json.get(key).getAsString() : ""));
 			return block == null || block == Blocks.AIR ? fallback : block.defaultBlockState();
 		} catch (RuntimeException e) {

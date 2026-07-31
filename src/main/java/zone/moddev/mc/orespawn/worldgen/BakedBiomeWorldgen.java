@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -76,13 +76,13 @@ final class BakedBiomeWorldgen {
 	static final class Entry {
 		final Holder<Biome> biome;
 		final double weight;
-		final Set<ResourceLocation> similarBiomes;
+		final Set<Identifier> similarBiomes;
 		final float minTemperature;
 		final float maxTemperature;
 		final float minDownfall;
 		final float maxDownfall;
 
-		Entry(Holder<Biome> biome, double weight, Set<ResourceLocation> similarBiomes,
+		Entry(Holder<Biome> biome, double weight, Set<Identifier> similarBiomes,
 				float minTemperature, float maxTemperature, float minDownfall,
 				float maxDownfall) {
 			this.biome = biome;

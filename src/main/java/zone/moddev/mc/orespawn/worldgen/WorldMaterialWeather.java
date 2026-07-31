@@ -58,9 +58,9 @@ public final class WorldMaterialWeather {
 					cursor.set(minX + localX, top - offset, minZ + localZ);
 					BlockState state = chunk.getBlockState(cursor);
 					if (materials.snow != null && state.is(Blocks.SNOW)) {
-						chunk.setBlockState(cursor, materials.snow, false);
+						chunk.setBlockState(cursor, materials.snow, 0);
 					} else if (materials.ice != null && state.is(Blocks.ICE)) {
-						chunk.setBlockState(cursor, materials.ice, false);
+						chunk.setBlockState(cursor, materials.ice, 0);
 					}
 				}
 			}

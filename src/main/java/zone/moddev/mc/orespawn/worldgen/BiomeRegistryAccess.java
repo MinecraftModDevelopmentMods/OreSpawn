@@ -10,7 +10,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 
 /**
@@ -27,7 +27,7 @@ public final class BiomeRegistryAccess {
 	}
 
 	public static void bind(RegistryAccess access) {
-		active = access.registryOrThrow(Registries.BIOME);
+		active = access.lookupOrThrow(Registries.BIOME);
 	}
 
 	public static void clear() {
@@ -43,29 +43,29 @@ public final class BiomeRegistryAccess {
 		return registry == null ? Collections.emptyList() : registry.stream().toList();
 	}
 
-	public static Set<ResourceLocation> keys() {
+	public static Set<Identifier> keys() {
 		Registry<Biome> registry = active;
 		return registry == null ? Collections.emptySet() : registry.keySet();
 	}
 
-	public static boolean contains(ResourceLocation id) {
+	public static boolean contains(Identifier id) {
 		Registry<Biome> registry = active;
 		return registry != null && registry.containsKey(id);
 	}
 
-	public static Biome get(ResourceLocation id) {
+	public static Biome get(Identifier id) {
 		Registry<Biome> registry = active;
-		return registry == null ? null : registry.get(id);
+		return registry == null ? null : registry.getValue(id);
 	}
 
-	public static ResourceLocation id(Biome biome) {
+	public static Identifier id(Biome biome) {
 		Registry<Biome> registry = active;
 		return registry == null ? null : registry.getKey(biome);
 	}
 
 	public static Optional<Holder.Reference<Biome>> holder(ResourceKey<Biome> key) {
 		Registry<Biome> registry = active;
-		return registry == null ? Optional.empty() : registry.getHolder(key);
+		return registry == null ? Optional.empty() : registry.get(key);
 	}
 
 	public static Holder<Biome> holder(Biome biome) {

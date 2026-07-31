@@ -9,7 +9,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -77,7 +77,7 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 
 	private Component fluidName(String id) {
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(id));
+			Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
 			return block == null ? Component.literal(id) : Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) {
 			return Component.literal(id);

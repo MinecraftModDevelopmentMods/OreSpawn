@@ -19,7 +19,7 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -37,7 +37,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	private Preset formationContinuity;
 	private boolean placeFluidDeposits;
 	private boolean manageVanillaOres;
-	private ResourceLocation selectedTemplate;
+	private Identifier selectedTemplate;
 	private final List<TemplateChoice> templateChoices;
 
 	private CycleButton<GeologyMode> geologyModeButton;
@@ -81,8 +81,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		int rowIndex = 0;
 		if (templateChoices.size() > 1) {
 			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
-			addRenderableWidget(CycleButton.builder(TemplateChoice::label)
-					.withValues(templateChoices).withInitialValue(initialTemplate)
+			addRenderableWidget(CycleButton.builder(TemplateChoice::label, initialTemplate)
+					.withValues(templateChoices)
 					.withTooltip(value -> tooltip("guide.orespawn.world.1"))
 					.create(left, top + (row * rowIndex++), contentWidth, BUTTON_HEIGHT,
 							Component.translatable("option.orespawn.template"),
@@ -120,9 +120,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 					contentWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
 					button -> openHelp()), "guide.orespawn.welcome.1"));
 		} else {
-			geologyModeButton = addRenderableWidget(CycleButton.builder(this::geologyModeName)
+			geologyModeButton = addRenderableWidget(CycleButton.builder(this::geologyModeName, geologyMode)
 					.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
-					.withInitialValue(geologyMode)
 					.withTooltip(value -> tooltip("tooltip.orespawn.geology_mode"))
 					.create(left, top + (row * rowIndex), columnWidth, BUTTON_HEIGHT,
 							Component.translatable("option.orespawn.geology_mode"),
@@ -206,9 +205,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 
 	private CycleButton<Preset> addPresetButton(int x, int y, String labelKey, String tooltipKey,
 			Preset initialValue, PresetConsumer consumer) {
-		return addRenderableWidget(CycleButton.builder(this::presetName)
+		return addRenderableWidget(CycleButton.builder(this::presetName, initialValue)
 				.withValues(Arrays.asList(Preset.values()))
-				.withInitialValue(initialValue)
 				.withTooltip(value -> tooltip(tooltipKey))
 				.create(x, y, columnWidth, BUTTON_HEIGHT, Component.translatable(labelKey),
 						(button, value) -> consumer.accept(value)));
@@ -246,7 +244,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		selectedTemplate = profile.selectedTemplate().orElse(null);
 	}
 
-	private void selectTemplate(ResourceLocation templateId) {
+	private void selectTemplate(Identifier templateId) {
 		if (Objects.equals(selectedTemplate, templateId)) {
 			return;
 		}
@@ -258,7 +256,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		rebuildWidgets();
 	}
 
-	private TemplateChoice templateChoice(ResourceLocation id) {
+	private TemplateChoice templateChoice(Identifier id) {
 		for (TemplateChoice choice : templateChoices) {
 			if (Objects.equals(choice.id, id)) {
 				return choice;
@@ -275,7 +273,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 				result.add(new TemplateChoice(template.id(), Component.translatable(template.nameKey())));
 			}
 		}
-		ResourceLocation selected = profile.selectedTemplate().orElse(null);
+		Identifier selected = profile.selectedTemplate().orElse(null);
 		if (selected != null && result.stream().noneMatch(choice -> selected.equals(choice.id))) {
 			result.add(new TemplateChoice(selected, Component.literal(selected.toString())));
 		}
@@ -364,8 +362,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		List<String> ids = session.fluidDepositIds();
 		if (ids.size() == 1) {
 			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
-			ResourceLocation blockId = access.resource("block");
-			Block block = blockId == null ? null : BuiltInRegistries.BLOCK.get(blockId);
+			Identifier blockId = access.resource("block");
+			Block block = blockId == null ? null : BuiltInRegistries.BLOCK.getValue(blockId);
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		}
 		return Component.translatable("option.orespawn.fluid_deposits");
@@ -385,8 +383,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	private static final class JsonObjectAccess {
 		private final com.google.gson.JsonObject value;
 		JsonObjectAccess(com.google.gson.JsonObject value) { this.value = value; }
-		ResourceLocation resource(String key) {
-			try { return ResourceLocation.parse(value.get(key).getAsString()); }
+		Identifier resource(String key) {
+			try { return Identifier.parse(value.get(key).getAsString()); }
 			catch (RuntimeException ignored) { return null; }
 		}
 	}
@@ -401,9 +399,9 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	}
 
 	private static final class TemplateChoice {
-		final ResourceLocation id;
+		final Identifier id;
 		final Component label;
-		TemplateChoice(ResourceLocation id, Component label) {
+		TemplateChoice(Identifier id, Component label) {
 			this.id = id;
 			this.label = label;
 		}

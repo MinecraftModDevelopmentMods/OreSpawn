@@ -5,12 +5,12 @@ import java.util.function.Supplier;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Stable entry point for mods that register codec-backed ore patterns. */
 public final class OreSpawnPatternRegistry {
-	public static final ResourceLocation REGISTRY_NAME =
-			ResourceLocation.fromNamespaceAndPath(OreSpawn.MODID, "ore_pattern_types");
+	public static final Identifier REGISTRY_NAME =
+			Identifier.fromNamespaceAndPath(OreSpawn.MODID, "ore_pattern_types");
 
 	private OreSpawnPatternRegistry() {
 	}

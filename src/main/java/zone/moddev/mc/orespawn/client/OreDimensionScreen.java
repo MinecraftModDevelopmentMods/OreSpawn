@@ -22,7 +22,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 
 final class OreDimensionScreen extends OreSpawnScreen {
@@ -85,7 +85,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 			JsonElement configured = rule.get("pattern");
 			if (configured != null && configured.isJsonObject()) {
 				externalPatternId = GeologyEditorSession.string(configured.getAsJsonObject(), "type", "orespawn:vein");
-				ResourceLocation id = ResourceLocation.parse(externalPatternId);
+				Identifier id = Identifier.parse(externalPatternId);
 				externalPattern = true;
 				pattern = "orespawn".equals(id.getNamespace())
 						? OrePattern.fromConfigName(id.getPath()) : OrePattern.VEIN;
@@ -137,9 +137,9 @@ final class OreDimensionScreen extends OreSpawnScreen {
 				left + ((tabWidth + 5) * 2), 56, contentWidth - ((tabWidth + 5) * 2), 20,
 				Component.translatable("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
 		double currentFrequency = GeologyEditorSession.decimal(rule, "frequency", baselineFrequency);
-		richness = addRenderableWidget(CycleButton.builder(this::richnessName)
+		richness = addRenderableWidget(CycleButton.builder(this::richnessName,
+				OreRichnessPreset.fromFrequency(baselineFrequency, currentFrequency))
 				.withValues(Arrays.asList(OreRichnessPreset.values()))
-				.withInitialValue(OreRichnessPreset.fromFrequency(baselineFrequency, currentFrequency))
 				.withTooltip(value -> tooltip("tooltip.orespawn.ore_richness"))
 				.create(left, 80, contentWidth, 20, Component.translatable("option.orespawn.ore_richness"),
 						(button, value) -> applyRichness(value)));
@@ -176,9 +176,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 			external.active = false;
 			patternButton = addRenderableWidget(external);
 		} else {
-			patternButton = addRenderableWidget(CycleButton.builder(this::patternName)
+			patternButton = addRenderableWidget(CycleButton.builder(this::patternName, pattern)
 					.withValues(Arrays.asList(OrePattern.values()))
-					.withInitialValue(pattern)
 					.withTooltip(value -> tooltip("guide.orespawn.patterns.1"))
 					.create(left, 80, contentWidth, 20, Component.translatable("option.orespawn.pattern"),
 							(button, value) -> {
@@ -187,9 +186,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 							}));
 		}
 		patternWidgets.add(patternButton);
-		patternWidgets.add(addRenderableWidget(CycleButton.builder(this::distributionName)
+		patternWidgets.add(addRenderableWidget(CycleButton.builder(this::distributionName, heightDistribution)
 				.withValues(Arrays.asList(OreHeightDistribution.values()))
-				.withInitialValue(heightDistribution)
 				.withTooltip(value -> tooltip("guide.orespawn.patterns.2"))
 				.create(left, 104, contentWidth, 20,
 						Component.translatable("option.orespawn.height_distribution"),
@@ -392,7 +390,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 		for (String token : value.split(",")) {
 			String id = token.trim();
 			if (id.isEmpty()) continue;
-			ResourceLocation.parse(id);
+			Identifier.parse(id);
 			result.add(id);
 		}
 		return result;

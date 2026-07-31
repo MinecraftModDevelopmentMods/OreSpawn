@@ -12,7 +12,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -75,7 +75,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 	private Component depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(
+			Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(
 					GeologyEditorSession.string(deposit, "block", "")));
 			if (block != null) return Component.translatable(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }

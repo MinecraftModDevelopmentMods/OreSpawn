@@ -15,17 +15,17 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.server.level.ServerLevel;
 
 final class OreSpawnGeologySampler implements GeologySampler {
-	private static final ResourceLocation CYANO_GEOME = ResourceLocation.fromNamespaceAndPath("orespawn", "cyano");
+	private static final Identifier CYANO_GEOME = Identifier.fromNamespaceAndPath("orespawn", "cyano");
 
 	private final ServerLevel level;
-	private final ResourceLocation dimension;
+	private final Identifier dimension;
 	private final BakedGeomeConfig config;
 	private final GeologyMode mode;
 	private final GeomeGeology sky;
@@ -33,7 +33,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 
 	private OreSpawnGeologySampler(ServerLevel level) {
 		this.level = level;
-		dimension = level.dimension().location();
+		dimension = level.dimension().identifier();
 		config = GeomeConfig.baked(level.dimension());
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		mode = profile.geologyMode();
@@ -58,8 +58,8 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
 		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
 		Holder<Biome> holder = level.getBiome(position);
-		ResourceLocation biomeId = holder.unwrapKey().map(ResourceKey::location)
-				.orElse(ResourceLocation.fromNamespaceAndPath("orespawn", "unregistered_biome"));
+		Identifier biomeId = holder.unwrapKey().map(ResourceKey::identifier)
+				.orElse(Identifier.fromNamespaceAndPath("orespawn", "unregistered_biome"));
 		if (mode == GeologyMode.LEGACY) {
 			return new CyanoColumn(biomeId, blockX, blockZ, surfaceY);
 		}
@@ -68,20 +68,20 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	}
 
 	private abstract class BaseColumn implements GeologyColumn {
-		private final ResourceLocation biome;
+		private final Identifier biome;
 		private final int x;
 		private final int z;
 		private final int surfaceY;
 
-		BaseColumn(ResourceLocation biome, int x, int z, int surfaceY) {
+		BaseColumn(Identifier biome, int x, int z, int surfaceY) {
 			this.biome = biome;
 			this.x = x;
 			this.z = z;
 			this.surfaceY = surfaceY;
 		}
 
-		@Override public ResourceLocation dimension() { return dimension; }
-		@Override public ResourceLocation biome() { return biome; }
+		@Override public Identifier dimension() { return dimension; }
+		@Override public Identifier biome() { return biome; }
 		@Override public int blockX() { return x; }
 		@Override public int blockZ() { return z; }
 		@Override public int surfaceY() { return surfaceY; }
@@ -90,22 +90,22 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	private final class SkyColumn extends BaseColumn {
 		private final GeomeGeology.ColumnSample sample;
 
-		SkyColumn(ResourceLocation biome, int x, int z, int surfaceY, GeomeGeology.ColumnSample sample) {
+		SkyColumn(Identifier biome, int x, int z, int surfaceY, GeomeGeology.ColumnSample sample) {
 			super(biome, x, z, surfaceY);
 			this.sample = sample;
 		}
 
-		@Override public ResourceLocation geome() { return geomeId(sample.geomeName()); }
+		@Override public Identifier geome() { return geomeId(sample.geomeName()); }
 		@Override public BlockState rockAt(int y) { return sample.rockAt(y); }
 		@Override public Optional<GeologyFamily> familyAt(int y) { return family(sample.familyAt(y)); }
 	}
 
 	private final class CyanoColumn extends BaseColumn {
-		CyanoColumn(ResourceLocation biome, int x, int z, int surfaceY) {
+		CyanoColumn(Identifier biome, int x, int z, int surfaceY) {
 			super(biome, x, z, surfaceY);
 		}
 
-		@Override public ResourceLocation geome() { return CYANO_GEOME; }
+		@Override public Identifier geome() { return CYANO_GEOME; }
 		@Override public BlockState rockAt(int y) { return cyano.getStoneAt(blockX(), y, blockZ()).defaultBlockState(); }
 		@Override public Optional<GeologyFamily> familyAt(int y) {
 			Block block = rockAt(y).getBlock();
@@ -125,12 +125,12 @@ final class OreSpawnGeologySampler implements GeologySampler {
 				: Optional.of(GeologyFamily.valueOf(family.name()));
 	}
 
-	private static ResourceLocation geomeId(String name) {
+	private static Identifier geomeId(String name) {
 		try {
-			return name.indexOf(':') >= 0 ? ResourceLocation.parse(name)
-					: ResourceLocation.fromNamespaceAndPath("orespawn", name.toLowerCase(Locale.ROOT));
+			return name.indexOf(':') >= 0 ? Identifier.parse(name)
+					: Identifier.fromNamespaceAndPath("orespawn", name.toLowerCase(Locale.ROOT));
 		} catch (RuntimeException ignored) {
-			return ResourceLocation.fromNamespaceAndPath("orespawn", "unknown");
+			return Identifier.fromNamespaceAndPath("orespawn", "unknown");
 		}
 	}
 }

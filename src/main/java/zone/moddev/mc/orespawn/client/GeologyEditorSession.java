@@ -23,7 +23,7 @@ import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.EmptyBlockGetter;
@@ -117,7 +117,7 @@ final class GeologyEditorSession {
 			JsonObject ore = oreElement.getAsJsonObject();
 			if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()) continue;
 			for (String id : ore.getAsJsonObject("dimensions").keySet()) {
-				if (validResource(id)) result.add(ResourceLocation.parse(id).toString());
+				if (validResource(id)) result.add(Identifier.parse(id).toString());
 			}
 		}
 		List<String> ordered = new ArrayList<>();
@@ -130,7 +130,7 @@ final class GeologyEditorSession {
 	}
 
 	private void rememberDimension(String id) {
-		if (validResource(id)) availableDimensionIds.add(ResourceLocation.parse(id).toString());
+		if (validResource(id)) availableDimensionIds.add(Identifier.parse(id).toString());
 	}
 
 	List<String> materialIds(MaterialTab tab, String search, boolean showAll) {
@@ -166,7 +166,7 @@ final class GeologyEditorSession {
 		Set<String> assigned = assignedBlockIds();
 		List<String> result = new ArrayList<>();
 		for (Block block : registeredBlocks()) {
-			ResourceLocation id = blockId(block);
+			Identifier id = blockId(block);
 			if (id == null || assigned.contains(id.toString()) || isWorldgenAliasSource(id.toString())
 					|| (!mod.isEmpty() && !mod.equals(id.getNamespace()))
 					|| (!query.isEmpty() && !id.toString().toLowerCase(Locale.ROOT).contains(query))
@@ -200,7 +200,7 @@ final class GeologyEditorSession {
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) continue;
 			for (String id : deposit.getAsJsonObject("dimensions").keySet()) {
-				if (validResource(id)) result.add(ResourceLocation.parse(id).toString());
+				if (validResource(id)) result.add(Identifier.parse(id).toString());
 			}
 		}
 		return result;
@@ -209,7 +209,7 @@ final class GeologyEditorSession {
 	List<String> installedBlockNamespaces() {
 		TreeSet<String> namespaces = new TreeSet<>();
 		for (Block block : registeredBlocks()) {
-			ResourceLocation id = blockId(block);
+			Identifier id = blockId(block);
 			if (id != null && block != Blocks.AIR && block.asItem() != Items.AIR) {
 				namespaces.add(id.getNamespace());
 			}
@@ -317,7 +317,7 @@ final class GeologyEditorSession {
 		section("rocks").remove(canonicalId);
 		JsonObject ore = new JsonObject();
 		ore.addProperty("enabled", true);
-		ResourceLocation blockId = ResourceLocation.parse(canonicalId);
+		Identifier blockId = Identifier.parse(canonicalId);
 		ore.addProperty("source_mod", blockId.getNamespace());
 		JsonObject dimensions = new JsonObject();
 		JsonObject overworld = defaultOreDimension();
@@ -392,7 +392,7 @@ final class GeologyEditorSession {
 	List<String> installedBiomeIds() {
 		List<String> result = new ArrayList<>();
 		for (net.minecraft.world.level.biome.Biome biome : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values()) {
-			ResourceLocation id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			Identifier id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (id != null) result.add(id.toString());
 		}
 		Collections.sort(result);
@@ -495,7 +495,7 @@ final class GeologyEditorSession {
 			return;
 		}
 		if (!validResource(blockId)) return;
-		Block block = registeredBlock(ResourceLocation.parse(blockId));
+		Block block = registeredBlock(Identifier.parse(blockId));
 		if (block == null || block == Blocks.AIR || (fluid && !isFluidBlock(block))) return;
 		JsonObject materials = dimensionMaterials(dimensionId, true);
 		materials.addProperty(key, blockId);
@@ -511,7 +511,7 @@ final class GeologyEditorSession {
 		String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
 		List<String> result = new ArrayList<>();
 		for (Block block : registeredBlocks()) {
-			ResourceLocation id = blockId(block);
+			Identifier id = blockId(block);
 			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
 					|| (fluidOnly && !isFluidBlock(block))
 					|| (!fluidOnly && block instanceof EntityBlock)
@@ -542,7 +542,7 @@ final class GeologyEditorSession {
 		}
 		List<String> result = new ArrayList<>();
 		for (Block block : registeredBlocks()) {
-			ResourceLocation id = blockId(block);
+			Identifier id = blockId(block);
 			if (id != null && isFluidBlock(block)
 					&& !configured.contains(id.toString())
 					&& (query.isEmpty() || id.toString().contains(query))) result.add(id.toString());
@@ -558,7 +558,7 @@ final class GeologyEditorSession {
 			if (entry.getValue().isJsonObject() && canonicalId.equals(string(
 					entry.getValue().getAsJsonObject(), "block", ""))) return entry.getKey();
 		}
-		ResourceLocation fluid = ResourceLocation.parse(canonicalId);
+		Identifier fluid = Identifier.parse(canonicalId);
 		String baseId = "orespawn:fluid_deposit/" + fluid.getNamespace() + "/" + fluid.getPath();
 		String ruleId = baseId;
 		for (int suffix = 2; section("fluid_deposits").has(ruleId); suffix++) {
@@ -615,7 +615,7 @@ final class GeologyEditorSession {
 	List<String> configuredBiomeIds() {
 		TreeSet<String> ids = new TreeSet<>(section("biomes").keySet());
 		for (net.minecraft.world.level.biome.Biome biome : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values()) {
-			ResourceLocation id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			Identifier id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (id != null) {
 				ids.add(id.toString());
 			}
@@ -958,8 +958,8 @@ final class GeologyEditorSession {
 		String value = configured != null && configured.isJsonObject()
 				? string(configured.getAsJsonObject(), "type", "orespawn:vein")
 				: string(rule, "pattern", "vein");
-		ResourceLocation id = value.indexOf(':') >= 0 ? ResourceLocation.parse(value)
-				: ResourceLocation.fromNamespaceAndPath("orespawn", value);
+		Identifier id = value.indexOf(':') >= 0 ? Identifier.parse(value)
+				: Identifier.fromNamespaceAndPath("orespawn", value);
 		OrePattern.fromConfigName(id.getPath());
 	}
 
@@ -1066,8 +1066,8 @@ final class GeologyEditorSession {
 
 	String canonicalBlockId(String id) {
 		try {
-			Block block = registeredBlock(ResourceLocation.parse(id));
-			ResourceLocation canonical = block == null ? null : blockId(block);
+			Block block = registeredBlock(Identifier.parse(id));
+			Identifier canonical = block == null ? null : blockId(block);
 			return block == Blocks.AIR || canonical == null ? null : canonical.toString();
 		} catch (RuntimeException e) {
 			return null;
@@ -1107,7 +1107,7 @@ final class GeologyEditorSession {
 		JsonObject aliases = section("worldgen_aliases");
 		if (!aliases.has(id)) return false;
 		try {
-			return !id.equals(ResourceLocation.parse(aliases.get(id).getAsString()).toString());
+			return !id.equals(Identifier.parse(aliases.get(id).getAsString()).toString());
 		} catch (RuntimeException e) {
 			return false;
 		}
@@ -1151,7 +1151,7 @@ final class GeologyEditorSession {
 
 	private static boolean validBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = registeredBlock(ResourceLocation.parse(id));
+		Block block = registeredBlock(Identifier.parse(id));
 		return block != null && block != Blocks.AIR;
 	}
 
@@ -1162,7 +1162,7 @@ final class GeologyEditorSession {
 
 	private static boolean validFluidBlock(String id) {
 		if (!validResource(id)) return false;
-		Block block = registeredBlock(ResourceLocation.parse(id));
+		Block block = registeredBlock(Identifier.parse(id));
 		return isFluidBlock(block);
 	}
 
@@ -1172,20 +1172,20 @@ final class GeologyEditorSession {
 	}
 
 	private static Iterable<Block> registeredBlocks() {
-		return BuiltInRegistries.BLOCK.containsKey(ResourceLocation.fromNamespaceAndPath("minecraft", "stone"))
+		return BuiltInRegistries.BLOCK.containsKey(Identifier.fromNamespaceAndPath("minecraft", "stone"))
 				? BuiltInRegistries.BLOCK.stream().toList() : BuiltInRegistries.BLOCK;
 	}
 
-	private static Block registeredBlock(ResourceLocation id) {
+	private static Block registeredBlock(Identifier id) {
 		Block builtIn = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
 		if (builtIn != null) {
 			return builtIn;
 		}
-		return BuiltInRegistries.BLOCK.containsKey(id) ? BuiltInRegistries.BLOCK.get(id) : null;
+		return BuiltInRegistries.BLOCK.containsKey(id) ? BuiltInRegistries.BLOCK.getValue(id) : null;
 	}
 
-	private static ResourceLocation blockId(Block block) {
-		ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+	private static Identifier blockId(Block block) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(block);
 		return id != null ? id : BuiltInRegistries.BLOCK.getKey(block);
 	}
 
@@ -1194,12 +1194,12 @@ final class GeologyEditorSession {
 		// Biomes are dynamic in 1.21.1. Before the live registry is available,
 		// retain syntactically valid provider IDs for server-side resolution.
 		return zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.keys().isEmpty()
-				|| zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.contains(ResourceLocation.parse(id));
+				|| zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.contains(Identifier.parse(id));
 	}
 
 	private static boolean validResource(String id) {
 		try {
-			ResourceLocation.parse(id);
+			Identifier.parse(id);
 			return true;
 		} catch (RuntimeException e) {
 			return false;

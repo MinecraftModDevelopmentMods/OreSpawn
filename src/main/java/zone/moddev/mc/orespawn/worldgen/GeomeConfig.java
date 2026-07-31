@@ -41,7 +41,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.GsonHelper;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
@@ -255,7 +255,7 @@ public final class GeomeConfig {
 		Map<ResourceKey<Level>, BakedGeomeConfig> configs = new LinkedHashMap<>();
 		Map<ResourceKey<Level>, BakedTerrainDimension> usableTerrain = new LinkedHashMap<>();
 		for (Entry<ResourceKey<Level>, BakedTerrainDimension> entry : terrain.entrySet()) {
-			BakedGeomeConfig config = bake(root, entry.getKey().location());
+			BakedGeomeConfig config = bake(root, entry.getKey().identifier());
 			if (config != null) {
 				configs.put(entry.getKey(), config);
 				usableTerrain.put(entry.getKey(), entry.getValue());
@@ -265,11 +265,11 @@ public final class GeomeConfig {
 		terrainDimensions = Collections.unmodifiableMap(usableTerrain);
 		bakedConfig = configs.get(Level.OVERWORLD);
 		if (bakedConfig == null) {
-			bakedConfig = bake(root, Level.OVERWORLD.location());
+			bakedConfig = bake(root, Level.OVERWORLD.identifier());
 		}
 	}
 
-	private static BakedGeomeConfig bake(JsonObject root, ResourceLocation dimension) {
+	private static BakedGeomeConfig bake(JsonObject root, Identifier dimension) {
 		LinkedHashMap<String, Integer> geomeIndexes = new LinkedHashMap<>();
 		GeomeDefinition[] geomes = readGeomes(root, geomeIndexes);
 		FormationSettings formations = readFormationSettings(root);
@@ -280,9 +280,9 @@ public final class GeomeConfig {
 
 		Map<String, double[]> biomeRules = readWeightRules(root, "biomes", geomeIndexes);
 		Map<String, double[]> dictionaryRules = readWeightRules(root, "biome_dictionary", geomeIndexes);
-		Map<ResourceLocation, ResourceLocation> worldgenAliases = readWorldgenAliases(root);
+		Map<Identifier, Identifier> worldgenAliases = readWorldgenAliases(root);
 		RockEntry[] rocks = readRocks(root, geomeIndexes, worldgenAliases, dimension);
-		if (rocks.length == 0 && !Level.OVERWORLD.location().equals(dimension)) {
+		if (rocks.length == 0 && !Level.OVERWORLD.identifier().equals(dimension)) {
 			LOGGER.warn("Disabling OreSpawn terrain replacement in '{}' because it has no eligible rocks", dimension);
 			return null;
 		}
@@ -296,10 +296,10 @@ public final class GeomeConfig {
 
 	private static JsonObject applyFreshWorldTemplate(JsonObject root) {
 		String configured = getString(root, "default_template", "").trim();
-		ResourceLocation selected = null;
+		Identifier selected = null;
 		if (!configured.isEmpty()) {
 			try {
-				selected = ResourceLocation.parse(configured);
+				selected = Identifier.parse(configured);
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn default template '{}'", configured);
 			}
@@ -327,7 +327,7 @@ public final class GeomeConfig {
 				continue;
 			}
 			try {
-				ResourceLocation id = ResourceLocation.parse(entry.getKey());
+				Identifier id = Identifier.parse(entry.getKey());
 				Set<Block> hosts = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
 				addTerrainHostBlocks(hosts, json.get("host_blocks"));
 				addTerrainHostTags(hosts, json.get("host_tags"));
@@ -335,7 +335,7 @@ public final class GeomeConfig {
 					LOGGER.warn("Ignoring terrain dimension '{}' because no replacement hosts resolved", id);
 					continue;
 				}
-				Set<ResourceLocation> biomeIds = resourceLocations(json.get("biome_ids"));
+				Set<Identifier> biomeIds = resourceLocations(json.get("biome_ids"));
 				Set<String> namespaces = strings(json.get("biome_namespaces"));
 				ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, id);
 				result.put(key, new BakedTerrainDimension(key, biomeIds, namespaces, hosts));
@@ -347,8 +347,8 @@ public final class GeomeConfig {
 	}
 
 	private static void addTerrainHostBlocks(Set<Block> target, JsonElement element) {
-		for (ResourceLocation id : resourceLocations(element)) {
-			Block block = BuiltInRegistries.BLOCK.get(id);
+		for (Identifier id : resourceLocations(element)) {
+			Block block = BuiltInRegistries.BLOCK.getValue(id);
 			if (block != null && block != Blocks.AIR) {
 				target.add(block);
 			}
@@ -356,7 +356,7 @@ public final class GeomeConfig {
 	}
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
-		for (ResourceLocation id : resourceLocations(element)) {
+		for (Identifier id : resourceLocations(element)) {
 			TagKey<Block> tag = TagKey.create(Registries.BLOCK, id);
 			for (Block block : BuiltInRegistries.BLOCK.stream().toList()) {
 				if (block.defaultBlockState().is(tag)) {
@@ -366,11 +366,11 @@ public final class GeomeConfig {
 		}
 	}
 
-	private static Set<ResourceLocation> resourceLocations(JsonElement element) {
-		Set<ResourceLocation> result = new LinkedHashSet<>();
+	private static Set<Identifier> resourceLocations(JsonElement element) {
+		Set<Identifier> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				result.add(ResourceLocation.parse(value.getAsString()));
+				result.add(Identifier.parse(value.getAsString()));
 			}
 		}
 		return result;
@@ -386,16 +386,16 @@ public final class GeomeConfig {
 		return result;
 	}
 
-	private static boolean rockAppliesToDimension(JsonObject rock, ResourceLocation dimension) {
+	private static boolean rockAppliesToDimension(JsonObject rock, Identifier dimension) {
 		if (!rock.has("dimensions")) {
-			return Level.OVERWORLD.location().equals(dimension);
+			return Level.OVERWORLD.identifier().equals(dimension);
 		}
 		if (!rock.get("dimensions").isJsonArray()) {
 			return false;
 		}
 		for (JsonElement value : rock.getAsJsonArray("dimensions")) {
 			try {
-				if (dimension.equals(ResourceLocation.parse(value.getAsString()))) {
+				if (dimension.equals(Identifier.parse(value.getAsString()))) {
 					return true;
 				}
 			} catch (RuntimeException ignored) {
@@ -537,10 +537,10 @@ public final class GeomeConfig {
 	}
 
 	private static RockEntry[] readRocks(JsonObject root, Map<String, Integer> geomeIndexes,
-			Map<ResourceLocation, ResourceLocation> worldgenAliases, ResourceLocation dimension) {
+			Map<Identifier, Identifier> worldgenAliases, Identifier dimension) {
 		JsonObject rockRoot = getObject(root, "rocks", defaultConfig().getAsJsonObject("rocks"));
 		List<RockEntry> rocks = new ArrayList<>();
-		Map<BlockState, ResourceLocation> configuredStates = new HashMap<BlockState, ResourceLocation>();
+		Map<BlockState, Identifier> configuredStates = new HashMap<BlockState, Identifier>();
 		for (Entry<String, JsonElement> entry : rockRoot.entrySet()) {
 			if (!entry.getValue().isJsonObject()) {
 				LOGGER.warn("Ignoring OreSpawn geome rock '{}' because it is not an object", entry.getKey());
@@ -560,17 +560,17 @@ public final class GeomeConfig {
 				continue;
 			}
 
-			ResourceLocation ruleId;
-			ResourceLocation id;
+			Identifier ruleId;
+			Identifier id;
 			try {
-				ruleId = ResourceLocation.parse(entry.getKey());
-				id = ResourceLocation.parse(getString(json, "block", entry.getKey()));
+				ruleId = Identifier.parse(entry.getKey());
+				id = Identifier.parse(getString(json, "block", entry.getKey()));
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn geome rock rule or block id '{}'", entry.getKey());
 				continue;
 			}
 
-			Block block = BuiltInRegistries.BLOCK.get(id);
+			Block block = BuiltInRegistries.BLOCK.getValue(id);
 			if (block == null || block == Blocks.AIR) {
 				LOGGER.warn("Ignoring unknown OreSpawn geome rock block '{}'", id);
 				continue;
@@ -596,7 +596,7 @@ public final class GeomeConfig {
 			JsonObject geomeWeightsJson = GsonHelper.getAsJsonObject(json, "geomes", new JsonObject());
 			double[] geomeWeights = readGeomeWeights(geomeWeightsJson, geomeIndexes, 1.0D);
 			BlockState state = GeologyBlockAliases.aliasState(id, block.defaultBlockState(), worldgenAliases);
-			ResourceLocation previousId = configuredStates.putIfAbsent(state, ruleId);
+			Identifier previousId = configuredStates.putIfAbsent(state, ruleId);
 			if (previousId != null) {
 				LOGGER.warn("Ignoring duplicate OreSpawn geome rock rule '{}' because block '{}' resolves to the same state as '{}'",
 						ruleId, id, previousId);
@@ -614,7 +614,7 @@ public final class GeomeConfig {
 					geomeWeights));
 		}
 
-		if (rocks.isEmpty() && Level.OVERWORLD.location().equals(dimension)) {
+		if (rocks.isEmpty() && Level.OVERWORLD.identifier().equals(dimension)) {
 			boolean passive = rockRoot.size() == 0
 					&& getObject(root, "terrain_dimensions", defaultTerrainDimensions()).size() == 0;
 			if (passive) {
@@ -985,22 +985,22 @@ public final class GeomeConfig {
 		}
 	}
 
-	private static Map<ResourceLocation, ResourceLocation> readWorldgenAliases(JsonObject root) {
-		Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<>();
+	private static Map<Identifier, Identifier> readWorldgenAliases(JsonObject root) {
+		Map<Identifier, Identifier> aliases = new LinkedHashMap<>();
 		JsonObject aliasRoot = GsonHelper.getAsJsonObject(root, "worldgen_aliases",
 				defaultConfig().getAsJsonObject("worldgen_aliases"));
 		for (Entry<String, JsonElement> entry : aliasRoot.entrySet()) {
-			ResourceLocation sourceId;
-			ResourceLocation targetId;
+			Identifier sourceId;
+			Identifier targetId;
 			try {
-				sourceId = ResourceLocation.parse(entry.getKey());
-				targetId = ResourceLocation.parse(entry.getValue().getAsString());
+				sourceId = Identifier.parse(entry.getKey());
+				targetId = Identifier.parse(entry.getValue().getAsString());
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn worldgen alias '{}'", entry.getKey());
 				continue;
 			}
 
-			Block target = BuiltInRegistries.BLOCK.get(targetId);
+			Block target = BuiltInRegistries.BLOCK.getValue(targetId);
 			if (target == null || target == Blocks.AIR) {
 				LOGGER.warn("Ignoring OreSpawn worldgen alias '{}' -> '{}' because the target block is unknown",
 						sourceId, targetId);
@@ -1021,7 +1021,7 @@ public final class GeomeConfig {
 				weights[i] = 1.0D;
 			}
 
-			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			Identifier biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
 				for (String type : BiomeTypeCompatibility.types(biome)) {
@@ -1035,7 +1035,7 @@ public final class GeomeConfig {
 	}
 
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
-			ResourceLocation biomeId, Biome biome) {
+			Identifier biomeId, Biome biome) {
 		String biomeName = biomeId == null ? "" : biomeId.getPath();
 		float temperature = biome.getBaseTemperature();
 		float downfall = biome.getModifiedClimateSettings().downfall();
@@ -1131,8 +1131,8 @@ public final class GeomeConfig {
 	}
 
 	static String normalizeGeomeName(String geome) {
-		return geome.indexOf(':') >= 0 ? ResourceLocation.parse(geome).toString()
-				: ResourceLocation.fromNamespaceAndPath("orespawn", geome).toString();
+		return geome.indexOf(':') >= 0 ? Identifier.parse(geome).toString()
+				: Identifier.fromNamespaceAndPath("orespawn", geome).toString();
 	}
 
 	private static double getDouble(JsonObject json, String key, double fallback) {
@@ -1859,7 +1859,7 @@ public final class GeomeConfig {
 
 	private static JsonObject defaultWorldgenAliases() {
 		JsonObject aliases = new JsonObject();
-		for (Entry<ResourceLocation, ResourceLocation> entry : GeologyBlockAliases.defaultAliases().entrySet()) {
+		for (Entry<Identifier, Identifier> entry : GeologyBlockAliases.defaultAliases().entrySet()) {
 			aliases.addProperty(entry.getKey().toString(), entry.getValue().toString());
 		}
 		return aliases;

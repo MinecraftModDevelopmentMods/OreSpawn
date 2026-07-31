@@ -92,7 +92,7 @@ runs {
         configureBenchmark(delegate, '4', '3', '256')
     }
 
-    data {
+    clientData {
         workingDirectory project.layout.projectDirectory.dir('run-data')
         arguments.addAll '--mod', mod_id, '--all', '--output',
                 file('src/generated/resources/').absolutePath, '--existing',
@@ -121,7 +121,6 @@ tasks.withType(ProcessResources).configureEach {
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
             neo_version_range      : neo_version_range,
-            loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,

@@ -13,7 +13,7 @@ import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
@@ -50,7 +50,7 @@ final class BiomeTypeCompatibility {
 	static Set<ResourceKey<Biome>> biomeKeys(String type) {
 		Set<ResourceKey<Biome>> result = new LinkedHashSet<>();
 		for (Biome biome : biomes(type)) {
-			ResourceLocation id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			Identifier id = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
 			if (id != null) result.add(ResourceKey.create(Registries.BIOME, id));
 		}
 		return result;
@@ -71,7 +71,7 @@ final class BiomeTypeCompatibility {
 		if (known != null) return known;
 		if (normalized.isEmpty()) return Collections.emptyList();
 		return Collections.singletonList(TagKey.create(Registries.BIOME,
-				ResourceLocation.fromNamespaceAndPath("c", "is_" + normalized.toLowerCase(Locale.ROOT))));
+				Identifier.fromNamespaceAndPath("c", "is_" + normalized.toLowerCase(Locale.ROOT))));
 	}
 
 	private static boolean matches(Holder<Biome> holder,

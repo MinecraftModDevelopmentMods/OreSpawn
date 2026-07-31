@@ -16,7 +16,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -100,7 +100,7 @@ public final class WorldgenBenchmark {
 
 		LOGGER.info("ORESPAWN_BENCHMARK start mode={} dimension={} seed={} target_chunks={} repetitions={} "
 				+ "java={} processors={} max_heap_mb={}",
-				MODE, level.dimension().location(), level.getSeed(), chunks, repetitions,
+				MODE, level.dimension().identifier(), level.getSeed(), chunks, repetitions,
 				System.getProperty("java.version"),
 				Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory() / (1024L * 1024L));
 
@@ -152,7 +152,7 @@ public final class WorldgenBenchmark {
 			case "nether" -> Level.NETHER;
 			case "end" -> Level.END;
 			default -> {
-				ResourceLocation id = ResourceLocation.tryParse(dimensionName);
+				Identifier id = Identifier.tryParse(dimensionName);
 				if (id == null) {
 					throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 				}
@@ -178,7 +178,7 @@ public final class WorldgenBenchmark {
 			int repetition) {
 		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeAudit", "").trim();
 		if (configured.isEmpty()) return;
-		ResourceLocation expected = ResourceLocation.tryParse(configured);
+		Identifier expected = Identifier.tryParse(configured);
 		if (expected == null) {
 			throw new IllegalArgumentException("Invalid benchmark biome audit ID: " + configured);
 		}
@@ -188,8 +188,8 @@ public final class WorldgenBenchmark {
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
 				cursor.set((chunkX << 4) + 8, level.getSeaLevel(), (chunkZ << 4) + 8);
-				ResourceLocation actual = level.getBiome(cursor).unwrapKey()
-						.map(key -> key.location()).orElse(null);
+				Identifier actual = level.getBiome(cursor).unwrapKey()
+						.map(key -> key.identifier()).orElse(null);
 				if (expected.equals(actual)) matching++;
 			}
 		}
@@ -248,8 +248,8 @@ public final class WorldgenBenchmark {
 				int minZ = chunk.getPos().getMinBlockZ();
 				for (int localX = 0; localX < 16; localX++) {
 					for (int localZ = 0; localZ < 16; localZ++) {
-						cursor.set(minX + localX, chunk.getMinBuildHeight(), minZ + localZ);
-						for (int y = chunk.getMinBuildHeight(); y < chunk.getMaxBuildHeight(); y++) {
+						cursor.set(minX + localX, chunk.getMinY(), minZ + localZ);
+						for (int y = chunk.getMinY(); y < chunk.getMaxY(); y++) {
 							cursor.setY(y);
 							BlockState state = chunk.getBlockState(cursor);
 							for (OreAudit audit : audits.values()) {
@@ -289,7 +289,7 @@ public final class WorldgenBenchmark {
 			if (fields.length != 4) {
 				throw new IllegalArgumentException("Invalid benchmark block audit specification: " + specification);
 			}
-			ResourceLocation id = ResourceLocation.tryParse(fields[0].trim());
+			Identifier id = Identifier.tryParse(fields[0].trim());
 			if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
 				throw new IllegalArgumentException("Unknown benchmark audit block: " + fields[0].trim());
 			}
@@ -301,8 +301,8 @@ public final class WorldgenBenchmark {
 				default -> throw new IllegalArgumentException(
 						"Benchmark audit expectation must be present or absent: " + specification);
 			};
-			audits.put(id.toString(), new OreAudit(BuiltInRegistries.BLOCK.get(id),
-					BuiltInRegistries.BLOCK.get(id),
+			audits.put(id.toString(), new OreAudit(BuiltInRegistries.BLOCK.getValue(id),
+					BuiltInRegistries.BLOCK.getValue(id),
 					minimumY, maximumY, required));
 		}
 	}

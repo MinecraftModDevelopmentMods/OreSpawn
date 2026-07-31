@@ -51,8 +51,8 @@ final class RockEntryScreen extends OreSpawnScreen {
 		JsonObject rock = session.rock(blockId);
 		int left = width / 2 - 155;
 		int right = width / 2 + 5;
-		addRenderableWidget(CycleButton.builder(this::familyName)
-				.withValues(Arrays.asList(RockFamily.values())).withInitialValue(family)
+		addRenderableWidget(CycleButton.builder(this::familyName, family)
+				.withValues(Arrays.asList(RockFamily.values()))
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("guide.orespawn.rocks.1")))
 				.create(left, 38, 190, 20, Component.translatable("option.orespawn.family"),

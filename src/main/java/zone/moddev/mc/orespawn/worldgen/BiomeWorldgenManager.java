@@ -23,7 +23,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -52,7 +52,7 @@ final class BiomeWorldgenManager {
 	}
 
 	static void registerBiomeSourceCodec(RegisterEvent event) {
-		ResourceLocation id = ResourceLocation.fromNamespaceAndPath("orespawn", "profile_overlay");
+		Identifier id = Identifier.fromNamespaceAndPath("orespawn", "profile_overlay");
 		event.register(Registries.BIOME_SOURCE,
 				helper -> helper.register(id, BiomeOverlaySource.CODEC));
 	}
@@ -105,8 +105,8 @@ final class BiomeWorldgenManager {
 	}
 
 	private static BakedBiomeWorldgen bake(ServerLevel level, JsonObject root) {
-		Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registries.BIOME);
-		ResourceLocation dimensionId = level.dimension().location();
+		Registry<Biome> biomes = level.registryAccess().lookupOrThrow(Registries.BIOME);
+		Identifier dimensionId = level.dimension().identifier();
 		Map<Holder<Biome>, Surface> surfaces = new IdentityHashMap<>();
 		List<Palette> palettes = bakePalettes(root, biomes, dimensionId, surfaces);
 		DimensionMaterials materials = bakeMaterials(root, dimensionId);
@@ -117,7 +117,7 @@ final class BiomeWorldgenManager {
 	}
 
 	private static List<Palette> bakePalettes(JsonObject root, Registry<Biome> registry,
-			ResourceLocation dimension, Map<Holder<Biome>, Surface> surfaces) {
+			Identifier dimension, Map<Holder<Biome>, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
 		for (Entry<String, JsonElement> paletteEntry : section.entrySet()) {
@@ -129,10 +129,10 @@ final class BiomeWorldgenManager {
 			List<BakedBiomeWorldgen.Entry> entries = new ArrayList<>();
 			for (Entry<String, JsonElement> biomeEntry : biomeEntries.entrySet()) {
 				if (!biomeEntry.getValue().isJsonObject()) continue;
-				ResourceLocation biomeId;
-				try { biomeId = ResourceLocation.parse(biomeEntry.getKey()); }
+				Identifier biomeId;
+				try { biomeId = Identifier.parse(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
-				Holder<Biome> holder = registry.getHolder(ResourceKey.create(
+				Holder<Biome> holder = registry.get(ResourceKey.create(
 						Registries.BIOME, biomeId)).orElse(null);
 				if (holder == null) {
 					LOGGER.warn("Skipping missing optional OreSpawn biome '{}'", biomeId);
@@ -140,10 +140,10 @@ final class BiomeWorldgenManager {
 				}
 				JsonObject placement = biomeEntry.getValue().getAsJsonObject();
 				if (!bool(placement, "enabled", true)) continue;
-				Set<ResourceLocation> similar = ids(placement.get("similar_biomes"));
-				Set<ResourceLocation> required = ids(placement.get("required_similar_biomes"));
+				Set<Identifier> similar = ids(placement.get("similar_biomes"));
+				Set<Identifier> required = ids(placement.get("required_similar_biomes"));
 				boolean missingRequired = false;
-				for (ResourceLocation id : required) {
+				for (Identifier id : required) {
 					if (!registry.containsKey(id)) {
 						missingRequired = true;
 						LOGGER.warn("Skipping OreSpawn biome '{}' because required similar biome '{}' is missing",
@@ -191,7 +191,7 @@ final class BiomeWorldgenManager {
 				: Math.max(0.0D, decimal(palette, "fallback_weight", 1.0D));
 		Map<Biome, Choice> result = new IdentityHashMap<>();
 		for (Entry<ResourceKey<Biome>, Biome> source : registry.entrySet()) {
-			ResourceLocation sourceId = source.getKey().location();
+			Identifier sourceId = source.getKey().identifier();
 			if (!scopeMatches(scope, included, excluded, sourceId)) continue;
 			Biome biome = source.getValue();
 			float temperature = biome.getBaseTemperature();
@@ -221,7 +221,7 @@ final class BiomeWorldgenManager {
 	}
 
 	private static boolean scopeMatches(int scope, Set<String> included,
-			Set<String> excluded, ResourceLocation source) {
+			Set<String> excluded, Identifier source) {
 		String namespace = source.getNamespace();
 		if (excluded.contains(namespace)) return false;
 		if (scope == 1) return "minecraft".equals(namespace);
@@ -230,14 +230,14 @@ final class BiomeWorldgenManager {
 	}
 
 	private static boolean eligible(BakedBiomeWorldgen.Entry entry,
-			ResourceLocation source, float temperature, float downfall) {
+			Identifier source, float temperature, float downfall) {
 		return (entry.similarBiomes.isEmpty() || entry.similarBiomes.contains(source))
 				&& temperature >= entry.minTemperature && temperature <= entry.maxTemperature
 				&& downfall >= entry.minDownfall && downfall <= entry.maxDownfall
 				&& entry.weight > 0.0D;
 	}
 
-	private static DimensionMaterials bakeMaterials(JsonObject root, ResourceLocation dimension) {
+	private static DimensionMaterials bakeMaterials(JsonObject root, Identifier dimension) {
 		DimensionMaterials selected = null;
 		String selectedId = null;
 		for (Entry<String, JsonElement> entry : object(root, "dimension_materials").entrySet()) {
@@ -314,8 +314,8 @@ final class BiomeWorldgenManager {
 	private static BlockState state(JsonObject json, String key, boolean fluid) {
 		if (!json.has(key)) return null;
 		try {
-			Block block = BuiltInRegistries.BLOCK.get(
-					ResourceLocation.parse(json.get(key).getAsString()));
+			Block block = BuiltInRegistries.BLOCK.getValue(
+					Identifier.parse(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
 					|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return null;
 			return block.defaultBlockState();
@@ -340,11 +340,11 @@ final class BiomeWorldgenManager {
 		}
 	}
 
-	private static Set<ResourceLocation> ids(JsonElement element) {
-		Set<ResourceLocation> result = new LinkedHashSet<>();
+	private static Set<Identifier> ids(JsonElement element) {
+		Set<Identifier> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				try { result.add(ResourceLocation.parse(value.getAsString())); }
+				try { result.add(Identifier.parse(value.getAsString())); }
 				catch (RuntimeException ignored) { }
 			}
 		}

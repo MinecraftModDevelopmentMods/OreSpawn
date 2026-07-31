@@ -10,12 +10,12 @@ import java.util.Collections;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 class WorldgenProviderTest {
 	@Test
 	void serializesTypedSchemaFourProvider() {
-		ResourceLocation overworld = id("minecraft:overworld");
+		Identifier overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
 				.rock(id("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
 						.depth(20, 36).weight(1.25D).oreReplaceable(true))
@@ -60,7 +60,7 @@ class WorldgenProviderTest {
 
 	@Test
 	void serializesCompleteDeclarativeProviderSurface() {
-		ResourceLocation dimension = id("examplemod:crystal_caverns");
+		Identifier dimension = id("examplemod:crystal_caverns");
 		WorldgenProvider.FormationDefinition formations = WorldgenProvider.FormationDefinition.builder()
 				.horizontalSize(FormationPreset.HUGE)
 				.waviness(FormationPreset.CUSTOM)
@@ -106,7 +106,7 @@ class WorldgenProviderTest {
 
 	@Test
 	void serializesBiomePaletteDimensionMaterialsAndAutoTemplate() {
-		ResourceLocation overworld = id("minecraft:overworld");
+		Identifier overworld = id("minecraft:overworld");
 		WorldgenProvider.BiomeSurfaceDefinition surface =
 				WorldgenProvider.BiomeSurfaceDefinition.builder()
 						.topBlock(id("minecraft:cake"))
@@ -267,8 +267,8 @@ class WorldgenProviderTest {
 				.builder(id("minecraft:overworld")).build());
 	}
 
-	private static ResourceLocation id(String value) {
-		return ResourceLocation.parse(value);
+	private static Identifier id(String value) {
+		return Identifier.parse(value);
 	}
 
 	private static JsonObject profileDefaults() {

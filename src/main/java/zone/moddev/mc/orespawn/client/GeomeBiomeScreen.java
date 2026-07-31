@@ -12,7 +12,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class GeomeBiomeScreen extends OreSpawnScreen {
 	private enum Tab { GEOMES, BIOMES, DICTIONARY }
@@ -116,7 +116,7 @@ final class GeomeBiomeScreen extends OreSpawnScreen {
 			minecraft.setScreen(new GeomeEntryScreen(this, session, id.toLowerCase(Locale.ROOT)));
 		} else {
 			if (tab == Tab.BIOMES) {
-				try { ResourceLocation.parse(id); }
+				try { Identifier.parse(id); }
 				catch (RuntimeException e) { return; }
 			}
 			open(id);

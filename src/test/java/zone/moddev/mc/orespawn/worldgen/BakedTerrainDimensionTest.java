@@ -7,7 +7,7 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 class BakedTerrainDimensionTest {
 	@Test
@@ -15,7 +15,7 @@ class BakedTerrainDimensionTest {
 		BakedTerrainDimension dimension = new BakedTerrainDimension(null, Collections.emptySet(),
 				Collections.singleton("examplemod"), Collections.emptySet());
 
-		assertTrue(dimension.acceptsBiome(ResourceLocation.parse("examplemod:crystal_fields")));
-		assertFalse(dimension.acceptsBiome(ResourceLocation.parse("minecraft:plains")));
+		assertTrue(dimension.acceptsBiome(Identifier.parse("examplemod:crystal_fields")));
+		assertFalse(dimension.acceptsBiome(Identifier.parse("minecraft:plains")));
 	}
 }

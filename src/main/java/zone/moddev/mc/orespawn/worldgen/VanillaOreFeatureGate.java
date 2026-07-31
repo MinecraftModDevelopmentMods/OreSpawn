@@ -11,7 +11,7 @@ import com.mojang.serialization.Codec;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -35,7 +35,7 @@ public final class VanillaOreFeatureGate {
 	private static final Definition[] DEFINITIONS = definitions();
 	private static final GateFeature[] FEATURES = features();
 	private static final SuppressibleGateFeature SUPPRESSIBLE_FEATURE = new SuppressibleGateFeature();
-	private static final Map<ResourceLocation, Holder<PlacedFeature>> VANILLA_GATES =
+	private static final Map<Identifier, Holder<PlacedFeature>> VANILLA_GATES =
 			new LinkedHashMap<>();
 	private static final Map<PlacedFeature, Holder<PlacedFeature>> SUPPRESSIBLE_GATES =
 			new IdentityHashMap<>();
@@ -56,7 +56,7 @@ public final class VanillaOreFeatureGate {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Holder<PlacedFeature> feature = features.get(featureIndex);
-			ResourceLocation id = feature.unwrapKey().map(key -> key.location()).orElse(null);
+			Identifier id = feature.unwrapKey().map(key -> key.identifier()).orElse(null);
 			if (id != null && OreSpawn.MODID.equals(id.getNamespace())) continue;
 
 			int vanillaIndex = definitionIndex(id);
@@ -78,7 +78,7 @@ public final class VanillaOreFeatureGate {
 	private static Holder<PlacedFeature> vanillaGate(Holder<PlacedFeature> original,
 			int definitionIndex) {
 		Definition definition = DEFINITIONS[definitionIndex];
-		Block output = BuiltInRegistries.BLOCK.get(definition.oreBlockId);
+		Block output = BuiltInRegistries.BLOCK.getValue(definition.oreBlockId);
 		if (output == null) {
 			LOGGER.warn("Could not create OreSpawn gate for vanilla ore feature '{}'",
 					definition.placedFeatureId);
@@ -99,7 +99,7 @@ public final class VanillaOreFeatureGate {
 		return Holder.direct(new PlacedFeature(configured, original.value().placement()));
 	}
 
-	private static int definitionIndex(ResourceLocation id) {
+	private static int definitionIndex(Identifier id) {
 		if (id == null) return -1;
 		for (int i = 0; i < DEFINITIONS.length; i++) {
 			if (DEFINITIONS[i].placedFeatureId.equals(id)) return i;
@@ -150,8 +150,8 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static Definition definition(String placedFeature, String block) {
-		return new Definition(ResourceLocation.fromNamespaceAndPath("minecraft", placedFeature),
-				ResourceLocation.fromNamespaceAndPath("minecraft", block));
+		return new Definition(Identifier.fromNamespaceAndPath("minecraft", placedFeature),
+				Identifier.fromNamespaceAndPath("minecraft", block));
 	}
 
 	private static final class GateFeature extends Feature<NoneFeatureConfiguration> {
@@ -207,10 +207,10 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static final class Definition {
-		final ResourceLocation placedFeatureId;
-		final ResourceLocation oreBlockId;
+		final Identifier placedFeatureId;
+		final Identifier oreBlockId;
 
-		Definition(ResourceLocation placedFeatureId, ResourceLocation oreBlockId) {
+		Definition(Identifier placedFeatureId, Identifier oreBlockId) {
 			this.placedFeatureId = placedFeatureId;
 			this.oreBlockId = oreBlockId;
 		}

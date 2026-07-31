@@ -45,13 +45,13 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 				int x = minX + localX;
 				int z = minZ + localZ;
 				int y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ) - 1;
-				while (y > world.getMinBuildHeight()) {
+				while (y > world.getMinY()) {
 					cursor.set(x, y, z);
 					BlockState state = chunk.getBlockState(cursor);
 					if (!state.isAir() && state.getFluidState().isEmpty()) break;
 					y--;
 				}
-				if (y <= world.getMinBuildHeight()) continue;
+				if (y <= world.getMinY()) continue;
 				cursor.set(x, y, z);
 				Surface surface = config.surfaces.get(world.getBiome(cursor));
 				if (surface == null) continue;
@@ -59,21 +59,21 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 				BlockState top = underwater && surface.underwater != null
 						? surface.underwater : surface.top;
 				if (top != null && replaceable(chunk.getBlockState(cursor))) {
-					chunk.setBlockState(cursor, top, false);
+					chunk.setBlockState(cursor, top, 0);
 					changed = true;
 				}
 				if (surface.filler != null) {
 					for (int depth = 1; depth <= surface.fillerDepth
-							&& y - depth >= world.getMinBuildHeight(); depth++) {
+							&& y - depth >= world.getMinY(); depth++) {
 						cursor.set(x, y - depth, z);
 						if (!replaceable(chunk.getBlockState(cursor))) break;
-						chunk.setBlockState(cursor, surface.filler, false);
+						chunk.setBlockState(cursor, surface.filler, 0);
 						changed = true;
 					}
 				}
 				if (surface.ceiling != null) {
-					changed |= applyCeiling(chunk, cursor, x, z, world.getMaxBuildHeight(),
-							world.getMinBuildHeight(), surface.ceiling);
+					changed |= applyCeiling(chunk, cursor, x, z, world.getMaxY(),
+							world.getMinY(), surface.ceiling);
 				}
 			}
 		}
@@ -87,7 +87,7 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 			BlockState state = chunk.getBlockState(cursor);
 			if (state.isAir() || !state.getFluidState().isEmpty()) continue;
 			if (!replaceable(state)) return false;
-			chunk.setBlockState(cursor, ceiling, false);
+			chunk.setBlockState(cursor, ceiling, 0);
 			return true;
 		}
 		return false;

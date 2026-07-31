@@ -5,7 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -13,12 +13,12 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Immutable setup-time resolution of one terrain replacement dimension. */
 final class BakedTerrainDimension {
 	final ResourceKey<Level> key;
-	private final Set<ResourceLocation> biomeIds;
+	private final Set<Identifier> biomeIds;
 	private final Set<String> biomeNamespaces;
 	private final Set<Block> hostBlocks;
 	private final Block[] smallHostSet;
 
-	BakedTerrainDimension(ResourceKey<Level> key, Set<ResourceLocation> biomeIds,
+	BakedTerrainDimension(ResourceKey<Level> key, Set<Identifier> biomeIds,
 			Set<String> biomeNamespaces, Set<Block> hostBlocks) {
 		this.key = key;
 		this.biomeIds = Collections.unmodifiableSet(new LinkedHashSet<>(biomeIds));
@@ -27,7 +27,7 @@ final class BakedTerrainDimension {
 		this.smallHostSet = hostBlocks.size() <= 8 ? hostBlocks.toArray(new Block[hostBlocks.size()]) : null;
 	}
 
-	boolean acceptsBiome(ResourceLocation biomeId) {
+	boolean acceptsBiome(Identifier biomeId) {
 		return biomeIds.isEmpty() && biomeNamespaces.isEmpty()
 				|| biomeId != null && (biomeIds.contains(biomeId)
 						|| biomeNamespaces.contains(biomeId.getNamespace()));

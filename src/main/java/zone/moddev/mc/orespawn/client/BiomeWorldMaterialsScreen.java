@@ -32,8 +32,8 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		int half = (contentWidth - 5) / 2;
 		List<String> dimensions = session.availableDimensionIds();
 		if (!dimensions.contains(dimension)) dimension = dimensions.get(0);
-		addRenderableWidget(CycleButton.builder(this::dimensionName)
-				.withValues(dimensions).withInitialValue(dimension)
+		addRenderableWidget(CycleButton.builder(this::dimensionName, dimension)
+				.withValues(dimensions)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						Component.literal(value)))
 				.create(left, 34, contentWidth, 20,
@@ -53,25 +53,23 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 						Component.translatable("option.orespawn.biome_palette"),
 						(button, value) -> setPaletteEnabled(value)));
 		y += 26;
-		addRenderableWidget(CycleButton.builder(this::modeName)
-				.withValues(Arrays.asList("augment", "replace")).withInitialValue(mode)
+		addRenderableWidget(CycleButton.builder(this::modeName, mode)
+				.withValues(Arrays.asList("augment", "replace"))
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("guide.orespawn.biomes.1")))
 				.create(left, y, half, 20,
 						Component.translatable("option.orespawn.biome_mode"),
 						(button, value) -> setPalette("mode", value)));
-		addRenderableWidget(CycleButton.builder(this::scopeName)
+		addRenderableWidget(CycleButton.builder(this::scopeName, scope)
 				.withValues(Arrays.asList("all", "minecraft_only", "selected_namespaces"))
-				.withInitialValue(scope)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("guide.orespawn.biomes.2")))
 				.create(left + half + 5, y, half, 20,
 						Component.translatable("option.orespawn.biome_scope"),
 						(button, value) -> setPalette("scope", value)));
 		y += 26;
-		addRenderableWidget(CycleButton.builder(this::regionName)
+		addRenderableWidget(CycleButton.builder(this::regionName, size)
 				.withValues(Arrays.asList("tiny", "small", "average", "large", "huge"))
-				.withInitialValue(size)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("guide.orespawn.biomes.3")))
 				.create(left, y, contentWidth, 20,

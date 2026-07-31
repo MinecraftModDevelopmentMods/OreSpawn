@@ -10,7 +10,7 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.locating.IModFile;
 
@@ -55,15 +55,17 @@ final class DimensionDiscovery {
 	}
 
 	private static void collectModDimensions(IModFile modFile, Set<String> result) {
-		try {
-			Path dataRoot = modFile.findResource("data");
-			if (!Files.isDirectory(dataRoot)) return;
-			try (Stream<Path> namespaces = Files.list(dataRoot)) {
-				namespaces.filter(Files::isDirectory)
-						.forEach(namespace -> collectNamespaceDimensions(namespace, result));
+		for (Path contentRoot : modFile.getContents().getContentRoots()) {
+			try {
+				Path dataRoot = contentRoot.resolve("data");
+				if (!Files.isDirectory(dataRoot)) continue;
+				try (Stream<Path> namespaces = Files.list(dataRoot)) {
+					namespaces.filter(Files::isDirectory)
+							.forEach(namespace -> collectNamespaceDimensions(namespace, result));
+				}
+			} catch (IOException | RuntimeException ignored) {
+				// A broken optional resource path must not prevent opening the world editor.
 			}
-		} catch (IOException | RuntimeException ignored) {
-			// A broken optional resource path must not prevent opening the world editor.
 		}
 	}
 
@@ -84,7 +86,7 @@ final class DimensionDiscovery {
 
 	static void addDimensionId(Set<String> target, String namespace, String path) {
 		try {
-			target.add(ResourceLocation.fromNamespaceAndPath(namespace, path).toString());
+			target.add(Identifier.fromNamespaceAndPath(namespace, path).toString());
 		} catch (RuntimeException ignored) {
 			// Ignore malformed resource paths from third-party jars.
 		}

@@ -8,7 +8,7 @@ import java.util.Set;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Immutable view of the effective geology profile for the active server. */
 public final class GeologyProfileView {
@@ -26,42 +26,42 @@ public final class GeologyProfileView {
 		return root.has("geology_mode") ? root.get("geology_mode").getAsString() : "geome";
 	}
 
-	public Optional<ResourceLocation> selectedTemplate() {
+	public Optional<Identifier> selectedTemplate() {
 		if (!root.has("selected_template")) {
 			return Optional.empty();
 		}
 		try {
-			return Optional.of(ResourceLocation.parse(root.get("selected_template").getAsString()));
+			return Optional.of(Identifier.parse(root.get("selected_template").getAsString()));
 		} catch (RuntimeException ignored) {
 			return Optional.empty();
 		}
 	}
 
-	public Set<ResourceLocation> rockIds() {
+	public Set<Identifier> rockIds() {
 		return keys("rocks");
 	}
 
-	public Set<ResourceLocation> oreIds() {
+	public Set<Identifier> oreIds() {
 		return keys("ores");
 	}
 
-	public Set<ResourceLocation> fluidDepositIds() {
+	public Set<Identifier> fluidDepositIds() {
 		return keys("fluid_deposits");
 	}
 
-	public Set<ResourceLocation> geomeIds() {
+	public Set<Identifier> geomeIds() {
 		return keys("geomes");
 	}
 
-	public Set<ResourceLocation> terrainDimensions() {
+	public Set<Identifier> terrainDimensions() {
 		return keys("terrain_dimensions");
 	}
 
-	public Set<ResourceLocation> biomePaletteIds() {
+	public Set<Identifier> biomePaletteIds() {
 		return keys("biome_palettes");
 	}
 
-	public Set<ResourceLocation> dimensionMaterialIds() {
+	public Set<Identifier> dimensionMaterialIds() {
 		return keys("dimension_materials");
 	}
 
@@ -70,14 +70,14 @@ public final class GeologyProfileView {
 		return root.deepCopy();
 	}
 
-	private Set<ResourceLocation> keys(String section) {
+	private Set<Identifier> keys(String section) {
 		if (!root.has(section) || !root.get(section).isJsonObject()) {
 			return Collections.emptySet();
 		}
-		Set<ResourceLocation> values = new LinkedHashSet<>();
+		Set<Identifier> values = new LinkedHashSet<>();
 		for (String value : root.getAsJsonObject(section).keySet()) {
 			try {
-				values.add(ResourceLocation.parse(value));
+				values.add(Identifier.parse(value));
 			} catch (RuntimeException ignored) {
 				// Invalid user data is omitted from the typed view.
 			}

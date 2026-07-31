@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.biome.Biome;
@@ -100,7 +100,7 @@ public final class GeomeGeology {
 				Holder<Biome> biomeHolder = world.getBiome(cursor);
 				Biome biome = biomeHolder.value();
 				Optional<ResourceKey<Biome>> biomeKey = biomeHolder.unwrapKey();
-				ResourceLocation biomeId = biomeKey.isPresent() ? biomeKey.get().location() : null;
+				Identifier biomeId = biomeKey.isPresent() ? biomeKey.get().identifier() : null;
 				if (!terrain.acceptsBiome(biomeId)) {
 					continue;
 				}
@@ -112,11 +112,11 @@ public final class GeomeGeology {
 					changed |= replaceStableColumn(chunk, cursor, geomeIndex, baseRockValue,
 							formationRegion, x, z, surfaceY, terrain);
 				} else {
-					for (int y = surfaceY; y >= chunk.getMinBuildHeight(); y--) {
+					for (int y = surfaceY; y >= chunk.getMinY(); y--) {
 						cursor.set(x, y, z);
 						if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
 							chunk.setBlockState(cursor,
-									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z), false);
+									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z), 0);
 							changed = true;
 						}
 					}
@@ -125,7 +125,7 @@ public final class GeomeGeology {
 		}
 
 		if (changed) {
-			chunk.setUnsaved(true);
+			chunk.markUnsaved();
 		}
 	}
 
@@ -138,7 +138,7 @@ public final class GeomeGeology {
 		boolean changed = false;
 		cursor.set(x, surfaceY, z);
 
-		for (int y = surfaceY; y >= chunk.getMinBuildHeight(); y--) {
+		for (int y = surfaceY; y >= chunk.getMinY(); y--) {
 			int stratum = baseRockValue + y;
 			if (stratum < layerStart) {
 				layerIndex--;
@@ -147,7 +147,7 @@ public final class GeomeGeology {
 			}
 			cursor.setY(y);
 			if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-				chunk.setBlockState(cursor, replacement, false);
+				chunk.setBlockState(cursor, replacement, 0);
 				changed = true;
 			}
 		}
@@ -173,7 +173,7 @@ public final class GeomeGeology {
 	 * Classifies a column once for read-only API sampling. All Y queries on the
 	 * returned object reuse the same biome, geome, stratum, and formation data.
 	 */
-	public ColumnSample sampleColumn(Biome biome, ResourceLocation biomeId, int x, int z) {
+	public ColumnSample sampleColumn(Biome biome, Identifier biomeId, int x, int z) {
 		double[] regionalValues = new double[config.geomeCount()];
 		int geomeIndex = classifyColumn(biome, biomeId, x, z, regionalValues);
 		return new ColumnSample(geomeIndex, stratumOffsetAt(x, z), formationRegionAt(x, z), x, z);
@@ -207,7 +207,7 @@ public final class GeomeGeology {
 		}
 	}
 
-	private int classifyColumn(Biome biome, ResourceLocation biomeId, int x, int z, double[] regionalValues) {
+	private int classifyColumn(Biome biome, Identifier biomeId, int x, int z, double[] regionalValues) {
 		for (int i = 0; i < regionalValues.length; i++) {
 			regionalValues[i] = regionalNoise.valueAt(x + config.noiseOffsetX[i], z + config.noiseOffsetZ[i]);
 		}
