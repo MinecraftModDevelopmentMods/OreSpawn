@@ -19,27 +19,35 @@ final class WeightMapScreen extends Screen {
 	private final JsonObject weights;
 	private final List<String> keys;
 	private final double defaultWeight;
+	private final String tooltipKey;
 	private final Runnable removeAction;
 	private final List<EditBox> editors = new ArrayList<>();
 	private int page;
 	private Component error;
 
 	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight) {
-		this(parent, title, weights, keys, defaultWeight, null);
+		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.entry_weight", null);
 	}
 
 	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight,
 			Runnable removeAction) {
+		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.biome_weight", removeAction);
+	}
+
+	private WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys,
+			double defaultWeight, String tooltipKey, Runnable removeAction) {
 		super(title);
 		this.parent = parent;
 		this.weights = weights;
 		this.keys = new ArrayList<>(keys);
 		this.defaultWeight = defaultWeight;
+		this.tooltipKey = tooltipKey;
 		this.removeAction = removeAction;
 	}
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		editors.clear();
 		int start = page * PAGE_SIZE;
 		int end = Math.min(keys.size(), start + PAGE_SIZE);
@@ -49,7 +57,7 @@ final class WeightMapScreen extends Screen {
 					new TextComponent(key));
 			box.setMaxLength(24);
 			box.setValue(weights.has(key) ? weights.get(key).getAsString() : Double.toString(defaultWeight));
-			editors.add(addRenderableWidget(box));
+			editors.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box), tooltipKey));
 		}
 		int bottom = height - 28;
 		addRenderableWidget(new Button(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
@@ -119,5 +127,6 @@ final class WeightMapScreen extends Screen {
 		}
 		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

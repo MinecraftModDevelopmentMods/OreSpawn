@@ -33,6 +33,7 @@ final class GeomeBiomeScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int left = width / 2 - 155;
 		for (int i = 0; i < Tab.values().length; i++) {
 			Tab value = Tab.values()[i];
@@ -40,6 +41,8 @@ final class GeomeBiomeScreen extends Screen {
 					new TranslatableComponent("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
 					selected -> { tab = value; page = 0; rebuildWidgets(); }));
 			button.active = value != tab;
+			OreSpawnScreenLayout.explain(this, button,
+					"tooltip.orespawn.geome.tab." + value.name().toLowerCase(Locale.ROOT));
 		}
 		search = addRenderableWidget(new EditBox(font, left, 52, 230, 20,
 				new TranslatableComponent("option.orespawn.search")));
@@ -70,6 +73,8 @@ final class GeomeBiomeScreen extends Screen {
 		newId = addRenderableWidget(new EditBox(font, left + 100, controlsY, 150, 20,
 				new TranslatableComponent("option.orespawn.registry_id")));
 		newId.setMaxLength(128);
+		OreSpawnScreenLayout.explain(this, newId,
+				"tooltip.orespawn.geome.new_id." + tab.name().toLowerCase(Locale.ROOT));
 		addRenderableWidget(new Button(left + 255, controlsY, 55, 20,
 				new TranslatableComponent("button.orespawn.add"), button -> add()));
 		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
@@ -134,5 +139,6 @@ final class GeomeBiomeScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

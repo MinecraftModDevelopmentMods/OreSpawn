@@ -26,20 +26,24 @@ final class BlockAssignmentScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int left = width / 2 - 155;
 		int right = width / 2 + 5;
-		addRenderableWidget(new Button(left, 70, 150, 20, new TranslatableComponent("tab.orespawn.sedimentary"),
-				button -> assignRock(RockFamily.SEDIMENTARY)));
-		addRenderableWidget(new Button(right, 70, 150, 20, new TranslatableComponent("tab.orespawn.metamorphic"),
-				button -> assignRock(RockFamily.METAMORPHIC)));
-		addRenderableWidget(new Button(left, 98, 150, 20, new TranslatableComponent("value.orespawn.intrusive"),
-				button -> assignRock(RockFamily.IGNEOUS_INTRUSIVE)));
-		addRenderableWidget(new Button(right, 98, 150, 20, new TranslatableComponent("value.orespawn.volcanic"),
-				button -> assignRock(RockFamily.IGNEOUS_VOLCANIC)));
-		addRenderableWidget(new Button(left, 126, 310, 20, new TranslatableComponent("tab.orespawn.ores"),
-				button -> assignOre()));
+		addRockButton(left, 70, "tab.orespawn.sedimentary", RockFamily.SEDIMENTARY);
+		addRockButton(right, 70, "tab.orespawn.metamorphic", RockFamily.METAMORPHIC);
+		addRockButton(left, 98, "value.orespawn.intrusive", RockFamily.IGNEOUS_INTRUSIVE);
+		addRockButton(right, 98, "value.orespawn.volcanic", RockFamily.IGNEOUS_VOLCANIC);
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(new Button(left, 126, 310, 20,
+				new TranslatableComponent("tab.orespawn.ores"), button -> assignOre())),
+				"tooltip.orespawn.assignment.ore");
 		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
+	}
+
+	private void addRockButton(int x, int y, String labelKey, RockFamily family) {
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(new Button(x, y, 150, 20,
+				new TranslatableComponent(labelKey), button -> assignRock(family))),
+				"tooltip.orespawn.assignment.rock_family");
 	}
 
 	private void assignRock(RockFamily family) {
@@ -66,5 +70,6 @@ final class BlockAssignmentScreen extends Screen {
 		drawCenteredString(poseStack, font, new TextComponent(blockId), width / 2, 42, 0xDDDDDD);
 		if (error != null) drawCenteredString(poseStack, font, error, width / 2, 155, 0xFF5555);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

@@ -20,21 +20,28 @@ final class AdvancedGeologySettingsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int left = width / 2 - 155;
 		int top = 54;
 		int row = 0;
 		if (session.hasTerrainRules()) {
-			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+					left, top + (row++ * 28), 310, 20,
 					new TranslatableComponent("button.orespawn.formation_details"),
-					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS)));
-			addRenderableWidget(new Button(left, top + (row++ * 28), 310, 20,
+					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS),
+					"tooltip.orespawn.advanced.formations"));
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+					left, top + (row++ * 28), 310, 20,
 					new TranslatableComponent("button.orespawn.cyano_details"),
-					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS)));
+					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS),
+					"tooltip.orespawn.advanced.cyano"));
 		}
 		if (!session.fluidDepositIds().isEmpty()) {
-			addRenderableWidget(new Button(left, top + (row * 28), 310, 20,
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+					left, top + (row * 28), 310, 20,
 					new TranslatableComponent("button.orespawn.fluid_deposit_details"),
-					button -> minecraft.setScreen(new FluidDepositListScreen(this, session))));
+					button -> minecraft.setScreen(new FluidDepositListScreen(this, session)),
+					"tooltip.orespawn.advanced.fluid_deposits"));
 		}
 		addRenderableWidget(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
@@ -54,5 +61,6 @@ final class AdvancedGeologySettingsScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 20, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

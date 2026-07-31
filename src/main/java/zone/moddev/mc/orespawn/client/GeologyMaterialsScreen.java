@@ -31,6 +31,7 @@ final class GeologyMaterialsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int contentWidth = Math.min(390, Math.max(240, width - 24));
 		int contentLeft = (width - contentWidth) / 2;
 		int tabGap = 4;
@@ -46,6 +47,7 @@ final class GeologyMaterialsScreen extends Screen {
 					tabX, 26 + (tabRow * 24), tabWidth, 20,
 					new TranslatableComponent("tab.orespawn." + value.key), selected -> changeTab(value)));
 			button.active = value != tab;
+			OreSpawnScreenLayout.explain(this, button, "tooltip.orespawn.material.tab." + value.key);
 		}
 
 		int tabRows = (MaterialTab.values().length + tabsPerRow - 1) / tabsPerRow;
@@ -66,6 +68,8 @@ final class GeologyMaterialsScreen extends Screen {
 				new TranslatableComponent(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
 				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
 		advanced.visible = tab == MaterialTab.UNASSIGNED;
+		OreSpawnScreenLayout.explain(this, advanced,
+				showAll ? "tooltip.orespawn.material.safe_only" : "tooltip.orespawn.material.show_all");
 
 		List<String> ids = currentIds();
 		int listTop = searchY + 28;
@@ -107,6 +111,7 @@ final class GeologyMaterialsScreen extends Screen {
 				contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
 				new TranslatableComponent("button.orespawn.add_block"), button -> openBlockPicker()));
 		add.visible = tab != MaterialTab.UNASSIGNED;
+		OreSpawnScreenLayout.explain(this, add, "tooltip.orespawn.material.add_block");
 		int doneWidth = Math.min(150, contentWidth);
 		addRenderableWidget(new Button((width - doneWidth) / 2, height - 28, doneWidth, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
@@ -179,5 +184,6 @@ final class GeologyMaterialsScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

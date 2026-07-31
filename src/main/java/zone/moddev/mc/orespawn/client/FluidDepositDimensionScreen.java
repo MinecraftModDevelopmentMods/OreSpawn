@@ -95,7 +95,7 @@ final class FluidDepositDimensionScreen extends Screen {
 				addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 42, columnWidth, 20,
 						new TranslatableComponent("option.orespawn.enabled"),
 						(button, value) -> enabled = value)),
-				"guide.orespawn.fluids.1");
+				"tooltip.orespawn.enabled");
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, 42, columnWidth, 20,
 				new TranslatableComponent("button.orespawn.remove_dimension"), button -> removeDimension()));
 		int tabWidth = (contentWidth - 10) / 3;
@@ -133,7 +133,7 @@ final class FluidDepositDimensionScreen extends Screen {
 							(button, selected) -> {
 								if (selected) families.add(family); else families.remove(family);
 							})),
-					"guide.orespawn.fluids.3"));
+					"tooltip.orespawn.host_family"));
 		}
 
 		biomeIds = biomeField(0, "biome_ids", join(rule.get("biome_ids"), ""));
@@ -144,7 +144,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 180,
 				contentWidth, 20, new TranslatableComponent("button.orespawn.geome_weights"),
 				button -> openWeights()));
-		OreSpawnScreenLayout.explain(this, weights, "guide.orespawn.fluids.3");
+		OreSpawnScreenLayout.explain(this, weights, "tooltip.orespawn.geome_weights");
 		weights.active = "minecraft:overworld".equals(dimensionId) && !session.geomeIds().isEmpty();
 		biomeWidgets.add(weights);
 
@@ -172,7 +172,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, x, 106, columnWidth, 20, new TextComponent(key));
 		box.setValue(value); box.setMaxLength(1024);
 		hostWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
-				"guide.orespawn.fluids.3"));
+				"tooltip.orespawn." + key));
 		return box;
 	}
 
@@ -182,18 +182,12 @@ final class FluidDepositDimensionScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
 		box.setValue(value); box.setMaxLength(1024);
 		biomeWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
-				"guide.orespawn.fluids.3"));
+				"tooltip.orespawn.fluid." + key));
 		return box;
 	}
 
 	private static String placementHelp(String key) {
-		if ("min_y".equals(key) || "max_y".equals(key)) {
-			return "guide.orespawn.fluids.1";
-		}
-		if ("min_solid_cover".equals(key) || "min_solid_shell".equals(key)) {
-			return "guide.orespawn.fluids.3";
-		}
-		return "guide.orespawn.fluids.2";
+		return "tooltip.orespawn.fluid." + key;
 	}
 
 	private void showPage(Page selected) {

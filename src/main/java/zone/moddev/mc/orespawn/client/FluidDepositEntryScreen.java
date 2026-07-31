@@ -57,7 +57,7 @@ final class FluidDepositEntryScreen extends Screen {
 							enabled = value;
 							session.fluidDeposit(depositId).addProperty("enabled", value);
 						})),
-				"guide.orespawn.fluids.1");
+				"tooltip.orespawn.enabled");
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + column + 5, 46, column, 20,
 				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
 
@@ -67,7 +67,7 @@ final class FluidDepositEntryScreen extends Screen {
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
 		output.active = !ids.isEmpty();
-		OreSpawnScreenLayout.explain(this, output, "guide.orespawn.fluids.1");
+		OreSpawnScreenLayout.explain(this, output, "tooltip.orespawn.fluid.dimension_settings");
 
 		int listTop = 98;
 		int controlsY = height - 52;
@@ -93,11 +93,10 @@ final class FluidDepositEntryScreen extends Screen {
 				.orElse(available.get(0));
 		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(available).withInitialValue(selected)
-				.withTooltip(value -> font.split(new TextComponent(value), 310))
 				.create(left, pickerY, contentWidth, 20,
 						new TranslatableComponent("option.orespawn.available_dimension"),
 						(button, value) -> addDimension(value))),
-				"guide.orespawn.fluids.3");
+				"tooltip.orespawn.fluid.available_dimension");
 		addRenderableWidget(new Button(width / 2 - 155, height - 28, 100, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, width / 2 + 55, height - 28, 100, 20,

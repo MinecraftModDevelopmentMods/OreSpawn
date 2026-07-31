@@ -32,16 +32,18 @@ final class GeomeEntryScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		familyWeights.clear();
 		JsonObject geome = session.weightMap("geomes", geomeId);
 		JsonObject families = object(geome, "families");
 		int left = width / 2 - 155;
 		int right = width / 2 + 5;
-		baseWeight = addField(right, 52, "base", text(geome, "base", 1.0D));
+		baseWeight = addField(right, 52, "base", text(geome, "base", 1.0D),
+				"tooltip.orespawn.geome.base_weight");
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
 			EditBox field = addField(right, 82 + (index * 25), family.configName,
-					text(families, family.configName, 1.0D));
+					text(families, family.configName, 1.0D), "tooltip.orespawn.geome.family_weight");
 			familyWeights.put(family, field);
 			index++;
 		}
@@ -57,11 +59,11 @@ final class GeomeEntryScreen extends Screen {
 				button -> onClose()));
 	}
 
-	private EditBox addField(int x, int y, String key, String value) {
+	private EditBox addField(int x, int y, String key, String value, String tooltipKey) {
 		EditBox field = new EditBox(font, x, y, 150, 20, new TextComponent(key));
 		field.setMaxLength(32);
 		field.setValue(value);
-		return addRenderableWidget(field);
+		return OreSpawnScreenLayout.explain(this, addRenderableWidget(field), tooltipKey);
 	}
 
 	private void saveAndClose() {
@@ -133,5 +135,6 @@ final class GeomeEntryScreen extends Screen {
 		}
 		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }
