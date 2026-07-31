@@ -33,7 +33,7 @@ final class DimensionMaterialsScreen extends Screen {
 		deepY = addRenderableWidget(new EditBox(font, left + contentWidth / 2, y,
 				contentWidth / 2, 20, Component.translatable("option.orespawn.deep_aquifer_y")));
 		deepY.setValue(Integer.toString(integer(materials, "deep_aquifer_max_y", -54)));
-		OreSpawnScreenLayout.explain(deepY, "guide.orespawn.materials.2");
+		OreSpawnScreenLayout.explain(deepY, "tooltip.orespawn.material.deep_aquifer_y");
 		Button deepLabel = addRenderableWidget(OreSpawnScreenLayout.plainButton(
 				left, y, contentWidth / 2 - 5, 20,
 				Component.translatable("option.orespawn.deep_aquifer_y"), button -> { }));
@@ -66,11 +66,7 @@ final class DimensionMaterialsScreen extends Screen {
 	}
 
 	private static String materialHelp(String key) {
-		return switch (key) {
-			case "default_fluid", "deep_aquifer_fluid" -> "guide.orespawn.materials.2";
-			case "snow_block", "ice_block" -> "guide.orespawn.materials.3";
-			default -> "guide.orespawn.materials.1";
-		};
+		return "tooltip.orespawn.material." + key;
 	}
 
 	private Component label(String key, String value) {

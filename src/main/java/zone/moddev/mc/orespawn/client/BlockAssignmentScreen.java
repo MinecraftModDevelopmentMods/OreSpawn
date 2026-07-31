@@ -26,18 +26,21 @@ final class BlockAssignmentScreen extends Screen {
 	protected void init() {
 		int left = width / 2 - 155;
 		int right = width / 2 + 5;
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, 70, 150, 20, Component.translatable("tab.orespawn.sedimentary"),
-				button -> assignRock(RockFamily.SEDIMENTARY)));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(right, 70, 150, 20, Component.translatable("tab.orespawn.metamorphic"),
-				button -> assignRock(RockFamily.METAMORPHIC)));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, 98, 150, 20, Component.translatable("value.orespawn.intrusive"),
-				button -> assignRock(RockFamily.IGNEOUS_INTRUSIVE)));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(right, 98, 150, 20, Component.translatable("value.orespawn.volcanic"),
-				button -> assignRock(RockFamily.IGNEOUS_VOLCANIC)));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, 126, 310, 20, Component.translatable("tab.orespawn.ores"),
-				button -> assignOre()));
+		addRockButton(left, 70, "tab.orespawn.sedimentary", RockFamily.SEDIMENTARY);
+		addRockButton(right, 70, "tab.orespawn.metamorphic", RockFamily.METAMORPHIC);
+		addRockButton(left, 98, "value.orespawn.intrusive", RockFamily.IGNEOUS_INTRUSIVE);
+		addRockButton(right, 98, "value.orespawn.volcanic", RockFamily.IGNEOUS_VOLCANIC);
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.plainButton(
+				left, 126, 310, 20, Component.translatable("tab.orespawn.ores"), button -> assignOre()),
+				"tooltip.orespawn.assignment.ore"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20, CommonComponents.GUI_CANCEL,
 				button -> onClose()));
+	}
+
+	private void addRockButton(int x, int y, String labelKey, RockFamily family) {
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.plainButton(
+				x, y, 150, 20, Component.translatable(labelKey), button -> assignRock(family)),
+				"tooltip.orespawn.assignment.rock_family"));
 	}
 
 	private void assignRock(RockFamily family) {

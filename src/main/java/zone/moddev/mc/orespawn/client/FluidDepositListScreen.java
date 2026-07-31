@@ -64,10 +64,11 @@ final class FluidDepositListScreen extends Screen {
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		int addWidth = Math.min(150, contentWidth - 105);
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
 				Component.translatable("button.orespawn.add"), button ->
-						minecraft.setScreen(new FluidBlockPickerScreen(this, session))));
+						minecraft.setScreen(new FluidBlockPickerScreen(this, session))),
+				"tooltip.orespawn.fluid.add_deposit"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
