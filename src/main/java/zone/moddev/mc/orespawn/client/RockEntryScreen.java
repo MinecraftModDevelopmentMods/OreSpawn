@@ -54,10 +54,12 @@ final class RockEntryScreen extends Screen {
 		addRenderableWidget(CycleButton.builder(this::familyName)
 				.withValues(Arrays.asList(RockFamily.values())).withInitialValue(family)
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
-						Component.translatable("guide.orespawn.rocks.1")))
+						Component.translatable("tooltip.orespawn.rock.family")))
 				.create(left, 38, 190, 20, Component.translatable("option.orespawn.family"),
 						(button, value) -> family = value));
 		addRenderableWidget(CycleButton.onOffBuilder(enabled)
+				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("tooltip.orespawn.enabled")))
 				.create(left + 200, 38, 110, 20, Component.translatable("option.orespawn.enabled"),
 						(button, value) -> enabled = value));
 		weight = addField(right, 64, "weight", value(rock, "weight", 1.0D));
@@ -69,12 +71,12 @@ final class RockEntryScreen extends Screen {
 				CycleButton.onOffBuilder(oreReplaceable).create(left, 176, 150, 20,
 						Component.translatable("option.orespawn.ore_replaceable"),
 						(button, value) -> oreReplaceable = value),
-				"guide.orespawn.rocks.3"));
+				"tooltip.orespawn.rock.ore_replaceable"));
 		addRenderableWidget(OreSpawnScreenLayout.explain(
 				OreSpawnScreenLayout.plainButton(right, 176, 150, 20,
 						Component.translatable("button.orespawn.geome_weights"),
 						button -> openWeights()),
-				"guide.orespawn.rocks.1"));
+				"tooltip.orespawn.geome_weights"));
 		int bottom = height - 28;
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, bottom, 95, 20, CommonComponents.GUI_DONE, button -> saveAndClose()));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 100, bottom, 95, 20,
@@ -87,8 +89,13 @@ final class RockEntryScreen extends Screen {
 		EditBox box = new EditBox(font, x, y, 150, 20, Component.literal(key));
 		box.setMaxLength(32);
 		box.setValue(initial);
-		OreSpawnScreenLayout.explain(box, "guide.orespawn.rocks.2");
+		OreSpawnScreenLayout.explain(box, rockFieldHelp(key));
 		return addRenderableWidget(box);
+	}
+
+	private static String rockFieldHelp(String key) {
+		return "weight".equals(key) ? "tooltip.orespawn.weight"
+				: "tooltip.orespawn.rock." + key;
 	}
 
 	private void openWeights() {

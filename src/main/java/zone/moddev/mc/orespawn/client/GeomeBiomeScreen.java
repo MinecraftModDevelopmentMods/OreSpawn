@@ -39,6 +39,8 @@ final class GeomeBiomeScreen extends Screen {
 					Component.translatable("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
 					selected -> { tab = value; page = 0; rebuildWidgets(); }));
 			button.active = value != tab;
+			OreSpawnScreenLayout.explain(button,
+					"tooltip.orespawn.geome.tab." + value.name().toLowerCase(Locale.ROOT));
 		}
 		search = addRenderableWidget(new EditBox(font, left, 52, 230, 20,
 				Component.translatable("option.orespawn.search")));
@@ -69,6 +71,8 @@ final class GeomeBiomeScreen extends Screen {
 		newId = addRenderableWidget(new EditBox(font, left + 100, controlsY, 150, 20,
 				Component.translatable("option.orespawn.registry_id")));
 		newId.setMaxLength(128);
+		OreSpawnScreenLayout.explain(newId,
+				"tooltip.orespawn.geome.new_id." + tab.name().toLowerCase(Locale.ROOT));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 255, controlsY, 55, 20,
 				Component.translatable("button.orespawn.add"), button -> add()));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,

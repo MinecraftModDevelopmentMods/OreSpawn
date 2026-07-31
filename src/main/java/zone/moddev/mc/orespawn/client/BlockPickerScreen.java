@@ -47,13 +47,16 @@ final class BlockPickerScreen extends Screen {
 
 		List<String> namespaces = session.installedBlockNamespaces();
 		if (!namespaces.contains(namespace)) namespace = "";
-		addRenderableWidget(CycleButton.builder(this::namespaceName)
+		addRenderableWidget(OreSpawnScreenLayout.explain(CycleButton.builder(this::namespaceName)
 				.withValues(namespaces).withInitialValue(namespace)
 				.create(left, 58, 150, 20, Component.translatable("option.orespawn.mod_filter"),
-						(button, value) -> { namespace = value; page = 0; rebuildWidgets(); }));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + 160, 58, 150, 20,
+						(button, value) -> { namespace = value; page = 0; rebuildWidgets(); }),
+				"tooltip.orespawn.picker.mod_filter"));
+		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.plainButton(
+				left + 160, 58, 150, 20,
 				Component.translatable(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
-				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
+				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }),
+				showAll ? "tooltip.orespawn.material.safe_only" : "tooltip.orespawn.material.show_all"));
 
 		List<String> ids = session.availableBlockIds(searchText, namespace, showAll);
 		int listTop = 84;

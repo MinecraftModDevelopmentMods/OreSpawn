@@ -35,11 +35,12 @@ final class GeomeEntryScreen extends Screen {
 		JsonObject families = object(geome, "families");
 		int left = width / 2 - 155;
 		int right = width / 2 + 5;
-		baseWeight = addField(right, 52, "base", text(geome, "base", 1.0D));
+		baseWeight = addField(right, 52, "base", text(geome, "base", 1.0D),
+				"tooltip.orespawn.geome.base_weight");
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
 			EditBox field = addField(right, 82 + (index * 25), family.configName,
-					text(families, family.configName, 1.0D));
+					text(families, family.configName, 1.0D), "tooltip.orespawn.geome.family_weight");
 			familyWeights.put(family, field);
 			index++;
 		}
@@ -55,11 +56,11 @@ final class GeomeEntryScreen extends Screen {
 				button -> onClose()));
 	}
 
-	private EditBox addField(int x, int y, String key, String value) {
+	private EditBox addField(int x, int y, String key, String value, String tooltipKey) {
 		EditBox field = new EditBox(font, x, y, 150, 20, Component.literal(key));
 		field.setMaxLength(32);
 		field.setValue(value);
-		return addRenderableWidget(field);
+		return OreSpawnScreenLayout.explain(addRenderableWidget(field), tooltipKey);
 	}
 
 	private void saveAndClose() {

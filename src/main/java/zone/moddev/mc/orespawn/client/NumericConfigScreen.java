@@ -62,7 +62,8 @@ final class NumericConfigScreen extends Screen {
 			editor.setMaxLength(32);
 			JsonElement value = section.get(field.key);
 			editor.setValue(value == null ? "0" : value.getAsString());
-			editors.add(addRenderableWidget(editor));
+			editors.add(OreSpawnScreenLayout.explain(addRenderableWidget(editor),
+					"tooltip.orespawn.numeric." + field.key));
 		}
 
 		int bottom = height - 28;

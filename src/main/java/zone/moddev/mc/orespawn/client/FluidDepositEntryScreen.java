@@ -48,9 +48,13 @@ final class FluidDepositEntryScreen extends Screen {
 		JsonObject dimensions = dimensions();
 		List<String> ids = new ArrayList<>(dimensions.keySet());
 		Collections.sort(ids);
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 46, column, 20,
-				Component.translatable("option.orespawn.enabled"),
-				(button, value) -> { enabled = value; session.fluidDeposit(depositId).addProperty("enabled", value); }));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(enabled).create(left, 46, column, 20,
+						Component.translatable("option.orespawn.enabled"),
+						(button, value) -> {
+							enabled = value;
+							session.fluidDeposit(depositId).addProperty("enabled", value);
+						}), "tooltip.orespawn.enabled"));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + column + 5, 46, column, 20,
 				Component.translatable("button.orespawn.reset"), button -> reset()));
 
@@ -59,7 +63,7 @@ final class FluidDepositEntryScreen extends Screen {
 					if (!ids.isEmpty()) minecraft.setScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
-		OreSpawnScreenLayout.explain(output, "guide.orespawn.fluids.1");
+		OreSpawnScreenLayout.explain(output, "tooltip.orespawn.fluid.dimension_settings");
 		output.active = !ids.isEmpty();
 
 		int listTop = 98;
@@ -89,7 +93,7 @@ final class FluidDepositEntryScreen extends Screen {
 				.withTooltip(value -> net.minecraft.client.gui.components.Tooltip.create(
 						OreSpawnScreenLayout.tooltip(Arrays.asList(
 								Component.literal(value),
-								Component.translatable("guide.orespawn.fluids.3")))))
+								Component.translatable("tooltip.orespawn.fluid.available_dimension")))))
 				.create(left, pickerY, contentWidth, 20,
 						Component.translatable("option.orespawn.available_dimension"),
 						(button, value) -> addDimension(value)));

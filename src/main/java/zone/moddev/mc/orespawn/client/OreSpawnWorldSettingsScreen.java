@@ -83,7 +83,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
 			addRenderableWidget(CycleButton.builder(TemplateChoice::label)
 					.withValues(templateChoices).withInitialValue(initialTemplate)
-					.withTooltip(value -> tooltip("guide.orespawn.world.1"))
+					.withTooltip(value -> tooltip("tooltip.orespawn.main.template"))
 					.create(left, top + (row * rowIndex++), contentWidth, BUTTON_HEIGHT,
 							Component.translatable("option.orespawn.template"),
 							(button, value) -> selectTemplate(value.id)));
@@ -91,34 +91,34 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 				this, font, left, top + (row * rowIndex++),
 				contentWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.recommended"),
-				button -> resetRecommended()), "guide.orespawn.welcome.3"));
+				button -> resetRecommended()), "tooltip.orespawn.main.recommended"));
 
 		if (!terrain) {
 			vanillaOresButton = addVanillaOresButton(left, top + (row * rowIndex), columnWidth);
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.materials"),
-					button -> openMaterials()), "guide.orespawn.rocks.2"));
+					button -> openMaterials()), "tooltip.orespawn.main.materials"));
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex++),
 					contentWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.configure_strata"),
-					button -> configureRockStrata()), "guide.orespawn.rocks.3"));
+					button -> configureRockStrata()), "tooltip.orespawn.main.configure_strata"));
 			if (fluids) {
 				fluidDepositsButton = addFluidToggle(left, top + (row * rowIndex), columnWidth);
 				addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 						this, font, right, top + (row * rowIndex++),
 						columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()),
-						"guide.orespawn.fluids.1"));
+						"tooltip.orespawn.main.fluid_editor"));
 			}
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex++),
 					contentWidth, BUTTON_HEIGHT,
 					Component.translatable("button.orespawn.biomes_world_materials"),
-					button -> openBiomeWorldMaterials()), "guide.orespawn.biomes.1"));
-			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+					button -> openBiomeWorldMaterials()), "tooltip.orespawn.main.biomes_materials"));
+			addRenderableWidget(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex),
 					contentWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
-					button -> openHelp()), "guide.orespawn.welcome.1"));
+					button -> openHelp()));
 		} else {
 			geologyModeButton = addRenderableWidget(CycleButton.builder(this::geologyModeName)
 					.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
@@ -152,24 +152,24 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.materials"),
-					button -> openMaterials()), "guide.orespawn.rocks.2"));
+					button -> openMaterials()), "tooltip.orespawn.main.materials"));
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT,
 					Component.translatable("button.orespawn.biomes_world_materials"),
-					button -> openBiomeWorldMaterials()), "guide.orespawn.biomes.1"));
+					button -> openBiomeWorldMaterials()), "tooltip.orespawn.main.biomes_materials"));
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.advanced"),
-					button -> openAdvanced()), "guide.orespawn.world.3"));
-			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
+					button -> openAdvanced()), "tooltip.orespawn.main.advanced"));
+			addRenderableWidget(OreSpawnScreenLayout.button(
 					this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
-					button -> openHelp()), "guide.orespawn.welcome.1"));
+					button -> openHelp()));
 			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 					this, font, left, top + (row * rowIndex),
 					contentWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()),
-					"guide.orespawn.fluids.1"));
+					"tooltip.orespawn.main.fluid_editor"));
 		}
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_DONE, button -> saveAndClose()));
