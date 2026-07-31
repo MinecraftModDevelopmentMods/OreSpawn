@@ -29,6 +29,7 @@ final class FluidDepositListScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int contentWidth = Math.min(390, Math.max(260, width - 24));
 		int left = (width - contentWidth) / 2;
 		List<String> ids = session.fluidDepositIds();
@@ -59,10 +60,11 @@ final class FluidDepositListScreen extends Screen {
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		int addWidth = Math.min(150, contentWidth - 105);
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
 				new TranslatableComponent("button.orespawn.add"), button ->
-						minecraft.setScreen(new FluidBlockPickerScreen(this, session))));
+						minecraft.setScreen(new FluidBlockPickerScreen(this, session)))),
+				"tooltip.orespawn.fluid.add_deposit");
 		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
@@ -97,5 +99,6 @@ final class FluidDepositListScreen extends Screen {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

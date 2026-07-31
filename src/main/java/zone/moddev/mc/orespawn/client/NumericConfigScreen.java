@@ -52,6 +52,7 @@ final class NumericConfigScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		editors.clear();
 		JsonObject section = resolveSection();
 		int start = page * PAGE_SIZE;
@@ -64,7 +65,8 @@ final class NumericConfigScreen extends Screen {
 			editor.setMaxLength(32);
 			JsonElement value = section.get(field.key);
 			editor.setValue(value == null ? "0" : value.getAsString());
-			editors.add(addRenderableWidget(editor));
+			editors.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(editor),
+					"tooltip.orespawn.numeric." + field.key));
 		}
 
 		int bottom = height - 28;
@@ -151,6 +153,7 @@ final class NumericConfigScreen extends Screen {
 			drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
 		}
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 
 	private Component label(String key) {

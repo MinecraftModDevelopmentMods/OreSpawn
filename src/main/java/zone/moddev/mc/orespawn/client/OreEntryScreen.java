@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
 
 final class OreEntryScreen extends Screen {
 	private static final String BROAD_SELECTOR =
@@ -41,13 +40,16 @@ final class OreEntryScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		JsonObject ore = session.ore(oreId);
 		JsonObject dimensions = dimensions(ore);
 		JsonObject selectors = selectors(ore);
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(width / 2 - 155, 48, 150, 20,
-				new TranslatableComponent("option.orespawn.enabled"), (button, value) -> {
-					enabled = value; ore.addProperty("enabled", value);
-				}));
+		OreSpawnScreenLayout.explain(this,
+				addRenderableWidget(CycleButton.onOffBuilder(enabled).create(width / 2 - 155, 48, 150, 20,
+						new TranslatableComponent("option.orespawn.enabled"), (button, value) -> {
+							enabled = value;
+							ore.addProperty("enabled", value);
+						})), "tooltip.orespawn.enabled");
 		addRenderableWidget(new Button(width / 2 + 5, 48, 150, 20,
 				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
 
@@ -83,13 +85,14 @@ final class OreEntryScreen extends Screen {
 		if (dimensionText.isEmpty()) dimensionText = selectedDimension;
 		dimensionId.setValue(dimensionText);
 		dimensionId.setResponder(value -> dimensionText = value);
-		addRenderableWidget(CycleButton.builder(this::dimensionName)
+		OreSpawnScreenLayout.explain(this, dimensionId, "tooltip.orespawn.available_dimension");
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(availableDimensions)
 				.withInitialValue(selectedDimension)
-				.withTooltip(value -> tooltip("tooltip.orespawn.available_dimension"))
 				.create(width / 2 - 155, pickerY, 310, 20,
 						new TranslatableComponent("option.orespawn.available_dimension"),
-						(button, value) -> dimensionId.setValue(value)));
+						(button, value) -> dimensionId.setValue(value))),
+				"tooltip.orespawn.available_dimension");
 		addRenderableWidget(new Button(width / 2 + 100, controlsY, 55, 20,
 				new TranslatableComponent("button.orespawn.add"), button -> addDimension()));
 
@@ -200,10 +203,6 @@ final class OreEntryScreen extends Screen {
 		return new TextComponent(id);
 	}
 
-	private List<FormattedCharSequence> tooltip(String key) {
-		return font.split(new TranslatableComponent(key), 260);
-	}
-
 	@Override
 	public void onClose() {
 		minecraft.setScreen(parent);
@@ -223,5 +222,6 @@ final class OreEntryScreen extends Screen {
 			drawCenteredString(poseStack, font, new TextComponent("Source: " + source), width / 2, 36, 0xAAAAAA);
 		}
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }

@@ -35,6 +35,7 @@ final class BlockPickerScreen extends Screen {
 
 	@Override
 	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
 		int left = width / 2 - 155;
 		search = addRenderableWidget(new EditBox(font, left, 34, 230, 20,
 				new TranslatableComponent("option.orespawn.search")));
@@ -49,13 +50,15 @@ final class BlockPickerScreen extends Screen {
 
 		List<String> namespaces = session.installedBlockNamespaces();
 		if (!namespaces.contains(namespace)) namespace = "";
-		addRenderableWidget(CycleButton.builder(this::namespaceName)
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::namespaceName)
 				.withValues(namespaces).withInitialValue(namespace)
 				.create(left, 58, 150, 20, new TranslatableComponent("option.orespawn.mod_filter"),
-						(button, value) -> { namespace = value; page = 0; rebuildWidgets(); }));
-		addRenderableWidget(new Button(left + 160, 58, 150, 20,
+						(button, value) -> { namespace = value; page = 0; rebuildWidgets(); })),
+				"tooltip.orespawn.picker.mod_filter");
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(new Button(left + 160, 58, 150, 20,
 				new TranslatableComponent(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
-				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
+				button -> { showAll = !showAll; page = 0; rebuildWidgets(); })),
+				showAll ? "tooltip.orespawn.material.safe_only" : "tooltip.orespawn.material.show_all");
 
 		List<String> ids = session.availableBlockIds(searchText, namespace, showAll);
 		int listTop = 84;
@@ -125,5 +128,6 @@ final class BlockPickerScreen extends Screen {
 						new TranslatableComponent("tab.orespawn." + target.key)),
 				width / 2, 20, 0xCCCCCC);
 		super.render(poseStack, mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 }
