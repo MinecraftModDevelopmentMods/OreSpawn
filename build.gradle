@@ -206,3 +206,42 @@ tasks.named('javadoc', Javadoc).configure {
 tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
+
+// ForgeGradle 7 generates a launch for every source set, but its ordinary
+// Eclipse launches currently omit JDT's test-code exclusion. Without this,
+// Eclipse adds build/sourceSets/test to the Java module path and Java rejects
+// the split OreSpawn packages before Minecraft starts.
+tasks.named('genEclipseRuns').configure {
+    doLast {
+        String exclusionKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+        String exclusion =
+                "<booleanAttribute key=\"${exclusionKey}\" value=\"true\"/>"
+
+        ['runClient.launch', 'runServer.launch', 'runGameTestServer.launch',
+                'runData.launch'].each { String launchName ->
+            File launchFile = file(launchName)
+            if (!launchFile.isFile()) {
+                throw new GradleException(
+                        "ForgeGradle did not generate expected Eclipse launch: ${launchFile}")
+            }
+
+            String launch = launchFile.getText('UTF-8')
+            if (launch.contains("key=\"${exclusionKey}\"")) {
+                launch = launch.replaceFirst(
+                        /<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+                        exclusion)
+            } else {
+                int headerEnd = launch.indexOf('\n', launch.indexOf('<launchConfiguration'))
+                if (headerEnd < 0) {
+                    throw new GradleException(
+                            "Malformed Eclipse Java launch configuration: ${launchFile}")
+                }
+                String lineSeparator = launch.contains('\r\n') ? '\r\n' : '\n'
+                launch = "${launch.substring(0, headerEnd + 1)}" +
+                        "  ${exclusion}${lineSeparator}" +
+                        launch.substring(headerEnd + 1)
+            }
+            launchFile.setText(launch, 'UTF-8')
+        }
+    }
+}
