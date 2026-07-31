@@ -42,10 +42,12 @@ final class OreEntryScreen extends OreSpawnScreen {
 		JsonObject ore = session.ore(oreId);
 		JsonObject dimensions = dimensions(ore);
 		JsonObject selectors = selectors(ore);
-		addRenderableWidget(CycleButton.onOffBuilder(enabled).create(width / 2 - 155, 48, 150, 20,
-				Component.translatable("option.orespawn.enabled"), (button, value) -> {
-					enabled = value; ore.addProperty("enabled", value);
-				}));
+		addRenderableWidget(OreSpawnScreenLayout.explain(
+				CycleButton.onOffBuilder(enabled).create(width / 2 - 155, 48, 150, 20,
+						Component.translatable("option.orespawn.enabled"), (button, value) -> {
+							enabled = value;
+							ore.addProperty("enabled", value);
+						}), "tooltip.orespawn.enabled"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 + 5, 48, 150, 20,
 				Component.translatable("button.orespawn.reset"), button -> reset()));
 
@@ -81,6 +83,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 		if (dimensionText.isEmpty()) dimensionText = selectedDimension;
 		dimensionId.setValue(dimensionText);
 		dimensionId.setResponder(value -> dimensionText = value);
+		OreSpawnScreenLayout.explain(dimensionId, "tooltip.orespawn.available_dimension");
 		addRenderableWidget(CycleButton.builder(this::dimensionName)
 				.withValues(availableDimensions)
 				.withInitialValue(selectedDimension)
