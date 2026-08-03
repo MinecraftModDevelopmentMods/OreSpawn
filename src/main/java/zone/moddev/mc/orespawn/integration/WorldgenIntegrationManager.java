@@ -351,7 +351,7 @@ public final class WorldgenIntegrationManager {
 		String fileName = path.getFileName().toString();
 		String providerId = fileName.substring(0, fileName.length() - FILE_SUFFIX.length());
 		FILE_PROVIDER_IDS.add(providerId);
-		if (!MOD_ID.matcher(providerId).matches() || !ModList.get().isLoaded(providerId)) {
+		if (!MOD_ID.matcher(providerId).matches() || !ModList.isLoaded(providerId)) {
 			return;
 		}
 		try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
@@ -370,11 +370,7 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void scanPackagedProviders() {
-		ModList mods = ModList.get();
-		if (mods == null) {
-			return;
-		}
-		mods.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
+		ModList.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
 	}
 
 	private static void scanPackagedProvider(IModFile file) {
@@ -423,7 +419,7 @@ public final class WorldgenIntegrationManager {
 				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
 				root = apiProvider == null ? null : apiProvider.toJson();
 			}
-			if (root == null || !ModList.get().isLoaded(providerId)) {
+			if (root == null || !ModList.isLoaded(providerId)) {
 				continue;
 			}
 			try {
@@ -890,7 +886,7 @@ public final class WorldgenIntegrationManager {
 			boolean available = true;
 			if (json.has("required_mods") && json.get("required_mods").isJsonArray()) {
 				for (JsonElement mod : json.getAsJsonArray("required_mods")) {
-					available &= ModList.get().isLoaded(mod.getAsString());
+					available &= ModList.isLoaded(mod.getAsString());
 				}
 			}
 			TEMPLATES.put(id, new TemplateDefinition(id,

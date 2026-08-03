@@ -17,7 +17,11 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.lighting.LightEngine;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
@@ -109,6 +113,43 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Replacing one ordinary rock with another cannot affect any heightmap or
+	 * light data. Bypass {@link ChunkAccess#setBlockState} in that case: 26.1
+	 * updates every persisted heightmap for each call, which is disproportionately
+	 * expensive when a geology pass changes millions of otherwise equivalent
+	 * solid blocks. The section setter still updates palette and block/fluid
+	 * counts; unusual configured outputs retain Minecraft's full update path.
+	 */
+	static void setRockState(ChunkAccess chunk, BlockPos pos, BlockState current,
+			BlockState replacement) {
+		if (hasEquivalentHeightAndLightProperties(current, replacement)) {
+			LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(pos.getY()));
+			// Like NoiseBasedChunkGenerator, this feature exclusively owns the
+			// section it is generating, so the palette's unchecked worldgen path is safe.
+			section.setBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15,
+					replacement, false);
+		} else {
+			chunk.setBlockState(pos, replacement, 0);
+		}
+	}
+
+	static boolean hasEquivalentHeightAndLightProperties(BlockState current,
+			BlockState replacement) {
+		if (current.getFluidState().isEmpty() != replacement.getFluidState().isEmpty()) {
+			return false;
+		}
+		if (LightEngine.hasDifferentLightProperties(current, replacement)) {
+			return false;
+		}
+		for (Heightmap.Types type : Heightmap.Types.values()) {
+			if (type.isOpaque().test(current) != type.isOpaque().test(replacement)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static Holder<PlacedFeature> matchingStoneGate(Holder<PlacedFeature> original) {

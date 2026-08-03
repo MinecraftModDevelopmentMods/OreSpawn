@@ -1,7 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -61,11 +61,11 @@ final class BlockAssignmentScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 18, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, Component.literal(blockId), width / 2, 42, OreSpawnScreenLayout.TEXT_SECONDARY);
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, 155, OreSpawnScreenLayout.TEXT_ERROR);
+		graphics.centeredText(font, title, width / 2, 18, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, Component.literal(blockId), width / 2, 42, OreSpawnScreenLayout.TEXT_SECONDARY);
+		if (error != null) graphics.centeredText(font, error, width / 2, 155, OreSpawnScreenLayout.TEXT_ERROR);
 
 	}
 }

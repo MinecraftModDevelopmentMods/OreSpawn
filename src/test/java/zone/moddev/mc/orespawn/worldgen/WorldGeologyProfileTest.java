@@ -22,6 +22,35 @@ import org.junit.jupiter.api.io.TempDir;
 
 class WorldGeologyProfileTest {
 	@Test
+	void detectsGeneratedChunksInTheNamespacedTwentySixOverworld(@TempDir Path temporaryDirectory)
+			throws IOException {
+		Path regionDirectory = Files.createDirectories(temporaryDirectory.resolve("dimensions")
+				.resolve("minecraft").resolve("overworld").resolve("region"));
+		Files.createFile(regionDirectory.resolve("r.0.0.mca"));
+
+		assertTrue(WorldGeologyProfileManager.hasGeneratedOverworldChunks(temporaryDirectory));
+	}
+
+	@Test
+	void stillDetectsGeneratedChunksInLegacyOverworldStorage(@TempDir Path temporaryDirectory)
+			throws IOException {
+		Path regionDirectory = Files.createDirectories(temporaryDirectory.resolve("region"));
+		Files.createFile(regionDirectory.resolve("r.-1.2.mca"));
+
+		assertTrue(WorldGeologyProfileManager.hasGeneratedOverworldChunks(temporaryDirectory));
+	}
+
+	@Test
+	void emptyOverworldStorageIsNotTreatedAsGenerated(@TempDir Path temporaryDirectory)
+			throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("dimensions")
+				.resolve("minecraft").resolve("overworld").resolve("region"));
+		Files.createDirectories(temporaryDirectory.resolve("region"));
+
+		assertFalse(WorldGeologyProfileManager.hasGeneratedOverworldChunks(temporaryDirectory));
+	}
+
+	@Test
 	void schemaThreeOilMigratesToNamedFluidDeposit() {
 		JsonObject legacy = completeGlobalFixture();
 		legacy.addProperty("schema_version", 3);

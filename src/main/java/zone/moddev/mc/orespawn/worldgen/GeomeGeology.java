@@ -114,9 +114,10 @@ public final class GeomeGeology {
 				} else {
 					for (int y = surfaceY; y >= chunk.getMinY(); y--) {
 						cursor.set(x, y, z);
-						if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-							chunk.setBlockState(cursor,
-									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z), 0);
+						BlockState current = chunk.getBlockState(cursor);
+						if (terrain.isReplaceable(current)) {
+							StoneReplacer.setRockState(chunk, cursor, current,
+									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z));
 							changed = true;
 						}
 					}
@@ -146,8 +147,9 @@ public final class GeomeGeology {
 				replacement = pickStableReplacement(geomeIndex, formationRegion, layerIndex);
 			}
 			cursor.setY(y);
-			if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-				chunk.setBlockState(cursor, replacement, 0);
+			BlockState current = chunk.getBlockState(cursor);
+			if (terrain.isReplaceable(current)) {
+				StoneReplacer.setRockState(chunk, cursor, current, replacement);
 				changed = true;
 			}
 		}

@@ -91,22 +91,32 @@ Provider-owned rule IDs use the provider namespace. Output biomes and blocks
 must be installed registry IDs. Fluid material IDs must resolve to blocks whose
 default states contain real fluids.
 
-## Registration Helper
+## Registering Biomes
 
+Minecraft 26.1 loads biomes from the dynamic datapack registry. A provider mod
+can ship a biome directly at
+`data/<modid>/worldgen/biome/<name>.json`. For generated data,
 `OreSpawnBiomes.copyAndRegister` copies a known biome's complete builder before
-applying small changes. This is useful for a simple content mod:
+applying small changes:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
-    BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
-    builder -> builder.temperature(0.8F).downfall(0.4F));
+public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
+    Registries.BIOME, Identifier.parse("examplemod:candy_plains"));
+
+public static void bootstrapBiomes(BootstrapContext<Biome> context) {
+    OreSpawnBiomes.copyAndRegister(
+        context, CANDY_PLAINS, Biomes.PLAINS,
+        builder -> builder.temperature(0.8F).downfall(0.4F));
+}
 ```
 
-`blankAndRegister` starts from an empty builder and is intended for advanced
-providers that deliberately supply every required climate, effects, spawn, and
-generation field. Both helpers only register content; placement belongs in the
-provider declaration.
+Add the bootstrap to the `RegistrySetBuilder` passed to Forge's
+`DatapackBuiltinEntriesProvider`. `blankAndRegister` starts from an empty
+builder and is intended for advanced providers that deliberately supply every
+required climate, effects, spawn, and generation field. Do not use
+`DeferredRegister<Biome>` on 26.1: it runs before the live datapack biome
+registry exists. Both bootstrap helpers only generate content; placement still
+belongs in the OreSpawn provider declaration.
 
 ## Surfaces And Materials
 

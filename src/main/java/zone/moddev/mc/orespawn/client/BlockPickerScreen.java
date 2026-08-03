@@ -4,7 +4,7 @@ import java.util.List;
 
 import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -118,10 +118,10 @@ final class BlockPickerScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font,
+		graphics.centeredText(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font,
 				Component.translatable("label.orespawn.adding_to",
 						Component.translatable("tab.orespawn." + target.key)),
 				width / 2, 20, OreSpawnScreenLayout.TEXT_SOFT);

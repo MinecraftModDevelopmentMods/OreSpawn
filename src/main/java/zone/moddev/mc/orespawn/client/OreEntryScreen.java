@@ -7,7 +7,7 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -210,17 +210,17 @@ final class OreEntryScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
 		Component blockName = Component.literal(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
-		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
+		graphics.centeredText(font, OreSpawnScreenLayout.fit(font, blockName, Math.min(390, width - 24)),
 				width / 2, 25, OreSpawnScreenLayout.TEXT_SECONDARY);
 		String source = GeologyEditorSession.string(session.ore(oreId), "source_provider",
 				GeologyEditorSession.string(session.ore(oreId), "source_mod", ""));
 		if (!source.isEmpty()) {
-			graphics.drawCenteredString(font, Component.literal("Source: " + source), width / 2, 36, OreSpawnScreenLayout.TEXT_MUTED);
+			graphics.centeredText(font, Component.literal("Source: " + source), width / 2, 36, OreSpawnScreenLayout.TEXT_MUTED);
 		}
 
 	}

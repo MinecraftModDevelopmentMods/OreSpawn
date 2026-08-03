@@ -3,7 +3,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[7.0.3,8)'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
 version = mod_version
@@ -14,7 +14,7 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
     withJavadocJar()
 }
@@ -22,7 +22,7 @@ java {
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 
 def applyBenchmarkProperties = { run, String defaultRadius, String defaultRepetitions,
-        String defaultCenter ->
+        String defaultCenter, String defaultStopServer ->
     if (!providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
         return
     }
@@ -59,12 +59,11 @@ def applyBenchmarkProperties = { run, String defaultRadius, String defaultRepeti
         run.systemProperty 'orespawn.worldgenBenchmarkBiomeType',
                 providers.gradleProperty('orespawnBenchmarkBiomeType').get()
     }
-    run.systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
+    run.systemProperty 'orespawn.worldgenBenchmarkStopServer',
+            providers.gradleProperty('orespawnBenchmarkStopServer').getOrElse(defaultStopServer)
 }
 
 minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-
     // ForgeGradle 7 discovers the standard META-INF access transformer when enabled.
     accessTransformer = true
 
@@ -77,15 +76,39 @@ minecraft {
             systemProperty 'forge.enabledGameTestNamespaces', mod_id
         }
 
-        register('client')
+        register('client') {
+            // The GameTest server always uses Minecraft's flat test preset, so
+            // real terrain benchmarks must run through a normal integrated world.
+            applyBenchmarkProperties(delegate, '8', '5', '1024', 'false')
+            if (providers.gradleProperty('orespawnBenchmarkWorld').isPresent()) {
+                args '--quickPlaySingleplayer',
+                        providers.gradleProperty('orespawnBenchmarkWorld').get()
+            }
+        }
 
         register('server') {
             args '--nogui'
-            applyBenchmarkProperties(delegate, '8', '5', '1024')
+            applyBenchmarkProperties(delegate, '8', '5', '1024', 'true')
         }
 
-        register('gameTestServer') {
-            applyBenchmarkProperties(delegate, '4', '3', '256')
+        register('gameTestServer')
+
+        ['Fresh', 'Reload'].each { String phase ->
+            register("biomeIntegration${phase}") {
+                mainClass = 'net.minecraftforge.bootstrap.ForgeBootstrap'
+                args '--launchTarget', 'forge_userdev_server_gametest', '--gameDir', '.'
+                environment 'MCP_MAPPINGS', "official_${minecraft_version}"
+                workingDir = layout.buildDirectory.dir('biome-integration-run')
+                systemProperty 'forge.enableGameTest', 'true'
+                systemProperty 'forge.enabledGameTestNamespaces', 'cakeworldprobe'
+                systemProperty 'forge.logging.console.level', 'info'
+                systemProperty 'cakeworld.biomeIntegrationPhase', phase.toLowerCase(Locale.ROOT)
+                mods {
+                    create(mod_id) {
+                        source sourceSets.main
+                    }
+                }
+            }
         }
 
         register('data') {
@@ -205,6 +228,75 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def biomeIntegrationClasses = layout.buildDirectory.dir('biome-integration-fixture/classes')
+def compileBiomeIntegrationTestMod = tasks.register('compileBiomeIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(biomeIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    })
+    options.release = 16
+    options.encoding = 'UTF-8'
+}
+
+def biomeIntegrationTestModJar = tasks.register('biomeIntegrationTestModJar', Jar) {
+    dependsOn compileBiomeIntegrationTestMod
+    archiveFileName = 'cakeworldprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('biome-integration-fixture')
+    manifest {
+        attributes 'MixinConfigs': 'cakeworldprobe.mixins.json'
+    }
+    from biomeIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def biomeIntegrationRunDirectory = layout.buildDirectory.dir('biome-integration-run')
+def prepareBiomeIntegrationTest = tasks.register('prepareBiomeIntegrationTest') {
+    dependsOn biomeIntegrationTestModJar
+    doLast {
+        delete biomeIntegrationRunDirectory
+        copy {
+            from biomeIntegrationTestModJar.flatMap { it.archiveFile }
+            into biomeIntegrationRunDirectory.map { it.dir('mods') }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runBiomeIntegrationFresh') {
+        dependsOn prepareBiomeIntegrationTest
+    } else if (name == 'runBiomeIntegrationReload') {
+        dependsOn 'runBiomeIntegrationFresh'
+    }
+}
+
+def biomeIntegrationTest = tasks.register('biomeIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies a provider-owned custom biome in fresh and reloaded normal terrain.'
+    dependsOn 'runBiomeIntegrationReload'
+    doLast {
+        File marker = biomeIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/cakeworld-biome-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Biome integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Biome integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Custom-biome integration verified: {} chunks, {} top blocks, {} filler blocks, fresh + reload',
+                result.getProperty('matching_chunks'), result.getProperty('pink_surface'),
+                result.getProperty('white_filler'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn biomeIntegrationTest
 }
 
 // ForgeGradle 7 generates a launch for every source set, but its ordinary

@@ -9,7 +9,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -324,10 +324,10 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font,
+		graphics.centeredText(font, title, width / 2, 8, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, OreSpawnScreenLayout.fit(font,
 				Component.literal(depositId + " / " + dimensionId), Math.min(390, width - 24)),
 				width / 2, 24, OreSpawnScreenLayout.TEXT_MUTED);
 		if (page == Page.PLACEMENT) {
@@ -339,15 +339,15 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 				int row = i < 5 ? i : i - 5;
 				int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
 				int labelWidth = columnWidth - fieldWidth - 5;
-				graphics.drawString(font, OreSpawnScreenLayout.fit(font,
+				graphics.text(font, OreSpawnScreenLayout.fit(font,
 						Component.translatable("option.orespawn." + keys[i]), labelWidth),
 						groupX, 96 + (row * 24), OreSpawnScreenLayout.TEXT_SECONDARY);
 			}
 		} else if (page == Page.HOSTS) {
-			graphics.drawString(font, OreSpawnScreenLayout.fit(font,
+			graphics.text(font, OreSpawnScreenLayout.fit(font,
 					Component.translatable("option.orespawn.host_blocks_short"), columnWidth),
 					left, 94, OreSpawnScreenLayout.TEXT_SECONDARY);
-			graphics.drawString(font, OreSpawnScreenLayout.fit(font,
+			graphics.text(font, OreSpawnScreenLayout.fit(font,
 					Component.translatable("option.orespawn.host_tags_short"), columnWidth),
 					left + columnWidth + 5, 94, OreSpawnScreenLayout.TEXT_SECONDARY);
 		} else {
@@ -356,12 +356,12 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 			for (int i = 0; i < keys.length; i++) {
 				int x = (i & 1) == 0 ? left : left + columnWidth + 5;
 				int y = 94 + ((i / 2) * 44);
-				graphics.drawString(font, OreSpawnScreenLayout.fit(font,
+				graphics.text(font, OreSpawnScreenLayout.fit(font,
 						Component.translatable("option.orespawn." + keys[i]), columnWidth),
 						x, y, OreSpawnScreenLayout.TEXT_SECONDARY);
 			}
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 40, OreSpawnScreenLayout.TEXT_ERROR);
+		if (error != null) graphics.centeredText(font, error, width / 2, height - 40, OreSpawnScreenLayout.TEXT_ERROR);
 
 	}
 }

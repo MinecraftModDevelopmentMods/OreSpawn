@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[64,)"
+license="LGPL-2.1"
+
+[[mods]]
+modId="cakeworldprobe"
+version="1"
+displayName="CakeWorld Biome Integration Test"
+description='''Test-only provider mod for OreSpawn's custom-biome integration gate.'''
+
+[[dependencies.cakeworldprobe]]
+modId="orespawn"
+mandatory=true
+versionRange="[4.0.5,5.0.0)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.cakeworldprobe]]
+modId="minecraft"
+mandatory=true
+versionRange="[26.1.2,26.2,)"
+ordering="NONE"
+side="BOTH"

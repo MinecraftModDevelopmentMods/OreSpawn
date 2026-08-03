@@ -77,15 +77,25 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
-provides a small optional convenience for cloning a known biome:
+Minecraft 26.1 biomes are dynamic registry entries. Ship them as
+`data/<modid>/worldgen/biome/<name>.json`, or generate that data through a
+`RegistrySetBuilder`. `OreSpawnBiomes.copyAndRegister` is an optional bootstrap
+helper for cloning a known biome while generating the datapack entry:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
-    BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
-    builder -> builder.temperature(0.8F).downfall(0.4F));
+public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
+    Registries.BIOME, Identifier.parse("examplemod:candy_plains"));
+
+public static void bootstrapBiomes(BootstrapContext<Biome> context) {
+    OreSpawnBiomes.copyAndRegister(
+        context, CANDY_PLAINS, Biomes.PLAINS,
+        builder -> builder.temperature(0.8F).downfall(0.4F));
+}
 ```
+
+Add that bootstrap to the `RegistrySetBuilder` supplied to Forge's
+`DatapackBuiltinEntriesProvider`. Do not put biomes in a `DeferredRegister`:
+that registration happens before the live datapack biome registry exists.
 
 Then declare placement and materials through the same provider:
 

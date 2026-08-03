@@ -1,6 +1,6 @@
 package zone.moddev.mc.orespawn.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -13,11 +13,11 @@ abstract class OreSpawnScreen extends Screen {
 	}
 
 	@Override
-	public final void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		super.render(graphics, mouseX, mouseY, partialTick);
+	public final void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 		renderForeground(graphics, mouseX, mouseY, partialTick);
 	}
 
-	protected abstract void renderForeground(GuiGraphics graphics, int mouseX, int mouseY,
+	protected abstract void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
 			float partialTick);
 }

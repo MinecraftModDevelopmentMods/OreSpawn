@@ -6,14 +6,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.tabs.TabManager;
+import net.minecraft.client.gui.components.tabs.TabNavigationBar;
+import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 
 class OreSpawnScreenLayoutTest {
 	@Test
 	void sharedScreenOwnsTheFinalRenderOrder() throws NoSuchMethodException {
 		assertTrue(isFinal(OreSpawnScreen.class
-				.getDeclaredMethod("render", GuiGraphics.class, int.class, int.class, float.class)
+				.getDeclaredMethod("extractRenderState", GuiGraphicsExtractor.class, int.class, int.class, float.class)
 				.getModifiers()));
+	}
+
+	@Test
+	void worldCreationReflectionTargetsMatchTheUnobfuscatedClient() throws NoSuchFieldException {
+		assertEquals(TabManager.class, CreateWorldScreen.class
+				.getDeclaredField(WorldCreationScreenHandler.TAB_MANAGER_FIELD).getType());
+		assertEquals(TabNavigationBar.class, CreateWorldScreen.class
+				.getDeclaredField(WorldCreationScreenHandler.TAB_NAVIGATION_BAR_FIELD).getType());
 	}
 
 	@Test

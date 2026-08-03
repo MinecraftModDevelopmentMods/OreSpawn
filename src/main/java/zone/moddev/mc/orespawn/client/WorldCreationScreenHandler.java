@@ -24,8 +24,10 @@ import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 
 public final class WorldCreationScreenHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static final String TAB_MANAGER_FIELD = "f_267424_";
-	private static final String TAB_NAVIGATION_BAR_FIELD = "f_267490_";
+	// Minecraft 26.1 ships unobfuscated executables, so reflection must use the
+	// actual target field names rather than the old runtime-obfuscated names.
+	static final String TAB_MANAGER_FIELD = "tabManager";
+	static final String TAB_NAVIGATION_BAR_FIELD = "tabNavigationBar";
 	private static boolean registered;
 
 	private WorldCreationScreenHandler() {

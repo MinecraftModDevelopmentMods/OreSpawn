@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -186,10 +186,10 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
+		graphics.centeredText(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
 
 	}
 

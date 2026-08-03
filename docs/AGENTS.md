@@ -46,7 +46,7 @@ Lifecycle and ownership:
 Performance constraints:
 
 - Do not request callbacks in block-generation loops.
-- Registry IDs remain `ResourceLocation` values until setup-time baking.
+- Registry IDs remain `Identifier` values until setup-time baking.
 - Dimension, tag, alias, biome, geome, family, pattern, and block-state
   resolution occurs before generation.
 - Biome palettes bake holders, climate bounds, namespace filters, weights,
@@ -60,6 +60,20 @@ Performance constraints:
   dynamic-registry biome instances are not identity-stable.
 - Ore and flat-bedrock retrogen are bounded and marker-based. Terrain strata
   are never retrogened.
+
+Localization constraints:
+
+- All 16 shipped locale files are required release content and must contain the
+  exact same key set.
+- Every new or changed player-facing string must include native-language text
+  in the same change for `de_au`, `de_de`, `es_es`, `es_mx`, `fr_ca`, `fr_fr`,
+  `ja_jp`, `ko_kr`, `pt_br`, `ru_ru`, and `zh_cn`.
+- Never copy English prose into a non-English file as a temporary fallback.
+  Preserve format placeholders and identifiers exactly while translating the
+  surrounding text.
+- Run the locale translation guardrail tests. Exceptions are permitted only
+  for genuinely language-neutral names or tokens and must be narrowly
+  documented in the test.
 
 Compatibility defaults:
 

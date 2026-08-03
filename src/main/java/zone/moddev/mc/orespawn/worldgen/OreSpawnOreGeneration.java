@@ -118,7 +118,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		ResourceKey<Level> dimension = level.dimension();
 		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) return false;
-		long seed = mix(level.getSeed(), chunk.getPos().toLong(),
+		long seed = mix(level.getSeed(), chunk.getPos().pack(),
 				WorldGeologyProfileManager.activeProfile().generationRevision());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);

@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -171,10 +171,10 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
-		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, OreSpawnScreenLayout.fit(font,
+		graphics.centeredText(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, OreSpawnScreenLayout.fit(font,
 				Component.literal(depositId), Math.min(390, width - 24)), width / 2, 26, OreSpawnScreenLayout.TEXT_MUTED);
 
 	}

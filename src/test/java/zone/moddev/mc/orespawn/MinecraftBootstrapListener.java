@@ -27,12 +27,19 @@ public final class MinecraftBootstrapListener implements LauncherSessionListener
 			Field bootstrapped = Bootstrap.class.getDeclaredField("isBootstrapped");
 			bootstrapped.setAccessible(true);
 			bootstrapped.setBoolean(null, true);
-			LoadingModList emptyMods = LoadingModList.of(Collections.emptyList(),
-					Collections.emptyList(), null);
-			emptyMods.setBrokenFiles(Collections.emptyList());
-			Field loadingModList = FMLLoader.class.getDeclaredField("loadingModList");
-			loadingModList.setAccessible(true);
-			loadingModList.set(null, emptyMods);
+			Class<?> stateType = Class.forName("net.minecraftforge.fml.loading.ModSorter$State");
+			var stateConstructor = stateType.getDeclaredConstructor(java.util.List.class,
+					java.util.List.class);
+			stateConstructor.setAccessible(true);
+			Object emptyState = stateConstructor.newInstance(Collections.emptyList(),
+					Collections.emptyList());
+			Class<?> loadingModListType = Class.forName(
+					"net.minecraftforge.fml.loading.LoadingModListImpl");
+			Field pendingState = loadingModListType.getDeclaredField("temp");
+			pendingState.setAccessible(true);
+			pendingState.set(null, emptyState);
+			LoadingModList.getMods();
+			pendingState.set(null, null);
 			Field moduleLayerManager = FMLLoader.class.getDeclaredField("moduleLayerManager");
 			moduleLayerManager.setAccessible(true);
 			IModuleLayerManager testLayers =

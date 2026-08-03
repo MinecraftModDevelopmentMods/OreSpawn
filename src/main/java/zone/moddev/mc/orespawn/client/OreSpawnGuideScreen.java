@@ -3,7 +3,7 @@ package zone.moddev.mc.orespawn.client;
 import java.util.Arrays;
 import java.util.List;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
@@ -59,12 +59,12 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 
 		GuidePage current = PAGES.get(page);
-		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, current.title, width / 2, 28, OreSpawnScreenLayout.TEXT_HIGHLIGHT);
-		graphics.drawCenteredString(font,
+		graphics.centeredText(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, current.title, width / 2, 28, OreSpawnScreenLayout.TEXT_HIGHLIGHT);
+		graphics.centeredText(font,
 				Component.literal((page + 1) + " / " + PAGES.size()), width / 2, 42, OreSpawnScreenLayout.TEXT_MUTED);
 
 		int textWidth = Math.min(330, width - 32);
@@ -72,7 +72,7 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 		int y = 58;
 		for (Component paragraph : current.paragraphs) {
 			for (FormattedCharSequence line : font.split(paragraph, textWidth)) {
-				graphics.drawString(font, line, x, y, OreSpawnScreenLayout.TEXT_BODY);
+				graphics.text(font, line, x, y, OreSpawnScreenLayout.TEXT_BODY);
 				y += 10;
 			}
 			y += 6;
