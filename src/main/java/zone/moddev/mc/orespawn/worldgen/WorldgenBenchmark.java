@@ -25,9 +25,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -87,6 +88,10 @@ public final class WorldgenBenchmark {
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
+		if (level.getChunkSource().getGenerator() instanceof FlatLevelSource) {
+			throw new IllegalStateException("OreSpawn worldgen benchmarks require a normal terrain world; "
+					+ "Minecraft's GameTest server always uses the flat test preset");
+		}
 		int radius = boundedInteger("orespawn.worldgenBenchmarkRadius", 4, 1, 16);
 		int repetitions = boundedInteger("orespawn.worldgenBenchmarkRepetitions", 3, 1, 9);
 		int warmupRadius = Math.min(2, radius);
@@ -140,8 +145,16 @@ public final class WorldgenBenchmark {
 			throw new IllegalStateException("Benchmark fluid audit found no successful deposits");
 		}
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
-			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
-			event.getServer().halt(false);
+			if (Boolean.getBoolean("neoforge.gameTestServer")
+					|| Boolean.getBoolean("forge.gameTestServer")) {
+				// GameTestServer owns its exit code. Halting it from ServerStartedEvent
+				// leaves its tracker uninitialised, which 26.1 reports as exit -1 even
+				// though the benchmark completed. Let the empty test run finish normally.
+				LOGGER.info("ORESPAWN_BENCHMARK completed; allowing GameTest server to exit normally");
+			} else {
+				LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
+				event.getServer().halt(false);
+			}
 		}
 	}
 
@@ -249,7 +262,8 @@ public final class WorldgenBenchmark {
 				for (int localX = 0; localX < 16; localX++) {
 					for (int localZ = 0; localZ < 16; localZ++) {
 						cursor.set(minX + localX, chunk.getMinY(), minZ + localZ);
-						for (int y = chunk.getMinY(); y < chunk.getMaxY(); y++) {
+						int maximumYExclusive = chunk.getMinY() + chunk.getHeight();
+						for (int y = chunk.getMinY(); y < maximumYExclusive; y++) {
 							cursor.setY(y);
 							BlockState state = chunk.getBlockState(cursor);
 							for (OreAudit audit : audits.values()) {
@@ -391,10 +405,10 @@ public final class WorldgenBenchmark {
 						+ " out-of-range blocks for " + name + " (expected " + minimumY + ".." + maximumY + ")");
 			}
 			if (Boolean.TRUE.equals(required) && total == 0L) {
-				throw new IllegalStateException("Benchmark audit found no blocks for required ore " + name);
+				throw new IllegalStateException("Benchmark audit found no blocks for required block " + name);
 			}
 			if (Boolean.FALSE.equals(required) && total != 0L) {
-				throw new IllegalStateException("Benchmark audit found " + total + " blocks for absent ore " + name);
+				throw new IllegalStateException("Benchmark audit found " + total + " blocks for absent block " + name);
 			}
 		}
 

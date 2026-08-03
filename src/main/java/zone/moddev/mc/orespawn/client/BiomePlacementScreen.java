@@ -4,12 +4,12 @@ import java.util.Arrays;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -186,9 +186,11 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
+
 	}
 
 	private static JsonObject object(JsonObject root, String key) {

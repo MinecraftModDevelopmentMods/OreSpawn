@@ -14,7 +14,7 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
     withJavadocJar()
 }
@@ -27,7 +27,8 @@ sourceSets.main.resources {
 
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
-def configureBenchmark = { run, String radius, String repetitions, String center ->
+def configureBenchmark = { run, String radius, String repetitions, String center,
+        String stopServer ->
     if (!providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
         return
     }
@@ -63,7 +64,8 @@ def configureBenchmark = { run, String radius, String repetitions, String center
         run.systemProperty 'orespawn.worldgenBenchmarkBiomeType',
                 providers.gradleProperty('orespawnBenchmarkBiomeType').get()
     }
-    run.systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
+    run.systemProperty 'orespawn.worldgenBenchmarkStopServer',
+            providers.gradleProperty('orespawnBenchmarkStopServer').getOrElse(stopServer)
     if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
         run.jvmArgument "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
     }
@@ -79,17 +81,23 @@ runs {
 
     client {
         systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        // The GameTest server always uses Minecraft's flat test preset, so
+        // real terrain benchmarks must run through a normal integrated world.
+        configureBenchmark(delegate, '8', '5', '1024', 'false')
+        if (providers.gradleProperty('orespawnBenchmarkWorld').isPresent()) {
+            arguments.addAll '--quickPlaySingleplayer',
+                    providers.gradleProperty('orespawnBenchmarkWorld').get()
+        }
     }
 
     server {
         systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         argument '--nogui'
-        configureBenchmark(delegate, '8', '5', '1024')
+        configureBenchmark(delegate, '8', '5', '1024', 'true')
     }
 
     gameTestServer {
         systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
-        configureBenchmark(delegate, '4', '3', '256')
     }
 
     clientData {
@@ -97,6 +105,17 @@ runs {
         arguments.addAll '--mod', mod_id, '--all', '--output',
                 file('src/generated/resources/').absolutePath, '--existing',
                 file('src/main/resources/').absolutePath
+    }
+
+    ['Fresh', 'Reload'].each { String phase ->
+        register("biomeIntegration${phase}") {
+            runType 'gameTestServer'
+            workingDirectory layout.buildDirectory.dir('biome-integration-run')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'cakeworldprobe'
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'cakeworld.biomeIntegrationPhase', phase.toLowerCase(Locale.ROOT)
+            modSource project.sourceSets.main
+        }
     }
 }
 
@@ -186,6 +205,75 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def biomeIntegrationClasses = layout.buildDirectory.dir('biome-integration-fixture/classes')
+def compileBiomeIntegrationTestMod = tasks.register('compileBiomeIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(biomeIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    })
+    options.release = 16
+    options.encoding = 'UTF-8'
+}
+
+def biomeIntegrationTestModJar = tasks.register('biomeIntegrationTestModJar', Jar) {
+    dependsOn compileBiomeIntegrationTestMod
+    archiveFileName = 'cakeworldprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('biome-integration-fixture')
+    manifest {
+        attributes 'MixinConfigs': 'cakeworldprobe.mixins.json'
+    }
+    from biomeIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def biomeIntegrationRunDirectory = layout.buildDirectory.dir('biome-integration-run')
+def prepareBiomeIntegrationTest = tasks.register('prepareBiomeIntegrationTest') {
+    dependsOn biomeIntegrationTestModJar
+    doLast {
+        delete biomeIntegrationRunDirectory
+        copy {
+            from biomeIntegrationTestModJar.flatMap { it.archiveFile }
+            into biomeIntegrationRunDirectory.map { it.dir('mods') }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runBiomeIntegrationFresh') {
+        dependsOn prepareBiomeIntegrationTest
+    } else if (name == 'runBiomeIntegrationReload') {
+        dependsOn 'runBiomeIntegrationFresh'
+    }
+}
+
+def biomeIntegrationTest = tasks.register('biomeIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies a provider-owned custom biome in fresh and reloaded normal terrain.'
+    dependsOn 'runBiomeIntegrationReload'
+    doLast {
+        File marker = biomeIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/cakeworld-biome-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Biome integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Biome integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Custom-biome integration verified: {} chunks, {} top blocks, {} filler blocks, fresh + reload',
+                result.getProperty('matching_chunks'), result.getProperty('pink_surface'),
+                result.getProperty('white_filler'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn biomeIntegrationTest
 }
 
 idea {

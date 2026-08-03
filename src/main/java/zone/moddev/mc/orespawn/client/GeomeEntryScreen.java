@@ -5,11 +5,11 @@ import java.util.Map;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -118,17 +118,19 @@ final class GeomeEntryScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, Component.literal(geomeId), width / 2, 30, OreSpawnScreenLayout.TEXT_SECONDARY);
-		graphics.drawString(font, Component.translatable("option.orespawn.base_weight"),
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, Component.literal(geomeId), width / 2, 30, OreSpawnScreenLayout.TEXT_SECONDARY);
+		graphics.text(font, Component.translatable("option.orespawn.base_weight"),
 				width / 2 - 155, 58, OreSpawnScreenLayout.TEXT_SECONDARY);
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
-			graphics.drawString(font, Component.translatable("value.orespawn.family." + family.configName),
+			graphics.text(font, Component.translatable("value.orespawn.family." + family.configName),
 					width / 2 - 155, 88 + (index * 25), OreSpawnScreenLayout.TEXT_SECONDARY);
 			index++;
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+		if (error != null) graphics.centeredText(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+
 	}
 }

@@ -49,7 +49,7 @@ public final class OreRetrogenManager {
 	public static void onChunkSave(ChunkDataEvent.Save event) {
 		if (!(event.getLevel() instanceof ServerLevel)) return;
 		ServerLevel level = (ServerLevel) event.getLevel();
-		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().toLong());
+		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().pack());
 		if (!COMPLETE.contains(key)) return;
 		CompoundTag marker = event.getData().structureData().getCompoundOrEmpty(ROOT_TAG);
 		marker.putInt(REVISION_TAG, settings.revision);
@@ -62,7 +62,7 @@ public final class OreRetrogenManager {
 			if (queued == null) return;
 			QUEUED.remove(queued.key);
 			if (queued.level.getChunkSource().getChunkNow(
-					queued.chunk.getPos().x, queued.chunk.getPos().z) != queued.chunk) continue;
+					queued.chunk.getPos().x(), queued.chunk.getPos().z()) != queued.chunk) continue;
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
@@ -72,13 +72,13 @@ public final class OreRetrogenManager {
 	}
 
 	static void markGenerated(ResourceKey<Level> dimension, ChunkPos chunk) {
-		COMPLETE.add(new ChunkKey(dimension, chunk.toLong()));
+		COMPLETE.add(new ChunkKey(dimension, chunk.pack()));
 	}
 
 	public static int queueLoadedArea(ServerLevel level, ChunkPos center, int radius) {
 		int count = 0;
-		for (int x = center.x - radius; x <= center.x + radius; x++) {
-			for (int z = center.z - radius; z <= center.z + radius; z++) {
+		for (int x = center.x() - radius; x <= center.x() + radius; x++) {
+			for (int z = center.z() - radius; z <= center.z() + radius; z++) {
 				LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
 				if (chunk != null && enqueue(level, chunk)) count++;
 			}
@@ -98,7 +98,7 @@ public final class OreRetrogenManager {
 	}
 
 	private static boolean enqueue(ServerLevel level, LevelChunk chunk) {
-		ChunkKey key = new ChunkKey(level.dimension(), chunk.getPos().toLong());
+		ChunkKey key = new ChunkKey(level.dimension(), chunk.getPos().pack());
 		if (!QUEUED.add(key)) return false;
 		QUEUE.add(new QueuedChunk(level, chunk, key));
 		return true;

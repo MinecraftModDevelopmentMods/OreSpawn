@@ -9,8 +9,23 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 
 class StoneReplacerTest {
+	@Test
+	void ordinarySolidRocksCanUseTheSectionFastPath() {
+		assertTrue(StoneReplacer.hasEquivalentHeightAndLightProperties(
+				Blocks.STONE.defaultBlockState(), Blocks.GRANITE.defaultBlockState()));
+	}
+
+	@Test
+	void heightOrLightChangingOutputsUseMinecraftsFullUpdatePath() {
+		assertFalse(StoneReplacer.hasEquivalentHeightAndLightProperties(
+				Blocks.STONE.defaultBlockState(), Blocks.AIR.defaultBlockState()));
+		assertFalse(StoneReplacer.hasEquivalentHeightAndLightProperties(
+				Blocks.STONE.defaultBlockState(), Blocks.GLOWSTONE.defaultBlockState()));
+	}
+
 	@Test
 	void oreOnlyProfilesKeepVanillaStoneFeatures() {
 		assertFalse(TerrainFeaturePolicy.shouldSuppressVanillaMatchingStoneFeature(

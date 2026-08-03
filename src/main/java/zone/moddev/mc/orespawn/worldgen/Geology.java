@@ -82,8 +82,10 @@ public class Geology {
 
 				for (; y >= chunk.getMinY(); y--) {
 					cursor.set(x, y, z);
-					if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-						chunk.setBlockState(cursor, pickReplacement(baseRockVal, geomeBase, y), 0);
+					BlockState current = chunk.getBlockState(cursor);
+					if (terrain.isReplaceable(current)) {
+						StoneReplacer.setRockState(chunk, cursor, current,
+								pickReplacement(baseRockVal, geomeBase, y));
 						changed = true;
 					}
 				}

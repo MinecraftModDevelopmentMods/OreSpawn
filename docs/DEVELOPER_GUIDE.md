@@ -85,11 +85,11 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
 
 private void enqueueWorldgen(InterModEnqueueEvent event) {
-    ResourceLocation tin = ResourceLocation.fromNamespaceAndPath("examplemod", "tin_ore");
+    Identifier tin = Identifier.fromNamespaceAndPath("examplemod", "tin_ore");
     WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
         .ore(tin, ore -> ore
             .retrogen(false)
@@ -100,7 +100,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
-					.hostTag(ResourceLocation.fromNamespaceAndPath("minecraft", "stone_ore_replaceables"))))
+					.hostTag(Identifier.fromNamespaceAndPath("minecraft", "stone_ore_replaceables"))))
         .build();
 
     OreSpawnApi.enqueue(provider);
@@ -197,3 +197,11 @@ bounded ore or bedrock retrogen is enabled.
    and without compatibility mods.
 6. Confirm the provider appears in `/orespawn status`.
 7. Test a new world; profile edits do not rewrite already generated terrain.
+
+OreSpawn's own standard `check` lifecycle includes a consumer-style biome
+integration test. It loads a separate test provider and datapack biome, proves
+the provider is active, verifies biome selection, climate and configured
+surface blocks in non-flat terrain, then reopens and rechecks the same saved
+world. Run `gradlew check` (or `gradlew build`, which includes it) before
+publishing any change to biome registration, palettes, surfaces or profile
+persistence.

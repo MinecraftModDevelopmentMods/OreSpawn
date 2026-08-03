@@ -5,11 +5,11 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -138,16 +138,18 @@ final class NumericConfigScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 16, OreSpawnScreenLayout.TEXT_PRIMARY);
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 16, OreSpawnScreenLayout.TEXT_PRIMARY);
 		int start = page * PAGE_SIZE;
 		for (int i = 0; i < editors.size(); i++) {
-			graphics.drawString(font, label(fields[start + i].key), width / 2 - 155,
+			graphics.text(font, label(fields[start + i].key), width / 2 - 155,
 					50 + (i * 25), OreSpawnScreenLayout.TEXT_SECONDARY);
 		}
 		if (error != null) {
-			graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+			graphics.centeredText(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
 		}
+
 	}
 
 	private Component label(String key) {

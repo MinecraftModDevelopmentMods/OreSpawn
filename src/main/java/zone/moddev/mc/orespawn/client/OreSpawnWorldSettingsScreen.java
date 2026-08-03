@@ -12,11 +12,11 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.TemplateDefinition;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -341,13 +341,15 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2,
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2,
 				OreSpawnScreenLayout.mainTitleY(this.height), OreSpawnScreenLayout.TEXT_PRIMARY);
 		if (validationError != null) {
-			graphics.drawCenteredString(font, validationError, width / 2,
+			graphics.centeredText(font, validationError, width / 2,
 					OreSpawnScreenLayout.mainErrorY(this.height), OreSpawnScreenLayout.TEXT_ERROR);
 		}
+
 	}
 
 	private Component geologyModeName(GeologyMode mode) {

@@ -1,11 +1,11 @@
 package zone.moddev.mc.orespawn.client;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -87,9 +87,11 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font, Component.literal(dimension), width / 2, 30, OreSpawnScreenLayout.TEXT_SOFT);
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 12, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font, Component.literal(dimension), width / 2, 30, OreSpawnScreenLayout.TEXT_SOFT);
+
 	}
 
 	private static String string(JsonObject root, String key, String fallback) {

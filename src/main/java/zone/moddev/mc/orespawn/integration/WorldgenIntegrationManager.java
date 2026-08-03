@@ -370,11 +370,7 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void scanPackagedProviders() {
-		ModList mods = ModList.get();
-		if (mods == null) {
-			return;
-		}
-		mods.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
+		ModList.get().forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
 	}
 
 	private static void scanPackagedProvider(IModFile file) {

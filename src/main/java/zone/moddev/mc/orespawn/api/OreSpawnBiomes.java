@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.Biome;
@@ -13,7 +14,7 @@ import net.minecraft.world.level.biome.Biome;
  * Small bootstrap helpers for provider mods which define data-driven biomes
  * without taking a compile-time dependency on a separate biome framework.
  *
- * <p>Biomes are dynamic registry entries in NeoForge 21.1. A provider should
+ * <p>Biomes are dynamic registry entries in NeoForge 26.1. A provider should
  * package biome JSON or use these methods from a
  * {@link net.minecraft.core.RegistrySetBuilder} bootstrap used by datagen.
  */
@@ -33,6 +34,7 @@ public final class OreSpawnBiomes {
 				.temperature(climate.temperature())
 				.temperatureAdjustment(climate.temperatureModifier())
 				.downfall(climate.downfall())
+				.putAttributes(source.getAttributes())
 				.specialEffects(source.getModifiedSpecialEffects())
 				.mobSpawnSettings(source.getMobSettings())
 				.generationSettings(source.getGenerationSettings());
@@ -42,6 +44,18 @@ public final class OreSpawnBiomes {
 
 	/**
 	 * Copies a source biome from a bootstrap lookup and registers the result.
+	 */
+	public static Holder.Reference<Biome> copyAndRegister(BootstrapContext<Biome> context,
+			ResourceKey<Biome> targetKey, ResourceKey<Biome> sourceKey,
+			Consumer<Biome.BiomeBuilder> edit) {
+		Objects.requireNonNull(context, "context");
+		return copyAndRegister(context, targetKey, context.lookup(Registries.BIOME),
+				sourceKey, edit);
+	}
+
+	/**
+	 * Copies a source biome from an explicit bootstrap lookup and registers the
+	 * result. This overload is retained for existing NeoForge API consumers.
 	 */
 	public static Holder.Reference<Biome> copyAndRegister(BootstrapContext<Biome> context,
 			ResourceKey<Biome> targetKey, HolderGetter<Biome> sourceLookup,

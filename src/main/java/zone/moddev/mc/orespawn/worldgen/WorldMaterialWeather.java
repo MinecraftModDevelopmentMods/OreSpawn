@@ -39,9 +39,9 @@ public final class WorldMaterialWeather {
 		if (materials.snow == null && materials.ice == null) return;
 
 		for (ServerPlayer player : level.players()) {
-			ChunkPos pos = new ChunkPos(player.blockPosition());
-			if (level.hasChunk(pos.x, pos.z)) {
-				convertChunk(level.getChunk(pos.x, pos.z), materials);
+			ChunkPos pos = ChunkPos.containing(player.blockPosition());
+			if (level.hasChunk(pos.x(), pos.z())) {
+				convertChunk(level.getChunk(pos.x(), pos.z()), materials);
 			}
 		}
 	}

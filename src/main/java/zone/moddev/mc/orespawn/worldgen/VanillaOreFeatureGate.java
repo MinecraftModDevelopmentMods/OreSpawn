@@ -108,8 +108,8 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static boolean isStandardOreFeature(PlacedFeature placed) {
-		return placed.getFeatures().anyMatch(configured -> configured.feature() == Feature.ORE
-				|| configured.feature() == Feature.SCATTERED_ORE);
+		return placed.getFeatures().anyMatch(configured -> configured.value().feature() == Feature.ORE
+				|| configured.value().feature() == Feature.SCATTERED_ORE);
 	}
 
 	private static Definition[] definitions() {

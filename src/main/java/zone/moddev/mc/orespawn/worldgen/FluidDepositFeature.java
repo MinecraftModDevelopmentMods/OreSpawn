@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +32,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
@@ -46,6 +49,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final FluidDepositFeature FEATURE = new FluidDepositFeature();
 	private static final int CHUNK_WIDTH = 16;
+	private static final int UNKNOWN_HEIGHT = Integer.MIN_VALUE;
 	private static final BakedDeposit[] NO_DEPOSITS = new BakedDeposit[0];
 	private static final Map<ResourceKey<Level>, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
@@ -100,6 +104,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		int centerX = chunkPos.getMinBlockX() + 8;
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 8, 8);
+		int[] oceanFloorHeights = scratch.oceanFloorHeights;
+		Arrays.fill(oceanFloorHeights, UNKNOWN_HEIGHT);
 		scratch.cursor.set(centerX, surfaceY, centerZ);
 		Holder<Biome> biome = world.getBiome(scratch.cursor);
 		BakedGeomeConfig config = geomeConfigs.get(dimension);
@@ -118,7 +124,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			double frequency = geome < 0 ? deposit.frequency : deposit.frequency * deposit.geomeWeights[geome];
 			int attempts = attemptsForFrequency(random, frequency);
 			for (int attempt = 0; attempt < attempts; attempt++) {
-				boolean placed = placeDeposit(world, chunk, random, deposit, geome, config, scratch.cursor);
+				boolean placed = placeDeposit(world, chunk, random, deposit, geome, config,
+						scratch.cursor, oceanFloorHeights);
 				if (placed) WorldgenBenchmark.recordFluidDeposit();
 				changed |= placed;
 			}
@@ -129,13 +136,14 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	private static boolean placeDeposit(WorldGenLevel world, ChunkAccess chunk, Random random,
 			BakedDeposit deposit,
-			int geome, BakedGeomeConfig config, BlockPos.MutableBlockPos cursor) {
+			int geome, BakedGeomeConfig config, BlockPos.MutableBlockPos cursor,
+			int[] oceanFloorHeights) {
 		// Keep this random-call order aligned with the original Mineralogy crude-oil feature.
 		int radius = randomBetween(random, deposit.minRadius, deposit.maxRadius);
 		int verticalRadius = randomBetween(random, deposit.minVerticalRadius, deposit.maxVerticalRadius);
 		int dx = random.nextInt(CHUNK_WIDTH);
 		int dz = random.nextInt(CHUNK_WIDTH);
-		int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, dx, dz);
+		int surface = oceanFloorHeight(chunk, oceanFloorHeights, dx, dz);
 		int maxCenterY = Math.min(deposit.maxY,
 				surface - 1 - Math.max(deposit.minSolidCover, deposit.minSolidShell) - verticalRadius);
 		int minCenterY = Math.max(deposit.minY,
@@ -159,28 +167,31 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			int lobeRadius = Math.max(2, radius - random.nextInt(Math.max(1, (radius / 3) + 1)));
 			int lobeVerticalRadius = Math.max(1,
 					verticalRadius - random.nextInt(Math.max(1, (verticalRadius / 2) + 1)));
-			changed |= placeLobe(world, chunk, deposit, geome, config, cursor, lobeX, lobeY, lobeZ,
-					lobeRadius, lobeVerticalRadius);
+			changed |= placeLobe(world, chunk, deposit, geome, config, cursor, oceanFloorHeights,
+					lobeX, lobeY, lobeZ, lobeRadius, lobeVerticalRadius);
 		}
 		return changed;
 	}
 
 	private static boolean placeLobe(WorldGenLevel world, ChunkAccess chunk, BakedDeposit deposit, int geome,
-			BakedGeomeConfig config, BlockPos.MutableBlockPos cursor,
+			BakedGeomeConfig config, BlockPos.MutableBlockPos cursor, int[] oceanFloorHeights,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius) {
 		int chunkMinX = chunk.getPos().getMinBlockX();
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		int minX = Math.max(chunkMinX, centerX - radius);
 		int maxX = Math.min(chunkMinX + CHUNK_WIDTH - 1, centerX + radius);
 		int minY = Math.max(chunk.getMinY(), centerY - verticalRadius);
-		int maxY = Math.min(chunk.getMaxY() - 1, centerY + verticalRadius);
+		int maxY = Math.min(chunk.getMaxY(), centerY + verticalRadius);
 		int minZ = Math.max(chunkMinZ, centerZ - radius);
 		int maxZ = Math.min(chunkMinZ + CHUNK_WIDTH - 1, centerZ + radius);
 		double inverseRadiusSquared = 1.0D / (radius * radius);
 		double inverseVerticalRadiusSquared = 1.0D / (verticalRadius * verticalRadius);
-		if (!hasSolidEnvelope(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+		if (!hasSolidEnvelope(world, chunk, deposit, cursor, oceanFloorHeights,
+				centerX, centerY, centerZ,
 				radius, verticalRadius, minX, maxX, minY, maxY, minZ, maxZ,
 				inverseRadiusSquared, inverseVerticalRadiusSquared)) return false;
+		BlockState output = deposit.output;
+		if (output.getBlock() == Blocks.AIR || output.getFluidState().isEmpty()) return false;
 		boolean changed = false;
 
 		for (int x = minX; x <= maxX; x++) {
@@ -192,7 +203,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				double horizontalShape = ((xDistance * xDistance) + (zDistance * zDistance))
 						* inverseRadiusSquared;
 				if (horizontalShape > 1.0D) continue;
-				int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, localX, localZ);
+				int surface = oceanFloorHeight(chunk, oceanFloorHeights, localX, localZ);
 				int topLimit = surface - 1 - deposit.minSolidCover;
 				for (int y = minY; y <= maxY && y <= topLimit; y++) {
 					double yDistance = y - centerY;
@@ -202,12 +213,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 					cursor.set(x, y, z);
 					BlockState existing = chunk.getBlockState(cursor);
 					if (deposit.accepts(existing, geome, config)) {
-						cursor.set(x, y, z);
-						// Output was validated while baking; keep a final runtime guard for registry oddities.
-						if (deposit.output.getBlock() != Blocks.AIR && !deposit.output.getFluidState().isEmpty()) {
-							chunk.setBlockState(cursor, deposit.output, 0);
-							changed = true;
-						}
+						setDepositState(chunk, cursor, output);
+						changed = true;
 					}
 				}
 			}
@@ -215,8 +222,23 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return changed;
 	}
 
+	private static void setDepositState(ChunkAccess chunk, BlockPos pos, BlockState output) {
+		if (chunk instanceof ProtoChunk) {
+			// Deposits are generated below a validated solid cover during FEATURES,
+			// before lighting. Their writes cannot alter the already higher worldgen
+			// heightmaps, and the chunk-generation thread exclusively owns this section.
+			LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(pos.getY()));
+			section.setBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15,
+					output, false);
+		} else {
+			// Preserve all normal light/height updates if another caller invokes the
+			// feature against an already-live chunk.
+			chunk.setBlockState(pos, output, 0);
+		}
+	}
+
 	private static boolean hasSolidEnvelope(WorldGenLevel world, ChunkAccess chunk,
-			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
+			BakedDeposit deposit, BlockPos.MutableBlockPos cursor, int[] oceanFloorHeights,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int minX, int maxX, int minY, int maxY, int minZ, int maxZ,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
@@ -228,28 +250,34 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 						* inverseRadiusSquared;
 				if (horizontalShape > 1.0D) continue;
 				for (int y = minY; y <= maxY; y++) {
-					if (!insideLobe(chunk, deposit, centerX, centerY, centerZ,
+					if (!insideLobe(chunk, deposit, oceanFloorHeights, centerX, centerY, centerZ,
 							radius, verticalRadius, x, y, z,
 							inverseRadiusSquared, inverseVerticalRadiusSquared)) continue;
 					cursor.set(x, y, z);
-					if (!isSealingState(world.getBlockState(cursor), deposit.output)) return false;
-					if (!sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+					if (!isSealingState(chunk.getBlockState(cursor), deposit.output)) return false;
+					if (!sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+							centerX, centerY, centerZ,
 							radius, verticalRadius, x, y, z, -1, 0, 0, deposit.minSolidShell,
 							inverseRadiusSquared, inverseVerticalRadiusSquared)
-							|| !sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+							|| !sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+									centerX, centerY, centerZ,
 									radius, verticalRadius, x, y, z, 1, 0, 0, deposit.minSolidShell,
 									inverseRadiusSquared, inverseVerticalRadiusSquared)
-							|| !sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+							|| !sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+									centerX, centerY, centerZ,
 									radius, verticalRadius, x, y, z, 0, -1, 0, deposit.minSolidShell,
 									inverseRadiusSquared, inverseVerticalRadiusSquared)
-							|| !sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+							|| !sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+									centerX, centerY, centerZ,
 									radius, verticalRadius, x, y, z, 0, 1, 0,
 									Math.max(deposit.minSolidShell, deposit.minSolidCover),
 									inverseRadiusSquared, inverseVerticalRadiusSquared)
-							|| !sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+							|| !sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+									centerX, centerY, centerZ,
 									radius, verticalRadius, x, y, z, 0, 0, -1, deposit.minSolidShell,
 									inverseRadiusSquared, inverseVerticalRadiusSquared)
-							|| !sealedBoundary(world, chunk, deposit, cursor, centerX, centerY, centerZ,
+							|| !sealedBoundary(world, chunk, deposit, cursor, oceanFloorHeights,
+									centerX, centerY, centerZ,
 									radius, verticalRadius, x, y, z, 0, 0, 1, deposit.minSolidShell,
 									inverseRadiusSquared, inverseVerticalRadiusSquared)) return false;
 				}
@@ -259,37 +287,63 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static boolean sealedBoundary(WorldGenLevel world, ChunkAccess chunk,
-			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
+			BakedDeposit deposit, BlockPos.MutableBlockPos cursor, int[] oceanFloorHeights,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, int stepX, int stepY, int stepZ, int thickness,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
-		if (thickness == 0 || insideLobe(chunk, deposit, centerX, centerY, centerZ,
+		if (thickness == 0 || insideLobe(chunk, deposit, oceanFloorHeights,
+				centerX, centerY, centerZ,
 				radius, verticalRadius, x + stepX, y + stepY, z + stepZ,
 				inverseRadiusSquared, inverseVerticalRadiusSquared)) return true;
 		for (int offset = 1; offset <= thickness; offset++) {
 			cursor.set(x + (stepX * offset), y + (stepY * offset), z + (stepZ * offset));
-			if (!isSealingState(world.getBlockState(cursor), deposit.output)) return false;
+			if (!isSealingState(blockStateAt(world, chunk, cursor), deposit.output)) return false;
 		}
 		return true;
 	}
 
-	private static boolean insideLobe(ChunkAccess chunk, BakedDeposit deposit,
+	private static BlockState blockStateAt(WorldGenLevel world, ChunkAccess chunk, BlockPos pos) {
+		int chunkMinX = chunk.getPos().getMinBlockX();
+		int chunkMinZ = chunk.getPos().getMinBlockZ();
+		if (pos.getX() >= chunkMinX && pos.getX() < chunkMinX + CHUNK_WIDTH
+				&& pos.getZ() >= chunkMinZ && pos.getZ() < chunkMinZ + CHUNK_WIDTH
+				&& pos.getY() >= chunk.getMinY() && pos.getY() <= chunk.getMaxY()) {
+			return chunk.getBlockState(pos);
+		}
+		return world.getBlockState(pos);
+	}
+
+	private static boolean insideLobe(ChunkAccess chunk, BakedDeposit deposit, int[] oceanFloorHeights,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
 		int chunkMinX = chunk.getPos().getMinBlockX();
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		if (x < chunkMinX || x >= chunkMinX + CHUNK_WIDTH
 				|| z < chunkMinZ || z >= chunkMinZ + CHUNK_WIDTH
-				|| y < chunk.getMinY() || y >= chunk.getMaxY()) return false;
+				|| y < chunk.getMinY() || y > chunk.getMaxY()) return false;
 		double xDistance = x - centerX;
 		double yDistance = y - centerY;
 		double zDistance = z - centerZ;
 		double shape = ((xDistance * xDistance) + (zDistance * zDistance)) * inverseRadiusSquared
 				+ ((yDistance * yDistance) * inverseVerticalRadiusSquared);
 		if (shape > 1.0D) return false;
-		int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,
+		int surface = oceanFloorHeight(chunk, oceanFloorHeights,
 				x - chunkMinX, z - chunkMinZ);
 		return y <= surface - 1 - deposit.minSolidCover;
+	}
+
+	private static int oceanFloorHeight(ChunkAccess chunk, int[] heights, int localX, int localZ) {
+		int index = heightIndex(localX, localZ);
+		int height = heights[index];
+		if (height == UNKNOWN_HEIGHT) {
+			height = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, localX, localZ);
+			heights[index] = height;
+		}
+		return height;
+	}
+
+	private static int heightIndex(int localX, int localZ) {
+		return (localZ << 4) | localX;
 	}
 
 	static boolean isSealingState(BlockState state, BlockState output) {
@@ -567,6 +621,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	private static final class GenerationScratch {
 		final RandomSourceAdapter random = new RandomSourceAdapter();
 		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		final int[] oceanFloorHeights = new int[CHUNK_WIDTH * CHUNK_WIDTH];
 		private double[] geomeValues = new double[0];
 		double[] geomeValues(int count) {
 			if (geomeValues.length != count) geomeValues = new double[count];

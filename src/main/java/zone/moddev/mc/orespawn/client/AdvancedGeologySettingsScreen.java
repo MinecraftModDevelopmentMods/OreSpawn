@@ -2,10 +2,10 @@ package zone.moddev.mc.orespawn.client;
 
 import net.minecraft.network.chat.Component;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 
 /** Less commonly changed numeric controls, kept off the world settings overview. */
@@ -55,7 +55,9 @@ final class AdvancedGeologySettingsScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 20, OreSpawnScreenLayout.TEXT_PRIMARY);
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 20, OreSpawnScreenLayout.TEXT_PRIMARY);
+
 	}
 }

@@ -4,12 +4,12 @@ import java.util.Arrays;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -179,16 +179,18 @@ final class RockEntryScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.drawCenteredString(font, title, width / 2, 6, OreSpawnScreenLayout.TEXT_PRIMARY);
-		graphics.drawCenteredString(font,
+	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+
+		graphics.centeredText(font, title, width / 2, 6, OreSpawnScreenLayout.TEXT_PRIMARY);
+		graphics.centeredText(font,
 				Component.literal(session.materialBlockId(GeologyEditorSession.MaterialTab.SEDIMENTARY, blockId)),
 				width / 2, 20, OreSpawnScreenLayout.TEXT_SECONDARY);
 		String[] labels = { "weight", "depth_peak", "depth_spread", "min_y", "max_y" };
 		for (int i = 0; i < labels.length; i++) {
-			graphics.drawString(font, Component.translatable("option.orespawn." + labels[i]),
+			graphics.text(font, Component.translatable("option.orespawn." + labels[i]),
 					width / 2 - 155, 70 + (i * 22), OreSpawnScreenLayout.TEXT_SECONDARY);
 		}
-		if (error != null) graphics.drawCenteredString(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+		if (error != null) graphics.centeredText(font, error, width / 2, height - 42, OreSpawnScreenLayout.TEXT_ERROR);
+
 	}
 }

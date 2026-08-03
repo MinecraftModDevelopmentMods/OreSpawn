@@ -219,8 +219,19 @@ public final class WorldGeologyProfileManager {
 		return profile;
 	}
 
-	private static boolean hasGeneratedOverworldChunks(Path worldRoot) {
-		Path regionDirectory = worldRoot.resolve("region");
+	static boolean hasGeneratedOverworldChunks(Path worldRoot) {
+		// 26.1 moved the Overworld beside every other namespaced dimension. Keep
+		// the legacy root path as well so an older save is never mistaken for a
+		// fresh world while Minecraft is upgrading its storage layout.
+		Path namespacedRegionDirectory = worldRoot.resolve("dimensions")
+				.resolve("minecraft").resolve("overworld").resolve("region");
+		if (hasRegionFiles(namespacedRegionDirectory)) {
+			return true;
+		}
+		return hasRegionFiles(worldRoot.resolve("region"));
+	}
+
+	private static boolean hasRegionFiles(Path regionDirectory) {
 		if (!Files.isDirectory(regionDirectory)) {
 			return false;
 		}

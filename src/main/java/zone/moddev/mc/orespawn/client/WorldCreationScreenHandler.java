@@ -2,14 +2,13 @@ package zone.moddev.mc.orespawn.client;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.lang.reflect.Field;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.minecraft.network.chat.Component;
 
-import zone.moddev.mc.orespawn.OreSpawn;
-import zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.client.Minecraft;
@@ -22,14 +21,18 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import zone.moddev.mc.orespawn.OreSpawn;
 
 @EventBusSubscriber(modid = OreSpawn.MODID, value = Dist.CLIENT)
 public final class WorldCreationScreenHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
-
+	// Minecraft 26.1 ships unobfuscated executables, so reflection must use the
+	// actual target field names rather than the old runtime-obfuscated names.
+	static final String TAB_MANAGER_FIELD = "tabManager";
+	static final String TAB_NAVIGATION_BAR_FIELD = "tabNavigationBar";
 	private WorldCreationScreenHandler() {
 	}
 
@@ -41,7 +44,6 @@ public final class WorldCreationScreenHandler {
 		}
 
 		CreateWorldScreen createWorldScreen = (CreateWorldScreen) screen;
-		BiomeRegistryAccess.bind(createWorldScreen.getUiState().getSettings().worldgenLoadContext());
 		WorldGeologyProfileManager.beginNewWorldCreation(screen);
 		installOreSpawnTab(event, createWorldScreen);
 	}
@@ -63,7 +65,7 @@ public final class WorldCreationScreenHandler {
 		}
 
 		try {
-			TabManager tabManager = screen.tabManager;
+			TabManager tabManager = readPrivate(screen, TAB_MANAGER_FIELD, TabManager.class);
 			if (tabManager == null) {
 				throw new IllegalStateException("CreateWorldScreen tab manager is unavailable");
 			}
@@ -75,7 +77,7 @@ public final class WorldCreationScreenHandler {
 			TabNavigationBar replacement = TabNavigationBar.builder(tabManager, screen.width)
 					.addTabs(tabs.toArray(new Tab[0]))
 					.build();
-			screen.tabNavigationBar = replacement;
+			writePrivate(screen, TAB_NAVIGATION_BAR_FIELD, replacement);
 			event.removeListener(original);
 			event.addListener(replacement);
 			if (restoreOreSpawnTab) {
@@ -135,6 +137,26 @@ public final class WorldCreationScreenHandler {
 	public static void onScreenOpen(ScreenEvent.Opening event) {
 		if (event.getNewScreen() instanceof SelectWorldScreen) {
 			WorldGeologyProfileManager.clearPendingNewWorldProfile();
+		}
+	}
+
+	private static <T> T readPrivate(CreateWorldScreen screen, String name, Class<T> type) {
+		try {
+			Field field = CreateWorldScreen.class.getDeclaredField(name);
+			field.setAccessible(true);
+			return type.cast(field.get(screen));
+		} catch (ReflectiveOperationException exception) {
+			throw new IllegalStateException("Cannot read CreateWorldScreen." + name, exception);
+		}
+	}
+
+	private static void writePrivate(CreateWorldScreen screen, String name, Object value) {
+		try {
+			Field field = CreateWorldScreen.class.getDeclaredField(name);
+			field.setAccessible(true);
+			field.set(screen, value);
+		} catch (ReflectiveOperationException exception) {
+			throw new IllegalStateException("Cannot write CreateWorldScreen." + name, exception);
 		}
 	}
 

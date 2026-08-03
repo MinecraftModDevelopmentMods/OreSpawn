@@ -76,12 +76,21 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 21 from the repository root:
+Use Java 25 from the repository root:
 
 ```powershell
-.\gradlew.bat test processResources build javadoc --no-daemon
+.\gradlew.bat clean build javadoc --no-daemon
 .\gradlew.bat eclipse --no-daemon
 ```
+
+`build` runs the standard `check` lifecycle. In addition to the JUnit suite,
+that lifecycle packages a test-only provider mod, loads its custom biome in
+normal noise terrain, and verifies both fresh generation and reopening the
+same saved world. The fixture is not included in OreSpawn's published jars.
+
+Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
+Eclipse model and run configurations through the `eclipse` task; this branch
+does not use ForgeGradle's `genEclipseRuns` task.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

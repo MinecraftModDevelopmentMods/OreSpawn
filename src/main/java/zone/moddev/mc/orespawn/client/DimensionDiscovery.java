@@ -35,10 +35,7 @@ final class DimensionDiscovery {
 			// The vanilla dimensions above keep the picker usable if a custom preset is incomplete.
 		}
 
-		ModList modList = ModList.get();
-		if (modList != null) {
-			modList.forEachModFile(file -> collectModDimensions(file, result));
-		}
+		ModList.get().forEachModFile(file -> collectModDimensions(file, result));
 		return vanillaFirst(result);
 	}
 
