@@ -80,14 +80,14 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 				this, font, left, y, half, 20,
 				Component.translatable("button.orespawn.similar_biomes",
 						array(placement, "similar_biomes").size()),
-				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
+				button -> { saveFields(); minecraft.gui.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "similar_biomes")); }),
 				"tooltip.orespawn.biome.similar_biomes"));
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
 				this, font, left + half + 5, y,
 				half, 20, Component.translatable("button.orespawn.required_biomes",
 						array(placement, "required_similar_biomes").size()),
-				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
+				button -> { saveFields(); minecraft.gui.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "required_similar_biomes")); }),
 				"tooltip.orespawn.biome.required_similar_biomes"));
 	}
@@ -125,7 +125,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 					this, font, left, y,
 					width - 65, 20, materialLabel(key, current), button -> {
 						saveFields();
-						minecraft.setScreen(new MaterialBlockPickerScreen(this, session,
+						minecraft.gui.setScreen(new MaterialBlockPickerScreen(this, session,
 								false, id -> surface.addProperty(key, id)));
 					}), "tooltip.orespawn.biome." + key));
 			Button clear = addRenderableWidget(OreSpawnScreenLayout.plainButton(
@@ -183,7 +183,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	}
 
 	protected void rebuildWidgets() { clearWidgets(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.gui.setScreen(parent); }
 
 	@Override
 	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

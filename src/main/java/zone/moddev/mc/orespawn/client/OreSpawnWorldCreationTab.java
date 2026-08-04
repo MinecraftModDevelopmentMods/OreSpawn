@@ -283,26 +283,26 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private void openMaterials() {
 		commit();
-		Minecraft.getInstance().setScreen(new GeologyMaterialsScreen(returnScreen(), session));
+		Minecraft.getInstance().gui.setScreen(new GeologyMaterialsScreen(returnScreen(), session));
 	}
 
 	private void openBiomeWorldMaterials() {
 		commit();
-		Minecraft.getInstance().setScreen(new BiomeWorldMaterialsScreen(returnScreen(), session));
+		Minecraft.getInstance().gui.setScreen(new BiomeWorldMaterialsScreen(returnScreen(), session));
 	}
 
 	private void openAdvanced() {
 		commit();
-		Minecraft.getInstance().setScreen(new AdvancedGeologySettingsScreen(returnScreen(), session));
+		Minecraft.getInstance().gui.setScreen(new AdvancedGeologySettingsScreen(returnScreen(), session));
 	}
 
 	private void openFluidDeposits() {
 		commit();
-		Minecraft.getInstance().setScreen(new FluidDepositListScreen(returnScreen(), session));
+		Minecraft.getInstance().gui.setScreen(new FluidDepositListScreen(returnScreen(), session));
 	}
 
 	private void openHelp() {
-		Minecraft.getInstance().setScreen(new OreSpawnGuideScreen(returnScreen()));
+		Minecraft.getInstance().gui.setScreen(new OreSpawnGuideScreen(returnScreen()));
 	}
 
 	private Screen returnScreen() {
@@ -391,7 +391,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		@Override
 		protected void init() {
 			beforeReturn.run();
-			minecraft.execute(() -> minecraft.setScreen(destination));
+			minecraft.execute(() -> minecraft.gui.setScreen(destination));
 		}
 	}
 }

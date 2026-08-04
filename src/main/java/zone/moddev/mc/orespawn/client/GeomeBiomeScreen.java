@@ -103,12 +103,12 @@ final class GeomeBiomeScreen extends OreSpawnScreen {
 
 	private void open(String id) {
 		if (tab == Tab.GEOMES) {
-			minecraft.setScreen(new GeomeEntryScreen(this, session, id));
+			minecraft.gui.setScreen(new GeomeEntryScreen(this, session, id));
 			return;
 		}
 		String section = tab == Tab.BIOMES ? "biomes" : "biome_dictionary";
 		JsonObject weights = session.weightMap(section, id);
-		minecraft.setScreen(new WeightMapScreen(this, Component.literal(id), weights,
+		minecraft.gui.setScreen(new WeightMapScreen(this, Component.literal(id), weights,
 				session.geomeIds(), 0.0D, () -> session.section(section).remove(id)));
 	}
 
@@ -117,7 +117,7 @@ final class GeomeBiomeScreen extends OreSpawnScreen {
 		if (id.isEmpty()) return;
 		if (tab == Tab.GEOMES) {
 			session.addGeome(id);
-			minecraft.setScreen(new GeomeEntryScreen(this, session, id.toLowerCase(Locale.ROOT)));
+			minecraft.gui.setScreen(new GeomeEntryScreen(this, session, id.toLowerCase(Locale.ROOT)));
 		} else {
 			if (tab == Tab.BIOMES) {
 				try { Identifier.parse(id); }
@@ -129,7 +129,7 @@ final class GeomeBiomeScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

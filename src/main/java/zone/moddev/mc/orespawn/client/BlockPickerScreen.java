@@ -84,22 +84,22 @@ final class BlockPickerScreen extends OreSpawnScreen {
 		switch (target) {
 		case SEDIMENTARY:
 			session.assignRock(id, RockFamily.SEDIMENTARY);
-			minecraft.setScreen(new RockEntryScreen(parent, session, id));
+			minecraft.gui.setScreen(new RockEntryScreen(parent, session, id));
 			break;
 		case METAMORPHIC:
 			session.assignRock(id, RockFamily.METAMORPHIC);
-			minecraft.setScreen(new RockEntryScreen(parent, session, id));
+			minecraft.gui.setScreen(new RockEntryScreen(parent, session, id));
 			break;
 		case IGNEOUS:
 			session.assignRock(id, RockFamily.IGNEOUS_INTRUSIVE);
-			minecraft.setScreen(new RockEntryScreen(parent, session, id));
+			minecraft.gui.setScreen(new RockEntryScreen(parent, session, id));
 			break;
 		case ORES:
 			session.assignOre(id);
-			minecraft.setScreen(new OreEntryScreen(parent, session, id));
+			minecraft.gui.setScreen(new OreEntryScreen(parent, session, id));
 			break;
 		default:
-			minecraft.setScreen(new BlockAssignmentScreen(parent, session, id));
+			minecraft.gui.setScreen(new BlockAssignmentScreen(parent, session, id));
 		}
 	}
 
@@ -114,7 +114,7 @@ final class BlockPickerScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

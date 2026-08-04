@@ -39,19 +39,19 @@ final class AdvancedGeologySettingsScreen extends OreSpawnScreen {
 		addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.plainButton(
 				left, top + (row * 28), 310, 20,
 				Component.translatable("button.orespawn.fluid_deposit_details"),
-				button -> minecraft.setScreen(new FluidDepositListScreen(this, session))),
+				button -> minecraft.gui.setScreen(new FluidDepositListScreen(this, session))),
 				"tooltip.orespawn.advanced.fluid_deposits"));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 
 	private void openNumeric(String path, NumericConfigScreen.Field[] fields) {
-		minecraft.setScreen(new NumericConfigScreen(this, session, path, fields));
+		minecraft.gui.setScreen(new NumericConfigScreen(this, session, path, fields));
 	}
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

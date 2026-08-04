@@ -170,7 +170,7 @@ repositories {
 
 dependencies {
     implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
-    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.1'
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.5'
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'

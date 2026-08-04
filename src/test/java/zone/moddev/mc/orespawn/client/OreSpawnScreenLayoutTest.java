@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
-import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 
 class OreSpawnScreenLayoutTest {
@@ -23,7 +23,7 @@ class OreSpawnScreenLayoutTest {
 	void worldCreationReflectionTargetsMatchTheUnobfuscatedClient() throws NoSuchFieldException {
 		assertEquals(TabManager.class, CreateWorldScreen.class
 				.getDeclaredField(WorldCreationScreenHandler.TAB_MANAGER_FIELD).getType());
-		assertEquals(TabNavigationBar.class, CreateWorldScreen.class
+		assertEquals(MenuTabBar.class, CreateWorldScreen.class
 				.getDeclaredField(WorldCreationScreenHandler.TAB_NAVIGATION_BAR_FIELD).getType());
 	}
 

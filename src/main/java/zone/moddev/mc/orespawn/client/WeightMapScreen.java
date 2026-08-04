@@ -71,7 +71,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 		if (removeAction != null) {
 			addRenderableWidget(OreSpawnScreenLayout.plainButton(width - 105, 8, 95, 20,
 					Component.literal("Remove rule"), button -> {
-						removeAction.run(); minecraft.setScreen(parent);
+						removeAction.run(); minecraft.gui.setScreen(parent);
 					}));
 		}
 	}
@@ -89,7 +89,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 	}
 
 	private void saveAndClose() {
-		if (savePage()) minecraft.setScreen(parent);
+		if (savePage()) minecraft.gui.setScreen(parent);
 	}
 
 	private boolean savePage() {
@@ -112,7 +112,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

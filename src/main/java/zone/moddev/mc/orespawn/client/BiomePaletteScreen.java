@@ -39,7 +39,7 @@ final class BiomePaletteScreen extends OreSpawnScreen {
 			int y = listTop + i * 24;
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y,
 					contentWidth - removeWidth - 5, 20, Component.literal(id),
-					button -> minecraft.setScreen(new BiomePlacementScreen(this, session,
+					button -> minecraft.gui.setScreen(new BiomePlacementScreen(this, session,
 							dimension, id))));
 			addRenderableWidget(OreSpawnScreenLayout.plainButton(left + contentWidth - removeWidth, y, removeWidth, 20,
 					Component.translatable("button.orespawn.remove"),
@@ -54,9 +54,9 @@ final class BiomePaletteScreen extends OreSpawnScreen {
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - 150, controlsY, 150, 20,
 				Component.translatable("button.orespawn.add_biome"),
-				button -> minecraft.setScreen(new BiomePickerScreen(this, session, id -> {
+				button -> minecraft.gui.setScreen(new BiomePickerScreen(this, session, id -> {
 					session.addBiomePlacement(dimension, id);
-					minecraft.setScreen(new BiomePlacementScreen(this, session, dimension, id));
+					minecraft.gui.setScreen(new BiomePlacementScreen(this, session, dimension, id));
 				}))));
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
@@ -67,7 +67,7 @@ final class BiomePaletteScreen extends OreSpawnScreen {
 		init();
 	}
 
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.gui.setScreen(parent); }
 
 	@Override
 	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

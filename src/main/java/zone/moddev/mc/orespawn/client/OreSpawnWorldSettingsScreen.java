@@ -288,7 +288,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 			return;
 		}
 		WorldGeologyProfileManager.setPendingNewWorldProfile(session.profile());
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	private void syncSession() {
@@ -302,42 +302,42 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 
 	private void openMaterials() {
 		syncSession();
-		minecraft.setScreen(new GeologyMaterialsScreen(this, session));
+		minecraft.gui.setScreen(new GeologyMaterialsScreen(this, session));
 	}
 
 	private void configureRockStrata() {
 		syncSession();
 		session.configureDefaultVanillaStrata();
-		minecraft.setScreen(new GeologyMaterialsScreen(this, session));
+		minecraft.gui.setScreen(new GeologyMaterialsScreen(this, session));
 	}
 
 	private void openGeomes() {
 		syncSession();
-		minecraft.setScreen(new GeomeBiomeScreen(this, session));
+		minecraft.gui.setScreen(new GeomeBiomeScreen(this, session));
 	}
 
 	private void openAdvanced() {
 		syncSession();
-		minecraft.setScreen(new AdvancedGeologySettingsScreen(this, session));
+		minecraft.gui.setScreen(new AdvancedGeologySettingsScreen(this, session));
 	}
 
 	private void openBiomeWorldMaterials() {
 		syncSession();
-		minecraft.setScreen(new BiomeWorldMaterialsScreen(this, session));
+		minecraft.gui.setScreen(new BiomeWorldMaterialsScreen(this, session));
 	}
 
 	private void openFluidDeposits() {
 		syncSession();
-		minecraft.setScreen(new FluidDepositListScreen(this, session));
+		minecraft.gui.setScreen(new FluidDepositListScreen(this, session));
 	}
 
 	private void openHelp() {
-		minecraft.setScreen(new OreSpawnGuideScreen(this));
+		minecraft.gui.setScreen(new OreSpawnGuideScreen(this));
 	}
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

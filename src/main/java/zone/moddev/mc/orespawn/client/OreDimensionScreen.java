@@ -299,12 +299,12 @@ final class OreDimensionScreen extends OreSpawnScreen {
 		JsonObject weights = rule.has("geomes") && rule.get("geomes").isJsonObject()
 				? rule.getAsJsonObject("geomes") : new JsonObject();
 		rule.add("geomes", weights);
-		minecraft.setScreen(new WeightMapScreen(this, Component.translatable("screen.orespawn.geome_weights"),
+		minecraft.gui.setScreen(new WeightMapScreen(this, Component.translatable("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
 	private void saveAndClose() {
-		if (save()) minecraft.setScreen(parent);
+		if (save()) minecraft.gui.setScreen(parent);
 	}
 
 	private boolean save() {
@@ -368,7 +368,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 		if (ore.has(section) && ore.get(section).isJsonObject()) {
 			ore.getAsJsonObject(section).remove(dimensionId);
 		}
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	private JsonObject rule() {
@@ -429,7 +429,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override
