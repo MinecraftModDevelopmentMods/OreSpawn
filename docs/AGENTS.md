@@ -1,7 +1,7 @@
-# OreSpawn Documentation For Coding Agents
+# OreSpawn Documentation Map
 
-This index is for coding agents working on other mods or modpacks that integrate
-with OreSpawn. Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+This index is for navigating the documentation to learn how to integrate with and to use OreSpawn with a mod or modpack.
+Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 Use the focused guides for implementation details:
 
