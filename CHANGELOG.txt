@@ -1,3 +1,10 @@
+Version 4.0.5
+
+* Complete native translations for every shipped non-English locale
+* Add automatic fresh-and-reload validation for provider-owned custom biomes
+* Correct NeoForge biome terminology while retaining the Minecraft 1.21.1 ResourceLocation API
+* Preserve public API major 1 and provider/global/world schemas 4/6/5
+
 Version 3.3.1
 
 * Fix several bugs

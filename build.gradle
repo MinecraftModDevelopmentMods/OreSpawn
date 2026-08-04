@@ -98,6 +98,17 @@ runs {
                 file('src/generated/resources/').absolutePath, '--existing',
                 file('src/main/resources/').absolutePath
     }
+
+    ['Fresh', 'Reload'].each { String phase ->
+        register("biomeIntegration${phase}") {
+            runType 'server'
+            workingDirectory layout.buildDirectory.dir('biome-integration-run')
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'cakeworld.biomeIntegrationPhase', phase.toLowerCase(Locale.ROOT)
+            argument '--nogui'
+            modSource project.sourceSets.main
+        }
+    }
 }
 
 configurations {
@@ -187,6 +198,88 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def biomeIntegrationClasses = layout.buildDirectory.dir('biome-integration-fixture/classes')
+def compileBiomeIntegrationTestMod = tasks.register('compileBiomeIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(biomeIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    })
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+def biomeIntegrationTestModJar = tasks.register('biomeIntegrationTestModJar', Jar) {
+    dependsOn compileBiomeIntegrationTestMod
+    archiveFileName = 'cakeworldprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('biome-integration-fixture')
+    from biomeIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def biomeIntegrationRunDirectory = layout.buildDirectory.dir('biome-integration-run')
+def prepareBiomeIntegrationTest = tasks.register('prepareBiomeIntegrationTest') {
+    dependsOn biomeIntegrationTestModJar
+    doLast {
+        File runDirectory = biomeIntegrationRunDirectory.get().asFile
+        delete runDirectory
+        runDirectory.mkdirs()
+        copy {
+            from biomeIntegrationTestModJar.flatMap { it.archiveFile }
+            into biomeIntegrationRunDirectory.map { it.dir('mods') }
+        }
+        new File(runDirectory, 'server.properties').setText('''\
+level-name=biome-integration-world
+level-seed=-4965128775892001975
+level-type=minecraft:normal
+online-mode=false
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runBiomeIntegrationFresh') {
+        dependsOn prepareBiomeIntegrationTest
+    } else if (name == 'runBiomeIntegrationReload') {
+        dependsOn 'runBiomeIntegrationFresh'
+    }
+}
+
+def biomeIntegrationTest = tasks.register('biomeIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies a provider-owned custom biome in fresh and reloaded normal terrain.'
+    dependsOn 'runBiomeIntegrationReload'
+    doLast {
+        File marker = biomeIntegrationRunDirectory.get().file(
+                'biome-integration-world/cakeworld-biome-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Biome integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Biome integration reload was not verified: ${marker}")
+        }
+        File eulaFile = biomeIntegrationRunDirectory.get().file('eula.txt').asFile
+        if (eulaFile.exists()) {
+            throw new GradleException("Biome integration test unexpectedly created an EULA file: ${eulaFile}")
+        }
+        logger.lifecycle('Custom-biome integration verified: {} chunks, {} top blocks, {} filler blocks, fresh + reload',
+                result.getProperty('matching_chunks'), result.getProperty('pink_surface'),
+                result.getProperty('white_filler'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn biomeIntegrationTest
 }
 
 idea {
