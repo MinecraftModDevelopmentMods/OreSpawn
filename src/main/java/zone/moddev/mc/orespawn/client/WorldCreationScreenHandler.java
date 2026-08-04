@@ -14,9 +14,9 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.tabs.Tab;
 import net.minecraft.client.gui.components.tabs.TabManager;
-import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
@@ -29,7 +29,7 @@ import zone.moddev.mc.orespawn.OreSpawn;
 @EventBusSubscriber(modid = OreSpawn.MODID, value = Dist.CLIENT)
 public final class WorldCreationScreenHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
-	// Minecraft 26.1 ships unobfuscated executables, so reflection must use the
+	// Minecraft 26.1+ ships unobfuscated executables, so reflection must use the
 	// actual target field names rather than the old runtime-obfuscated names.
 	static final String TAB_MANAGER_FIELD = "tabManager";
 	static final String TAB_NAVIGATION_BAR_FIELD = "tabNavigationBar";
@@ -49,7 +49,7 @@ public final class WorldCreationScreenHandler {
 	}
 
 	private static void installOreSpawnTab(ScreenEvent.Init.Post event, CreateWorldScreen screen) {
-		TabNavigationBar original = findNavigationBar(event);
+		MenuTabBar original = findNavigationBar(event);
 		if (original == null) {
 			return;
 		}
@@ -74,7 +74,7 @@ public final class WorldCreationScreenHandler {
 					WorldGeologyProfileManager.pendingNewWorldProfile(),
 					DimensionDiscovery.availableDimensionIds(screen));
 			tabs.add(oreSpawnTab);
-			TabNavigationBar replacement = TabNavigationBar.builder(tabManager, screen.width)
+			MenuTabBar replacement = MenuTabBar.builder(tabManager, screen.width)
 					.addTabs(tabs.toArray(new Tab[0]))
 					.build();
 			writePrivate(screen, TAB_NAVIGATION_BAR_FIELD, replacement);
@@ -91,17 +91,17 @@ public final class WorldCreationScreenHandler {
 		}
 	}
 
-	private static TabNavigationBar findNavigationBar(ScreenEvent.Init.Post event) {
+	private static MenuTabBar findNavigationBar(ScreenEvent.Init.Post event) {
 		for (net.minecraft.client.gui.components.events.GuiEventListener listener : event.getListenersList()) {
-			if (listener instanceof TabNavigationBar) {
-				return (TabNavigationBar) listener;
+			if (listener instanceof MenuTabBar) {
+				return (MenuTabBar) listener;
 			}
 		}
 		return null;
 	}
 
 	private static void installFallbackButton(ScreenEvent.Init.Post event, CreateWorldScreen screen,
-			TabNavigationBar navigation) {
+			MenuTabBar navigation) {
 		List<AbstractWidget> nativeTabs = new ArrayList<>();
 		for (net.minecraft.client.gui.components.events.GuiEventListener child : navigation.children()) {
 			if (child instanceof AbstractWidget) {
@@ -128,7 +128,7 @@ public final class WorldCreationScreenHandler {
 	}
 
 	private static void openSettings(CreateWorldScreen screen) {
-		Minecraft.getInstance().setScreen(new OreSpawnWorldSettingsScreen(
+		Minecraft.getInstance().gui.setScreen(new OreSpawnWorldSettingsScreen(
 				screen, WorldGeologyProfileManager.pendingNewWorldProfile(),
 				DimensionDiscovery.availableDimensionIds(screen)));
 	}

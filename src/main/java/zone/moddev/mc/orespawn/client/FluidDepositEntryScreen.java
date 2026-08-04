@@ -60,7 +60,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 
 		Button output = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
 				left, 70, contentWidth, 20, fluidName(outputBlock), button -> {
-					if (!ids.isEmpty()) minecraft.setScreen(
+					if (!ids.isEmpty()) minecraft.gui.setScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
 		OreSpawnScreenLayout.explain(output, "tooltip.orespawn.fluid.dimension_settings");
@@ -76,7 +76,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, listTop + (i * 24),
-					contentWidth, 20, Component.literal(id), button -> minecraft.setScreen(
+					contentWidth, 20, Component.literal(id), button -> minecraft.gui.setScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, id))));
 		}
 		Button previous = addRenderableWidget(OreSpawnScreenLayout.plainButton(left, controlsY, 45, 20,
@@ -101,14 +101,14 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 				CommonComponents.GUI_DONE, button -> onClose()));
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, width / 2 + 55, height - 28, 100, 20,
 				Component.translatable("button.orespawn.remove"), button -> {
-					session.removeFluidDeposit(depositId); minecraft.setScreen(parent);
+					session.removeFluidDeposit(depositId); minecraft.gui.setScreen(parent);
 				}));
 	}
 
 	private void addDimension(String id) {
 		JsonObject dimensions = dimensions();
 		if (!dimensions.has(id)) dimensions.add(id, defaultDimension(id));
-		minecraft.setScreen(new FluidDepositDimensionScreen(this, session, depositId, id));
+		minecraft.gui.setScreen(new FluidDepositDimensionScreen(this, session, depositId, id));
 	}
 
 	private static JsonObject defaultDimension(String id) {
@@ -168,7 +168,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 	}
 
 	protected void rebuildWidgets() { clearWidgets(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.gui.setScreen(parent); }
 
 	@Override
 	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

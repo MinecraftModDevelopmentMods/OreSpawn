@@ -152,16 +152,16 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 
 	private void openEntry(String id) {
 		if (tab == MaterialTab.ORES) {
-			minecraft.setScreen(new OreEntryScreen(this, session, id));
+			minecraft.gui.setScreen(new OreEntryScreen(this, session, id));
 		} else if (tab == MaterialTab.UNASSIGNED) {
-			minecraft.setScreen(new BlockAssignmentScreen(this, session, id));
+			minecraft.gui.setScreen(new BlockAssignmentScreen(this, session, id));
 		} else {
-			minecraft.setScreen(new RockEntryScreen(this, session, id));
+			minecraft.gui.setScreen(new RockEntryScreen(this, session, id));
 		}
 	}
 
 	private void openBlockPicker() {
-		minecraft.setScreen(new BlockPickerScreen(this, session, tab));
+		minecraft.gui.setScreen(new BlockPickerScreen(this, session, tab));
 	}
 
 	private void removeEntry(String id) {
@@ -172,7 +172,7 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

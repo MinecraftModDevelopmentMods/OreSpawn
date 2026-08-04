@@ -1191,7 +1191,7 @@ final class GeologyEditorSession {
 
 	private static boolean knownBiome(String id) {
 		if (!validResource(id)) return false;
-		// Biomes are dynamic in 1.21.1. Before the live registry is available,
+		// Biomes are dynamic registry entries. Before the live registry is available,
 		// retain syntactically valid provider IDs for server-side resolution.
 		return zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.keys().isEmpty()
 				|| zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.contains(Identifier.parse(id));

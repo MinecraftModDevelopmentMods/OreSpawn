@@ -114,7 +114,7 @@ public static final RegistrySetBuilder BIOME_BUILDER = new RegistrySetBuilder()
 datagen that deliberately supplies every required climate, effects, spawn, and
 generation field. Both helpers create datapack content; live placement belongs
 in the provider declaration. Do not use a static `DeferredRegister<Biome>`:
-Minecraft 26.1 biomes belong to the dynamic world registry.
+Minecraft 26.2 biomes belong to the dynamic world registry.
 
 ## Surfaces And Materials
 

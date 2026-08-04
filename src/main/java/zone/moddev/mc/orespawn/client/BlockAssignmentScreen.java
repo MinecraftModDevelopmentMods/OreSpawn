@@ -45,19 +45,19 @@ final class BlockAssignmentScreen extends OreSpawnScreen {
 
 	private void assignRock(RockFamily family) {
 		session.assignRock(blockId, family);
-		if (session.section("rocks").has(blockId)) minecraft.setScreen(parent);
+		if (session.section("rocks").has(blockId)) minecraft.gui.setScreen(parent);
 		else error = Component.literal("Unknown or unsuitable block: " + blockId);
 	}
 
 	private void assignOre() {
 		session.assignOre(blockId);
-		if (session.section("ores").has(blockId)) minecraft.setScreen(parent);
+		if (session.section("ores").has(blockId)) minecraft.gui.setScreen(parent);
 		else error = Component.literal("Unknown or unsuitable block: " + blockId);
 	}
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

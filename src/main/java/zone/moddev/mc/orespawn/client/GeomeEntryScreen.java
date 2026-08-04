@@ -72,7 +72,7 @@ final class GeomeEntryScreen extends OreSpawnScreen {
 				families.addProperty(family.configName, weight(familyWeights.get(family)));
 			}
 			error = null;
-			minecraft.setScreen(parent);
+			minecraft.gui.setScreen(parent);
 		} catch (NumberFormatException e) {
 			error = Component.literal("Weights must be between 0 and 1000.");
 		}
@@ -96,7 +96,7 @@ final class GeomeEntryScreen extends OreSpawnScreen {
 
 	private void remove() {
 		session.removeGeome(geomeId);
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	private static JsonObject object(JsonObject parent, String key) {
@@ -114,7 +114,7 @@ final class GeomeEntryScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override

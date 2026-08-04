@@ -52,7 +52,7 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 				this, font, left, y, width - 65, 20,
 				label(key, value), button -> {
 					save();
-					minecraft.setScreen(new MaterialBlockPickerScreen(this, session, fluid,
+					minecraft.gui.setScreen(new MaterialBlockPickerScreen(this, session, fluid,
 							id -> session.setMaterialBlock(dimension, key, id, fluid)));
 				}), materialHelp(key)));
 		Button clear = addRenderableWidget(OreSpawnScreenLayout.plainButton(
@@ -84,7 +84,7 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	}
 
 	protected void rebuildWidgets() { clearWidgets(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.gui.setScreen(parent); }
 
 	@Override
 	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

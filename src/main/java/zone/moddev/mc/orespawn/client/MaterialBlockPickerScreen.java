@@ -67,7 +67,7 @@ final class MaterialBlockPickerScreen extends OreSpawnScreen {
 	}
 
 	protected void rebuildWidgets() { clearWidgets(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.gui.setScreen(parent); }
 
 	@Override
 	protected void renderForeground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

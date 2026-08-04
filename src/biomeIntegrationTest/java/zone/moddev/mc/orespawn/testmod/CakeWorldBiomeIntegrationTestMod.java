@@ -18,6 +18,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -156,12 +157,12 @@ public final class CakeWorldBiomeIntegrationTestMod {
 						int blockX = (chunkX << 4) + localX;
 						int blockZ = (chunkZ << 4) + localZ;
 						if (chunk.getBlockState(block.set(blockX, surfaceY, blockZ))
-								.is(Blocks.PINK_CONCRETE)) {
+								.is(Blocks.CONCRETE.pick(DyeColor.PINK))) {
 							pinkSurface++;
 						}
 						for (int depth = 1; depth <= 3; depth++) {
 							if (chunk.getBlockState(block.set(blockX, surfaceY - depth, blockZ))
-									.is(Blocks.WHITE_CONCRETE)) {
+									.is(Blocks.CONCRETE.pick(DyeColor.WHITE))) {
 								whiteFiller++;
 							}
 						}

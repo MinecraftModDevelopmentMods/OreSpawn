@@ -71,7 +71,7 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 	private void choose(String blockId) {
 		String ruleId = session.assignFluidDeposit(blockId);
 		if (ruleId != null) {
-			minecraft.setScreen(new FluidDepositEntryScreen(parent, session, ruleId));
+			minecraft.gui.setScreen(new FluidDepositEntryScreen(parent, session, ruleId));
 		}
 	}
 
@@ -91,7 +91,7 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.gui.setScreen(parent);
 	}
 
 	@Override
