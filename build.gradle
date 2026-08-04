@@ -98,6 +98,17 @@ runs {
                 file('src/generated/resources/').absolutePath, '--existing',
                 file('src/main/resources/').absolutePath
     }
+
+    ['Fresh', 'Reload'].each { String phase ->
+        register("biomeIntegration${phase}") {
+            runType 'gameTestServer'
+            workingDirectory layout.buildDirectory.dir('biome-integration-run')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'cakeworldprobe'
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'cakeworld.biomeIntegrationPhase', phase.toLowerCase(Locale.ROOT)
+            modSource project.sourceSets.main
+        }
+    }
 }
 
 configurations {
@@ -186,6 +197,75 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def biomeIntegrationClasses = layout.buildDirectory.dir('biome-integration-fixture/classes')
+def compileBiomeIntegrationTestMod = tasks.register('compileBiomeIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(biomeIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    })
+    options.release = 16
+    options.encoding = 'UTF-8'
+}
+
+def biomeIntegrationTestModJar = tasks.register('biomeIntegrationTestModJar', Jar) {
+    dependsOn compileBiomeIntegrationTestMod
+    archiveFileName = 'cakeworldprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('biome-integration-fixture')
+    manifest {
+        attributes 'MixinConfigs': 'cakeworldprobe.mixins.json'
+    }
+    from biomeIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def biomeIntegrationRunDirectory = layout.buildDirectory.dir('biome-integration-run')
+def prepareBiomeIntegrationTest = tasks.register('prepareBiomeIntegrationTest') {
+    dependsOn biomeIntegrationTestModJar
+    doLast {
+        delete biomeIntegrationRunDirectory
+        copy {
+            from biomeIntegrationTestModJar.flatMap { it.archiveFile }
+            into biomeIntegrationRunDirectory.map { it.dir('mods') }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runBiomeIntegrationFresh') {
+        dependsOn prepareBiomeIntegrationTest
+    } else if (name == 'runBiomeIntegrationReload') {
+        dependsOn 'runBiomeIntegrationFresh'
+    }
+}
+
+def biomeIntegrationTest = tasks.register('biomeIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies a provider-owned custom biome in fresh and reloaded normal terrain.'
+    dependsOn 'runBiomeIntegrationReload'
+    doLast {
+        File marker = biomeIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/cakeworld-biome-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Biome integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Biome integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Custom-biome integration verified: {} chunks, {} top blocks, {} filler blocks, fresh + reload',
+                result.getProperty('matching_chunks'), result.getProperty('pink_surface'),
+                result.getProperty('white_filler'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn biomeIntegrationTest
 }
 
 idea {

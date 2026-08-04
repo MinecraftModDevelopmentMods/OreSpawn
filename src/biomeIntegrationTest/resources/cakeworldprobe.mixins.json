@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "zone.moddev.mc.orespawn.testmod.mixin",
+  "mixins": [
+    "GameTestMainUtilMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
