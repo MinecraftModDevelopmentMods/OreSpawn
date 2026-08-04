@@ -1,0 +1,24 @@
+license="LGPL-2.1"
+
+[[mods]]
+modId="cakeworldprobe"
+version="1"
+displayName="CakeWorld Biome Integration Test"
+description='''Test-only provider mod for OreSpawn's custom-biome integration gate.'''
+
+[[mixins]]
+config="cakeworldprobe.mixins.json"
+
+[[dependencies.cakeworldprobe]]
+modId="orespawn"
+type="required"
+versionRange="[4.0.5,5.0.0)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.cakeworldprobe]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.11]"
+ordering="NONE"
+side="BOTH"
