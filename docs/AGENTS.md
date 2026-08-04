@@ -1,6 +1,7 @@
 # OreSpawn Documentation Map
 
-This index is for navigating the documentation to learn how to integrate with and to use OreSpawn with a mod or modpack.
+This index is for navigating the documentation to learn how to integrate with
+and use OreSpawn with a mod or modpack.
 Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 Use the focused guides for implementation details:
