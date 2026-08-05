@@ -77,7 +77,7 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-Minecraft 26.1 biomes are dynamic registry entries. Ship them as
+Minecraft 26.2 biomes are dynamic registry entries. Ship them as
 `data/<modid>/worldgen/biome/<name>.json`, or generate that data through a
 `RegistrySetBuilder`. `OreSpawnBiomes.copyAndRegister` is an optional bootstrap
 helper for cloning a known biome while generating the datapack entry:
