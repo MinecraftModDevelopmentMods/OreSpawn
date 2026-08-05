@@ -135,9 +135,11 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 });
 ```
 
-`sampleColumn` performs one biome/geome classification and reuses it for every
-Y query. Sampling is read-only and is intended for gameplay decisions,
-diagnostics, and compatible generation outside OreSpawn's block loops.
+`sampleColumn` performs one biome/dominant-geome classification and reuses its
+transition scores for every Y query. `rockAt` therefore matches Stable Layers
+when a close geome transition is staggered by layer. Sampling is read-only and
+is intended for gameplay decisions, diagnostics, and compatible generation
+outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using

@@ -277,7 +277,7 @@ tasks.configureEach {
 
 def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
     group = 'verification'
-    description = 'Verifies exposed, underwater, and ceiling provider surfaces across fresh and reloaded normal terrain.'
+    description = 'Verifies provider surfaces and dynamic-biome geology across fresh and reloaded normal terrain.'
     dependsOn 'runSurfaceIntegrationReload'
     doLast {
         File marker = surfaceIntegrationRunDirectory.get().file(
@@ -290,7 +290,7 @@ def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
         if (result.getProperty('reload_verified') != 'true') {
             throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
-        logger.lifecycle('Provider surfaces verified: {} dimensions, {} columns each, fresh + reload',
+        logger.lifecycle('Provider surfaces and dynamic-biome geology verified: {} dimensions, {} columns each, fresh + reload',
                 result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
     }
 }
