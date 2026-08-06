@@ -1,6 +1,6 @@
 {
   "pack": {
-    "description": "OreSpawn custom-biome integration fixtures",
+    "description": "OreSpawn provider-surface integration fixtures",
     "max_format": 101,
     "min_format": [
       101,
