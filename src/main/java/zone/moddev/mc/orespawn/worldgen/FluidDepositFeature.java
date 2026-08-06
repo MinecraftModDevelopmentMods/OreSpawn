@@ -111,8 +111,9 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		for (BakedDeposit deposit : deposits) {
 			if (!deposit.acceptsBiome(biome)) continue;
 			if (!geomeClassified && deposit.usesGeomeWeights && config != null) {
+				Identifier biomeId = biome.unwrapKey().map(ResourceKey::identifier).orElse(null);
 				geome = classifier(dimension, world.getSeed(), config).classifyColumn(
-						biome.value(), centerX, centerZ, scratch.geomeValues(config.geomeCount()));
+						biome.value(), biomeId, centerX, centerZ, scratch.geomeValues(config.geomeCount()));
 				geomeClassified = true;
 			}
 			double frequency = geome < 0 ? deposit.frequency : deposit.frequency * deposit.geomeWeights[geome];

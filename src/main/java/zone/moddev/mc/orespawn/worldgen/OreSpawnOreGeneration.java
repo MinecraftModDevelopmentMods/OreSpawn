@@ -140,7 +140,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int geome = -1;
 		if (Level.OVERWORLD.equals(dimension)) {
-			geome = classifier(worldSeed).classifyColumn(biome.value(), centerX, centerZ,
+			Identifier biomeId = biome.unwrapKey().map(ResourceKey::identifier).orElse(null);
+			geome = classifier(worldSeed).classifyColumn(biome.value(), biomeId, centerX, centerZ,
 					scratch.geomeValues(geomeConfig.geomeCount()));
 		}
 

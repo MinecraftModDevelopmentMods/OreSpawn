@@ -18,6 +18,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class GeomeGeology {
+	private static final double GEOME_TRANSITION_SCORE_WIDTH = 0.125D;
 	private static final int[] LITHOLOGY_PHASES = {
 			0, 2, 1, 3,
 			3, 1, 2, 0,
@@ -34,6 +35,7 @@ public final class GeomeGeology {
 	private final short[] whiteNoiseArray;
 	private final boolean[] globallyContinuousLayers;
 	private final boolean[] regionallyVariedRocks;
+	private final int geomeTransitionPhase;
 	private final int layerThickness;
 	private final int formationRegionScale;
 	private final int familyDiversitySlots;
@@ -67,6 +69,7 @@ public final class GeomeGeology {
 		}
 
 		Random random = new Random(seed ^ 0x5EEDBEEFL);
+		geomeTransitionPhase = new Random(seed ^ 0x47454F4D4554524EL).nextInt(256);
 		whiteNoiseArray = new short[256];
 		for (int i = 0; i < whiteNoiseArray.length; i++) {
 			whiteNoiseArray[i] = (short) random.nextInt(0x7FFF);
@@ -109,7 +112,9 @@ public final class GeomeGeology {
 				long formationRegion = formationRegionAt(x, z);
 
 				if (stableLayers) {
-					changed |= replaceStableColumn(chunk, cursor, geomeIndex, baseRockValue,
+					int secondGeome = runnerUpGeome(regionalValues, geomeIndex);
+					changed |= replaceStableColumn(chunk, cursor, geomeIndex, secondGeome,
+							regionalValues, baseRockValue,
 							formationRegion, x, z, surfaceY, terrain);
 				} else {
 					for (int y = surfaceY; y >= chunk.getMinY(); y--) {
@@ -130,11 +135,14 @@ public final class GeomeGeology {
 	}
 
 	private boolean replaceStableColumn(ChunkAccess chunk, BlockPos.MutableBlockPos cursor, int geomeIndex,
-			int baseRockValue, long formationRegion, int x, int z, int surfaceY,
+			int secondGeome, double[] geomeScores, int baseRockValue,
+			long formationRegion, int x, int z, int surfaceY,
 			BakedTerrainDimension terrain) {
 		int layerIndex = Math.floorDiv(baseRockValue + surfaceY, layerThickness);
 		int layerStart = layerIndex * layerThickness;
-		BlockState replacement = pickStableReplacement(geomeIndex, formationRegion, layerIndex);
+		int layerGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
+				layerIndex, geomeTransitionPhase);
+		BlockState replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 		boolean changed = false;
 		cursor.set(x, surfaceY, z);
 
@@ -143,7 +151,9 @@ public final class GeomeGeology {
 			if (stratum < layerStart) {
 				layerIndex--;
 				layerStart -= layerThickness;
-				replacement = pickStableReplacement(geomeIndex, formationRegion, layerIndex);
+				layerGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
+						layerIndex, geomeTransitionPhase);
+				replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 			}
 			cursor.setY(y);
 			if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
@@ -157,7 +167,14 @@ public final class GeomeGeology {
 	public Block getStoneAt(Biome biome, int x, int y, int z, int surfaceY) {
 		double[] regionalValues = new double[config.geomeCount()];
 		int geomeIndex = classifyColumn(biome, x, z, regionalValues);
-		return pickReplacement(geomeIndex, stratumOffsetAt(x, z), formationRegionAt(x, z), x, y, z).getBlock();
+		int stratumOffset = stratumOffsetAt(x, z);
+		long formationRegion = formationRegionAt(x, z);
+		if (stableLayers) {
+			int layerIndex = Math.floorDiv(stratumOffset + y, layerThickness);
+			geomeIndex = pickStableLayerGeome(regionalValues, geomeIndex,
+					runnerUpGeome(regionalValues, geomeIndex), layerIndex, geomeTransitionPhase);
+		}
+		return pickReplacement(geomeIndex, stratumOffset, formationRegion, x, y, z).getBlock();
 	}
 
 	public String getGeomeName(Biome biome, int x, int z) {
@@ -176,18 +193,24 @@ public final class GeomeGeology {
 	public ColumnSample sampleColumn(Biome biome, Identifier biomeId, int x, int z) {
 		double[] regionalValues = new double[config.geomeCount()];
 		int geomeIndex = classifyColumn(biome, biomeId, x, z, regionalValues);
-		return new ColumnSample(geomeIndex, stratumOffsetAt(x, z), formationRegionAt(x, z), x, z);
+		return new ColumnSample(geomeIndex, runnerUpGeome(regionalValues, geomeIndex),
+				regionalValues, stratumOffsetAt(x, z), formationRegionAt(x, z), x, z);
 	}
 
 	public final class ColumnSample {
 		private final int geomeIndex;
+		private final int secondGeome;
+		private final double[] geomeScores;
 		private final int stratumOffset;
 		private final long formationRegion;
 		private final int x;
 		private final int z;
 
-		private ColumnSample(int geomeIndex, int stratumOffset, long formationRegion, int x, int z) {
+		private ColumnSample(int geomeIndex, int secondGeome, double[] geomeScores,
+				int stratumOffset, long formationRegion, int x, int z) {
 			this.geomeIndex = geomeIndex;
+			this.secondGeome = secondGeome;
+			this.geomeScores = geomeScores;
 			this.stratumOffset = stratumOffset;
 			this.formationRegion = formationRegion;
 			this.x = x;
@@ -199,7 +222,13 @@ public final class GeomeGeology {
 		}
 
 		public BlockState rockAt(int y) {
-			return pickReplacement(geomeIndex, stratumOffset, formationRegion, x, y, z);
+			int selectedGeome = geomeIndex;
+			if (stableLayers) {
+				int layerIndex = Math.floorDiv(stratumOffset + y, layerThickness);
+				selectedGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
+						layerIndex, geomeTransitionPhase);
+			}
+			return pickReplacement(selectedGeome, stratumOffset, formationRegion, x, y, z);
 		}
 
 		public RockFamily familyAt(int y) {
@@ -207,13 +236,13 @@ public final class GeomeGeology {
 		}
 	}
 
-	private int classifyColumn(Biome biome, Identifier biomeId, int x, int z, double[] regionalValues) {
+	int classifyColumn(Biome biome, Identifier biomeId, int x, int z, double[] regionalValues) {
 		for (int i = 0; i < regionalValues.length; i++) {
 			regionalValues[i] = regionalNoise.valueAt(x + config.noiseOffsetX[i], z + config.noiseOffsetZ[i]);
 		}
 
 		double boundary = boundaryNoise.valueAt(x, z);
-		return config.pickGeome(biome, biomeId, regionalValues, boundary);
+		return config.scoreGeomes(biome, biomeId, regionalValues, boundary);
 	}
 
 	private net.minecraft.world.level.block.state.BlockState pickReplacement(int geomeIndex, int baseRockValue,
@@ -269,7 +298,13 @@ public final class GeomeGeology {
 		return Math.floorDiv(stratumOffsetAt(x, z) + y, layerThickness);
 	}
 
-	Block getStoneAt(int geomeIndex, int stratumOffset, long formationRegion, int x, int y, int z) {
+	Block getStoneAt(int geomeIndex, double[] geomeScores, int stratumOffset,
+			long formationRegion, int x, int y, int z) {
+		if (stableLayers) {
+			int layerIndex = Math.floorDiv(stratumOffset + y, layerThickness);
+			geomeIndex = pickStableLayerGeome(geomeScores, geomeIndex,
+					runnerUpGeome(geomeScores, geomeIndex), layerIndex, geomeTransitionPhase);
+		}
 		return pickReplacement(geomeIndex, stratumOffset, formationRegion, x, y, z).getBlock();
 	}
 
@@ -296,6 +331,44 @@ public final class GeomeGeology {
 		hash = (hash ^ (hash >>> 16)) * 0x7FEB352D;
 		hash = (hash ^ (hash >>> 15)) * 0x846CA68B;
 		return hash ^ (hash >>> 16);
+	}
+
+	static int pickStableLayerGeome(double[] geomeScores, int firstGeome, int secondGeome,
+			int layerIndex, int phase) {
+		if (firstGeome == secondGeome) {
+			return firstGeome;
+		}
+		int lowerGeome = Math.min(firstGeome, secondGeome);
+		int higherGeome = Math.max(firstGeome, secondGeome);
+		double higherFraction = 0.5D + ((geomeScores[higherGeome] - geomeScores[lowerGeome])
+				/ (2.0D * GEOME_TRANSITION_SCORE_WIDTH));
+		if (higherFraction <= 0.0D) {
+			return lowerGeome;
+		}
+		if (higherFraction >= 1.0D) {
+			return higherGeome;
+		}
+
+		// Bit reversal supplies an allocation-free low-discrepancy sequence. Nearby
+		// layers therefore cross a close geome boundary at different horizontal
+		// positions instead of moving as one full-height wall.
+		int pairPhase = (lowerGeome * 53) + (higherGeome * 97);
+		int layerBucket = (layerIndex + phase + pairPhase) & 0xFF;
+		int threshold = Integer.reverse(layerBucket) >>> 24;
+		return ((threshold + 0.5D) / 256.0D) < higherFraction ? higherGeome : lowerGeome;
+	}
+
+	private static int runnerUpGeome(double[] geomeScores, int bestGeome) {
+		if (geomeScores.length < 2) {
+			return bestGeome;
+		}
+		int second = bestGeome == 0 ? 1 : 0;
+		for (int i = 0; i < geomeScores.length; i++) {
+			if (i != bestGeome && geomeScores[i] > geomeScores[second]) {
+				second = i;
+			}
+		}
+		return second;
 	}
 
 	private static double faciesFraction(double regionScale) {
