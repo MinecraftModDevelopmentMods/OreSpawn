@@ -99,7 +99,7 @@ applying small changes. This is useful for a simple content mod:
 ```java
 RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
+    () -> ForgeRegistries.BIOMES.getValue(ResourceLocation.parse("minecraft:plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
 ```
 
