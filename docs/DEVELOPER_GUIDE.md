@@ -85,11 +85,11 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 
 private void enqueueWorldgen(InterModEnqueueEvent event) {
-    ResourceLocation tin = new ResourceLocation("examplemod", "tin_ore");
+    Identifier tin = Identifier.parse("examplemod:tin_ore");
     WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
         .ore(tin, ore -> ore
             .retrogen(false)
@@ -100,7 +100,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
-					.hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables"))))
+					.hostTag(Identifier.parse("minecraft:stone_ore_replaceables"))))
         .build();
 
     OreSpawnApi.enqueue(provider);

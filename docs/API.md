@@ -21,7 +21,7 @@ Submit declarations during `InterModEnqueueEvent`:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .rock(new ResourceLocation("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
+    .rock(Identifier.parse("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
         .depth(12, 36)
         .weight(1.2)
         .oreReplaceable(true))
@@ -33,7 +33,7 @@ For a complete ore-only Java example, including dimensions, height curves,
 patterns, and host tags, see `DEVELOPER_GUIDE.md`.
 
 Definitions are immutable after `build()`. Registry references remain
-`ResourceLocation` values until OreSpawn validates and bakes them. Provider
+`Identifier` values until OreSpawn validates and bakes them. Provider
 messages are processed through Forge IMC and frozen at load completion; direct
 cross-mod mutation during parallel setup is unsupported.
 
@@ -56,9 +56,9 @@ FormationDefinition formations = FormationDefinition.builder()
     .waviness(FormationPreset.LARGE)
     .build();
 FluidDepositDefinition brine = FluidDepositDefinition.builder(
-        new ResourceLocation("examplemod", "fluid_deposit/brine"),
-        new ResourceLocation("examplemod", "brine"))
-    .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
+        Identifier.parse("examplemod:fluid_deposit/brine"),
+        Identifier.parse("examplemod:brine"))
+    .dimension(Identifier.parse("minecraft:overworld"), placement -> placement
         .yRange(-48, 32)
         .attempts(0.05)
         .radius(4, 10)
@@ -66,7 +66,7 @@ FluidDepositDefinition brine = FluidDepositDefinition.builder(
         .maxLobes(3)
         .minSolidCover(2)
         .minSolidShell(1)
-        .hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables")))
+        .hostTag(Identifier.parse("minecraft:stone_ore_replaceables")))
     .build();
 
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
@@ -83,7 +83,7 @@ provides a small optional convenience for cloning a known biome:
 ```java
 RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
+    () -> ForgeRegistries.BIOMES.getValue(Identifier.parse("minecraft:plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
 ```
 
@@ -91,21 +91,21 @@ Then declare placement and materials through the same provider:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .biomePalette(new ResourceLocation("examplemod", "overworld"),
-        new ResourceLocation("minecraft", "overworld"), palette -> palette
+    .biomePalette(Identifier.parse("examplemod:overworld"),
+        Identifier.parse("minecraft:overworld"), palette -> palette
             .mode(BiomePlacementMode.REPLACE)
             .scope(BiomeReplacementScope.MINECRAFT_ONLY)
             .regionSize(BiomeRegionSize.LARGE)
             .coverage(1.0)
             .fallbackWeight(0.0)
-            .biome(new ResourceLocation("examplemod", "candy_plains"), biome -> biome
+            .biome(Identifier.parse("examplemod:candy_plains"), biome -> biome
                 .weight(3.0)
-                .similarBiome(new ResourceLocation("minecraft", "plains"))))
-    .dimensionMaterials(new ResourceLocation("examplemod", "overworld_materials"),
-        new ResourceLocation("minecraft", "overworld"), materials -> materials
-            .defaultFluid(new ResourceLocation("examplemod", "lemonade"))
-            .snowBlock(new ResourceLocation("examplemod", "icing"))
-            .iceBlock(new ResourceLocation("examplemod", "frozen_lemonade")))
+                .similarBiome(Identifier.parse("minecraft:plains"))))
+    .dimensionMaterials(Identifier.parse("examplemod:overworld_materials"),
+        Identifier.parse("minecraft:overworld"), materials -> materials
+            .defaultFluid(Identifier.parse("examplemod:lemonade"))
+            .snowBlock(Identifier.parse("examplemod:icing"))
+            .iceBlock(Identifier.parse("examplemod:frozen_lemonade")))
     .build();
 ```
 
