@@ -88,6 +88,24 @@ minecraft {
             applyBenchmarkProperties(delegate, '4', '3', '256')
         }
 
+        ['Fresh', 'Reload'].each { String phase ->
+            register("surfaceIntegration${phase}") {
+                mainClass = 'net.minecraftforge.bootstrap.ForgeBootstrap'
+                args '--launchTarget', 'forge_userdev_server_gametest', '--gameDir', '.'
+                environment 'MCP_MAPPINGS', "official_${minecraft_version}"
+                workingDir = layout.buildDirectory.dir('surface-integration-run')
+                systemProperty 'forge.enableGameTest', 'true'
+                systemProperty 'forge.enabledGameTestNamespaces', 'surfaceprobe'
+                systemProperty 'forge.logging.console.level', 'info'
+                systemProperty 'surfaceprobe.integrationPhase', phase.toLowerCase(Locale.ROOT)
+                mods {
+                    create(mod_id) {
+                        source sourceSets.main
+                    }
+                }
+            }
+        }
+
         register('data') {
             workingDir = layout.projectDirectory.dir('run-data')
             args '--mod', mod_id, '--all',
@@ -205,6 +223,74 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
+def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(surfaceIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    })
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+def surfaceIntegrationTestModJar = tasks.register('surfaceIntegrationTestModJar', Jar) {
+    dependsOn compileSurfaceIntegrationTestMod
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('surface-integration-fixture')
+    manifest {
+        attributes 'MixinConfigs': 'surfaceprobe.mixins.json'
+    }
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def surfaceIntegrationRunDirectory = layout.buildDirectory.dir('surface-integration-run')
+def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTest') {
+    dependsOn surfaceIntegrationTestModJar
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        copy {
+            from surfaceIntegrationTestModJar.flatMap { it.archiveFile }
+            into surfaceIntegrationRunDirectory.map { it.dir('mods') }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runSurfaceIntegrationFresh') {
+        dependsOn prepareSurfaceIntegrationTest
+    } else if (name == 'runSurfaceIntegrationReload') {
+        dependsOn 'runSurfaceIntegrationFresh'
+    }
+}
+
+def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies exposed, underwater, and ceiling provider surfaces across fresh and reloaded normal terrain.'
+    dependsOn 'runSurfaceIntegrationReload'
+    doLast {
+        File marker = surfaceIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/surfaceprobe-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Surface integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Provider surfaces verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn surfaceIntegrationTest
 }
 
 // ForgeGradle 7 generates a launch for every source set, but its ordinary
