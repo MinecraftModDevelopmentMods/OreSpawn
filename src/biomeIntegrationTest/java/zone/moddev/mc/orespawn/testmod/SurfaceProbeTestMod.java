@@ -9,13 +9,20 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
+import zone.moddev.mc.orespawn.api.GeologyFamily;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.ProviderStatus;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
+import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -41,6 +48,7 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.fml.common.Mod;
@@ -66,6 +74,13 @@ public final class SurfaceProbeTestMod {
 	private static final Identifier ROOFED_ID = Identifier.parse("minecraft:the_nether");
 	private static final Identifier BIOME_A = Identifier.parse(MODID + ":surface_a");
 	private static final Identifier BIOME_B = Identifier.parse(MODID + ":surface_b");
+	private static final Identifier PROBE_GEOME = Identifier.parse(MODID + ":dynamic_biome_geome");
+	private static final Identifier[] BUILT_IN_GEOMES = {
+			Identifier.parse("orespawn:stable_craton"), Identifier.parse("orespawn:mountain_belt"),
+			Identifier.parse("orespawn:volcanic_arc"), Identifier.parse("orespawn:sedimentary_basin"),
+			Identifier.parse("orespawn:coastal_shelf"), Identifier.parse("orespawn:arid_basin"),
+			Identifier.parse("orespawn:wetland_basin"), Identifier.parse("orespawn:glacial_highland")
+	};
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
@@ -84,15 +99,74 @@ public final class SurfaceProbeTestMod {
 		BusGroup modBusGroup = context.getModBusGroup();
 		FEATURES.register(modBusGroup);
 		InterModEnqueueEvent.getBus(modBusGroup).addListener(this::enqueueProvider);
+		ServerAboutToStartEvent.BUS.addListener(this::enableGeologyProbe);
 		ServerStartedEvent.BUS.addListener(this::auditGeneratedSurfaces);
 	}
 
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
+		addDynamicBiomeGeology(provider);
 		addPalette(provider, "open_palette", OPEN_ID, false);
 		addPalette(provider, "roofed_palette", ROOFED_ID, true);
 		if (!OreSpawnApi.enqueue(provider.build())) {
 			throw new IllegalStateException("Could not enqueue surface probe provider");
+		}
+	}
+
+	private static void addDynamicBiomeGeology(WorldgenProvider.Builder provider) {
+		provider.geome(PROBE_GEOME, geome -> geome
+				.baseWeight(0.0D)
+				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
+		provider.rock(Identifier.parse(MODID + ":rock/dynamic_biome"), blockId(Blocks.CALCITE),
+				GeologyFamily.SEDIMENTARY, rock -> {
+					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
+					rock.geomeWeight(PROBE_GEOME, 1.0D);
+					for (Identifier geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
+				});
+		provider.rock(Identifier.parse(MODID + ":rock/fallback"), blockId(Blocks.BASALT),
+				GeologyFamily.SEDIMENTARY, rock -> {
+					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
+					rock.geomeWeight(PROBE_GEOME, 0.0D);
+					for (Identifier geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
+				});
+		provider.biome(BIOME_A, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
+		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
+	}
+
+	private void enableGeologyProbe(ServerAboutToStartEvent event) {
+		Path profile = event.getServer().getWorldPath(LevelResource.ROOT).resolve("serverconfig")
+				.resolve("orespawn-worldgen.json");
+		JsonObject root;
+		try (var reader = Files.newBufferedReader(profile)) {
+			root = new JsonParser().parse(reader).getAsJsonObject();
+		} catch (IOException | RuntimeException exception) {
+			throw new IllegalStateException("Could not read the test-owned End geology profile", exception);
+		}
+		try {
+			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
+			if (terrain == null) {
+				terrain = new JsonObject();
+				root.add("terrain_dimensions", terrain);
+			}
+			JsonObject end = new JsonObject();
+			end.addProperty("enabled", true);
+			end.add("biome_ids", new JsonArray());
+			JsonArray namespaces = new JsonArray();
+			namespaces.add(MODID);
+			end.add("biome_namespaces", namespaces);
+			JsonArray hosts = new JsonArray();
+			hosts.add(blockId(Blocks.END_STONE).toString());
+			end.add("host_blocks", hosts);
+			end.add("host_tags", new JsonArray());
+			terrain.add(OPEN_ID.toString(), end);
+			try (var writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
+			}
+		} catch (IOException | RuntimeException exception) {
+			throw new IllegalStateException("Could not write the test-owned End geology profile", exception);
+		}
+		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+			throw new IllegalStateException("Could not reload the test-owned End geology profile");
 		}
 	}
 
@@ -189,6 +263,7 @@ public final class SurfaceProbeTestMod {
 		long top = 0L;
 		long underwater = 0L;
 		long filler = 0L;
+		long geology = 0L;
 		long ceiling = 0L;
 		long roofTop = 0L;
 		int biomeA = 0;
@@ -231,6 +306,13 @@ public final class SurfaceProbeTestMod {
 									"provider filler depth " + depth);
 							filler++;
 						}
+						if (!roofed) {
+							for (int depth = 6; depth <= 8; depth++) {
+								assertBlock(chunk, pos, x, groundY - depth, z,
+										Blocks.CALCITE.defaultBlockState(), "dynamic-biome geome rock");
+								geology++;
+							}
+						}
 						if (roofed) {
 							Identifier ceilingBiome = biomeId(level.getBiome(
 									pos.set(x, groundY + 8, z)));
@@ -255,13 +337,15 @@ public final class SurfaceProbeTestMod {
 
 		if (top != EXPECTED_COLUMNS - 9 || underwater != 9 || filler != EXPECTED_FILLER
 				|| biomeA == 0 || biomeB == 0 || edgeChanges == 0 || sentinels != 9 * 4
+				|| geology != (roofed ? 0 : EXPECTED_FILLER)
 				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS))) {
 			throw new IllegalStateException("Incomplete surface audit for " + level.dimension().identifier()
 					+ ": top=" + top + ", underwater=" + underwater + ", filler=" + filler
 					+ ", biomeA=" + biomeA + ", biomeB=" + biomeB + ", edges=" + edgeChanges
-					+ ", sentinels=" + sentinels + ", ceiling=" + ceiling + ", roofTop=" + roofTop);
+					+ ", sentinels=" + sentinels + ", geology=" + geology
+					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop);
 		}
-		return new AuditResult(top, underwater, filler, ceiling, roofTop,
+		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
 				biomeA, biomeB, edgeChanges, sentinels);
 	}
 
@@ -369,6 +453,7 @@ public final class SurfaceProbeTestMod {
 			values.setProperty(prefix + "top", Long.toString(result.top()));
 			values.setProperty(prefix + "underwater", Long.toString(result.underwater()));
 			values.setProperty(prefix + "filler", Long.toString(result.filler()));
+			values.setProperty(prefix + "geology", Long.toString(result.geology()));
 			values.setProperty(prefix + "ceiling", Long.toString(result.ceiling()));
 			values.setProperty(prefix + "roof_top", Long.toString(result.roofTop()));
 			values.setProperty(prefix + "biome_a", Integer.toString(result.biomeA()));
@@ -446,6 +531,11 @@ public final class SurfaceProbeTestMod {
 				for (int depth = 1; depth <= 3; depth++) {
 					chunk.setBlockState(pos.set(x, groundY - depth, z), Blocks.DIRT.defaultBlockState(), 0);
 				}
+				if (!roofed) {
+					for (int depth = 6; depth <= 8; depth++) {
+						chunk.setBlockState(pos.set(x, groundY - depth, z), Blocks.END_STONE.defaultBlockState(), 0);
+					}
+				}
 				chunk.setBlockState(pos.set(x, groundY - 5, z),
 						concreteBlock(DyeColor.BLACK).defaultBlockState(), 0);
 				if (roofed) {
@@ -513,7 +603,7 @@ public final class SurfaceProbeTestMod {
 	private record Material(BlockState top, BlockState filler,
 			BlockState underwater, BlockState ceiling) { }
 
-	private record AuditResult(long top, long underwater, long filler,
+	private record AuditResult(long top, long underwater, long filler, long geology,
 			long ceiling, long roofTop, int biomeA, int biomeB,
 			int edgeChanges, int sentinels) { }
 }
