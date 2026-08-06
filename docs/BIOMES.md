@@ -99,7 +99,7 @@ applying small changes. This is useful for a simple content mod:
 ```java
 RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
+    () -> ForgeRegistries.BIOMES.getValue(Identifier.parse("minecraft:plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
 ```
 
@@ -117,6 +117,16 @@ Biome surfaces support:
 - `underwater_block`: exposed ground below sea level;
 - `ceiling_block`: optional underside material;
 - `filler_depth`: 0-16 blocks.
+
+Provider surfaces run during `LOCAL_MODIFICATIONS`: after Minecraft has built
+base surfaces and lakes, but before structures and vegetation. That ordering
+lets OreSpawn replace the actual exposed ground while preserving later trees,
+plants, authored structures, and block entities. In ceiling dimensions,
+`ceiling_block` applies to the roof underside and does not replace the roof top.
+
+Surface correction is generation-only. Installing or updating OreSpawn does
+not rewrite already generated chunks; travel into new terrain to see a changed
+provider surface definition.
 
 Dimension materials support the ordinary aquifer fluid, a deep aquifer fluid
 and threshold, and replacements for vanilla snow and ice. OreSpawn converts

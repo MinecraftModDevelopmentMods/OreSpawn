@@ -1,6 +1,6 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.21.1.
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.21.11.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
@@ -42,6 +42,9 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+Stable Layers honours exact biome-ID geome influences on dynamic biome
+registries and spreads close geome transitions across layers rather than
+changing an entire vertical rock column at one boundary.
 
 To move a configured single-player world to a dedicated server, copy the
 world's `serverconfig/orespawn-worldgen.json` with the world and install the
@@ -79,9 +82,20 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 Use Java 21 from the repository root:
 
 ```powershell
-.\gradlew.bat test processResources build javadoc --no-daemon
-.\gradlew.bat genEclipseRuns eclipse --no-daemon
+.\gradlew.bat clean build javadoc --no-daemon
+.\gradlew.bat genEclipseRuns --no-daemon
 ```
+
+`build` runs the standard `check` lifecycle. In addition to the JUnit suite,
+that lifecycle packages a test-only provider mod and verifies exposed,
+underwater, filler, and ceiling surfaces in open and ceiling normal-noise
+dimensions. It also proves later vegetation, structures, and block entities
+survive, verifies identifier-weighted geology in a dynamic custom biome, then
+reopens and checks the exact saved world. The fixture is not included in
+OreSpawn's published jars.
+
+Import or refresh the project with Eclipse Buildship. ForgeGradle 7's legacy
+`eclipse` task produces Java-only metadata and must not be used for this branch.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

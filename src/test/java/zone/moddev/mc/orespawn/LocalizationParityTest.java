@@ -9,9 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.gson.JsonElement;
@@ -21,8 +21,51 @@ import org.junit.jupiter.api.Test;
 
 class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
-	private static final Set<String> REQUIRED_LOCALES = new HashSet<>(Arrays.asList(
-			"pt_br.json", "ru_ru.json", "ko_kr.json", "ja_jp.json"));
+	private static final Set<String> EXPECTED_LOCALES = Set.of(
+			"de_au.json", "de_de.json", "en_ca.json", "en_en.json",
+			"en_gb.json", "en_pt.json", "en_us.json", "es_es.json",
+			"es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
+			"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json");
+	/**
+	 * Brand names, format-only values, canonical engine/pattern names, and words
+	 * whose spelling is already valid in at least one shipped target language.
+	 * Human-facing prose must never be added here merely to make this test pass.
+	 */
+	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES = Map.ofEntries(
+			Map.entry("button.orespawn.world_settings", Set.of(
+					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
+					"zh_cn.json")),
+			Map.entry("button.orespawn.biome_available", Set.of(
+					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
+					"zh_cn.json")),
+			Map.entry("option.orespawn.mod_filter", Set.of(
+					"de_au.json", "de_de.json", "fr_ca.json", "fr_fr.json")),
+			Map.entry("tab.orespawn.biomes", Set.of("fr_ca.json", "fr_fr.json")),
+			Map.entry("tab.orespawn.geomes", Set.of("de_au.json", "de_de.json")),
+			Map.entry("tab.orespawn.placement", Set.of("fr_ca.json", "fr_fr.json")),
+			Map.entry("tab.orespawn.biome_placement", Set.of("fr_ca.json", "fr_fr.json")),
+			Map.entry("tab.orespawn.biome_surface", Set.of("fr_ca.json", "fr_fr.json")),
+			Map.entry("guide.orespawn.biomes.title", Set.of("fr_ca.json", "fr_fr.json")),
+			Map.entry("value.orespawn.geology_mode.geome", Set.of(
+					"es_es.json", "es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
+					"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json")),
+			Map.entry("value.orespawn.geology_mode.legacy", Set.of("de_au.json", "de_de.json")),
+			Map.entry("value.orespawn.height_distribution.uniform", Set.of("de_au.json", "de_de.json")),
+			Map.entry("value.orespawn.height_distribution.triangle", Set.of("pt_br.json")),
+			Map.entry("value.orespawn.ore_pattern.default", Set.of(
+					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
+					"zh_cn.json")),
+			Map.entry("value.orespawn.ore_pattern.precision", Set.of(
+					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
+					"zh_cn.json")),
+			Map.entry("value.orespawn.ore_pattern.underfluids", Set.of(
+					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
+					"zh_cn.json")));
 	private static final String[] MOJIBAKE_MARKERS = {
 			"\u00c3", "\u00c2", "\u00e2\u20ac", "\u00d0", "\u00d1",
 			"\u00e3\u0192", "\u00ea\u00b4", "\u00ec\u201a", "\u00e7\u0178"
@@ -37,6 +80,7 @@ class LocalizationParityTest {
 		JsonObject english = read(LANG_DIR.resolve("en_us.json"));
 		Set<String> englishKeys = english.keySet();
 		Set<String> localeFiles = new HashSet<>();
+		Set<String> observedIntentionalEnglishValues = new HashSet<>();
 
 		try (java.util.stream.Stream<Path> files = Files.list(LANG_DIR)) {
 			for (Path file : (Iterable<Path>) files
@@ -56,6 +100,15 @@ class LocalizationParityTest {
 							formatArgumentCount(translated.getAsString()),
 							locale + " changes the format arguments for " + key);
 					String value = translated.getAsString();
+					Set<String> intentionalLocales = INTENTIONAL_ENGLISH_VALUES
+							.getOrDefault(key, Set.of());
+					if (!locale.startsWith("en_") && !intentionalLocales.contains(locale)) {
+						assertFalse(value.equals(english.get(key).getAsString()),
+								locale + " still uses the English fallback for " + key);
+					}
+					if (!locale.startsWith("en_") && value.equals(english.get(key).getAsString())) {
+						observedIntentionalEnglishValues.add(key + "\n" + locale);
+					}
 					for (String marker : MOJIBAKE_MARKERS) {
 						assertFalse(value.contains(marker), locale + " contains broken UTF-8 text for " + key);
 					}
@@ -67,7 +120,16 @@ class LocalizationParityTest {
 			}
 		}
 
-		assertTrue(localeFiles.containsAll(REQUIRED_LOCALES), "Required new locales are missing");
+		assertEquals(EXPECTED_LOCALES, localeFiles,
+				"The shipped locale set changed; add complete translations and review this guardrail");
+		Set<String> expectedIntentionalEnglishValues = new HashSet<>();
+		for (Map.Entry<String, Set<String>> entry : INTENTIONAL_ENGLISH_VALUES.entrySet()) {
+			for (String locale : entry.getValue()) {
+				expectedIntentionalEnglishValues.add(entry.getKey() + "\n" + locale);
+			}
+		}
+		assertEquals(expectedIntentionalEnglishValues, observedIntentionalEnglishValues,
+				"The locale-specific English exception list is stale; review and narrow it");
 	}
 
 	private static int formatArgumentCount(String value) {

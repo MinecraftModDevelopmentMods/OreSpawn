@@ -26,12 +26,12 @@ public final class FormationSettings {
 	}
 
 	public enum Preset {
-		TINY("tiny", 64.0D, 25.0D, 128.0D, 1, 15.0D, 1, 0.00D, 12.0D, 32.0D, 0.0D, 0),
-		SMALL("small", 128.0D, 50.0D, 192.0D, 3, 30.0D, 2, 0.50D, 24.0D, 48.0D, 4.0D, 1),
-		AVERAGE("average", 256.0D, 100.0D, 256.0D, 8, 60.0D, 4, 0.85D, 48.0D, 64.0D, 12.0D, 2),
-		LARGE("large", 512.0D, 200.0D, 384.0D, 28, 90.0D, 5, 0.95D, 128.0D, 96.0D, 24.0D, 3),
-		HUGE("huge", 1024.0D, 640.0D, 512.0D, 128, 120.0D, 6, 1.00D, 288.0D, 128.0D, 48.0D, 4),
-		CUSTOM("custom", 256.0D, 100.0D, 256.0D, 8, 60.0D, 4, 0.85D, 48.0D, 64.0D, 12.0D, 2);
+		TINY("tiny", 64.0D, 25.0D, 128.0D, 1, 15.0D, 1, 0.00D, 12.0D, 48.0D, 4.0D, 1),
+		SMALL("small", 128.0D, 50.0D, 192.0D, 3, 30.0D, 2, 0.50D, 24.0D, 64.0D, 12.0D, 2),
+		AVERAGE("average", 256.0D, 100.0D, 256.0D, 8, 60.0D, 4, 0.85D, 48.0D, 96.0D, 24.0D, 3),
+		LARGE("large", 512.0D, 200.0D, 384.0D, 28, 90.0D, 5, 0.95D, 128.0D, 128.0D, 48.0D, 4),
+		HUGE("huge", 1024.0D, 640.0D, 512.0D, 128, 120.0D, 6, 1.00D, 288.0D, 192.0D, 96.0D, 5),
+		CUSTOM("custom", 256.0D, 100.0D, 256.0D, 8, 60.0D, 4, 0.85D, 48.0D, 96.0D, 24.0D, 3);
 
 		final String configName;
 		final double stratumWavelength;
