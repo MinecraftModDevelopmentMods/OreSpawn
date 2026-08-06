@@ -3,19 +3,19 @@ loaderVersion="[64,)"
 license="LGPL-2.1"
 
 [[mods]]
-modId="cakeworldprobe"
+modId="surfaceprobe"
 version="1"
-displayName="CakeWorld Biome Integration Test"
-description='''Test-only provider mod for OreSpawn's custom-biome integration gate.'''
+displayName="OreSpawn Surface Integration Test"
+description='''Test-only provider mod for OreSpawn's surface replacement gate.'''
 
-[[dependencies.cakeworldprobe]]
+[[dependencies.surfaceprobe]]
 modId="orespawn"
 mandatory=true
-versionRange="[4.0.5,5.0.0)"
+versionRange="[4.0.6,5.0.0)"
 ordering="AFTER"
 side="BOTH"
 
-[[dependencies.cakeworldprobe]]
+[[dependencies.surfaceprobe]]
 modId="minecraft"
 mandatory=true
 versionRange="[26.1.2,26.2,)"

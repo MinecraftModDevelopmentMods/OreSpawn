@@ -93,7 +93,7 @@ default states contain real fluids.
 
 ## Registering Biomes
 
-Minecraft 26.1 loads biomes from the dynamic datapack registry. A provider mod
+Minecraft 26.1.2 loads biomes from the dynamic datapack registry. A provider mod
 can ship a biome directly at
 `data/<modid>/worldgen/biome/<name>.json`. For generated data,
 `OreSpawnBiomes.copyAndRegister` copies a known biome's complete builder before
@@ -114,7 +114,7 @@ Add the bootstrap to the `RegistrySetBuilder` passed to Forge's
 `DatapackBuiltinEntriesProvider`. `blankAndRegister` starts from an empty
 builder and is intended for advanced providers that deliberately supply every
 required climate, effects, spawn, and generation field. Do not use
-`DeferredRegister<Biome>` on 26.1: it runs before the live datapack biome
+`DeferredRegister<Biome>` on 26.1.2: it runs before the live datapack biome
 registry exists. Both bootstrap helpers only generate content; placement still
 belongs in the OreSpawn provider declaration.
 
@@ -127,6 +127,16 @@ Biome surfaces support:
 - `underwater_block`: exposed ground below sea level;
 - `ceiling_block`: optional underside material;
 - `filler_depth`: 0-16 blocks.
+
+Provider surfaces run during `LOCAL_MODIFICATIONS`: after Minecraft has built
+base surfaces and lakes, but before structures and vegetation. That ordering
+lets OreSpawn replace the actual exposed ground while preserving later trees,
+plants, authored structures, and block entities. In ceiling dimensions,
+`ceiling_block` applies to the roof underside and does not replace the roof top.
+
+Surface correction is generation-only. Installing or updating OreSpawn does
+not rewrite already generated chunks; travel into new terrain to see a changed
+provider surface definition.
 
 Dimension materials support the ordinary aquifer fluid, a deep aquifer fluid
 and threshold, and replacements for vanilla snow and ice. OreSpawn converts
