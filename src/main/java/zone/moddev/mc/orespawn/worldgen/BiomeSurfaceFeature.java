@@ -13,7 +13,7 @@ import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 
-/** Applies explicit provider surface blocks after the source surface is built. */
+/** Applies provider surfaces after base surfaces and lakes, before late features. */
 public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration> {
 	public static final BiomeSurfaceFeature FEATURE = new BiomeSurfaceFeature();
 	private static Holder<PlacedFeature> placedFeature;
@@ -40,57 +40,99 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 		boolean changed = false;
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
+		boolean ceilingDimension = world.getLevel().dimensionType().hasCeiling();
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int x = minX + localX;
 				int z = minZ + localZ;
-				int y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ) - 1;
-				while (y > world.getMinY()) {
-					cursor.set(x, y, z);
-					BlockState state = chunk.getBlockState(cursor);
-					if (!state.isAir() && state.getFluidState().isEmpty()) break;
-					y--;
+				int groundY;
+				int ceilingY = Integer.MIN_VALUE;
+				if (ceilingDimension) {
+					long column = findCeilingAndGround(chunk, cursor, x, z,
+							world.getMaxY(), world.getMinY());
+					ceilingY = (int) (column >> 32);
+					groundY = (int) column;
+				} else {
+					groundY = findOpenGround(chunk, cursor, x, z, localX, localZ,
+							world.getMinY());
 				}
-				if (y <= world.getMinY()) continue;
-				cursor.set(x, y, z);
-				Surface surface = config.surfaces.get(world.getBiome(cursor));
-				if (surface == null) continue;
-				boolean underwater = !chunk.getBlockState(cursor.above()).getFluidState().isEmpty();
-				BlockState top = underwater && surface.underwater != null
-						? surface.underwater : surface.top;
-				if (top != null && replaceable(chunk.getBlockState(cursor))) {
-					chunk.setBlockState(cursor, top, 0);
-					changed = true;
+				if (groundY >= world.getMinY()) {
+					changed |= applyGround(chunk, world, config, cursor, x, z,
+							groundY, world.getMinY());
 				}
-				if (surface.filler != null) {
-					for (int depth = 1; depth <= surface.fillerDepth
-							&& y - depth >= world.getMinY(); depth++) {
-						cursor.set(x, y - depth, z);
-						if (!replaceable(chunk.getBlockState(cursor))) break;
-						chunk.setBlockState(cursor, surface.filler, 0);
-						changed = true;
-					}
-				}
-				if (surface.ceiling != null) {
-					changed |= applyCeiling(chunk, cursor, x, z, world.getMaxY(),
-							world.getMinY(), surface.ceiling);
+				if (ceilingY >= world.getMinY()) {
+					changed |= applyCeiling(chunk, world, config, cursor, x, z, ceilingY);
 				}
 			}
 		}
 		return changed;
 	}
 
-	private static boolean applyCeiling(ChunkAccess chunk, BlockPos.MutableBlockPos cursor,
-			int x, int z, int maxY, int minY, BlockState ceiling) {
-		for (int y = maxY - 1; y >= minY; y--) {
-			cursor.set(x, y, z);
-			BlockState state = chunk.getBlockState(cursor);
-			if (state.isAir() || !state.getFluidState().isEmpty()) continue;
-			if (!replaceable(state)) return false;
-			chunk.setBlockState(cursor, ceiling, 0);
-			return true;
+	private static int findOpenGround(ChunkAccess chunk, BlockPos.MutableBlockPos cursor,
+			int x, int z, int localX, int localZ, int minY) {
+		int y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ);
+		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		return y;
+	}
+
+	private static long findCeilingAndGround(ChunkAccess chunk,
+			BlockPos.MutableBlockPos cursor, int x, int z, int maxY, int minY) {
+		int y = maxY - 1;
+		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		if (y < minY) return pack(Integer.MIN_VALUE, Integer.MIN_VALUE);
+		while (y >= minY && !open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		int ceilingY = y + 1;
+		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		return pack(ceilingY, y);
+	}
+
+	private static boolean applyGround(ChunkAccess chunk, WorldGenLevel world,
+			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
+			int x, int z, int y, int minY) {
+		cursor.set(x, y, z);
+		BlockState source = chunk.getBlockState(cursor);
+		if (!replaceable(source)) return false;
+		Surface surface = config.surfaces.get(world.getBiome(cursor));
+		if (surface == null) return false;
+		cursor.set(x, y + 1, z);
+		boolean underwater = !chunk.getBlockState(cursor).getFluidState().isEmpty();
+		BlockState top = underwater && surface.underwater != null
+				? surface.underwater : surface.top;
+		boolean changed = false;
+		cursor.set(x, y, z);
+		if (top != null) {
+			chunk.setBlockState(cursor, top, 0);
+			changed = true;
 		}
-		return false;
+		if (surface.filler != null) {
+			for (int depth = 1; depth <= surface.fillerDepth && y - depth >= minY; depth++) {
+				cursor.set(x, y - depth, z);
+				if (!replaceable(chunk.getBlockState(cursor))) break;
+				chunk.setBlockState(cursor, surface.filler, 0);
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	private static boolean applyCeiling(ChunkAccess chunk, WorldGenLevel world,
+			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
+			int x, int z, int ceilingY) {
+		cursor.set(x, ceilingY, z);
+		BlockState source = chunk.getBlockState(cursor);
+		if (!replaceable(source)) return false;
+		Surface surface = config.surfaces.get(world.getBiome(cursor));
+		if (surface == null || surface.ceiling == null) return false;
+		chunk.setBlockState(cursor, surface.ceiling, 0);
+		return true;
+	}
+
+	private static boolean open(BlockState state) {
+		return state.isAir() || !state.getFluidState().isEmpty();
+	}
+
+	private static long pack(int high, int low) {
+		return ((long) high << 32) | (low & 0xFFFFFFFFL);
 	}
 
 	private static boolean replaceable(BlockState state) {

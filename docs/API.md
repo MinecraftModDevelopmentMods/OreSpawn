@@ -77,7 +77,7 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-Minecraft 26.1 biomes are dynamic registry entries. Ship them as
+Minecraft 26.2 biomes are dynamic registry entries. Ship them as
 `data/<modid>/worldgen/biome/<name>.json`, or generate that data through a
 `RegistrySetBuilder`. `OreSpawnBiomes.copyAndRegister` is an optional bootstrap
 helper for cloning a known biome while generating the datapack entry:
@@ -135,9 +135,11 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 });
 ```
 
-`sampleColumn` performs one biome/geome classification and reuses it for every
-Y query. Sampling is read-only and is intended for gameplay decisions,
-diagnostics, and compatible generation outside OreSpawn's block loops.
+`sampleColumn` performs one biome/dominant-geome classification and reuses its
+transition scores for every Y query. `rockAt` therefore matches Stable Layers
+when a close geome transition is staggered by layer. Sampling is read-only and
+is intended for gameplay decisions, diagnostics, and compatible generation
+outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
