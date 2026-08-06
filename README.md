@@ -42,6 +42,9 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+Stable Layers honours exact biome-ID geome influences on dynamic biome
+registries and spreads close geome transitions across layers rather than
+changing an entire vertical rock column at one boundary.
 
 To move a configured single-player world to a dedicated server, copy the
 world's `serverconfig/orespawn-worldgen.json` with the world and install the
@@ -84,9 +87,12 @@ Use Java 25 from the repository root:
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
-that lifecycle packages a test-only provider mod, loads its custom biome in
-normal noise terrain, and verifies both fresh generation and reopening the
-same saved world. The fixture is not included in OreSpawn's published jars.
+that lifecycle packages a test-only provider mod and verifies exposed,
+underwater, filler, and ceiling surfaces in open and ceiling normal-noise
+dimensions. It also proves later vegetation, structures, and block entities
+survive, verifies identifier-weighted geology in a dynamic custom biome, then
+reopens and checks the exact saved world. The fixture is not included in
+OreSpawn's published jars.
 
 Import or refresh the project with Eclipse Buildship. ForgeGradle 7's legacy
 `eclipse` task produces Java-only metadata and must not be used for this branch.

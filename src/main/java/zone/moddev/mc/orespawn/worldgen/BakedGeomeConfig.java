@@ -48,7 +48,7 @@ public final class BakedGeomeConfig {
 
 	BakedGeomeConfig(GeomeDefinition[] geomes, double geomeScale, double biomeInfluence,
 			double regionalNoiseInfluence, double boundaryNoiseInfluence, Map<Biome, double[]> biomeWeights,
-			RockEntry[] rocks, FormationSettings formations) {
+			Map<Identifier, double[]> biomeWeightsById, RockEntry[] rocks, FormationSettings formations) {
 		this.geomes = geomes;
 		this.geomeScale = geomeScale;
 		this.biomeInfluence = biomeInfluence;
@@ -57,7 +57,7 @@ public final class BakedGeomeConfig {
 		this.formations = formations;
 		this.familyDiversitySlots = formations.familyDiversitySlots();
 		this.biomeWeights = new IdentityHashMap<>(biomeWeights);
-		this.biomeWeightsById = new HashMap<>();
+		this.biomeWeightsById = new HashMap<>(biomeWeightsById);
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
 			Identifier biomeId = ForgeRegistries.BIOMES.getKey(entry.getKey());
 			if (biomeId != null) {
@@ -106,6 +106,23 @@ public final class BakedGeomeConfig {
 			}
 		}
 
+		return bestIndex;
+	}
+
+	int scoreGeomes(Biome biome, Identifier biomeId, double[] regionalNoiseAndScores, double boundaryNoise) {
+		double[] weights = biomeWeightsFor(biome, biomeId);
+		double bestScore = Double.NEGATIVE_INFINITY;
+		int bestIndex = 0;
+		for (int i = 0; i < geomes.length; i++) {
+			double boundary = ((i & 1) == 0 ? boundaryNoise : -boundaryNoise) * boundaryNoiseInfluence;
+			double score = geomes[i].baseWeight + (weights[i] * biomeInfluence)
+					+ (regionalNoiseAndScores[i] * regionalNoiseInfluence) + boundary;
+			regionalNoiseAndScores[i] = score;
+			if (score > bestScore) {
+				bestScore = score;
+				bestIndex = i;
+			}
+		}
 		return bestIndex;
 	}
 
