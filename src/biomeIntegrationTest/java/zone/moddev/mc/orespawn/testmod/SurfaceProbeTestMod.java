@@ -250,6 +250,7 @@ public final class SurfaceProbeTestMod {
 
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
+		event.getServer().halt(false);
 	}
 
 	private static ServerLevel requireLevel(ServerStartedEvent event, ResourceKey<Level> key) {
