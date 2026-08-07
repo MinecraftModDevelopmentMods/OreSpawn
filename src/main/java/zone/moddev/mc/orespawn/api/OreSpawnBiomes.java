@@ -25,7 +25,9 @@ public final class OreSpawnBiomes {
 		Objects.requireNonNull(source, "source");
 		Objects.requireNonNull(edit, "edit");
 		return register.register(name, () -> {
-			Biome.BiomeBuilder builder = Biome.BiomeBuilder.from(source.get());
+			Biome sourceBiome = source.get();
+			Biome.BiomeBuilder builder = Biome.BiomeBuilder.from(sourceBiome)
+					.temperatureAdjustment(sourceBiome.climateSettings.temperatureModifier);
 			edit.accept(builder);
 			return builder.build();
 		});
