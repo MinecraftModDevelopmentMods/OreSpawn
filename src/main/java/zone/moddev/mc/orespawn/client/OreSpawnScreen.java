@@ -5,7 +5,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /**
- * Renders Minecraft's background and widgets before custom foreground text.
+ * Redraws Minecraft's background, then widgets and custom foreground text.
  */
 abstract class OreSpawnScreen extends Screen {
 	protected OreSpawnScreen(Component title) {
@@ -14,6 +14,7 @@ abstract class OreSpawnScreen extends Screen {
 
 	@Override
 	public final void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		super.render(graphics, mouseX, mouseY, partialTick);
 		renderForeground(graphics, mouseX, mouseY, partialTick);
 	}

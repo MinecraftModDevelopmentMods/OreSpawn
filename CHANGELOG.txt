@@ -6,6 +6,7 @@ Version 4.0.6
 * Honour exact biome-to-geome weights on dynamic biome registries.
 * Stagger close Stable Layers geome transitions by layer instead of changing a whole rock column at one boundary.
 * Recalibrate Stable Layers edge-detail presets so Average retains natural variation at later rock contacts.
+* Redraw OreSpawn editor backgrounds on Minecraft 1.20.1 so controls and tooltips do not persist between frames.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
