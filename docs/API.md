@@ -21,7 +21,7 @@ Submit declarations during `InterModEnqueueEvent`:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .rock(new ResourceLocation("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
+    .rock(ResourceLocation.parse("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
         .depth(12, 36)
         .weight(1.2)
         .oreReplaceable(true))
@@ -56,9 +56,9 @@ FormationDefinition formations = FormationDefinition.builder()
     .waviness(FormationPreset.LARGE)
     .build();
 FluidDepositDefinition brine = FluidDepositDefinition.builder(
-        new ResourceLocation("examplemod", "fluid_deposit/brine"),
-        new ResourceLocation("examplemod", "brine"))
-    .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
+        ResourceLocation.parse("examplemod:fluid_deposit/brine"),
+        ResourceLocation.parse("examplemod:brine"))
+    .dimension(ResourceLocation.parse("minecraft:overworld"), placement -> placement
         .yRange(-48, 32)
         .attempts(0.05)
         .radius(4, 10)
@@ -66,7 +66,7 @@ FluidDepositDefinition brine = FluidDepositDefinition.builder(
         .maxLobes(3)
         .minSolidCover(2)
         .minSolidShell(1)
-        .hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables")))
+        .hostTag(ResourceLocation.parse("minecraft:stone_ore_replaceables")))
     .build();
 
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
@@ -83,7 +83,7 @@ provides a small optional convenience for cloning a known biome:
 ```java
 RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
-    () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
+    () -> ForgeRegistries.BIOMES.getValue(ResourceLocation.parse("minecraft:plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
 ```
 
@@ -91,21 +91,21 @@ Then declare placement and materials through the same provider:
 
 ```java
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .biomePalette(new ResourceLocation("examplemod", "overworld"),
-        new ResourceLocation("minecraft", "overworld"), palette -> palette
+    .biomePalette(ResourceLocation.parse("examplemod:overworld"),
+        ResourceLocation.parse("minecraft:overworld"), palette -> palette
             .mode(BiomePlacementMode.REPLACE)
             .scope(BiomeReplacementScope.MINECRAFT_ONLY)
             .regionSize(BiomeRegionSize.LARGE)
             .coverage(1.0)
             .fallbackWeight(0.0)
-            .biome(new ResourceLocation("examplemod", "candy_plains"), biome -> biome
+            .biome(ResourceLocation.parse("examplemod:candy_plains"), biome -> biome
                 .weight(3.0)
-                .similarBiome(new ResourceLocation("minecraft", "plains"))))
-    .dimensionMaterials(new ResourceLocation("examplemod", "overworld_materials"),
-        new ResourceLocation("minecraft", "overworld"), materials -> materials
-            .defaultFluid(new ResourceLocation("examplemod", "lemonade"))
-            .snowBlock(new ResourceLocation("examplemod", "icing"))
-            .iceBlock(new ResourceLocation("examplemod", "frozen_lemonade")))
+                .similarBiome(ResourceLocation.parse("minecraft:plains"))))
+    .dimensionMaterials(ResourceLocation.parse("examplemod:overworld_materials"),
+        ResourceLocation.parse("minecraft:overworld"), materials -> materials
+            .defaultFluid(ResourceLocation.parse("examplemod:lemonade"))
+            .snowBlock(ResourceLocation.parse("examplemod:icing"))
+            .iceBlock(ResourceLocation.parse("examplemod:frozen_lemonade")))
     .build();
 ```
 
@@ -125,9 +125,11 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 });
 ```
 
-`sampleColumn` performs one biome/geome classification and reuses it for every
-Y query. Sampling is read-only and is intended for gameplay decisions,
-diagnostics, and compatible generation outside OreSpawn's block loops.
+`sampleColumn` performs one biome/dominant-geome classification and reuses its
+transition scores for every Y query. `rockAt` therefore matches Stable Layers
+when a close geome transition is staggered by layer. Sampling is read-only and
+is intended for gameplay decisions, diagnostics, and compatible generation
+outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
