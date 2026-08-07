@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
@@ -17,7 +17,7 @@ import net.minecraft.world.level.biome.Climate;
 
 /** Delegates biome choice first, then applies pre-baked provider palettes. */
 final class BiomeOverlaySource extends BiomeSource {
-	static final MapCodec<BiomeOverlaySource> CODEC = RecordCodecBuilder.mapCodec(instance ->
+	static final Codec<BiomeOverlaySource> CODEC = RecordCodecBuilder.create(instance ->
 			instance.group(BiomeSource.CODEC.fieldOf("delegate")
 					.forGetter(BiomeOverlaySource::delegate))
 					.apply(instance, delegate ->
@@ -46,7 +46,7 @@ final class BiomeOverlaySource extends BiomeSource {
 	}
 
 	@Override
-	protected MapCodec<? extends BiomeSource> codec() {
+	protected Codec<? extends BiomeSource> codec() {
 		return CODEC;
 	}
 

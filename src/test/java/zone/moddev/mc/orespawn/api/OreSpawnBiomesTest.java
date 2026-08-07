@@ -39,7 +39,7 @@ class OreSpawnBiomesTest {
 				builder -> builder.temperature(1.35F).downfall(0.15F));
 
 		Biome copy = registeredValue(biomes, registered);
-		assertEquals(ResourceLocation.fromNamespaceAndPath("test", "copied"), registered.getId());
+		assertEquals(new ResourceLocation("test", "copied"), registered.getId());
 		assertFalse(copy.getModifiedClimateSettings().hasPrecipitation());
 		assertEquals(1.35F, copy.getModifiedClimateSettings().temperature());
 		assertEquals(0.15F, copy.getModifiedClimateSettings().downfall());
@@ -65,7 +65,7 @@ class OreSpawnBiomesTest {
 						.generationSettings(BiomeGenerationSettings.EMPTY));
 
 		Biome biome = registeredValue(biomes, registered);
-		assertEquals(ResourceLocation.fromNamespaceAndPath("test", "blank"), registered.getId());
+		assertEquals(new ResourceLocation("test", "blank"), registered.getId());
 		assertFalse(biome.getModifiedClimateSettings().hasPrecipitation());
 		assertEquals(1.35F, biome.getModifiedClimateSettings().temperature());
 		assertEquals(0.15F, biome.getModifiedClimateSettings().downfall());

@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.worldgen;
 
 import java.util.List;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -18,7 +18,7 @@ import net.minecraftforge.common.world.ModifiableBiomeInfo.BiomeInfo;
  */
 public final class OreSpawnBiomeModifier implements BiomeModifier {
 	public static final OreSpawnBiomeModifier INSTANCE = new OreSpawnBiomeModifier();
-	public static final MapCodec<OreSpawnBiomeModifier> CODEC = MapCodec.unit(INSTANCE);
+	public static final Codec<OreSpawnBiomeModifier> CODEC = Codec.unit(INSTANCE);
 
 	private OreSpawnBiomeModifier() {
 	}
@@ -31,7 +31,7 @@ public final class OreSpawnBiomeModifier implements BiomeModifier {
 	}
 
 	@Override
-	public MapCodec<? extends BiomeModifier> codec() {
+	public Codec<? extends BiomeModifier> codec() {
 		return CODEC;
 	}
 

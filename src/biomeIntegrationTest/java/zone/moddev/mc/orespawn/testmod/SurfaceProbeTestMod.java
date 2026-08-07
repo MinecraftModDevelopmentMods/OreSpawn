@@ -41,7 +41,7 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -575,8 +575,7 @@ public final class SurfaceProbeTestMod {
 		world.setBlock(pos.set(minX + 10, chestY + 1, minZ + 10), Blocks.CHEST.defaultBlockState(), 2);
 		if (world.getBlockEntity(pos) instanceof ChestBlockEntity chest) {
 			ItemStack sentinel = new ItemStack(Items.DIAMOND);
-			sentinel.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
-					Component.literal(CHEST_ITEM_NAME));
+			sentinel.setHoverName(Component.literal(CHEST_ITEM_NAME));
 			chest.setItem(0, sentinel);
 			chest.setChanged();
 		}
