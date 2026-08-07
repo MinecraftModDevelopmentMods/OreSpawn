@@ -132,15 +132,13 @@ public final class GeomeDistributionSampler {
 			}
 
 			Biome[] biomePalette = new Biome[paletteSize];
+			ResourceLocation[] biomeIds = new ResourceLocation[paletteSize];
 			for (int index = 0; index < paletteSize; index++) {
 				int length = input.readUnsignedShort();
 				byte[] encoded = new byte[length];
 				input.readFully(encoded);
-				ResourceLocation biomeId = new ResourceLocation(new String(encoded, StandardCharsets.UTF_8));
-				biomePalette[index] = ForgeRegistries.BIOMES.getValue(biomeId);
-				if (biomePalette[index] == null) {
-					throw new IOException("Unknown biome " + biomeId + " in " + path);
-				}
+				biomeIds[index] = new ResourceLocation(new String(encoded, StandardCharsets.UTF_8));
+				biomePalette[index] = ForgeRegistries.BIOMES.getValue(biomeIds[index]);
 			}
 
 			int height = maxY - minY + 1;
@@ -153,9 +151,10 @@ public final class GeomeDistributionSampler {
 					}
 					input.readFully(rockMask);
 					Biome biome = biomePalette[biomeIndex];
+					ResourceLocation biomeId = biomeIds[biomeIndex];
 					int x = minX + xOffset;
 					int z = minZ + zOffset;
-					int geomeIndex = geology.classifyColumn(biome, x, z, regionalValues);
+					int geomeIndex = geology.classifyColumn(biome, biomeId, x, z, regionalValues);
 					int stratumOffset = geology.stratumOffsetAt(x, z);
 					long formationRegion = geology.formationRegionAt(x, z);
 					add(geomeCounts, config.geomeName(geomeIndex));
@@ -163,7 +162,7 @@ public final class GeomeDistributionSampler {
 						if ((rockMask[yIndex >>> 3] & (1 << (yIndex & 7))) == 0) {
 							continue;
 						}
-						Block block = geology.getStoneAt(geomeIndex, stratumOffset, formationRegion,
+						Block block = geology.getStoneAt(geomeIndex, regionalValues, stratumOffset, formationRegion,
 								x, minY + yIndex, z);
 						ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 						String rockId = id == null ? "<unregistered>" : id.toString();

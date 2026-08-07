@@ -186,6 +186,16 @@ minecraft {
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
         }
+
+		['Fresh', 'Reload'].each { String phase ->
+			create("surfaceIntegration${phase}") {
+				parent runs.server
+				workingDirectory layout.buildDirectory.dir('surface-integration-run').get().asFile
+				property 'forge.logging.console.level', 'info'
+				property 'surfaceprobe.integrationPhase', phase.toLowerCase(Locale.ROOT)
+				args '--nogui'
+			}
+		}
     }
 }
 
@@ -289,6 +299,84 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
+def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegrationTestMod', JavaCompile) {
+	dependsOn tasks.named('classes')
+	source fileTree('src/biomeIntegrationTest/java')
+	classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+	destinationDirectory.set(surfaceIntegrationClasses)
+	javaCompiler.set(javaToolchains.compilerFor {
+		languageVersion = JavaLanguageVersion.of(17)
+	})
+	options.release = 17
+	options.encoding = 'UTF-8'
+}
+
+def surfaceIntegrationTestModJar = tasks.register('surfaceIntegrationTestModJar', Jar) {
+	dependsOn compileSurfaceIntegrationTestMod
+	archiveFileName = 'surfaceprobe.jar'
+	destinationDirectory = layout.buildDirectory.dir('surface-integration-fixture')
+	from surfaceIntegrationClasses
+	from 'src/biomeIntegrationTest/resources'
+}
+
+def surfaceIntegrationRunDirectory = layout.buildDirectory.dir('surface-integration-run')
+def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTest') {
+	dependsOn surfaceIntegrationTestModJar
+	doLast {
+		File runDirectory = surfaceIntegrationRunDirectory.get().asFile
+		delete runDirectory
+		runDirectory.mkdirs()
+		copy {
+			from surfaceIntegrationTestModJar.flatMap { it.archiveFile }
+			into surfaceIntegrationRunDirectory.map { it.dir('mods') }
+		}
+		new File(runDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=0
+level-type=minecraft:normal
+online-mode=false
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+		new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+	}
+}
+
+tasks.configureEach {
+	if (name == 'runSurfaceIntegrationFresh') {
+		dependsOn prepareSurfaceIntegrationTest
+	} else if (name == 'runSurfaceIntegrationReload') {
+		dependsOn 'runSurfaceIntegrationFresh'
+	}
+}
+
+def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
+	group = 'verification'
+	description = 'Verifies provider surfaces and dynamic-biome geology across fresh and reloaded normal terrain.'
+	dependsOn 'runSurfaceIntegrationReload'
+	doLast {
+		File marker = surfaceIntegrationRunDirectory.get().file(
+				'surface-integration-world/surfaceprobe-integration.properties').asFile
+		if (!marker.isFile()) {
+			throw new GradleException("Surface integration completion marker is missing: ${marker}")
+		}
+		Properties result = new Properties()
+		marker.withInputStream { result.load(it) }
+		if (result.getProperty('reload_verified') != 'true') {
+			throw new GradleException("Surface integration reload was not verified: ${marker}")
+		}
+		logger.lifecycle('Provider surfaces and dynamic-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+				result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+	}
+}
+
+tasks.named('check') {
+	dependsOn surfaceIntegrationTest
 }
 
 // Keep every Eclipse launch input on one physical Gradle cache. Mixing Buildship's
@@ -463,6 +551,7 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
         }
 
         int changedLaunches = 0
+		int changedTestExclusions = 0
         if (eclipseLaunchDir.isDirectory()) {
             File eclipseClasses = file('bin/main').canonicalFile
             String modClasses = "${mod_id}%%${eclipseClasses.absolutePath}"
@@ -480,6 +569,27 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                         /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
                     "<mapEntry key=\"MOD_CLASSES\" value=\"${modClasses}\"/>"
                 }
+				String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+				String excludeTestAttribute =
+						"<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
+				String beforeTestExclusion = synced
+				if (synced.contains("key=\"${excludeTestKey}\"")) {
+					synced = synced.replaceFirst(
+							/<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+							excludeTestAttribute)
+				} else {
+					int launchHeaderEnd = synced.indexOf('\n', synced.indexOf('<launchConfiguration'))
+					if (launchHeaderEnd < 0) {
+						throw new GradleException("Malformed Eclipse Java launch configuration: ${launchFile}")
+					}
+					String lineSeparator = synced.contains('\r\n') ? '\r\n' : '\n'
+					synced = "${synced.substring(0, launchHeaderEnd + 1)}" +
+							"  ${excludeTestAttribute}${lineSeparator}" +
+							synced.substring(launchHeaderEnd + 1)
+				}
+				if (beforeTestExclusion != synced) {
+					changedTestExclusions++
+				}
                 if (original != synced) {
                     launchFile.setText(synced, 'UTF-8')
                     changedLaunches++
@@ -505,7 +615,7 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                 changedLaunchGroups++
             }
         }
-        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedLaunchGroups} direct project launches updated)")
+        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} test exclusions, ${changedLaunchGroups} direct project launches updated)")
     }
 }
 
