@@ -760,9 +760,6 @@ public final class WorldgenIntegrationManager {
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("biome placement is not an object: " + biomeId);
 			}
-			if (ForgeRegistries.BIOMES.getValue(biomeId) == null) {
-				throw new JsonSyntaxException("unknown biome in palette: " + biomeId);
-			}
 			JsonObject placement = entry.getValue().getAsJsonObject();
 			double weight = decimal(placement, "weight", 1.0D);
 			double minTemperature = decimal(placement, "min_temperature", -2.0D);

@@ -68,14 +68,21 @@ final class BiomeFeatureInstaller {
 				step(features, GenerationStep.Decoration.UNDERGROUND_DECORATION);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(undergroundDecoration);
 
-		List<Holder<PlacedFeature>> top =
-				step(features, GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		changed |= addUnique(top, FlatBedrockFeature.placedFeature());
-		changed |= addUnique(top, BiomeSurfaceFeature.placedFeature());
+		changed |= installSurfaceStages(features);
 
 		if (!changed) return;
 		ORIGINALS.putIfAbsent(biome, original);
 		biome.generationSettings = rebuild(original, features);
+	}
+
+	static boolean installSurfaceStages(List<List<Holder<PlacedFeature>>> features) {
+		List<Holder<PlacedFeature>> local =
+				step(features, GenerationStep.Decoration.LOCAL_MODIFICATIONS);
+		List<Holder<PlacedFeature>> top =
+				step(features, GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
+		boolean changed = addUnique(local, BiomeSurfaceFeature.placedFeature());
+		changed |= addUnique(top, FlatBedrockFeature.placedFeature());
+		return changed;
 	}
 
 	private static List<List<Holder<PlacedFeature>>> copyFeatures(

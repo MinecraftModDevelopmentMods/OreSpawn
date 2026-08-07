@@ -84,9 +84,11 @@ Use Java 17 from the repository root:
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
-that lifecycle packages a test-only provider mod, loads its custom biomes in
-normal-noise terrain, and verifies both fresh generation and reopening the
-same saved world. The fixture is not included in OreSpawn's published jars.
+that lifecycle packages a test-only provider mod and verifies exposed,
+underwater, filler, and ceiling surfaces in open and ceiling normal-noise
+dimensions. It also proves later vegetation, structures, and block entities
+survive, then reopens and checks the exact saved world. The fixture is not
+included in OreSpawn's published jars.
 
 Run both `genEclipseRuns` and `eclipse` after importing or refreshing this
 ForgeGradle 6 project in Eclipse.
