@@ -79,9 +79,17 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 Use Java 17 from the repository root:
 
 ```powershell
-.\gradlew.bat test processResources build javadoc --no-daemon
+.\gradlew.bat clean build javadoc --no-daemon
 .\gradlew.bat genEclipseRuns eclipse --no-daemon
 ```
+
+`build` runs the standard `check` lifecycle. In addition to the JUnit suite,
+that lifecycle packages a test-only provider mod, loads its custom biomes in
+normal-noise terrain, and verifies both fresh generation and reopening the
+same saved world. The fixture is not included in OreSpawn's published jars.
+
+Run both `genEclipseRuns` and `eclipse` after importing or refreshing this
+ForgeGradle 6 project in Eclipse.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included
