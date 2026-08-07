@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -288,11 +289,14 @@ public final class GeomeConfig {
 			return null;
 		}
 		Map<Biome, double[]> biomeWeights = bakeBiomeWeights(geomeIndexes, biomeRules, dictionaryRules);
+		Map<ResourceLocation, double[]> biomeWeightsById = bakeBiomeIdentifierWeights(geomeIndexes, biomeRules);
 
-		LOGGER.info("Baked OreSpawn geome config for '{}' with {} geomes, {} rock entries, {} biome profiles, and {} formations",
-				dimension, geomes.length, rocks.length, biomeWeights.size(), formations.algorithm.configName);
+		LOGGER.info("Baked OreSpawn geome config for '{}' with {} geomes, {} rock entries, "
+				+ "{} resolved biome profiles, {} identifier profiles, and {} formations",
+				dimension, geomes.length, rocks.length, biomeWeights.size(), biomeWeightsById.size(),
+				formations.algorithm.configName);
 		return new BakedGeomeConfig(geomes, geomeScale, biomeInfluence, regionalNoiseInfluence,
-				boundaryNoiseInfluence, biomeWeights, rocks, formations);
+				boundaryNoiseInfluence, biomeWeights, biomeWeightsById, rocks, formations);
 	}
 
 	private static JsonObject applyFreshWorldTemplate(JsonObject root) {
@@ -446,16 +450,16 @@ public final class GeomeConfig {
 				: stableLayers ? waviness.stableWavinessAmplitude : waviness.wavinessAmplitude;
 		double edgeWavelength = stableLayers
 				? irregularity == Preset.CUSTOM
-						? getBoundedDouble(custom, "edge_wavelength", 64.0D, 8.0D, 512.0D)
+						? getBoundedDouble(custom, "edge_wavelength", 96.0D, 8.0D, 512.0D)
 						: irregularity.stableEdgeWavelength
 				: 64.0D;
 		double edgeAmplitude = !stableLayers
 				? 0.0D
 				: irregularity == Preset.CUSTOM
-						? getBoundedDouble(custom, "edge_amplitude", 12.0D, 0.0D, 256.0D)
+						? getBoundedDouble(custom, "edge_amplitude", 24.0D, 0.0D, 256.0D)
 						: irregularity.stableEdgeAmplitude;
 		int edgeOctaves = irregularity == Preset.CUSTOM
-				? getBoundedInt(custom, "edge_octaves", stableLayers ? 2 : 4, 1, 8)
+				? getBoundedInt(custom, "edge_octaves", stableLayers ? 3 : 4, 1, 8)
 				: stableLayers ? irregularity.stableEdgeOctaves : irregularity.edgeOctaves;
 		double formationContinuity = continuity == Preset.CUSTOM
 				? getBoundedDouble(custom, "continuity", 0.85D, 0.0D, 1.0D)
@@ -1036,11 +1040,33 @@ public final class GeomeConfig {
 		return result;
 	}
 
+	static Map<ResourceLocation, double[]> bakeBiomeIdentifierWeights(Map<String, Integer> geomeIndexes,
+			Map<String, double[]> biomeRules) {
+		Map<ResourceLocation, double[]> result = new LinkedHashMap<>();
+		for (Entry<String, double[]> entry : biomeRules.entrySet()) {
+			try {
+				ResourceLocation biomeId = new ResourceLocation(entry.getKey());
+				double[] weights = new double[geomeIndexes.size()];
+				Arrays.fill(weights, 1.0D);
+				merge(weights, entry.getValue());
+				applyBiomeHeuristic(weights, geomeIndexes, biomeId, Float.NaN, Float.NaN);
+				result.put(biomeId, weights);
+			} catch (RuntimeException e) {
+				LOGGER.warn("Ignoring invalid OreSpawn biome rule ID '{}'", entry.getKey());
+			}
+		}
+		return result;
+	}
+
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, Biome biome) {
+		applyBiomeHeuristic(weights, geomeIndexes, biomeId,
+				biome.getBaseTemperature(), biome.getDownfall());
+	}
+
+	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
+			ResourceLocation biomeId, float temperature, float downfall) {
 		String biomeName = biomeId == null ? "" : biomeId.getPath();
-		float temperature = biome.getBaseTemperature();
-		float downfall = biome.getDownfall();
 
 		if (biomeName.contains("ocean") || biomeName.contains("river") || biomeName.contains("beach")
 				|| biomeName.contains("shore") || biomeName.contains("coast")
@@ -1523,8 +1549,8 @@ public final class GeomeConfig {
 		formations.addProperty("edge_irregularity", Preset.AVERAGE.configName);
 		formations.addProperty("formation_continuity", Preset.AVERAGE.configName);
 		formations.add("custom", customFormationConfig(
-				256.0D, 100.0D, 8, 48.0D, 2, 0.85D,
-				256.0D, 64.0D, 12.0D));
+				256.0D, 100.0D, 8, 48.0D, 3, 0.85D,
+				256.0D, 96.0D, 24.0D));
 		return formations;
 	}
 
