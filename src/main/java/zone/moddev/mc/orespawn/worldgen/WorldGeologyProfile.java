@@ -289,9 +289,9 @@ public final class WorldGeologyProfile {
 		custom.addProperty("vertical_thickness", 8);
 		custom.addProperty("waviness_wavelength", 256.0D);
 		custom.addProperty("waviness_amplitude", 48.0D);
-		custom.addProperty("edge_wavelength", 64.0D);
-		custom.addProperty("edge_amplitude", 12.0D);
-		custom.addProperty("edge_octaves", 2);
+		custom.addProperty("edge_wavelength", 96.0D);
+		custom.addProperty("edge_amplitude", 24.0D);
+		custom.addProperty("edge_octaves", 3);
 		custom.addProperty("continuity", 0.85D);
 		formations.add("custom", custom);
 		return formations;

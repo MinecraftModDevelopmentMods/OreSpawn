@@ -75,6 +75,21 @@ When a control is `custom`, its value comes from `formations.custom`:
 | `edge_octaves` | 1-8 | Number of boundary-detail scales |
 | `continuity` | 0-1 | Proportion of formations retaining global identity |
 
+For Stable Layers, the Edge Detail presets use these
+`wavelength / amplitude / octaves` values:
+
+| Preset | Edge detail |
+|---|---:|
+| Tiny | `48 / 4 / 1` |
+| Small | `64 / 12 / 2` |
+| Average | `96 / 24 / 3` |
+| Large | `128 / 48 / 4` |
+| Huge | `192 / 96 / 5` |
+
+Average is calibrated to retain visible variation at later layer contacts.
+Custom profiles keep their explicit values; these numbers are only used by the
+named presets and as defaults for new Custom settings.
+
 Cyano settings use `cyano.geome_size` (4-32767),
 `cyano.rock_layer_noise` (1-32767), and `cyano.rock_layer_thickness` (1-255).
 They are ignored by Sky.

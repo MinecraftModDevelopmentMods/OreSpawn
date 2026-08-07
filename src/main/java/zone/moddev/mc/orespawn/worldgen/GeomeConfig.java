@@ -450,16 +450,16 @@ public final class GeomeConfig {
 				: stableLayers ? waviness.stableWavinessAmplitude : waviness.wavinessAmplitude;
 		double edgeWavelength = stableLayers
 				? irregularity == Preset.CUSTOM
-						? getBoundedDouble(custom, "edge_wavelength", 64.0D, 8.0D, 512.0D)
+						? getBoundedDouble(custom, "edge_wavelength", 96.0D, 8.0D, 512.0D)
 						: irregularity.stableEdgeWavelength
 				: 64.0D;
 		double edgeAmplitude = !stableLayers
 				? 0.0D
 				: irregularity == Preset.CUSTOM
-						? getBoundedDouble(custom, "edge_amplitude", 12.0D, 0.0D, 256.0D)
+						? getBoundedDouble(custom, "edge_amplitude", 24.0D, 0.0D, 256.0D)
 						: irregularity.stableEdgeAmplitude;
 		int edgeOctaves = irregularity == Preset.CUSTOM
-				? getBoundedInt(custom, "edge_octaves", stableLayers ? 2 : 4, 1, 8)
+				? getBoundedInt(custom, "edge_octaves", stableLayers ? 3 : 4, 1, 8)
 				: stableLayers ? irregularity.stableEdgeOctaves : irregularity.edgeOctaves;
 		double formationContinuity = continuity == Preset.CUSTOM
 				? getBoundedDouble(custom, "continuity", 0.85D, 0.0D, 1.0D)
@@ -1549,8 +1549,8 @@ public final class GeomeConfig {
 		formations.addProperty("edge_irregularity", Preset.AVERAGE.configName);
 		formations.addProperty("formation_continuity", Preset.AVERAGE.configName);
 		formations.add("custom", customFormationConfig(
-				256.0D, 100.0D, 8, 48.0D, 2, 0.85D,
-				256.0D, 64.0D, 12.0D));
+				256.0D, 100.0D, 8, 48.0D, 3, 0.85D,
+				256.0D, 96.0D, 24.0D));
 		return formations;
 	}
 
