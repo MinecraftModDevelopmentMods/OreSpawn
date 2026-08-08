@@ -62,7 +62,7 @@
           "node_size": 4,
           "host_families": ["sedimentary", "metamorphic", "igneous_intrusive"],
           "host_blocks": [
-            { "block": "minecraft:deepslate", "weight": 0.75 }
+            { "block": "minecraft:stone", "weight": 0.75 }
           ]
         }
       }
@@ -87,7 +87,7 @@
           "min_solid_shell": 1,
           "host_families": ["sedimentary"],
           "host_blocks": [],
-          "host_tags": ["minecraft:stone_ore_replaceables"],
+          "host_tags": ["forge:stone"],
           "biome_ids": [],
           "excluded_biome_ids": [],
           "biome_dictionary": ["OCEAN"],

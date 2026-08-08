@@ -1,24 +1,24 @@
 package zone.moddev.mc.orespawn.client;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 final class DimensionMaterialsScreen extends Screen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
-	private EditBox deepY;
+	private TextFieldWidget deepY;
 
 	DimensionMaterialsScreen(Screen parent, GeologyEditorSession session, String dimension) {
-		super(new TranslatableComponent("screen.orespawn.dimension_materials"));
+		super(new TranslationTextComponent("screen.orespawn.dimension_materials"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -33,24 +33,24 @@ final class DimensionMaterialsScreen extends Screen {
 		int y = 58;
 		y = materialRow(left, y, contentWidth, materials, "default_fluid", true, true);
 		y = materialRow(left, y, contentWidth, materials, "deep_aquifer_fluid", true, false);
-		deepY = addRenderableWidget(new EditBox(font, left + contentWidth / 2, y,
-				contentWidth / 2, 20, new TranslatableComponent("option.orespawn.deep_aquifer_y")));
+		deepY = addButton(new TextFieldWidget(font, left + contentWidth / 2, y,
+				contentWidth / 2, 20, new TranslationTextComponent("option.orespawn.deep_aquifer_y")));
 		deepY.setValue(Integer.toString(integer(materials, "deep_aquifer_max_y", -54)));
 		deepY.active = false;
 		OreSpawnScreenLayout.explain(this, deepY, "tooltip.orespawn.material.deep_aquifer_y");
-		addRenderableWidget(new Button(left, y, contentWidth / 2 - 5, 20,
-				new TranslatableComponent("option.orespawn.deep_aquifer_y"), button -> { })).active = false;
+		addButton(new Button(left, y, contentWidth / 2 - 5, 20,
+				new TranslationTextComponent("option.orespawn.deep_aquifer_y"), button -> { })).active = false;
 		y += 26;
 		y = materialRow(left, y, contentWidth, materials, "snow_block", false, true);
 		materialRow(left, y, contentWidth, materials, "ice_block", false, true);
-		addRenderableWidget(new Button(left, OreSpawnScreenLayout.footerY(height),
-				contentWidth, 20, CommonComponents.GUI_DONE, button -> { save(); onClose(); }));
+		addButton(new Button(left, OreSpawnScreenLayout.footerY(height),
+				contentWidth, 20, DialogTexts.GUI_DONE, button -> { save(); onClose(); }));
 	}
 
 	private int materialRow(int left, int y, int width, JsonObject materials,
 			String key, boolean fluid, boolean editable) {
 		String value = string(materials, key, "");
-		Button selector = addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+		Button selector = addButton(OreSpawnScreenLayout.explainedButton(this, font,
 				left, y, width - 65, 20,
 				label(key, value), button -> {
 					save();
@@ -58,8 +58,8 @@ final class DimensionMaterialsScreen extends Screen {
 							id -> session.setMaterialBlock(dimension, key, id, fluid)));
 				}, materialHelp(key)));
 		selector.active = editable;
-		Button clear = addRenderableWidget(new Button(left + width - 60, y, 60, 20,
-				new TranslatableComponent("button.orespawn.clear"), button -> {
+		Button clear = addButton(new Button(left + width - 60, y, 60, 20,
+				new TranslationTextComponent("button.orespawn.clear"), button -> {
 					session.setMaterialBlock(dimension, key, null, fluid);
 					rebuildWidgets();
 				}));
@@ -71,25 +71,25 @@ final class DimensionMaterialsScreen extends Screen {
 		return "tooltip.orespawn.material." + key;
 	}
 
-	private Component label(String key, String value) {
-		return new TranslatableComponent("option.orespawn." + key,
-				value.isEmpty() ? new TranslatableComponent("value.orespawn.not_set")
-						: new TextComponent(value));
+	private ITextComponent label(String key, String value) {
+		return new TranslationTextComponent("option.orespawn." + key,
+				value.isEmpty() ? new TranslationTextComponent("value.orespawn.not_set")
+						: new StringTextComponent(value));
 	}
 
 	private void save() {
-		// Minecraft 1.17.1 exposes one generator fluid. Retain stored deep-aquifer
+		// Minecraft 1.16.5 exposes one generator fluid. Retain stored deep-aquifer
 		// fields unchanged so the same provider/profile can still be used by later ports.
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(dimension), width / 2, 30, 0xCCCCCC);
+		drawCenteredString(poseStack, font, new StringTextComponent(dimension), width / 2, 30, 0xCCCCCC);
 		super.render(poseStack, mouseX, mouseY, partialTick);
 		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}

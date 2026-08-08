@@ -4,15 +4,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /** Dimension-level entry point for biome placement and world materials. */
 final class BiomeWorldMaterialsScreen extends Screen {
@@ -21,7 +20,7 @@ final class BiomeWorldMaterialsScreen extends Screen {
 	private String dimension;
 
 	BiomeWorldMaterialsScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.biomes_world_materials"));
+		super(new TranslationTextComponent("screen.orespawn.biomes_world_materials"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = session.availableDimensionIds().get(0);
@@ -35,10 +34,10 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		int half = (contentWidth - 5) / 2;
 		List<String> dimensions = session.availableDimensionIds();
 		if (!dimensions.contains(dimension)) dimension = dimensions.get(0);
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::dimensionName)
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::dimensionName)
 				.withValues(dimensions).withInitialValue(dimension)
 				.create(left, 34, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.dimension"),
+						new TranslationTextComponent("option.orespawn.dimension"),
 						(button, value) -> { dimension = value; rebuildWidgets(); })),
 				"tooltip.orespawn.biome.dimension");
 
@@ -48,50 +47,50 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		String scope = palette == null ? "minecraft_only" : string(palette, "scope", "minecraft_only");
 		String size = palette == null ? "average" : string(palette, "region_size", "average");
 		int y = 64;
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.onOffBuilder(active)
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.onOffBuilder(active)
 				.create(left, y, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.biome_palette"),
+						new TranslationTextComponent("option.orespawn.biome_palette"),
 						(button, value) -> setPaletteEnabled(value))),
 				"tooltip.orespawn.biome.palette_enabled");
 		y += 26;
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::modeName)
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::modeName)
 				.withValues(Arrays.asList("augment", "replace")).withInitialValue(mode)
 				.create(left, y, half, 20,
-						new TranslatableComponent("option.orespawn.biome_mode"),
+						new TranslationTextComponent("option.orespawn.biome_mode"),
 						(button, value) -> setPalette("mode", value))),
 				"tooltip.orespawn.biome.mode");
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::scopeName)
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::scopeName)
 				.withValues(Arrays.asList("all", "minecraft_only", "selected_namespaces"))
 				.withInitialValue(scope)
 				.create(left + half + 5, y, half, 20,
-						new TranslatableComponent("option.orespawn.biome_scope"),
+						new TranslationTextComponent("option.orespawn.biome_scope"),
 						(button, value) -> setPalette("scope", value))),
 				"tooltip.orespawn.biome.scope");
 		y += 26;
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::regionName)
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::regionName)
 				.withValues(Arrays.asList("tiny", "small", "average", "large", "huge"))
 				.withInitialValue(size)
 				.create(left, y, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.biome_region_size"),
+						new TranslationTextComponent("option.orespawn.biome_region_size"),
 						(button, value) -> setPalette("region_size", value))),
 				"tooltip.orespawn.biome.region_size");
 		y += 30;
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, y, half, 20,
-				new TranslatableComponent("button.orespawn.biome_palette_count",
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y, half, 20,
+				new TranslationTextComponent("button.orespawn.biome_palette_count",
 						session.biomePlacementIds(dimension).size()),
 				button -> minecraft.setScreen(new BiomePaletteScreen(this, session, dimension)),
 				"tooltip.orespawn.biome.entries"));
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left + half + 5, y, half, 20,
-				new TranslatableComponent("button.orespawn.dimension_materials"),
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left + half + 5, y, half, 20,
+				new TranslationTextComponent("button.orespawn.dimension_materials"),
 				button -> minecraft.setScreen(new DimensionMaterialsScreen(this, session, dimension)),
 				"tooltip.orespawn.biome.dimension_materials"));
 		y += 26;
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, y, contentWidth, 20,
-				new TranslatableComponent("button.orespawn.geome_influences"),
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y, contentWidth, 20,
+				new TranslationTextComponent("button.orespawn.geome_influences"),
 				button -> minecraft.setScreen(new GeomeBiomeScreen(this, session)),
 				"tooltip.orespawn.biome.geome_influences"));
-		addRenderableWidget(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height),
-				150, 20, CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height),
+				150, 20, DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
 	private void setPaletteEnabled(boolean enabled) {
@@ -111,24 +110,24 @@ final class BiomeWorldMaterialsScreen extends Screen {
 		session.biomePalette(dimension, true).addProperty(key, value);
 	}
 
-	private Component dimensionName(String value) {
-		return new TextComponent(value);
+	private ITextComponent dimensionName(String value) {
+		return new StringTextComponent(value);
 	}
 
-	private Component modeName(String value) {
-		return new TranslatableComponent("value.orespawn.biome_mode." + value);
+	private ITextComponent modeName(String value) {
+		return new TranslationTextComponent("value.orespawn.biome_mode." + value);
 	}
 
-	private Component scopeName(String value) {
-		return new TranslatableComponent("value.orespawn.biome_scope." + value);
+	private ITextComponent scopeName(String value) {
+		return new TranslationTextComponent("value.orespawn.biome_scope." + value);
 	}
 
-	private Component regionName(String value) {
-		return new TranslatableComponent("value.orespawn.preset." + value);
+	private ITextComponent regionName(String value) {
+		return new TranslationTextComponent("value.orespawn.preset." + value);
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -138,7 +137,7 @@ final class BiomeWorldMaterialsScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

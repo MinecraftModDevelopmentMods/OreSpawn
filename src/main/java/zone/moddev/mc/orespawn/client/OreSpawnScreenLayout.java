@@ -5,16 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /** Shared dimensions for the compact world-creation screens. */
 final class OreSpawnScreenLayout {
@@ -57,18 +57,18 @@ final class OreSpawnScreenLayout {
 		return height - 28;
 	}
 
-	static Component fit(Font font, Component message, int width) {
+	static ITextComponent fit(FontRenderer font, ITextComponent message, int width) {
 		if (font.width(message) <= width) {
 			return message;
 		}
 		String suffix = "...";
 		int available = Math.max(0, width - font.width(suffix));
-		return new TextComponent(font.plainSubstrByWidth(message.getString(), available) + suffix);
+		return new StringTextComponent(font.plainSubstrByWidth(message.getString(), available) + suffix);
 	}
 
-	static Button button(Screen screen, Font font, int x, int y, int width, int height,
-			Component message, Button.OnPress onPress) {
-		Component fitted = fit(font, message, Math.max(0, width - 8));
+	static Button button(Screen screen, FontRenderer font, int x, int y, int width, int height,
+			ITextComponent message, Button.IPressable onPress) {
+		ITextComponent fitted = fit(font, message, Math.max(0, width - 8));
 		if (fitted == message) {
 			return new Button(x, y, width, height, message, onPress);
 		}
@@ -77,8 +77,8 @@ final class OreSpawnScreenLayout {
 						font.split(message, Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY));
 	}
 
-	static Button explainedButton(Screen screen, Font font, int x, int y, int width, int height,
-			Component message, Button.OnPress onPress, String translationKey) {
+	static Button explainedButton(Screen screen, FontRenderer font, int x, int y, int width, int height,
+			ITextComponent message, Button.IPressable onPress, String translationKey) {
 		return explain(screen, button(screen, font, x, y, width, height, message, onPress), translationKey);
 	}
 
@@ -86,22 +86,22 @@ final class OreSpawnScreenLayout {
 		EXPLANATIONS.remove(screen);
 	}
 
-	static <T extends AbstractWidget> T explain(Screen screen, T widget, String translationKey) {
+	static <T extends Widget> T explain(Screen screen, T widget, String translationKey) {
 		EXPLANATIONS.computeIfAbsent(screen, ignored -> new ArrayList<>())
 				.add(new ExplainedWidget(widget, translationKey));
 		return widget;
 	}
 
-	static void renderExplanations(Screen screen, PoseStack poseStack, int mouseX, int mouseY) {
+	static void renderExplanations(Screen screen, MatrixStack poseStack, int mouseX, int mouseY) {
 		List<ExplainedWidget> explanations = EXPLANATIONS.get(screen);
 		if (explanations == null) {
 			return;
 		}
 		for (ExplainedWidget explanation : explanations) {
 			if (explanation.widget.visible && explanation.widget.isMouseOver(mouseX, mouseY)) {
-				Font font = Minecraft.getInstance().font;
+				FontRenderer font = Minecraft.getInstance().font;
 				screen.renderTooltip(poseStack,
-						font.split(new TranslatableComponent(explanation.translationKey),
+						font.split(new TranslationTextComponent(explanation.translationKey),
 								Math.max(180, Math.min(310, screen.width - 20))),
 						mouseX, mouseY);
 				return;
@@ -110,10 +110,10 @@ final class OreSpawnScreenLayout {
 	}
 
 	private static final class ExplainedWidget {
-		final AbstractWidget widget;
+		final Widget widget;
 		final String translationKey;
 
-		ExplainedWidget(AbstractWidget widget, String translationKey) {
+		ExplainedWidget(Widget widget, String translationKey) {
 			this.widget = widget;
 			this.translationKey = translationKey;
 		}

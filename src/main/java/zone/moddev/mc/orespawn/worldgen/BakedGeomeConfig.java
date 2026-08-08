@@ -7,11 +7,11 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class BakedGeomeConfig {

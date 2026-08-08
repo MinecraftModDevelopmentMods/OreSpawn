@@ -35,9 +35,9 @@ import zone.moddev.mc.orespawn.worldgen.OreHeightDistribution;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -113,20 +113,20 @@ public final class WorldgenIntegrationManager {
 		InterModComms.getMessages(OreSpawn.MODID,
 				OreSpawnApi.IMC_WORLDGEN_PROVIDER::equals).forEach(message -> {
 			try {
-				Object value = message.messageSupplier().get();
+				Object value = message.getMessageSupplier().get();
 				if (!(value instanceof WorldgenProvider)) {
 					throw new IllegalArgumentException("message is not a WorldgenProvider");
 				}
 				WorldgenProvider provider = (WorldgenProvider) value;
-				if (!provider.modId().equals(message.senderModId())) {
+				if (!provider.modId().equals(message.getSenderModId())) {
 					throw new IllegalArgumentException("sender does not own provider ID " + provider.modId());
 				}
 				if (API_PROVIDERS.putIfAbsent(provider.modId(), provider) != null) {
 					throw new IllegalArgumentException("provider was submitted more than once");
 				}
 			} catch (RuntimeException e) {
-				INVALID_PROVIDERS.add(message.senderModId());
-				LOGGER.error("Rejected OreSpawn API provider from '{}'", message.senderModId(), e);
+				INVALID_PROVIDERS.add(message.getSenderModId());
+				LOGGER.error("Rejected OreSpawn API provider from '{}'", message.getSenderModId(), e);
 			}
 		});
 		rebuildActiveProviders();
@@ -380,7 +380,7 @@ public final class WorldgenIntegrationManager {
 	private static void scanPackagedProvider(IModFile file) {
 		for (IModInfo info : file.getModInfos()) {
 			String providerId = info.getModId();
-			Path path = file.findResource("data", providerId, "orespawn", "provider.json");
+			Path path = file.findResource("data/" + providerId + "/orespawn/provider.json");
 			if (!Files.isRegularFile(path)) {
 				continue;
 			}

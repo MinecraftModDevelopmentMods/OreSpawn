@@ -66,7 +66,7 @@ FluidDepositDefinition brine = FluidDepositDefinition.builder(
         .maxLobes(3)
         .minSolidCover(2)
         .minSolidShell(1)
-        .hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables")))
+        .hostTag(new ResourceLocation("forge", "stone")))
     .build();
 
 WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)

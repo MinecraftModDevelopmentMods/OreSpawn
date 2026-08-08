@@ -9,7 +9,7 @@ import java.util.Set;
 
 import zone.moddev.mc.orespawn.api.OrePlacementContext;
 
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.fluid.Fluid;
 
 import org.junit.jupiter.api.Test;
 

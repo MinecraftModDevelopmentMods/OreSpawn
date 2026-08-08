@@ -4,13 +4,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 
@@ -36,22 +36,22 @@ public final class OreRetrogenManager {
 	public static void onChunkLoad(ChunkDataEvent.Load event) {
 		Settings current = settings;
 		if ((!current.oreEnabled && !current.bedrockEnabled)
-				|| event.getStatus() != ChunkStatus.ChunkType.LEVELCHUNK
-				|| !(event.getWorld() instanceof ServerLevel)
-				|| !(event.getChunk() instanceof LevelChunk)) return;
-		ServerLevel level = (ServerLevel) event.getWorld();
-		LevelChunk chunk = (LevelChunk) event.getChunk();
-		CompoundTag marker = event.getData().getCompound(ROOT_TAG);
+				|| event.getStatus() != ChunkStatus.Type.LEVELCHUNK
+				|| !(event.getWorld() instanceof ServerWorld)
+				|| !(event.getChunk() instanceof Chunk)) return;
+		ServerWorld level = (ServerWorld) event.getWorld();
+		Chunk chunk = (Chunk) event.getChunk();
+		CompoundNBT marker = event.getData().getCompound(ROOT_TAG);
 		if (!current.force && marker.getInt(REVISION_TAG) == current.revision) return;
 		enqueue(level, chunk);
 	}
 
 	public static void onChunkSave(ChunkDataEvent.Save event) {
-		if (!(event.getWorld() instanceof ServerLevel)) return;
-		ServerLevel level = (ServerLevel) event.getWorld();
+		if (!(event.getWorld() instanceof ServerWorld)) return;
+		ServerWorld level = (ServerWorld) event.getWorld();
 		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().toLong());
 		if (!COMPLETE.contains(key)) return;
-		CompoundTag marker = event.getData().getCompound(ROOT_TAG);
+		CompoundNBT marker = event.getData().getCompound(ROOT_TAG);
 		marker.putInt(REVISION_TAG, settings.revision);
 		event.getData().put(ROOT_TAG, marker);
 	}
@@ -72,15 +72,15 @@ public final class OreRetrogenManager {
 		}
 	}
 
-	static void markGenerated(ResourceKey<Level> dimension, ChunkPos chunk) {
+	static void markGenerated(RegistryKey<World> dimension, ChunkPos chunk) {
 		COMPLETE.add(new ChunkKey(dimension, chunk.toLong()));
 	}
 
-	public static int queueLoadedArea(ServerLevel level, ChunkPos center, int radius) {
+	public static int queueLoadedArea(ServerWorld level, ChunkPos center, int radius) {
 		int count = 0;
 		for (int x = center.x - radius; x <= center.x + radius; x++) {
 			for (int z = center.z - radius; z <= center.z + radius; z++) {
-				LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
+				Chunk chunk = level.getChunkSource().getChunkNow(x, z);
 				if (chunk != null && enqueue(level, chunk)) count++;
 			}
 		}
@@ -98,7 +98,7 @@ public final class OreRetrogenManager {
 		settings = Settings.DISABLED;
 	}
 
-	private static boolean enqueue(ServerLevel level, LevelChunk chunk) {
+	private static boolean enqueue(ServerWorld level, Chunk chunk) {
 		ChunkKey key = new ChunkKey(level.dimension(), chunk.getPos().toLong());
 		if (!QUEUED.add(key)) return false;
 		QUEUE.add(new QueuedChunk(level, chunk, key));
@@ -123,10 +123,10 @@ public final class OreRetrogenManager {
 	}
 
 	private static final class QueuedChunk {
-		final ServerLevel level;
-		final LevelChunk chunk;
+		final ServerWorld level;
+		final Chunk chunk;
 		final ChunkKey key;
-		QueuedChunk(ServerLevel level, LevelChunk chunk, ChunkKey key) {
+		QueuedChunk(ServerWorld level, Chunk chunk, ChunkKey key) {
 			this.level = level;
 			this.chunk = chunk;
 			this.key = key;
@@ -134,9 +134,9 @@ public final class OreRetrogenManager {
 	}
 
 	private static final class ChunkKey {
-		final ResourceKey<Level> dimension;
+		final RegistryKey<World> dimension;
 		final long position;
-		ChunkKey(ResourceKey<Level> dimension, long position) {
+		ChunkKey(RegistryKey<World> dimension, long position) {
 			this.dimension = dimension;
 			this.position = position;
 		}

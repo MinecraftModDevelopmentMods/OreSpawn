@@ -25,14 +25,13 @@ import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.EmptyBlockGetter;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.item.Items;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.EmptyBlockReader;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FlowingFluidBlock;
+import net.minecraft.item.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Mutable client-side copy used until the Create World settings are accepted. */
@@ -250,16 +249,12 @@ final class GeologyEditorSession {
 		ensureDefaultGeologyRules();
 		addStarterRock("minecraft:stone", RockFamily.SEDIMENTARY,
 				64, 96, 0, 255, 5.0D);
-		addStarterRock("minecraft:deepslate", RockFamily.METAMORPHIC,
-				0, 40, 0, 48, 3.0D);
 		addStarterRock("minecraft:granite", RockFamily.IGNEOUS_INTRUSIVE,
 				0, 72, 0, 192, 1.5D);
 		addStarterRock("minecraft:diorite", RockFamily.IGNEOUS_INTRUSIVE,
 				24, 64, 0, 192, 1.25D);
 		addStarterRock("minecraft:andesite", RockFamily.IGNEOUS_VOLCANIC,
 				48, 64, 0, 224, 1.5D);
-		addStarterRock("minecraft:tuff", RockFamily.IGNEOUS_VOLCANIC,
-				0, 56, 0, 96, 1.0D);
 		ensureDefaultOverworldTerrain();
 		return true;
 	}
@@ -305,7 +300,6 @@ final class GeologyEditorSession {
 		dimension.add("biome_namespaces", new JsonArray());
 		JsonArray hosts = new JsonArray();
 		hosts.add("minecraft:stone");
-		hosts.add("minecraft:deepslate");
 		dimension.add("host_blocks", hosts);
 		dimension.add("host_tags", new JsonArray());
 		section("terrain_dimensions").add("minecraft:overworld", dimension);
@@ -385,7 +379,7 @@ final class GeologyEditorSession {
 
 	List<String> installedBiomeIds() {
 		List<String> result = new ArrayList<>();
-		for (net.minecraft.world.level.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
+		for (net.minecraft.world.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
 			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
 			if (id != null) result.add(id.toString());
 		}
@@ -510,7 +504,7 @@ final class GeologyEditorSession {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
 					|| (fluidOnly && block.defaultBlockState().getFluidState().isEmpty())
-					|| (!fluidOnly && block instanceof EntityBlock)
+					|| (!fluidOnly && block.defaultBlockState().hasTileEntity())
 					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
 			result.add(id.toString());
 		}
@@ -591,8 +585,7 @@ final class GeologyEditorSession {
 		rule.add("host_families", families);
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		tags.add("minecraft:stone_ore_replaceables");
-		tags.add("minecraft:deepslate_ore_replaceables");
+		tags.add("forge:stone");
 		rule.add("host_tags", tags);
 		rule.add("biome_ids", new JsonArray());
 		rule.add("excluded_biome_ids", new JsonArray());
@@ -610,7 +603,7 @@ final class GeologyEditorSession {
 
 	List<String> configuredBiomeIds() {
 		TreeSet<String> ids = new TreeSet<>(JsonCopies.keys(section("biomes")));
-		for (net.minecraft.world.level.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
+		for (net.minecraft.world.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
 			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
 			if (id != null) {
 				ids.add(id.toString());
@@ -1048,23 +1041,22 @@ final class GeologyEditorSession {
 		}
 		dimension.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("minecraft:stone_ore_replaceables");
-		tags.add("minecraft:deepslate_ore_replaceables");
+		tags.add("forge:stone");
 		dimension.add("host_tags", tags);
 		return dimension;
 	}
 
 	private static boolean isSelectable(Block block, boolean showAll) {
-		if (block == Blocks.AIR || block.asItem() == Items.AIR || block instanceof LiquidBlock) {
+		if (block == Blocks.AIR || block.asItem() == Items.AIR || block instanceof FlowingFluidBlock) {
 			return false;
 		}
 		if (showAll) {
 			return true;
 		}
-		return !(block instanceof EntityBlock)
+		return !block.defaultBlockState().hasTileEntity()
 				&& block.defaultBlockState().getMaterial().blocksMotion()
 				&& Block.isShapeFullBlock(block.defaultBlockState().getCollisionShape(
-						EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
+						EmptyBlockReader.INSTANCE, BlockPos.ZERO));
 	}
 
 	String canonicalBlockId(String id) {

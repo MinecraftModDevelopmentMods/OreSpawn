@@ -8,7 +8,7 @@ import zone.moddev.mc.orespawn.worldgen.StoneReplacer;
 import zone.moddev.mc.orespawn.worldgen.BiomeSurfaceFeature;
 import zone.moddev.mc.orespawn.worldgen.VanillaOreFeatureGate;
 
-import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.gen.feature.Feature;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;

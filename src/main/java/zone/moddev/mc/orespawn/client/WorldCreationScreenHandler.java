@@ -4,11 +4,11 @@ import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
-import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.CreateWorldScreen;
+import net.minecraft.client.gui.screen.WorldSelectionScreen;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -31,7 +31,7 @@ public final class WorldCreationScreenHandler {
 		int width = 100;
 		int x = Math.max(4, screen.width - width - 4);
 		event.addWidget(new Button(x, 6, width, 20,
-				new TranslatableComponent("button.orespawn.world_settings"), button ->
+				new TranslationTextComponent("button.orespawn.world_settings"), button ->
 						Minecraft.getInstance().setScreen(new OreSpawnWorldSettingsScreen(
 								screen, WorldGeologyProfileManager.pendingNewWorldProfile(),
 								DimensionDiscovery.availableDimensionIds((CreateWorldScreen) screen)))));
@@ -39,7 +39,7 @@ public final class WorldCreationScreenHandler {
 
 	@SubscribeEvent
 	public static void onScreenOpen(GuiOpenEvent event) {
-		if (event.getGui() instanceof SelectWorldScreen) {
+		if (event.getGui() instanceof WorldSelectionScreen) {
 			WorldGeologyProfileManager.clearPendingNewWorldProfile();
 		}
 	}

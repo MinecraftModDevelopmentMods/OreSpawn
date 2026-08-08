@@ -5,15 +5,15 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 final class NumericConfigScreen extends Screen {
 	static final Field[] FORMATION_FIELDS = {
@@ -38,12 +38,12 @@ final class NumericConfigScreen extends Screen {
 	private final GeologyEditorSession session;
 	private final String path;
 	private final Field[] fields;
-	private final List<EditBox> editors = new ArrayList<>();
+	private final List<TextFieldWidget> editors = new ArrayList<>();
 	private int page;
-	private Component error;
+	private ITextComponent error;
 
 	NumericConfigScreen(Screen parent, GeologyEditorSession session, String path, Field[] fields) {
-		super(new TranslatableComponent("screen.orespawn.numeric_settings"));
+		super(new TranslationTextComponent("screen.orespawn.numeric_settings"));
 		this.parent = parent;
 		this.session = session;
 		this.path = path;
@@ -60,24 +60,24 @@ final class NumericConfigScreen extends Screen {
 		int left = width / 2 + 5;
 		for (int i = start; i < end; i++) {
 			Field field = fields[i];
-			EditBox editor = new EditBox(font, left, 44 + ((i - start) * 25), 145, 20,
-					new TextComponent(field.key));
+			TextFieldWidget editor = new TextFieldWidget(font, left, 44 + ((i - start) * 25), 145, 20,
+					new StringTextComponent(field.key));
 			editor.setMaxLength(32);
 			JsonElement value = section.get(field.key);
 			editor.setValue(value == null ? "0" : value.getAsString());
-			editors.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(editor),
+			editors.add(OreSpawnScreenLayout.explain(this, addButton(editor),
 					"tooltip.orespawn.numeric." + field.key));
 		}
 
 		int bottom = height - 28;
-		addRenderableWidget(new Button(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
+		addButton(new Button(width / 2 - 155, bottom, 100, 20, DialogTexts.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
+		addButton(new Button(width / 2 + 55, bottom, 100, 20, DialogTexts.GUI_CANCEL,
 				button -> onClose()));
-		Button previous = addRenderableWidget(new Button(width / 2 - 50, bottom, 45, 20,
-				new TextComponent("<"), button -> changePage(-1)));
-		Button next = addRenderableWidget(new Button(width / 2 + 5, bottom, 45, 20,
-				new TextComponent(">"), button -> changePage(1)));
+		Button previous = addButton(new Button(width / 2 - 50, bottom, 45, 20,
+				new StringTextComponent("<"), button -> changePage(-1)));
+		Button next = addButton(new Button(width / 2 + 5, bottom, 45, 20,
+				new StringTextComponent(">"), button -> changePage(1)));
 		previous.active = page > 0;
 		next.active = (page + 1) * PAGE_SIZE < fields.length;
 	}
@@ -90,7 +90,7 @@ final class NumericConfigScreen extends Screen {
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -113,7 +113,7 @@ final class NumericConfigScreen extends Screen {
 				if (field.integer) section.addProperty(field.key, (int) value);
 				else section.addProperty(field.key, value);
 			} catch (NumberFormatException e) {
-				error = new TextComponent("Invalid value for " + field.key);
+				error = new StringTextComponent("Invalid value for " + field.key);
 				return false;
 			}
 		}
@@ -141,7 +141,7 @@ final class NumericConfigScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 16, 0xFFFFFF);
 		int start = page * PAGE_SIZE;
@@ -156,8 +156,8 @@ final class NumericConfigScreen extends Screen {
 		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 
-	private Component label(String key) {
-		return new TranslatableComponent("option.orespawn." + key);
+	private ITextComponent label(String key) {
+		return new TranslationTextComponent("option.orespawn." + key);
 	}
 
 	static final class Field {

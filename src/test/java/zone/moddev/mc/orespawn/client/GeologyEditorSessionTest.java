@@ -13,13 +13,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
+import net.minecraft.util.registry.Bootstrap;
 
 class GeologyEditorSessionTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
@@ -35,7 +33,7 @@ class GeologyEditorSessionTest {
 		JsonObject overworld = session.section("terrain_dimensions")
 				.getAsJsonObject("minecraft:overworld");
 		assertTrue(overworld.getAsJsonArray("host_blocks").toString().contains("minecraft:stone"));
-		assertTrue(overworld.getAsJsonArray("host_blocks").toString().contains("minecraft:deepslate"));
+		assertFalse(overworld.getAsJsonArray("host_blocks").toString().contains("minecraft:deepslate"));
 	}
 
 	@Test
@@ -44,13 +42,12 @@ class GeologyEditorSessionTest {
 
 		assertTrue(session.configureDefaultVanillaStrata());
 		assertTrue(session.hasTerrainRules());
-		assertEquals(6, session.section("rocks").size());
+		assertEquals(4, session.section("rocks").size());
 		assertFalse(session.section("rocks").has("minecraft:calcite"));
 		assertFalse(session.section("rocks").has("minecraft:dripstone_block"));
 		assertEquals("sedimentary", session.rock("minecraft:stone").get("family").getAsString());
-		assertEquals("metamorphic", session.rock("minecraft:deepslate").get("family").getAsString());
 		assertEquals("igneous_intrusive", session.rock("minecraft:granite").get("family").getAsString());
-		assertEquals("igneous_volcanic", session.rock("minecraft:tuff").get("family").getAsString());
+		assertEquals("igneous_volcanic", session.rock("minecraft:andesite").get("family").getAsString());
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
 	}
@@ -116,7 +113,7 @@ class GeologyEditorSessionTest {
 		rule.addProperty("min_quantity", 4);
 		rule.addProperty("max_quantity", 11);
 		JsonArray tags = new JsonArray();
-		tags.add("minecraft:stone_ore_replaceables");
+		tags.add("forge:stone");
 		rule.add("host_tags", tags);
 		JsonObject selectors = new JsonObject();
 		selectors.add("orespawn:all_except_nether_end", rule);

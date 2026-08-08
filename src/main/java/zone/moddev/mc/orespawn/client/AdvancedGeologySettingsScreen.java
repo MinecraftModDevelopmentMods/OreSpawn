@@ -1,11 +1,11 @@
 package zone.moddev.mc.orespawn.client;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /** Less commonly changed numeric controls, kept off the world settings overview. */
 final class AdvancedGeologySettingsScreen extends Screen {
@@ -13,7 +13,7 @@ final class AdvancedGeologySettingsScreen extends Screen {
 	private final GeologyEditorSession session;
 
 	AdvancedGeologySettingsScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.advanced"));
+		super(new TranslationTextComponent("screen.orespawn.advanced"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -25,26 +25,26 @@ final class AdvancedGeologySettingsScreen extends Screen {
 		int top = 54;
 		int row = 0;
 		if (session.hasTerrainRules()) {
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row++ * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.formation_details"),
+					new TranslationTextComponent("button.orespawn.formation_details"),
 					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS),
 					"tooltip.orespawn.advanced.formations"));
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row++ * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.cyano_details"),
+					new TranslationTextComponent("button.orespawn.cyano_details"),
 					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS),
 					"tooltip.orespawn.advanced.cyano"));
 		}
 		if (!session.fluidDepositIds().isEmpty()) {
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row * 28), 310, 20,
-					new TranslatableComponent("button.orespawn.fluid_deposit_details"),
+					new TranslationTextComponent("button.orespawn.fluid_deposit_details"),
 					button -> minecraft.setScreen(new FluidDepositListScreen(this, session)),
 					"tooltip.orespawn.advanced.fluid_deposits"));
 		}
-		addRenderableWidget(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
-				CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height), 150, 20,
+				DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
 	private void openNumeric(String path, NumericConfigScreen.Field[] fields) {
@@ -57,7 +57,7 @@ final class AdvancedGeologySettingsScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 20, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +54,7 @@ final class LegacyConfigMigrator {
 				imported.addProperty("schema_version", GeomeConfig.SCHEMA_VERSION);
 				imported.addProperty("migrated_from", "mineralogy-geomes.json");
 				if (write(target, imported)) {
-					writeReport(config, List.of("Imported Mineralogy 6 geology profile from " + mineralogy,
+					writeReport(config, Arrays.asList("Imported Mineralogy 6 geology profile from " + mineralogy,
 							"The source file was retained unchanged."));
 					return imported;
 				}
@@ -232,7 +233,6 @@ final class LegacyConfigMigrator {
 		JsonArray hosts = new JsonArray();
 		if (replaces == null || (replaces.isJsonPrimitive() && "default".equals(replaces.getAsString()))) {
 			hosts.add("minecraft:stone");
-			hosts.add("minecraft:deepslate");
 			hosts.add("minecraft:netherrack");
 			hosts.add("minecraft:end_stone");
 		} else if (replaces.isJsonArray()) {
@@ -274,7 +274,7 @@ final class LegacyConfigMigrator {
 	private static void applyLegacyFlags(Path path, JsonObject target, List<String> report) {
 		if (!Files.isRegularFile(path)) return;
 		try {
-			String text = Files.readString(path, StandardCharsets.UTF_8);
+			String text = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 			target.addProperty("manage_vanilla_ores", legacyBoolean(text, "Replace Vanilla Oregen", false));
 			target.addProperty("suppress_all_ore_features", legacyBoolean(text, "Replace All Generation", false));
 			JsonObject retrogen = new JsonObject();
@@ -306,7 +306,7 @@ final class LegacyConfigMigrator {
 
 	private static List<Path> legacyFiles(Path config) {
 		List<Path> result = new ArrayList<>();
-		for (Path directory : List.of(config.resolve("orespawn3"), config.resolve("orespawn"))) {
+		for (Path directory : Arrays.asList(config.resolve("orespawn3"), config.resolve("orespawn"))) {
 			if (!Files.isDirectory(directory)) continue;
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.json")) {
 				for (Path path : stream) result.add(path);

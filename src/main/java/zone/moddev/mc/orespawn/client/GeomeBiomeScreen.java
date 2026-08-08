@@ -5,15 +5,15 @@ import java.util.List;
 import java.util.Locale;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.ResourceLocation;
 
 final class GeomeBiomeScreen extends Screen {
 	private enum Tab { GEOMES, BIOMES, DICTIONARY }
@@ -22,11 +22,11 @@ final class GeomeBiomeScreen extends Screen {
 	private Tab tab = Tab.GEOMES;
 	private int page;
 	private String searchText = "";
-	private EditBox search;
-	private EditBox newId;
+	private TextFieldWidget search;
+	private TextFieldWidget newId;
 
 	GeomeBiomeScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.geomes"));
+		super(new TranslationTextComponent("screen.orespawn.geomes"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -37,18 +37,18 @@ final class GeomeBiomeScreen extends Screen {
 		int left = width / 2 - 155;
 		for (int i = 0; i < Tab.values().length; i++) {
 			Tab value = Tab.values()[i];
-			Button button = addRenderableWidget(new Button(left + (i * 105), 26, 100, 20,
-					new TranslatableComponent("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
+			Button button = addButton(new Button(left + (i * 105), 26, 100, 20,
+					new TranslationTextComponent("tab.orespawn." + value.name().toLowerCase(Locale.ROOT)),
 					selected -> { tab = value; page = 0; rebuildWidgets(); }));
 			button.active = value != tab;
 			OreSpawnScreenLayout.explain(this, button,
 					"tooltip.orespawn.geome.tab." + value.name().toLowerCase(Locale.ROOT));
 		}
-		search = addRenderableWidget(new EditBox(font, left, 52, 230, 20,
-				new TranslatableComponent("option.orespawn.search")));
+		search = addButton(new TextFieldWidget(font, left, 52, 230, 20,
+				new TranslationTextComponent("option.orespawn.search")));
 		search.setValue(searchText);
-		addRenderableWidget(new Button(left + 235, 52, 75, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addButton(new Button(left + 235, 52, 75, 20,
+				new TranslationTextComponent("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
 
@@ -61,24 +61,24 @@ final class GeomeBiomeScreen extends Screen {
 		int start = page * pageSize;
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
-			addRenderableWidget(new Button(left, listTop + (i * 24), 310, 20,
-					new TextComponent(label(id)), button -> open(id)));
+			addButton(new Button(left, listTop + (i * 24), 310, 20,
+					new StringTextComponent(label(id)), button -> open(id)));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addButton(new Button(left, controlsY, 45, 20,
+				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
+				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
-		newId = addRenderableWidget(new EditBox(font, left + 100, controlsY, 150, 20,
-				new TranslatableComponent("option.orespawn.registry_id")));
+		newId = addButton(new TextFieldWidget(font, left + 100, controlsY, 150, 20,
+				new TranslationTextComponent("option.orespawn.registry_id")));
 		newId.setMaxLength(128);
 		OreSpawnScreenLayout.explain(this, newId,
 				"tooltip.orespawn.geome.new_id." + tab.name().toLowerCase(Locale.ROOT));
-		addRenderableWidget(new Button(left + 255, controlsY, 55, 20,
-				new TranslatableComponent("button.orespawn.add"), button -> add()));
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
-				CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button(left + 255, controlsY, 55, 20,
+				new TranslationTextComponent("button.orespawn.add"), button -> add()));
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
+				DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
 	private List<String> ids() {
@@ -94,7 +94,7 @@ final class GeomeBiomeScreen extends Screen {
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -110,7 +110,7 @@ final class GeomeBiomeScreen extends Screen {
 		}
 		String section = tab == Tab.BIOMES ? "biomes" : "biome_dictionary";
 		JsonObject weights = session.weightMap(section, id);
-		minecraft.setScreen(new WeightMapScreen(this, new TextComponent(id), weights,
+		minecraft.setScreen(new WeightMapScreen(this, new StringTextComponent(id), weights,
 				session.geomeIds(), 0.0D, () -> session.section(section).remove(id)));
 	}
 
@@ -135,7 +135,7 @@ final class GeomeBiomeScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

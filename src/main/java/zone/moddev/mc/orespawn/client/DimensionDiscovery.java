@@ -11,8 +11,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.screen.CreateWorldScreen;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.locating.IModFile;
 

@@ -25,9 +25,8 @@ class LegacyConfigMigratorTest {
 	@Test
 	void migratesBaseMetalsOs3FixtureExactly() throws IOException {
 		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
-		Files.writeString(legacyDirectory.resolve("basemetals.json"),
-				new GsonBuilder().setPrettyPrinting().create().toJson(baseMetalsFixture()),
-				StandardCharsets.UTF_8);
+		write(legacyDirectory.resolve("basemetals.json"),
+				new GsonBuilder().setPrettyPrinting().create().toJson(baseMetalsFixture()));
 		JsonObject defaults = new JsonObject();
 		defaults.add("ores", new JsonObject());
 
@@ -72,7 +71,7 @@ class LegacyConfigMigratorTest {
 		spawns.add("fixed_ore", spawn("fixed_ore", null, 8, 0, 1.0D, 0, 16));
 		spawns.add("empty_height_ore", spawn("empty_height_ore", null, 8, 0, 1.0D, 32, 32));
 		root.add("spawns", spawns);
-		Files.writeString(legacyDirectory.resolve("clamped.json"), root.toString(), StandardCharsets.UTF_8);
+		write(legacyDirectory.resolve("clamped.json"), root.toString());
 		JsonObject defaults = new JsonObject();
 		defaults.add("ores", new JsonObject());
 
@@ -87,7 +86,7 @@ class LegacyConfigMigratorTest {
 		JsonObject fixed = rule(ore(migratedOres, "clamped", "fixed_ore"));
 		assertEquals(8, fixed.get("quantity").getAsInt());
 		assertFalse(fixed.has("min_quantity"));
-		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
+		String report = read(temporary.resolve("orespawn-migration/migration-report.txt"));
 		assertTrue(report.contains("Clamped legacy quantity"));
 		assertTrue(report.contains("empty legacy height range"));
 	}
@@ -102,7 +101,7 @@ class LegacyConfigMigratorTest {
 		JsonObject spawns = new JsonObject();
 		spawns.add("copper_ore", custom);
 		root.add("spawns", spawns);
-		Files.writeString(legacyDirectory.resolve("basemetals.json"), root.toString(), StandardCharsets.UTF_8);
+		write(legacyDirectory.resolve("basemetals.json"), root.toString());
 
 		JsonObject defaults = new JsonObject();
 		JsonObject ores = new JsonObject();
@@ -115,7 +114,7 @@ class LegacyConfigMigratorTest {
 		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
 				temporary.resolve("orespawn-worldgen.json"), defaults,
 				(owner, output) -> owner.equals("basemetals") && output.equals("basemetals:copper_ore")
-						? List.of("basemetals:ore/copper") : null);
+						? java.util.Arrays.asList("basemetals:ore/copper") : null);
 
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
 		assertEquals(1, migratedOres.size());
@@ -125,7 +124,7 @@ class LegacyConfigMigratorTest {
 		assertEquals(7.5D, rule(migratedCopper).get("frequency").getAsDouble());
 		assertEquals(10, rule(migratedCopper).get("min_quantity").getAsInt());
 		assertEquals(13, rule(migratedCopper).get("max_quantity").getAsInt());
-		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
+		String report = read(temporary.resolve("orespawn-migration/migration-report.txt"));
 		assertTrue(report.contains("Mapped legacy rule copper_ore to provider rule basemetals:ore/copper"));
 	}
 
@@ -138,19 +137,19 @@ class LegacyConfigMigratorTest {
 		spawns.add("copper_ore", spawn("copper_ore", null, 8, 4, 1, 0, 64));
 		spawns.add("tin_ore", spawn("tin_ore", null, 8, 4, 1, 0, 64));
 		root.add("spawns", spawns);
-		Files.writeString(legacyDirectory.resolve("basemetals.json"), root.toString(), StandardCharsets.UTF_8);
+		write(legacyDirectory.resolve("basemetals.json"), root.toString());
 		JsonObject defaults = new JsonObject();
 		defaults.add("ores", new JsonObject());
 
 		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
 				temporary.resolve("orespawn-worldgen.json"), defaults,
 				(owner, output) -> output.endsWith("copper_ore")
-						? List.of("basemetals:ore/copper", "basemetals:ore/alternate_copper") : List.of());
+						? java.util.Arrays.asList("basemetals:ore/copper", "basemetals:ore/alternate_copper") : java.util.Arrays.asList());
 
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
 		assertTrue(migratedOres.has("orespawn:legacy/basemetals/copper_ore"));
 		assertTrue(migratedOres.has("orespawn:legacy/basemetals/tin_ore"));
-		String report = Files.readString(temporary.resolve("orespawn-migration/migration-report.txt"));
+		String report = read(temporary.resolve("orespawn-migration/migration-report.txt"));
 		assertTrue(report.contains("ambiguous ore rules"));
 		assertTrue(report.contains("no ore rule matching legacy output"));
 	}
@@ -214,5 +213,13 @@ class LegacyConfigMigratorTest {
 		}
 		return ore.getAsJsonObject("dimensions").entrySet().iterator().next()
 				.getValue().getAsJsonObject();
+	}
+
+	private static void write(Path path, String content) throws IOException {
+		Files.write(path, content.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String read(Path path) throws IOException {
+		return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 	}
 }

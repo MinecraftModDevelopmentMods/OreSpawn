@@ -10,7 +10,7 @@ import java.util.Set;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 /** Immutable view of the effective geology profile for the active server. */
 public final class GeologyProfileView {

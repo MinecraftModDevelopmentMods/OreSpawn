@@ -15,7 +15,7 @@ deposits and schema 4 introduces biome and world-material controls.
 
 An ore-only provider does not need rocks, geomes, or terrain dimensions. Give
 each ore explicit host blocks or tags and OreSpawn will leave vanilla terrain,
-including vanilla granite/diorite/andesite/tuff features, untouched. Formation
+including vanilla granite/diorite/andesite features, untouched. Formation
 controls remain inert until a profile contains eligible rocks and an enabled
 terrain-replacement dimension.
 
@@ -40,7 +40,7 @@ ownership keys, not necessarily block IDs. Set `block` for one output or
       "min_quantity": 4,
       "max_quantity": 11,
       "pattern": "default",
-      "host_tags": ["minecraft:stone_ore_replaceables"]
+      "host_tags": ["forge:stone"]
     }
   }
 }
@@ -68,7 +68,7 @@ biome filters, and geome weights:
       "max_lobes": 3,
       "min_solid_cover": 2,
       "min_solid_shell": 1,
-      "host_tags": ["minecraft:stone_ore_replaceables"]
+      "host_tags": ["forge:stone"]
     }
   }
 }

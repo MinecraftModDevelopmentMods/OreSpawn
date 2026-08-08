@@ -9,14 +9,14 @@ import java.util.Set;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /** Registry-backed multi-select list for similar-biome references. */
 final class BiomeReferenceScreen extends Screen {
@@ -26,11 +26,11 @@ final class BiomeReferenceScreen extends Screen {
 	private final String key;
 	private String searchText = "";
 	private int page;
-	private EditBox search;
+	private TextFieldWidget search;
 
 	BiomeReferenceScreen(Screen parent, GeologyEditorSession session,
 			JsonObject placement, String key) {
-		super(new TranslatableComponent("screen.orespawn.biome_references"));
+		super(new TranslationTextComponent("screen.orespawn.biome_references"));
 		this.parent = parent;
 		this.session = session;
 		this.placement = placement;
@@ -41,11 +41,11 @@ final class BiomeReferenceScreen extends Screen {
 	protected void init() {
 		int contentWidth = Math.min(390, Math.max(280, width - 24));
 		int left = (width - contentWidth) / 2;
-		search = addRenderableWidget(new EditBox(font, left, 36, contentWidth - 75, 20,
-				new TranslatableComponent("option.orespawn.search")));
+		search = addButton(new TextFieldWidget(font, left, 36, contentWidth - 75, 20,
+				new TranslationTextComponent("option.orespawn.search")));
 		search.setValue(searchText);
-		addRenderableWidget(new Button(left + contentWidth - 70, 36, 70, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addButton(new Button(left + contentWidth - 70, 36, 70, 20,
+				new TranslationTextComponent("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
 		List<String> ids = filtered();
@@ -58,21 +58,21 @@ final class BiomeReferenceScreen extends Screen {
 		int start = page * pageSize;
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
-			TranslatableComponent label = new TranslatableComponent(
+			TranslationTextComponent label = new TranslationTextComponent(
 					selected.contains(id) ? "button.orespawn.biome_selected"
 							: "button.orespawn.biome_available", id);
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left,
+			addButton(OreSpawnScreenLayout.button(this, font, left,
 					listTop + i * 24, contentWidth, 20, label,
 					button -> { toggle(id); rebuildWidgets(); }));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addButton(new Button(left, controlsY, 45, 20,
+				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
+				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
-				CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
+				DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
 	private List<String> filtered() {
@@ -103,11 +103,11 @@ final class BiomeReferenceScreen extends Screen {
 		return placement.getAsJsonArray(key);
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

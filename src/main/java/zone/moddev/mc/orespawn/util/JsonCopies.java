@@ -10,7 +10,7 @@ import com.google.gson.JsonObject;
 /**
  * Gson-version-neutral defensive copying for configuration data.
  *
- * <p>Minecraft 1.17.1 bundles a Gson version where {@code deepCopy()} is not
+ * <p>Minecraft 1.16.5 bundles a Gson version where {@code deepCopy()} is not
  * public. Keeping the compatibility shim here avoids changing any public JSON
  * contracts or relying on a newer Gson at runtime.</p>
  */

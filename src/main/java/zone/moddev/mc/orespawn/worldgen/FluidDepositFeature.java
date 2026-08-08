@@ -18,29 +18,28 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.WorldGenRegistries;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
+import net.minecraft.world.ISeedReader;
+import net.minecraft.world.biome.Biome;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.placement.Placement;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -48,41 +47,41 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** One allocation-light feature for all provider-owned underground fluid deposits. */
-public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration> {
+public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final FluidDepositFeature FEATURE = new FluidDepositFeature();
 	private static final int CHUNK_WIDTH = 16;
 	private static final BakedDeposit[] NO_DEPOSITS = new BakedDeposit[0];
-	private static final Map<ResourceKey<Level>, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
+	private static final Map<RegistryKey<World>, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
 	private static ConfiguredFeature<?, ?> configuredFeature;
-	private static volatile Map<ResourceKey<Level>, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
-	private static volatile Map<ResourceKey<Level>, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
-	private static volatile Map<ResourceKey<Level>, GeomeGeology> classifiers = Collections.emptyMap();
+	private static volatile Map<RegistryKey<World>, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
+	private static volatile Map<RegistryKey<World>, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
+	private static volatile Map<RegistryKey<World>, GeomeGeology> classifiers = Collections.emptyMap();
 	private static volatile long classifierSeed = Long.MIN_VALUE;
 	private static final ThreadLocal<GenerationScratch> GENERATION_SCRATCH =
 			ThreadLocal.withInitial(GenerationScratch::new);
 
 	private FluidDepositFeature() {
-		super(NoneFeatureConfiguration.CODEC);
+		super(NoFeatureConfig.CODEC);
 		setRegistryName(OreSpawn.MODID, "fluid_deposits");
 	}
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "fluid_deposits");
-		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
-				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
-						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
+		configuredFeature = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoFeatureConfig.INSTANCE)
+						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
 		refreshWorldConfig();
 	}
 
 	public static void refreshWorldConfig() {
 		JsonObject profile = WorldGeologyProfileManager.activeProfile().rootCopy();
 		depositsByDimension = bakeDeposits(profile);
-		Map<ResourceKey<Level>, BakedGeomeConfig> configs = new HashMap<>();
-		for (ResourceKey<Level> dimension : depositsByDimension.keySet()) {
-			BakedGeomeConfig config = Level.OVERWORLD.equals(dimension)
+		Map<RegistryKey<World>, BakedGeomeConfig> configs = new HashMap<>();
+		for (RegistryKey<World> dimension : depositsByDimension.keySet()) {
+			BakedGeomeConfig config = World.OVERWORLD.equals(dimension)
 					? GeomeConfig.baked() : GeomeConfig.baked(dimension);
 			if (config != null) configs.put(dimension, config);
 		}
@@ -96,8 +95,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
 		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && configuredFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
+				&& event.getCategory() != Biome.Category.NONE && configuredFeature != null) {
+			event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 					.add(() -> configuredFeature);
 		}
 	}
@@ -107,24 +106,24 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	@Override
-	public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
-		WorldGenLevel world = context.level();
-		ResourceKey<Level> dimension = world.getLevel().dimension();
+	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
+		ISeedReader world = context.level();
+		RegistryKey<World> dimension = world.getLevel().dimension();
 		BakedDeposit[] deposits = depositsByDimension.getOrDefault(dimension, NO_DEPOSITS);
 		if (deposits.length == 0) return false;
 
-		ChunkAccess chunk = world.getChunk(context.origin());
+		IChunk chunk = world.getChunk(context.origin());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		ChunkPos chunkPos = chunk.getPos();
 		int centerX = chunkPos.getMinBlockX() + 8;
 		int centerZ = chunkPos.getMinBlockZ() + 8;
-		int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 8, 8);
+		int surfaceY = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, 8, 8);
 		scratch.cursor.set(centerX, surfaceY, centerZ);
 		Biome biome = world.getBiome(scratch.cursor);
 		ResourceLocation biomeId = world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
 				.getKey(biome);
-		ResourceKey<Biome> biomeKey = biomeId == null ? null
-				: ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
+		RegistryKey<Biome> biomeKey = biomeId == null ? null
+				: RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
 		BakedGeomeConfig config = geomeConfigs.get(dimension);
 		int geome = -1;
 		boolean geomeClassified = false;
@@ -148,19 +147,19 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return changed;
 	}
 
-	private static boolean placeDeposit(WorldGenLevel world, ChunkAccess chunk, Random random,
+	private static boolean placeDeposit(ISeedReader world, IChunk chunk, Random random,
 			BakedDeposit deposit,
-			int geome, BakedGeomeConfig config, BlockPos.MutableBlockPos cursor) {
+			int geome, BakedGeomeConfig config, BlockPos.Mutable cursor) {
 		// Keep this random-call order aligned with the original Mineralogy crude-oil feature.
 		int radius = randomBetween(random, deposit.minRadius, deposit.maxRadius);
 		int verticalRadius = randomBetween(random, deposit.minVerticalRadius, deposit.maxVerticalRadius);
 		int dx = random.nextInt(CHUNK_WIDTH);
 		int dz = random.nextInt(CHUNK_WIDTH);
-		int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, dx, dz);
+		int surface = chunk.getHeight(Heightmap.Type.OCEAN_FLOOR_WG, dx, dz);
 		int maxCenterY = Math.min(deposit.maxY,
 				surface - 1 - Math.max(deposit.minSolidCover, deposit.minSolidShell) - verticalRadius);
 		int minCenterY = Math.max(deposit.minY,
-				chunk.getMinBuildHeight() + verticalRadius + deposit.minSolidShell);
+				0 + verticalRadius + deposit.minSolidShell);
 		if (maxCenterY < minCenterY) return false;
 
 		int centerX = chunk.getPos().getMinBlockX() + dx;
@@ -186,15 +185,15 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return changed;
 	}
 
-	private static boolean placeLobe(WorldGenLevel world, ChunkAccess chunk, BakedDeposit deposit, int geome,
-			BakedGeomeConfig config, BlockPos.MutableBlockPos cursor,
+	private static boolean placeLobe(ISeedReader world, IChunk chunk, BakedDeposit deposit, int geome,
+			BakedGeomeConfig config, BlockPos.Mutable cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius) {
 		int chunkMinX = chunk.getPos().getMinBlockX();
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		int minX = Math.max(chunkMinX, centerX - radius);
 		int maxX = Math.min(chunkMinX + CHUNK_WIDTH - 1, centerX + radius);
-		int minY = Math.max(chunk.getMinBuildHeight(), centerY - verticalRadius);
-		int maxY = Math.min(chunk.getMaxBuildHeight() - 1, centerY + verticalRadius);
+		int minY = Math.max(0, centerY - verticalRadius);
+		int maxY = Math.min(256 - 1, centerY + verticalRadius);
 		int minZ = Math.max(chunkMinZ, centerZ - radius);
 		int maxZ = Math.min(chunkMinZ + CHUNK_WIDTH - 1, centerZ + radius);
 		double inverseRadiusSquared = 1.0D / (radius * radius);
@@ -213,7 +212,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				double horizontalShape = ((xDistance * xDistance) + (zDistance * zDistance))
 						* inverseRadiusSquared;
 				if (horizontalShape > 1.0D) continue;
-				int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, localX, localZ);
+				int surface = chunk.getHeight(Heightmap.Type.OCEAN_FLOOR_WG, localX, localZ);
 				int topLimit = surface - 1 - deposit.minSolidCover;
 				for (int y = minY; y <= maxY && y <= topLimit; y++) {
 					double yDistance = y - centerY;
@@ -236,8 +235,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return changed;
 	}
 
-	private static boolean hasSolidEnvelope(WorldGenLevel world, ChunkAccess chunk,
-			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
+	private static boolean hasSolidEnvelope(ISeedReader world, IChunk chunk,
+			BakedDeposit deposit, BlockPos.Mutable cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int minX, int maxX, int minY, int maxY, int minZ, int maxZ,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
@@ -279,8 +278,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return true;
 	}
 
-	private static boolean sealedBoundary(WorldGenLevel world, ChunkAccess chunk,
-			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
+	private static boolean sealedBoundary(ISeedReader world, IChunk chunk,
+			BakedDeposit deposit, BlockPos.Mutable cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, int stepX, int stepY, int stepZ, int thickness,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
@@ -294,21 +293,21 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return true;
 	}
 
-	private static boolean insideLobe(ChunkAccess chunk, BakedDeposit deposit,
+	private static boolean insideLobe(IChunk chunk, BakedDeposit deposit,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
 		int chunkMinX = chunk.getPos().getMinBlockX();
 		int chunkMinZ = chunk.getPos().getMinBlockZ();
 		if (x < chunkMinX || x >= chunkMinX + CHUNK_WIDTH
 				|| z < chunkMinZ || z >= chunkMinZ + CHUNK_WIDTH
-				|| y < chunk.getMinBuildHeight() || y >= chunk.getMaxBuildHeight()) return false;
+				|| y < 0 || y >= 256) return false;
 		double xDistance = x - centerX;
 		double yDistance = y - centerY;
 		double zDistance = z - centerZ;
 		double shape = ((xDistance * xDistance) + (zDistance * zDistance)) * inverseRadiusSquared
 				+ ((yDistance * yDistance) * inverseVerticalRadiusSquared);
 		if (shape > 1.0D) return false;
-		int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,
+		int surface = chunk.getHeight(Heightmap.Type.OCEAN_FLOOR_WG,
 				x - chunkMinX, z - chunkMinZ);
 		return y <= surface - 1 - deposit.minSolidCover;
 	}
@@ -318,13 +317,13 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				|| (state.getMaterial().blocksMotion() && state.getFluidState().isEmpty());
 	}
 
-	private static Map<ResourceKey<Level>, BakedDeposit[]> bakeDeposits(JsonObject profile) {
+	private static Map<RegistryKey<World>, BakedDeposit[]> bakeDeposits(JsonObject profile) {
 		if (!bool(profile, "place_fluid_deposits", true)
 				|| !profile.has("fluid_deposits") || !profile.get("fluid_deposits").isJsonObject()) {
 			return EMPTY_DIMENSIONS;
 		}
 		Map<ResourceLocation, Set<Block>> resolvedTags = new HashMap<>();
-		Map<ResourceKey<Level>, List<BakedDeposit>> grouped = new LinkedHashMap<>();
+		Map<RegistryKey<World>, List<BakedDeposit>> grouped = new LinkedHashMap<>();
 		for (Map.Entry<String, JsonElement> depositEntry
 				: profile.getAsJsonObject("fluid_deposits").entrySet()) {
 			if (!depositEntry.getValue().isJsonObject()) continue;
@@ -343,8 +342,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				if (!bool(rule, "enabled", true)) continue;
 				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
 				if (dimensionId == null) continue;
-				ResourceKey<Level> dimension = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
-				BakedGeomeConfig config = Level.OVERWORLD.equals(dimension)
+				RegistryKey<World> dimension = RegistryKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
+				BakedGeomeConfig config = World.OVERWORLD.equals(dimension)
 						? GeomeConfig.baked() : GeomeConfig.baked(dimension);
 				BakedDeposit baked = bakeDeposit(output.defaultBlockState(), rule, config,
 						resolvedTags);
@@ -356,8 +355,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				}
 			}
 		}
-		Map<ResourceKey<Level>, BakedDeposit[]> result = new HashMap<>();
-		for (Map.Entry<ResourceKey<Level>, List<BakedDeposit>> entry : grouped.entrySet()) {
+		Map<RegistryKey<World>, BakedDeposit[]> result = new HashMap<>();
+		for (Map.Entry<RegistryKey<World>, List<BakedDeposit>> entry : grouped.entrySet()) {
 			result.put(entry.getKey(), entry.getValue().toArray(new BakedDeposit[entry.getValue().size()]));
 		}
 		LOGGER.info("Baked {} fluid deposit definitions across {} dimensions",
@@ -399,8 +398,8 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				if (index >= 0) geomeWeights[index] = Math.max(0.0D, entry.getValue().getAsDouble());
 			}
 		}
-		Set<ResourceKey<Biome>> included = resolveBiomes(rule, "biome_ids", "biome_dictionary");
-		Set<ResourceKey<Biome>> excluded = resolveBiomes(rule, "excluded_biome_ids", "excluded_biome_dictionary");
+		Set<RegistryKey<Biome>> included = resolveBiomes(rule, "biome_ids", "biome_dictionary");
+		Set<RegistryKey<Biome>> excluded = resolveBiomes(rule, "excluded_biome_ids", "excluded_biome_dictionary");
 		return new BakedDeposit(output, minY, maxY, frequency, minRadius, maxRadius,
 				minVertical, maxVertical, maxLobes, cover, shell, hosts, familyMask,
 				geomeWeights, usesGeomeWeights, included, excluded);
@@ -443,12 +442,12 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return result;
 	}
 
-	static Set<ResourceKey<Biome>> resolveBiomes(JsonObject rule, String idsKey, String dictionaryKey) {
-		Set<ResourceKey<Biome>> result = new HashSet<>();
+	static Set<RegistryKey<Biome>> resolveBiomes(JsonObject rule, String idsKey, String dictionaryKey) {
+		Set<RegistryKey<Biome>> result = new HashSet<>();
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				if (id != null) result.add(ResourceKey.create(Registry.BIOME_REGISTRY, id));
+				if (id != null) result.add(RegistryKey.create(Registry.BIOME_REGISTRY, id));
 			}
 		}
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
@@ -462,9 +461,9 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		return result;
 	}
 
-	private static GeomeGeology classifier(ResourceKey<Level> dimension, long seed,
+	private static GeomeGeology classifier(RegistryKey<World> dimension, long seed,
 			BakedGeomeConfig config) {
-		Map<ResourceKey<Level>, GeomeGeology> current = classifiers;
+		Map<RegistryKey<World>, GeomeGeology> current = classifiers;
 		GeomeGeology result = classifierSeed == seed ? current.get(dimension) : null;
 		if (result == null) {
 			synchronized (CLASSIFIER_LOCK) {
@@ -474,7 +473,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				}
 				result = classifiers.get(dimension);
 				if (result == null) {
-					Map<ResourceKey<Level>, GeomeGeology> updated = new HashMap<>(classifiers);
+					Map<RegistryKey<World>, GeomeGeology> updated = new HashMap<>(classifiers);
 					result = new GeomeGeology(seed, config);
 					updated.put(dimension, result);
 					classifiers = Collections.unmodifiableMap(updated);
@@ -539,15 +538,15 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		final int familyMask;
 		final double[] geomeWeights;
 		final boolean usesGeomeWeights;
-		final Set<ResourceKey<Biome>> includedBiomes;
-		final Set<ResourceKey<Biome>> excludedBiomes;
+		final Set<RegistryKey<Biome>> includedBiomes;
+		final Set<RegistryKey<Biome>> excludedBiomes;
 
 		BakedDeposit(BlockState output, int minY, int maxY, double frequency,
 				int minRadius, int maxRadius, int minVerticalRadius, int maxVerticalRadius,
 				int maxLobes, int minSolidCover, int minSolidShell,
 				Set<Block> hostBlocks, int familyMask,
 				double[] geomeWeights, boolean usesGeomeWeights,
-				Set<ResourceKey<Biome>> includedBiomes, Set<ResourceKey<Biome>> excludedBiomes) {
+				Set<RegistryKey<Biome>> includedBiomes, Set<RegistryKey<Biome>> excludedBiomes) {
 			this.output = output;
 			this.minY = minY;
 			this.maxY = maxY;
@@ -574,7 +573,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			return family != null && (familyMask & (1 << family.ordinal())) != 0;
 		}
 
-		boolean acceptsBiome(ResourceKey<Biome> biome) {
+		boolean acceptsBiome(RegistryKey<Biome> biome) {
 			if (biome == null) return includedBiomes.isEmpty() && excludedBiomes.isEmpty();
 			return !excludedBiomes.contains(biome)
 					&& (includedBiomes.isEmpty() || includedBiomes.contains(biome));
@@ -582,7 +581,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static final class GenerationScratch {
-		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		final BlockPos.Mutable cursor = new BlockPos.Mutable();
 		private double[] geomeValues = new double[0];
 		double[] geomeValues(int count) {
 			if (geomeValues.length != count) geomeValues = new double[count];

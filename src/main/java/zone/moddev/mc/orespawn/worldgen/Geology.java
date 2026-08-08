@@ -4,17 +4,17 @@ import java.util.Random;
 
 import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biome;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.IWorld;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
 
 public class Geology {
 	private final PerlinNoise2D geomeNoiseLayer;
@@ -57,18 +57,18 @@ public class Geology {
 		return pickStateFromList(rockValue, sedimentaryStones).getBlock();
 	}
 
-	public void replaceStoneInChunk(LevelAccessor world, ChunkAccess chunk, BakedTerrainDimension terrain) {
+	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getMinBlockX();
 		int zOffset = chunkPos.getMinBlockZ();
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		BlockPos.Mutable cursor = new BlockPos.Mutable();
 		boolean changed = false;
 
 		for (int dx = 0; dx < 16; dx++) {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
+				int y = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
 				if (terrain.hasBiomeFilter()) {
 					cursor.set(x, y, z);
 					Biome biome = world.getBiome(cursor);
@@ -81,7 +81,7 @@ public class Geology {
 				int baseRockVal = (int) rockNoiseLayer.valueAt(x, z);
 				int geomeBase = (int) geomeNoiseLayer.valueAt(x, z);
 
-				for (; y >= chunk.getMinBuildHeight(); y--) {
+				for (; y >= 0; y--) {
 					cursor.set(x, y, z);
 					if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
 						chunk.setBlockState(cursor, pickReplacement(baseRockVal, geomeBase, y), false);

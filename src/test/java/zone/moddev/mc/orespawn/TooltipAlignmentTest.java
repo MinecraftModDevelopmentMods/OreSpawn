@@ -154,7 +154,7 @@ class TooltipAlignmentTest {
 	@Test
 	void detailedFormsDoNotReuseMultiControlGuideParagraphs() throws Exception {
 		for (String screen : DETAILED_SCREENS) {
-			String source = Files.readString(CLIENT_DIR.resolve(screen), StandardCharsets.UTF_8);
+			String source = read(CLIENT_DIR.resolve(screen));
 			assertFalse(source.contains("guide.orespawn."),
 					screen + " must use control-specific tooltip text rather than a multi-control guide paragraph");
 			assertTrue(source.contains("tooltip.orespawn.") || source.contains("external_pattern_read_only"),
@@ -165,23 +165,22 @@ class TooltipAlignmentTest {
 	@Test
 	void overviewControlsUseFocusedHelpAndHelpButtonDoesNotExplainItself() throws Exception {
 		for (String screen : OVERVIEW_SCREENS) {
-			String source = Files.readString(CLIENT_DIR.resolve(screen), StandardCharsets.UTF_8);
+			String source = read(CLIENT_DIR.resolve(screen));
 			assertFalse(source.contains("guide.orespawn."),
 					screen + " must use control-specific help instead of guide paragraphs");
 		}
-		String main = Files.readString(CLIENT_DIR.resolve("OreSpawnWorldSettingsScreen.java"),
-				StandardCharsets.UTF_8);
+		String main = read(CLIENT_DIR.resolve("OreSpawnWorldSettingsScreen.java"));
 		assertFalse(main.contains("tooltip.orespawn.help"),
 				"Help & Guide opens the guide and must not carry a self-describing tooltip");
 	}
 
 	@Test
-	void customScreensDoNotUseUnrenderedNativeCycleTooltipsOnMinecraft118() throws Exception {
+	void customScreensDoNotUseUnrenderedNativeCycleTooltipsOnMinecraft116() throws Exception {
 		try (java.util.stream.Stream<Path> files = Files.list(CLIENT_DIR)) {
 			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("Screen.java"))::iterator) {
-				String source = Files.readString(sourceFile, StandardCharsets.UTF_8);
+				String source = read(sourceFile);
 				assertFalse(source.contains(".withTooltip("), sourceFile.getFileName()
-						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.17.1");
+						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.16.5");
 			}
 		}
 	}
@@ -196,5 +195,9 @@ class TooltipAlignmentTest {
 			assertTrue(english.has(key), key + " is missing from en_us.json");
 			assertFalse(english.get(key).getAsString().trim().isEmpty(), key + " has no help text");
 		}
+	}
+
+	private static String read(Path path) throws Exception {
+		return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 	}
 }

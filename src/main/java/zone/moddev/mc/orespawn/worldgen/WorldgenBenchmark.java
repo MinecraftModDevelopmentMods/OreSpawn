@@ -8,22 +8,22 @@ import java.util.Map;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.World;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
-import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
+import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,7 +72,7 @@ public final class WorldgenBenchmark {
 	private static void onServerStarted(FMLServerStartedEvent event) {
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
-		ServerLevel level = event.getServer().getLevel(benchmarkDimensionKey(dimensionName));
+		ServerWorld level = event.getServer().getLevel(benchmarkDimensionKey(dimensionName));
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
@@ -121,23 +121,25 @@ public final class WorldgenBenchmark {
 		}
 	}
 
-	static ResourceKey<Level> benchmarkDimensionKey(String configured) {
+	static RegistryKey<World> benchmarkDimensionKey(String configured) {
 		String dimensionName = configured.trim().toLowerCase(Locale.ROOT);
-		return switch (dimensionName) {
-			case "overworld" -> Level.OVERWORLD;
-			case "nether" -> Level.NETHER;
-			case "end" -> Level.END;
-			default -> {
-				ResourceLocation id = ResourceLocation.tryParse(dimensionName);
-				if (id == null) {
-					throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
-				}
-				yield ResourceKey.create(Registry.DIMENSION_REGISTRY, id);
-			}
-		};
+		if ("overworld".equals(dimensionName)) {
+			return World.OVERWORLD;
+		}
+		if ("nether".equals(dimensionName)) {
+			return World.NETHER;
+		}
+		if ("end".equals(dimensionName)) {
+			return World.END;
+		}
+		ResourceLocation id = resourceLocation(dimensionName);
+		if (id == null) {
+			throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
+		}
+		return RegistryKey.create(Registry.DIMENSION_REGISTRY, id);
 	}
 
-	private static void generateSquare(ServerLevel level, int centerX, int centerZ, int radius) {
+	private static void generateSquare(ServerWorld level, int centerX, int centerZ, int radius) {
 		for (int z = centerZ - radius; z <= centerZ + radius; z++) {
 			for (int x = centerX - radius; x <= centerX + radius; x++) {
 				level.getChunk(x, z, ChunkStatus.FULL, true);
@@ -150,7 +152,7 @@ public final class WorldgenBenchmark {
 		return diameter * diameter;
 	}
 
-	private static int[] locateBiomeType(ServerLevel level, int centerX, int centerZ) {
+	private static int[] locateBiomeType(ServerWorld level, int centerX, int centerZ) {
 		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeType", "").trim();
 		if (configured.isEmpty()) {
 			return new int[] { centerX, centerZ };
@@ -160,7 +162,7 @@ public final class WorldgenBenchmark {
 		BlockPos located = null;
 		double bestDistance = Double.POSITIVE_INFINITY;
 		Registry<Biome> registry = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
-		for (Map.Entry<ResourceKey<Biome>, Biome> entry : registry.entrySet()) {
+		for (Map.Entry<RegistryKey<Biome>, Biome> entry : registry.entrySet()) {
 			if (!BiomeDictionary.hasType(entry.getKey(), type)) continue;
 			BlockPos candidate = level.findNearestBiome(entry.getValue(), origin, 16384, 32);
 			if (candidate != null && candidate.distSqr(origin) < bestDistance) {
@@ -178,36 +180,35 @@ public final class WorldgenBenchmark {
 		return new int[] { locatedX, locatedZ };
 	}
 
-	private static void auditOres(ServerLevel level, int centerX, int centerZ, int radius,
+	private static void auditOres(ServerWorld level, int centerX, int centerZ, int radius,
 			int repetition) {
 		Map<String, OreAudit> audits = new LinkedHashMap<>();
-		if (net.minecraft.world.level.Level.NETHER.equals(level.dimension())) {
+		if (net.minecraft.world.World.NETHER.equals(level.dimension())) {
 			audits.put("nether_gold", new OreAudit(Blocks.NETHER_GOLD_ORE, Blocks.NETHER_GOLD_ORE));
 			audits.put("quartz", new OreAudit(Blocks.NETHER_QUARTZ_ORE, Blocks.NETHER_QUARTZ_ORE));
 			audits.put("ancient_debris", new OreAudit(Blocks.ANCIENT_DEBRIS, Blocks.ANCIENT_DEBRIS));
 		} else {
-			audits.put("coal", new OreAudit(Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE));
-			audits.put("copper", new OreAudit(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE));
-			audits.put("iron", new OreAudit(Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE));
-			audits.put("gold", new OreAudit(Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE));
-			audits.put("redstone", new OreAudit(Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE));
-			audits.put("diamond", new OreAudit(Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE));
-			audits.put("lapis", new OreAudit(Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE));
-			audits.put("emerald", new OreAudit(Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE));
+			audits.put("coal", new OreAudit(Blocks.COAL_ORE, Blocks.COAL_ORE));
+			audits.put("iron", new OreAudit(Blocks.IRON_ORE, Blocks.IRON_ORE));
+			audits.put("gold", new OreAudit(Blocks.GOLD_ORE, Blocks.GOLD_ORE));
+			audits.put("redstone", new OreAudit(Blocks.REDSTONE_ORE, Blocks.REDSTONE_ORE));
+			audits.put("diamond", new OreAudit(Blocks.DIAMOND_ORE, Blocks.DIAMOND_ORE));
+			audits.put("lapis", new OreAudit(Blocks.LAPIS_ORE, Blocks.LAPIS_ORE));
+			audits.put("emerald", new OreAudit(Blocks.EMERALD_ORE, Blocks.EMERALD_ORE));
 		}
 		addConfiguredAudits(audits);
 
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-		BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
+		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.Mutable neighbor = new BlockPos.Mutable();
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
-				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+				Chunk chunk = level.getChunk(chunkX, chunkZ);
 				int minX = chunk.getPos().getMinBlockX();
 				int minZ = chunk.getPos().getMinBlockZ();
 				for (int localX = 0; localX < 16; localX++) {
 					for (int localZ = 0; localZ < 16; localZ++) {
-						cursor.set(minX + localX, chunk.getMinBuildHeight(), minZ + localZ);
-						for (int y = chunk.getMinBuildHeight(); y < chunk.getMaxBuildHeight(); y++) {
+						cursor.set(minX + localX, 0, minZ + localZ);
+						for (int y = 0; y < 256; y++) {
 							cursor.setY(y);
 							BlockState state = chunk.getBlockState(cursor);
 							for (OreAudit audit : audits.values()) {
@@ -247,31 +248,43 @@ public final class WorldgenBenchmark {
 			if (fields.length != 4) {
 				throw new IllegalArgumentException("Invalid benchmark block audit specification: " + specification);
 			}
-			ResourceLocation id = ResourceLocation.tryParse(fields[0].trim());
-			if (id == null || !Registry.BLOCK.containsKey(id)) {
+			ResourceLocation id = resourceLocation(fields[0].trim());
+			if (id == null || !net.minecraftforge.registries.ForgeRegistries.BLOCKS.containsKey(id)) {
 				throw new IllegalArgumentException("Unknown benchmark audit block: " + fields[0].trim());
 			}
 			int minimumY = Integer.parseInt(fields[1].trim());
 			int maximumY = Integer.parseInt(fields[2].trim());
-			boolean required = switch (fields[3].trim().toLowerCase(Locale.ROOT)) {
-				case "present" -> true;
-				case "absent" -> false;
-				default -> throw new IllegalArgumentException(
+			String expectation = fields[3].trim().toLowerCase(Locale.ROOT);
+			boolean required;
+			if ("present".equals(expectation)) {
+				required = true;
+			} else if ("absent".equals(expectation)) {
+				required = false;
+			} else {
+				throw new IllegalArgumentException(
 						"Benchmark audit expectation must be present or absent: " + specification);
-			};
+			}
 			audits.put(id.toString(), new OreAudit(Registry.BLOCK.get(id), Registry.BLOCK.get(id),
 					minimumY, maximumY, required));
 		}
 	}
 
-	private static boolean isAdjacentToAir(ServerLevel level, int x, int y, int z,
-			BlockPos.MutableBlockPos cursor) {
+	private static boolean isAdjacentToAir(ServerWorld level, int x, int y, int z,
+			BlockPos.Mutable cursor) {
 		return level.getBlockState(cursor.set(x + 1, y, z)).isAir()
 				|| level.getBlockState(cursor.set(x - 1, y, z)).isAir()
 				|| level.getBlockState(cursor.set(x, y + 1, z)).isAir()
 				|| level.getBlockState(cursor.set(x, y - 1, z)).isAir()
 				|| level.getBlockState(cursor.set(x, y, z + 1)).isAir()
 				|| level.getBlockState(cursor.set(x, y, z - 1)).isAir();
+	}
+
+	private static ResourceLocation resourceLocation(String value) {
+		try {
+			return new ResourceLocation(value);
+		} catch (RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	private static int boundedInteger(String property, int fallback, int min, int max) {

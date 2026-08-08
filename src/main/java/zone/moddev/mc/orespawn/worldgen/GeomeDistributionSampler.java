@@ -15,11 +15,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.block.Block;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -205,7 +205,7 @@ public final class GeomeDistributionSampler {
 		if (biomeId == null || "minecraft:the_void".equals(biomeId.toString())) {
 			return false;
 		}
-		ResourceKey<Biome> biomeKey = ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
+		RegistryKey<Biome> biomeKey = RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
 		return !BiomeDictionary.hasType(biomeKey, Type.NETHER)
 				&& !BiomeDictionary.hasType(biomeKey, Type.END)
 				&& !BiomeDictionary.hasType(biomeKey, Type.VOID);
@@ -265,7 +265,7 @@ public final class GeomeDistributionSampler {
 	}
 
 	private static String biomeTypes(ResourceLocation biomeId) {
-		ResourceKey<Biome> biomeKey = ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
+		RegistryKey<Biome> biomeKey = RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
 		List<String> names = new ArrayList<>();
 		for (Type type : BiomeDictionary.getTypes(biomeKey)) {
 			names.add(type.getName());

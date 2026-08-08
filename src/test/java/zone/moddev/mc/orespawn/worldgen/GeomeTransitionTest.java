@@ -9,8 +9,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Blocks;
 
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
@@ -24,7 +24,7 @@ class GeomeTransitionTest {
 		indexes.put("orespawn:first", 0);
 		indexes.put("orespawn:mountain_belt", 1);
 		Map<ResourceLocation, double[]> weights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
-				Map.of(MOUNTAINS.toString(), new double[] { 1.0D, 4.0D }));
+				java.util.Collections.singletonMap(MOUNTAINS.toString(), new double[] { 1.0D, 4.0D }));
 		BakedGeomeConfig config = config(weights);
 
 		assertEquals(1, config.pickGeome(null, MOUNTAINS, new double[2], 0.0D));
@@ -109,7 +109,7 @@ class GeomeTransitionTest {
 		rule[0] = 1.0D;
 		rule[1] = 4.0D;
 		Map<ResourceLocation, double[]> biomeWeights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
-				Map.of(MOUNTAINS.toString(), rule));
+				java.util.Collections.singletonMap(MOUNTAINS.toString(), rule));
 		double[] rockWeights = new double[names.length];
 		java.util.Arrays.fill(rockWeights, 1.0D);
 		RockEntry[] rocks = {

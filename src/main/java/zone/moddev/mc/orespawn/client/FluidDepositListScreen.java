@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 final class FluidDepositListScreen extends Screen {
@@ -22,7 +22,7 @@ final class FluidDepositListScreen extends Screen {
 	private int page;
 
 	FluidDepositListScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.fluid_deposits"));
+		super(new TranslationTextComponent("screen.orespawn.fluid_deposits"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -42,60 +42,60 @@ final class FluidDepositListScreen extends Screen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			int y = listTop + (i * 24);
-			addRenderableWidget(new Button(left, y, contentWidth - 82, 20,
+			addButton(new Button(left, y, contentWidth - 82, 20,
 					OreSpawnScreenLayout.fit(font, depositName(id), contentWidth - 90),
 					button -> minecraft.setScreen(new FluidDepositEntryScreen(this, session, id)),
 					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(poseStack,
 							details(id), mouseX, mouseY)));
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
-					new TranslatableComponent("button.orespawn.remove"), button -> {
+			addButton(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
+					new TranslationTextComponent("button.orespawn.remove"), button -> {
 						session.removeFluidDeposit(id);
 						rebuildWidgets();
 					}));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addButton(new Button(left, controlsY, 45, 20,
+				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
+				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 		int addWidth = Math.min(150, contentWidth - 105);
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		OreSpawnScreenLayout.explain(this, addButton(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
-				new TranslatableComponent("button.orespawn.add"), button ->
+				new TranslationTextComponent("button.orespawn.add"), button ->
 						minecraft.setScreen(new FluidBlockPickerScreen(this, session)))),
 				"tooltip.orespawn.fluid.add_deposit");
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
-				CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
+				DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
-	private Component depositName(String id) {
+	private ITextComponent depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return new TranslatableComponent(block.getDescriptionId());
+			if (block != null) return new TranslationTextComponent(block.getDescriptionId());
 		} catch (RuntimeException ignored) { }
-		return new TextComponent(id);
+		return new StringTextComponent(id);
 	}
 
-	private List<Component> details(String id) {
-		List<Component> result = new ArrayList<>();
-		result.add(new TextComponent(id));
+	private List<ITextComponent> details(String id) {
+		List<ITextComponent> result = new ArrayList<>();
+		result.add(new StringTextComponent(id));
 		JsonObject deposit = session.fluidDeposit(id);
-		result.add(new TextComponent(GeologyEditorSession.string(deposit, "block", "")));
+		result.add(new StringTextComponent(GeologyEditorSession.string(deposit, "block", "")));
 		String provider = GeologyEditorSession.string(deposit, "source_provider", "");
-		if (!provider.isEmpty()) result.add(new TextComponent(provider));
+		if (!provider.isEmpty()) result.add(new StringTextComponent(provider));
 		return result;
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 
 	@Override
 	public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

@@ -22,11 +22,11 @@ import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
-import net.minecraftforge.fmlserverevents.FMLServerStoppedEvent;
+import net.minecraft.world.storage.FolderName;
+import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.server.ServerWorld;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -101,7 +101,7 @@ public final class WorldGeologyProfileManager {
 		WorldgenIntegrationManager.freeze();
 		WorldgenIntegrationManager.markFeatureReady();
 		GeomeConfig.bake();
-		Path profilePath = server.getWorldPath(LevelResource.ROOT).normalize()
+		Path profilePath = server.getWorldPath(FolderName.ROOT).normalize()
 				.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile profile = readProfile(profilePath, globalProfile());
 		JsonObject merged = profile.rootCopy();
@@ -116,7 +116,7 @@ public final class WorldGeologyProfileManager {
 
 	public static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
 		activeServer = event.getServer();
-		Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT).normalize();
+		Path worldRoot = event.getServer().getWorldPath(FolderName.ROOT).normalize();
 		Path profilePath = worldRoot.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile fallback = globalProfile();
 		WorldGeologyProfile pending = null;
@@ -174,10 +174,10 @@ public final class WorldGeologyProfileManager {
 	}
 
 	public static void onWorldLoad(WorldEvent.Load event) {
-		if (!(event.getWorld() instanceof ServerLevel)) return;
+		if (!(event.getWorld() instanceof ServerWorld)) return;
 		WorldGeologyProfile profile = activeProfile;
 		if (profile != null) {
-			BiomeWorldgenManager.apply((ServerLevel) event.getWorld(), profile);
+			BiomeWorldgenManager.apply((ServerWorld) event.getWorld(), profile);
 		}
 	}
 

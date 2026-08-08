@@ -10,7 +10,7 @@ import java.util.Collections;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 class WorldgenProviderTest {
 	@Test
@@ -29,7 +29,7 @@ class WorldgenProviderTest {
 						.heightDistribution(OreHeightDistribution.BOTTOM_TRIANGLE)
 						.discardChanceOnAirExposure(0.75D)
 						.hostFamily(GeologyFamily.METAMORPHIC)
-						.hostBlock(id("minecraft:deepslate"), 0.75D)))
+						.hostBlock(id("minecraft:granite"), 0.75D)))
 				.biome(id("minecraft:mountains"),
 						Collections.singletonMap(id("orespawn:mountain_belt"), 2.0D))
 				.build();
@@ -201,7 +201,7 @@ class WorldgenProviderTest {
 		assertTrue(view.rockIds().contains(id("minecraft:calcite")));
 		assertTrue(view.biomePaletteIds().contains(id("examplemod:overworld")));
 		assertTrue(view.dimensionMaterialIds().contains(id("examplemod:overworld")));
-		assertEquals(id("examplemod:large_layers"), view.selectedTemplate().orElseThrow());
+		assertEquals(id("examplemod:large_layers"), view.selectedTemplate().get());
 		assertThrows(UnsupportedOperationException.class,
 				() -> view.rockIds().add(id("minecraft:stone")));
 		assertFalse(view.toJson() == view.toJson());
@@ -222,7 +222,7 @@ class WorldgenProviderTest {
 		WorldgenProvider.OreDimensionDefinition placement = WorldgenProvider.OreDimensionDefinition
 				.builder(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id())
 				.yRange(0, 127).attempts(5.0D).quantityRange(4, 11)
-				.hostTag(id("minecraft:stone_ore_replaceables")).build();
+				.hostTag(id("forge:stone")).build();
 		assertEquals(4, placement.minQuantity());
 		assertEquals(11, placement.maxQuantity());
 		assertEquals(8, placement.quantity());
@@ -256,13 +256,13 @@ class WorldgenProviderTest {
 	void rejectsInvalidFluidPlacementEarly() {
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
 				.builder(id("minecraft:overworld")).attempts(-1.0D)
-				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+				.hostTag(id("forge:stone")).build());
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
 				.builder(id("minecraft:overworld")).radius(12, 5)
-				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+				.hostTag(id("forge:stone")).build());
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
 				.builder(id("minecraft:overworld")).minSolidShell(-1)
-				.hostTag(id("minecraft:stone_ore_replaceables")).build());
+				.hostTag(id("forge:stone")).build());
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.FluidDepositDimensionDefinition
 				.builder(id("minecraft:overworld")).build());
 	}

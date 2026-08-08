@@ -19,11 +19,13 @@ import java.util.Set;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 
 class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
-	private static final Set<String> EXPECTED_LOCALES = Set.of(
+	private static final Set<String> EXPECTED_LOCALES = ImmutableSet.of(
 			"de_au.json", "de_de.json", "en_ca.json", "en_en.json",
 			"en_gb.json", "en_pt.json", "en_us.json", "es_es.json",
 			"es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
@@ -33,41 +35,43 @@ class LocalizationParityTest {
 	 * whose spelling is already valid in at least one shipped target language.
 	 * Human-facing prose must never be added here merely to make this test pass.
 	 */
-	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES = Map.ofEntries(
-			Map.entry("button.orespawn.world_settings", Set.of(
+	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES =
+			ImmutableMap.<String, Set<String>>builder()
+			.put("button.orespawn.world_settings", ImmutableSet.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
-					"zh_cn.json")),
-			Map.entry("button.orespawn.biome_available", Set.of(
+					"zh_cn.json"))
+			.put("button.orespawn.biome_available", ImmutableSet.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
-					"zh_cn.json")),
-			Map.entry("option.orespawn.mod_filter", Set.of(
-					"de_au.json", "de_de.json", "fr_ca.json", "fr_fr.json")),
-			Map.entry("tab.orespawn.biomes", Set.of("fr_ca.json", "fr_fr.json")),
-			Map.entry("tab.orespawn.geomes", Set.of("de_au.json", "de_de.json")),
-			Map.entry("tab.orespawn.placement", Set.of("fr_ca.json", "fr_fr.json")),
-			Map.entry("tab.orespawn.biome_placement", Set.of("fr_ca.json", "fr_fr.json")),
-			Map.entry("tab.orespawn.biome_surface", Set.of("fr_ca.json", "fr_fr.json")),
-			Map.entry("guide.orespawn.biomes.title", Set.of("fr_ca.json", "fr_fr.json")),
-			Map.entry("value.orespawn.geology_mode.geome", Set.of(
+					"zh_cn.json"))
+			.put("option.orespawn.mod_filter", ImmutableSet.of(
+					"de_au.json", "de_de.json", "fr_ca.json", "fr_fr.json"))
+			.put("tab.orespawn.biomes", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
+			.put("tab.orespawn.geomes", ImmutableSet.of("de_au.json", "de_de.json"))
+			.put("tab.orespawn.placement", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
+			.put("tab.orespawn.biome_placement", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
+			.put("tab.orespawn.biome_surface", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
+			.put("guide.orespawn.biomes.title", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
+			.put("value.orespawn.geology_mode.geome", ImmutableSet.of(
 					"es_es.json", "es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
-					"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json")),
-			Map.entry("value.orespawn.geology_mode.legacy", Set.of("de_au.json", "de_de.json")),
-			Map.entry("value.orespawn.height_distribution.uniform", Set.of("de_au.json", "de_de.json")),
-			Map.entry("value.orespawn.height_distribution.triangle", Set.of("pt_br.json")),
-			Map.entry("value.orespawn.ore_pattern.default", Set.of(
+					"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json"))
+			.put("value.orespawn.geology_mode.legacy", ImmutableSet.of("de_au.json", "de_de.json"))
+			.put("value.orespawn.height_distribution.uniform", ImmutableSet.of("de_au.json", "de_de.json"))
+			.put("value.orespawn.height_distribution.triangle", ImmutableSet.of("pt_br.json"))
+			.put("value.orespawn.ore_pattern.default", ImmutableSet.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
-					"zh_cn.json")),
-			Map.entry("value.orespawn.ore_pattern.precision", Set.of(
+					"zh_cn.json"))
+			.put("value.orespawn.ore_pattern.precision", ImmutableSet.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
-					"zh_cn.json")),
-			Map.entry("value.orespawn.ore_pattern.underfluids", Set.of(
+					"zh_cn.json"))
+			.put("value.orespawn.ore_pattern.underfluids", ImmutableSet.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
-					"zh_cn.json")));
+					"zh_cn.json"))
+			.build();
 	private static final String[] MOJIBAKE_MARKERS = {
 			"\u00c3", "\u00c2", "\u00e2\u20ac", "\u00d0", "\u00d1",
 			"\u00e3\u0192", "\u00ea\u00b4", "\u00ec\u201a", "\u00e7\u0178"
@@ -105,7 +109,7 @@ class LocalizationParityTest {
 							locale + " changes the format arguments for " + key);
 					String value = translated.getAsString();
 					Set<String> intentionalLocales = INTENTIONAL_ENGLISH_VALUES
-							.getOrDefault(key, Set.of());
+							.getOrDefault(key, ImmutableSet.of());
 					if (!locale.startsWith("en_") && !intentionalLocales.contains(locale)) {
 						assertFalse(value.equals(english.get(key).getAsString()),
 								locale + " still uses the English fallback for " + key);

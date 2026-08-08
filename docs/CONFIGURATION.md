@@ -134,7 +134,7 @@ Dimension-material rules may set `default_fluid`, `deep_aquifer_fluid`,
 `deep_aquifer_max_y`, `snow_block`, and `ice_block`. Fluid IDs must resolve to
 blocks with non-empty fluid states. These substitutions are opt-in; a dimension
 with no matching rule retains its native generator and weather materials.
-Minecraft 1.17.1 exposes one generator fluid, so this branch applies
+Minecraft 1.16.5 exposes one generator fluid, so this branch applies
 `default_fluid` only. It retains `deep_aquifer_fluid` and
 `deep_aquifer_max_y` in provider and world profiles for cross-version
 portability, but the editor keeps those controls disabled and generation does
@@ -151,7 +151,7 @@ Each enabled ore dimension uses:
 
 | Field | Range/default | Meaning |
 |---|---|---|
-| `min_y`, `max_y` | 0-255 in the 1.17 editor | Inclusive placement range; the portable schema remains broader for other Minecraft versions |
+| `min_y`, `max_y` | 0-255 in the 1.16.5 editor | Inclusive placement range; the portable schema remains broader for other Minecraft versions |
 | `frequency` | 0-64 | Expected attempts per chunk |
 | `quantity` | 1-64 | Fixed block budget for each attempt |
 | `min_quantity`, `max_quantity` | 1-64 | Inclusive random block-budget range; both fields are required |
@@ -166,7 +166,7 @@ Each enabled ore dimension uses:
 
 At least one of `host_families`, `host_blocks`, or `host_tags` must be present.
 Hosts may be plain registry IDs or weighted objects such as
-`{"tag":"minecraft:stone_ore_replaceables","weight":0.75}`. Optional
+`{"tag":"forge:stone","weight":0.75}`. Optional
 `geomes`, biome include/exclude IDs, and biome-dictionary include/exclude arrays
 further narrow placement.
 
@@ -211,7 +211,7 @@ retro-generated.
 
 ## Validation And Server Copying
 
-Registry IDs use `namespace:path`, for example `minecraft:calcite`. Validate
+Registry IDs use `namespace:path`, for example `minecraft:granite`. Validate
 files with the schemas in `schemas/` and compare them with `examples/`.
 Enabled fluid outputs must additionally resolve to real non-air fluid blocks,
 and each enabled fluid dimension must have a valid host rule. Missing blocks,

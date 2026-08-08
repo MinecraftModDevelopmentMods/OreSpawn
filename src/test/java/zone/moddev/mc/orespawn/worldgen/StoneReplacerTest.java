@@ -5,26 +5,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
+import net.minecraft.world.biome.Biome.Category;
 
 class StoneReplacerTest {
 	@Test
 	void oreOnlyProfilesKeepVanillaStoneFeatures() {
 		assertFalse(TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(
-				BiomeCategory.PLAINS, true, false));
+				Category.PLAINS, true, false));
 	}
 
 	@Test
 	void configuredOverworldTerrainSuppressesMatchingVanillaFeatures() {
 		assertTrue(TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(
-				BiomeCategory.PLAINS, true, true));
+				Category.PLAINS, true, true));
 	}
 
 	@Test
 	void nonOverworldBiomesAreNeverChanged() {
 		assertFalse(TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(
-				BiomeCategory.NETHER, true, true));
+				Category.NETHER, true, true));
 		assertFalse(TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(
-				BiomeCategory.THEEND, true, true));
+				Category.THEEND, true, true));
 	}
 }

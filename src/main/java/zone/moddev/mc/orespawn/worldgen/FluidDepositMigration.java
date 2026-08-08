@@ -5,7 +5,7 @@ import zone.moddev.mc.orespawn.util.JsonCopies;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 /** Normalizes the pre-schema-5 singleton oil fields into named deposit rules. */
 final class FluidDepositMigration {

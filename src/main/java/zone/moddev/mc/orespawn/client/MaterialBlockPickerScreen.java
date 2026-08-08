@@ -3,14 +3,14 @@ package zone.moddev.mc.orespawn.client;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /** Registry-backed block picker for surface, fluid, snow, and ice materials. */
 final class MaterialBlockPickerScreen extends Screen {
@@ -20,11 +20,11 @@ final class MaterialBlockPickerScreen extends Screen {
 	private final Consumer<String> select;
 	private String searchText = "";
 	private int page;
-	private EditBox search;
+	private TextFieldWidget search;
 
 	MaterialBlockPickerScreen(Screen parent, GeologyEditorSession session,
 			boolean fluidOnly, Consumer<String> select) {
-		super(new TranslatableComponent("screen.orespawn.choose_block"));
+		super(new TranslationTextComponent("screen.orespawn.choose_block"));
 		this.parent = parent;
 		this.session = session;
 		this.fluidOnly = fluidOnly;
@@ -35,11 +35,11 @@ final class MaterialBlockPickerScreen extends Screen {
 	protected void init() {
 		int contentWidth = Math.min(390, Math.max(280, width - 24));
 		int left = (width - contentWidth) / 2;
-		search = addRenderableWidget(new EditBox(font, left, 36, contentWidth - 75, 20,
-				new TranslatableComponent("option.orespawn.search")));
+		search = addButton(new TextFieldWidget(font, left, 36, contentWidth - 75, 20,
+				new TranslationTextComponent("option.orespawn.search")));
 		search.setValue(searchText);
-		addRenderableWidget(new Button(left + contentWidth - 70, 36, 70, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addButton(new Button(left + contentWidth - 70, 36, 70, 20,
+				new TranslationTextComponent("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
 		List<String> ids = session.availableMaterialBlockIds(searchText, fluidOnly);
@@ -51,27 +51,27 @@ final class MaterialBlockPickerScreen extends Screen {
 		int start = page * pageSize;
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left,
-					listTop + i * 24, contentWidth, 20, new TextComponent(id), button -> {
+			addButton(OreSpawnScreenLayout.button(this, font, left,
+					listTop + i * 24, contentWidth, 20, new StringTextComponent(id), button -> {
 						select.accept(id);
 						onClose();
 					}));
 		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addButton(new Button(left, controlsY, 45, 20,
+				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
+				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
-				CommonComponents.GUI_CANCEL, button -> onClose()));
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
+				DialogTexts.GUI_CANCEL, button -> onClose()));
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

@@ -7,10 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.Test;
 class BiomeSurfaceFeatureOrderTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
@@ -27,23 +25,25 @@ class BiomeSurfaceFeatureOrderTest {
 		BiomeSurfaceFeature.registerConfiguredFeature();
 		FlatBedrockFeature.registerConfiguredFeature();
 		BiomeGenerationSettingsBuilder generation = new BiomeGenerationSettingsBuilder(
-				net.minecraft.world.level.biome.BiomeGenerationSettings.EMPTY);
+				net.minecraft.world.biome.BiomeGenerationSettings.EMPTY);
 
 		assertTrue(BiomeSurfaceFeature.install(generation));
 
 		ConfiguredFeature<?, ?> surfaces = BiomeSurfaceFeature.configuredFeature();
 		ConfiguredFeature<?, ?> bedrock = FlatBedrockFeature.configuredFeature();
-		var local = generation.getFeatures(GenerationStep.Decoration.LOCAL_MODIFICATIONS);
-		var top = generation.getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
+		List<Supplier<ConfiguredFeature<?, ?>>> local =
+				generation.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS);
+		List<Supplier<ConfiguredFeature<?, ?>>> top =
+				generation.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION);
 		assertTrue(local.stream().anyMatch(feature -> feature.get() == surfaces));
 		assertFalse(top.stream().anyMatch(feature -> feature.get() == surfaces));
 
 		List<List<Supplier<ConfiguredFeature<?, ?>>>> runtime = new ArrayList<>();
 		assertTrue(BiomeFeatureInstaller.installSurfaceStages(runtime));
 		List<Supplier<ConfiguredFeature<?, ?>>> runtimeLocal = step(runtime,
-				GenerationStep.Decoration.LOCAL_MODIFICATIONS);
+				GenerationStage.Decoration.LOCAL_MODIFICATIONS);
 		List<Supplier<ConfiguredFeature<?, ?>>> runtimeTop = step(runtime,
-				GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
+				GenerationStage.Decoration.TOP_LAYER_MODIFICATION);
 		assertTrue(runtimeLocal.stream().anyMatch(feature -> feature.get() == surfaces));
 		assertFalse(runtimeLocal.stream().anyMatch(feature -> feature.get() == bedrock));
 		assertTrue(runtimeTop.stream().anyMatch(feature -> feature.get() == bedrock));
@@ -51,7 +51,7 @@ class BiomeSurfaceFeatureOrderTest {
 	}
 
 	private static List<Supplier<ConfiguredFeature<?, ?>>> step(
-			List<List<Supplier<ConfiguredFeature<?, ?>>>> features, GenerationStep.Decoration step) {
+			List<List<Supplier<ConfiguredFeature<?, ?>>>> features, GenerationStage.Decoration step) {
 		while (features.size() <= step.ordinal()) features.add(new ArrayList<>());
 		return features.get(step.ordinal());
 	}

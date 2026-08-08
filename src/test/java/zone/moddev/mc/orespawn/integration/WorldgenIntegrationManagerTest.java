@@ -15,13 +15,11 @@ import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
+import net.minecraft.util.registry.Bootstrap;
 
 class WorldgenIntegrationManagerTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
@@ -133,7 +131,7 @@ class WorldgenIntegrationManagerTest {
 		rule.add("host_families", new JsonArray());
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		if (withHost) tags.add("minecraft:stone_ore_replaceables");
+		if (withHost) tags.add("forge:stone");
 		rule.add("host_tags", tags);
 		JsonObject dimensions = new JsonObject();
 		dimensions.add("minecraft:overworld", rule);

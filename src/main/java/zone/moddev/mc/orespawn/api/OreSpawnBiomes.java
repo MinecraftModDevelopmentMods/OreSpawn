@@ -4,9 +4,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.biome.Biome;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.fmllegacy.RegistryObject;
+import net.minecraftforge.fml.RegistryObject;
 
 /**
  * Small registration helpers for provider mods which want to define biomes
@@ -21,12 +21,12 @@ public final class OreSpawnBiomes {
 	 * changes to the copied builder.
 	 */
 	public static RegistryObject<Biome> copyAndRegister(DeferredRegister<Biome> register,
-			String name, Supplier<? extends Biome> source, Consumer<Biome.BiomeBuilder> edit) {
+			String name, Supplier<? extends Biome> source, Consumer<Biome.Builder> edit) {
 		Objects.requireNonNull(source, "source");
 		Objects.requireNonNull(edit, "edit");
 		return register.register(name, () -> {
 			Biome sourceBiome = source.get();
-			Biome.BiomeBuilder builder = new Biome.BiomeBuilder()
+			Biome.Builder builder = new Biome.Builder()
 					.precipitation(sourceBiome.getPrecipitation())
 					.biomeCategory(sourceBiome.getBiomeCategory())
 					.depth(sourceBiome.getDepth())
@@ -48,11 +48,11 @@ public final class OreSpawnBiomes {
 	 * built.
 	 */
 	public static RegistryObject<Biome> blankAndRegister(DeferredRegister<Biome> register,
-			String name, Consumer<Biome.BiomeBuilder> configure) {
+			String name, Consumer<Biome.Builder> configure) {
 		Objects.requireNonNull(register, "register");
 		Objects.requireNonNull(configure, "configure");
 		return register.register(name, () -> {
-			Biome.BiomeBuilder builder = new Biome.BiomeBuilder();
+			Biome.Builder builder = new Biome.Builder();
 			configure.accept(builder);
 			return builder.build();
 		});

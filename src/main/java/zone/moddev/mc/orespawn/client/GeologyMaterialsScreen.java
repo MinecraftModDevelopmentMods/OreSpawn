@@ -4,27 +4,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 final class GeologyMaterialsScreen extends Screen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private MaterialTab tab = MaterialTab.SEDIMENTARY;
-	private EditBox search;
+	private TextFieldWidget search;
 	private boolean showAll;
 	private int page;
 	private String searchText = "";
 
 	GeologyMaterialsScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslatableComponent("screen.orespawn.materials"));
+		super(new TranslationTextComponent("screen.orespawn.materials"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -43,9 +43,9 @@ final class GeologyMaterialsScreen extends Screen {
 			int tabsInRow = Math.min(tabsPerRow, MaterialTab.values().length - (tabRow * tabsPerRow));
 			int rowWidth = (tabsInRow * tabWidth) + ((tabsInRow - 1) * tabGap);
 			int tabX = (width - rowWidth) / 2 + ((i % tabsPerRow) * (tabWidth + tabGap));
-			Button button = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+			Button button = addButton(OreSpawnScreenLayout.button(this, font,
 					tabX, 26 + (tabRow * 24), tabWidth, 20,
-					new TranslatableComponent("tab.orespawn." + value.key), selected -> changeTab(value)));
+					new TranslationTextComponent("tab.orespawn." + value.key), selected -> changeTab(value)));
 			button.active = value != tab;
 			OreSpawnScreenLayout.explain(this, button, "tooltip.orespawn.material.tab." + value.key);
 		}
@@ -55,17 +55,17 @@ final class GeologyMaterialsScreen extends Screen {
 		int searchButtonWidth = 60;
 		int advancedWidth = tab == MaterialTab.UNASSIGNED ? 85 : 0;
 		int searchWidth = contentWidth - searchButtonWidth - advancedWidth - (advancedWidth > 0 ? 10 : 5);
-		search = addRenderableWidget(new EditBox(font, contentLeft, searchY, searchWidth, 20,
-				new TranslatableComponent("option.orespawn.search")));
+		search = addButton(new TextFieldWidget(font, contentLeft, searchY, searchWidth, 20,
+				new TranslationTextComponent("option.orespawn.search")));
 		search.setValue(searchText);
 		int searchButtonX = contentLeft + searchWidth + 5;
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, searchButtonX, searchY, searchButtonWidth, 20,
-				new TranslatableComponent("button.orespawn.search"), button -> {
+		addButton(OreSpawnScreenLayout.button(this, font, searchButtonX, searchY, searchButtonWidth, 20,
+				new TranslationTextComponent("button.orespawn.search"), button -> {
 					searchText = search.getValue(); page = 0; rebuildWidgets();
 				}));
-		Button advanced = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		Button advanced = addButton(OreSpawnScreenLayout.button(this, font,
 				searchButtonX + searchButtonWidth + 5, searchY, 85, 20,
-				new TranslatableComponent(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
+				new TranslationTextComponent(showAll ? "button.orespawn.safe_only" : "button.orespawn.show_all"),
 				button -> { showAll = !showAll; page = 0; rebuildWidgets(); }));
 		advanced.visible = tab == MaterialTab.UNASSIGNED;
 		OreSpawnScreenLayout.explain(this, advanced,
@@ -85,36 +85,36 @@ final class GeologyMaterialsScreen extends Screen {
 			int y = listTop + (i * 24);
 			int entryWidth = tab == MaterialTab.UNASSIGNED
 					? contentWidth : contentWidth - removeWidth - rowGap;
-			Component rowMessage = new TextComponent(rowLabel(id));
-			Component fittedRow = OreSpawnScreenLayout.fit(font, rowMessage, entryWidth - 8);
-			List<Component> details = rowDetails(id);
-			addRenderableWidget(new Button(contentLeft, y, entryWidth, 20,
+			ITextComponent rowMessage = new StringTextComponent(rowLabel(id));
+			ITextComponent fittedRow = OreSpawnScreenLayout.fit(font, rowMessage, entryWidth - 8);
+			List<ITextComponent> details = rowDetails(id);
+			addButton(new Button(contentLeft, y, entryWidth, 20,
 					fittedRow, button -> openEntry(id),
 					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(
 							poseStack, details, mouseX, mouseY)));
 			if (tab != MaterialTab.UNASSIGNED) {
-				addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				addButton(OreSpawnScreenLayout.button(this, font,
 						contentLeft + entryWidth + rowGap, y, removeWidth, 20,
-						new TranslatableComponent("button.orespawn.remove"), button -> removeEntry(id)));
+						new TranslationTextComponent("button.orespawn.remove"), button -> removeEntry(id)));
 			}
 		}
 
-		Button previous = addRenderableWidget(new Button(contentLeft, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(contentLeft + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
+		Button previous = addButton(new Button(contentLeft, controlsY, 45, 20,
+				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+		Button next = addButton(new Button(contentLeft + 50, controlsY, 45, 20,
+				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
 		previous.active = page > 0;
 		next.active = page + 1 < pageCount;
 
 		int addWidth = Math.min(150, contentWidth - 105);
-		Button add = addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		Button add = addButton(OreSpawnScreenLayout.button(this, font,
 				contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
-				new TranslatableComponent("button.orespawn.add_block"), button -> openBlockPicker()));
+				new TranslationTextComponent("button.orespawn.add_block"), button -> openBlockPicker()));
 		add.visible = tab != MaterialTab.UNASSIGNED;
 		OreSpawnScreenLayout.explain(this, add, "tooltip.orespawn.material.add_block");
 		int doneWidth = Math.min(150, contentWidth);
-		addRenderableWidget(new Button((width - doneWidth) / 2, height - 28, doneWidth, 20,
-				CommonComponents.GUI_DONE, button -> onClose()));
+		addButton(new Button((width - doneWidth) / 2, height - 28, doneWidth, 20,
+				DialogTexts.GUI_DONE, button -> onClose()));
 	}
 
 	private void changeTab(MaterialTab value) {
@@ -124,7 +124,7 @@ final class GeologyMaterialsScreen extends Screen {
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -136,19 +136,19 @@ final class GeologyMaterialsScreen extends Screen {
 		return session.materialBlockId(tab, id);
 	}
 
-	private List<Component> rowDetails(String id) {
-		List<Component> details = new ArrayList<>();
+	private List<ITextComponent> rowDetails(String id) {
+		List<ITextComponent> details = new ArrayList<>();
 		String block = session.materialBlockId(tab, id);
-		details.add(new TextComponent(block));
+		details.add(new StringTextComponent(block));
 		if (!block.equals(id)) {
-			details.add(new TranslatableComponent("option.orespawn.registry_id").append(": ")
-					.append(new TextComponent(id)));
+			details.add(new TranslationTextComponent("option.orespawn.registry_id").append(": ")
+					.append(new StringTextComponent(id)));
 		}
 		if (tab == MaterialTab.ORES) {
 			String source = GeologyEditorSession.string(session.ore(id), "source_provider",
 					GeologyEditorSession.string(session.ore(id), "source_mod", ""));
 			if (!source.isEmpty()) {
-				details.add(new TextComponent(source));
+				details.add(new StringTextComponent(source));
 			}
 		}
 		return details;
@@ -180,7 +180,7 @@ final class GeologyMaterialsScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
 		super.render(poseStack, mouseX, mouseY, partialTick);

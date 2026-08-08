@@ -11,33 +11,33 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.provider.BiomeProvider;
 
 /** Delegates biome choice first, then applies pre-baked provider palettes. */
-final class BiomeOverlaySource extends BiomeSource {
+final class BiomeOverlaySource extends BiomeProvider {
 	static final Codec<BiomeOverlaySource> CODEC = RecordCodecBuilder.create(instance ->
-			instance.group(BiomeSource.CODEC.fieldOf("delegate")
+			instance.group(BiomeProvider.CODEC.fieldOf("delegate")
 					.forGetter(BiomeOverlaySource::delegate))
 					.apply(instance, delegate ->
 							new BiomeOverlaySource(delegate, java.util.Collections.emptyList(), 0L)));
 
-	private final BiomeSource delegate;
+	private final BiomeProvider delegate;
 	private final Palette[] palettes;
 	private final long seed;
 
-	BiomeOverlaySource(BiomeSource delegate, List<Palette> palettes, long seed) {
+	BiomeOverlaySource(BiomeProvider delegate, List<Palette> palettes, long seed) {
 		super(possible(delegate, palettes));
 		this.delegate = delegate;
 		this.palettes = palettes.toArray(new Palette[palettes.size()]);
 		this.seed = seed;
 	}
 
-	BiomeSource delegate() {
+	BiomeProvider delegate() {
 		return delegate;
 	}
 
-	private static Stream<Supplier<Biome>> possible(BiomeSource delegate, List<Palette> palettes) {
+	private static Stream<Supplier<Biome>> possible(BiomeProvider delegate, List<Palette> palettes) {
 		List<Biome> values = new ArrayList<>(delegate.possibleBiomes());
 		for (Palette palette : palettes) {
 			for (Entry entry : palette.entries) values.add(entry.biome);
@@ -46,12 +46,12 @@ final class BiomeOverlaySource extends BiomeSource {
 	}
 
 	@Override
-	protected Codec<? extends BiomeSource> codec() {
+	protected Codec<? extends BiomeProvider> codec() {
 		return CODEC;
 	}
 
 	@Override
-	public BiomeSource withSeed(long value) {
+	public BiomeProvider withSeed(long value) {
 		return new BiomeOverlaySource(delegate.withSeed(value),
 				java.util.Arrays.asList(palettes), value);
 	}

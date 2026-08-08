@@ -7,16 +7,15 @@ import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.BiomeGenerationSettings;
-import net.minecraft.world.level.biome.BiomeSpecialEffects;
-import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeGenerationSettings;
+import net.minecraft.world.biome.BiomeAmbience;
+import net.minecraft.world.biome.MobSpawnInfo;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.fmllegacy.RegistryObject;
+import net.minecraftforge.fml.RegistryObject;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -24,23 +23,22 @@ import org.junit.jupiter.api.Test;
 class OreSpawnBiomesTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
 	@Test
 	void copiesEverySourceBiomeComponentBeforeApplyingEdits() throws Exception {
-		BiomeSpecialEffects effects = effects(0x123456);
-		Biome source = new Biome.BiomeBuilder()
-				.precipitation(Biome.Precipitation.NONE)
-				.biomeCategory(Biome.BiomeCategory.ICY)
+		BiomeAmbience effects = effects(0x123456);
+		Biome source = new Biome.Builder()
+				.precipitation(Biome.RainType.NONE)
+				.biomeCategory(Biome.Category.ICY)
 				.depth(0.1F)
 				.scale(0.2F)
 				.temperature(0.45F)
 				.temperatureAdjustment(Biome.TemperatureModifier.FROZEN)
 				.downfall(0.75F)
 				.specialEffects(effects)
-				.mobSpawnSettings(MobSpawnSettings.EMPTY)
+				.mobSpawnSettings(MobSpawnInfo.EMPTY)
 				.generationSettings(BiomeGenerationSettings.EMPTY)
 				.build();
 		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
@@ -51,12 +49,12 @@ class OreSpawnBiomesTest {
 
 		Biome copy = registeredValue(biomes, registered);
 		assertEquals(new ResourceLocation("test", "copied"), registered.getId());
-		assertEquals(Biome.Precipitation.NONE, copy.getPrecipitation());
-		assertEquals(Biome.BiomeCategory.ICY, field(copy, "biomeCategory"));
+		assertEquals(Biome.RainType.NONE, copy.getPrecipitation());
+		assertEquals(Biome.Category.ICY, field(copy, "biomeCategory"));
 		assertEquals(1.35F, copy.getBaseTemperature());
 		assertEquals(0.15F, copy.getDownfall());
 		assertEquals(Biome.TemperatureModifier.FROZEN,
-				((Biome.ClimateSettings) field(copy, "climateSettings")).temperatureModifier);
+				((Biome.Climate) field(copy, "climateSettings")).temperatureModifier);
 		assertSame(effects, copy.getSpecialEffects());
 		assertSame(source.getMobSettings(), copy.getMobSettings());
 		assertSame(source.getGenerationSettings(), copy.getGenerationSettings());
@@ -64,34 +62,34 @@ class OreSpawnBiomesTest {
 
 	@Test
 	void buildsBlankBiomeWhenProviderSuppliesEveryRequiredField() throws Exception {
-		BiomeSpecialEffects effects = effects(0x654321);
+		BiomeAmbience effects = effects(0x654321);
 		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
 
 		RegistryObject<Biome> registered = OreSpawnBiomes.blankAndRegister(
 				biomes, "blank", builder -> builder
-						.precipitation(Biome.Precipitation.NONE)
-						.biomeCategory(Biome.BiomeCategory.NONE)
+						.precipitation(Biome.RainType.NONE)
+						.biomeCategory(Biome.Category.NONE)
 						.depth(0.1F)
 						.scale(0.2F)
 						.temperature(1.35F)
 						.downfall(0.15F)
 						.specialEffects(effects)
-						.mobSpawnSettings(MobSpawnSettings.EMPTY)
+						.mobSpawnSettings(MobSpawnInfo.EMPTY)
 						.generationSettings(BiomeGenerationSettings.EMPTY));
 
 		Biome biome = registeredValue(biomes, registered);
 		assertEquals(new ResourceLocation("test", "blank"), registered.getId());
-		assertEquals(Biome.Precipitation.NONE, biome.getPrecipitation());
-		assertEquals(Biome.BiomeCategory.NONE, field(biome, "biomeCategory"));
+		assertEquals(Biome.RainType.NONE, biome.getPrecipitation());
+		assertEquals(Biome.Category.NONE, field(biome, "biomeCategory"));
 		assertEquals(1.35F, biome.getBaseTemperature());
 		assertEquals(0.15F, biome.getDownfall());
 		assertSame(effects, biome.getSpecialEffects());
-		assertSame(MobSpawnSettings.EMPTY, biome.getMobSettings());
+		assertSame(MobSpawnInfo.EMPTY, biome.getMobSettings());
 		assertSame(BiomeGenerationSettings.EMPTY, biome.getGenerationSettings());
 	}
 
-	private static BiomeSpecialEffects effects(int waterColor) {
-		return new BiomeSpecialEffects.Builder()
+	private static BiomeAmbience effects(int waterColor) {
+		return new BiomeAmbience.Builder()
 				.fogColor(0xC0D8FF)
 				.waterColor(waterColor)
 				.waterFogColor(0x050533)

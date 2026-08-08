@@ -4,16 +4,15 @@ import java.util.Arrays;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 final class BiomePlacementScreen extends Screen {
 	private enum Tab { PLACEMENT, CLIMATE, SURFACE }
@@ -23,16 +22,16 @@ final class BiomePlacementScreen extends Screen {
 	private final String dimension;
 	private final String biomeId;
 	private Tab tab = Tab.PLACEMENT;
-	private EditBox weight;
-	private EditBox minTemperature;
-	private EditBox maxTemperature;
-	private EditBox minDownfall;
-	private EditBox maxDownfall;
-	private EditBox fillerDepth;
+	private TextFieldWidget weight;
+	private TextFieldWidget minTemperature;
+	private TextFieldWidget maxTemperature;
+	private TextFieldWidget minDownfall;
+	private TextFieldWidget maxDownfall;
+	private TextFieldWidget fillerDepth;
 
 	BiomePlacementScreen(Screen parent, GeologyEditorSession session,
 			String dimension, String biomeId) {
-		super(new TranslatableComponent("screen.orespawn.biome_placement"));
+		super(new TranslationTextComponent("screen.orespawn.biome_placement"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -48,26 +47,26 @@ final class BiomePlacementScreen extends Screen {
 		int tabWidth = (contentWidth - 10) / 3;
 		for (int i = 0; i < Tab.values().length; i++) {
 			Tab value = Tab.values()[i];
-			Button button = addRenderableWidget(new Button(left + i * (tabWidth + 5), 40,
-					tabWidth, 20, new TranslatableComponent("tab.orespawn.biome_"
+			Button button = addButton(new Button(left + i * (tabWidth + 5), 40,
+					tabWidth, 20, new TranslationTextComponent("tab.orespawn.biome_"
 							+ value.name().toLowerCase(java.util.Locale.ROOT)),
 					selected -> { saveFields(); tab = value; rebuildWidgets(); }));
 			button.active = value != tab;
 		}
 		JsonObject placement = session.biomePlacement(dimension, biomeId);
-		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.onOffBuilder(
+		OreSpawnScreenLayout.explain(this, addButton(CycleButton.onOffBuilder(
 				bool(placement, "enabled", true))
 				.create(left, 64, contentWidth, 20,
-						new TranslatableComponent("option.orespawn.enabled"),
+						new TranslationTextComponent("option.orespawn.enabled"),
 						(button, value) -> placement.addProperty("enabled", value))),
 				"tooltip.orespawn.enabled");
 		if (tab == Tab.PLACEMENT) initPlacement(left, half, placement);
 		else if (tab == Tab.CLIMATE) initClimate(left, half, placement);
 		else initSurface(left, contentWidth, placement);
-		addRenderableWidget(new Button(left, OreSpawnScreenLayout.footerY(height),
-				half, 20, CommonComponents.GUI_DONE, button -> { saveFields(); onClose(); }));
-		addRenderableWidget(new Button(left + half + 5, OreSpawnScreenLayout.footerY(height),
-				half, 20, new TranslatableComponent("button.orespawn.remove"), button -> {
+		addButton(new Button(left, OreSpawnScreenLayout.footerY(height),
+				half, 20, DialogTexts.GUI_DONE, button -> { saveFields(); onClose(); }));
+		addButton(new Button(left + half + 5, OreSpawnScreenLayout.footerY(height),
+				half, 20, new TranslationTextComponent("button.orespawn.remove"), button -> {
 					session.removeBiomePlacement(dimension, biomeId);
 					onClose();
 				}));
@@ -79,14 +78,14 @@ final class BiomePlacementScreen extends Screen {
 		OreSpawnScreenLayout.explain(this, weight, "tooltip.orespawn.weight");
 		label(left, y + 6, half, "option.orespawn.weight");
 		y += 28;
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, y, half, 20,
-				new TranslatableComponent("button.orespawn.similar_biomes",
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y, half, 20,
+				new TranslationTextComponent("button.orespawn.similar_biomes",
 						array(placement, "similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "similar_biomes")); },
 				"tooltip.orespawn.biome.similar_biomes"));
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left + half + 5, y,
-				half, 20, new TranslatableComponent("button.orespawn.required_biomes",
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left + half + 5, y,
+				half, 20, new TranslationTextComponent("button.orespawn.required_biomes",
 						array(placement, "required_similar_biomes").size()),
 				button -> { saveFields(); minecraft.setScreen(new BiomeReferenceScreen(
 						this, session, placement, "required_similar_biomes")); },
@@ -122,14 +121,14 @@ final class BiomePlacementScreen extends Screen {
 		for (String key : Arrays.asList("top_block", "filler_block",
 				"underwater_block", "ceiling_block")) {
 			String current = string(surface, key, "");
-			Button material = addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, y,
+			Button material = addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y,
 					width - 65, 20, materialLabel(key, current), button -> {
 						saveFields();
 						minecraft.setScreen(new MaterialBlockPickerScreen(this, session,
 								false, id -> surface.addProperty(key, id)));
 					}, "tooltip.orespawn.biome." + key));
-			Button clear = addRenderableWidget(new Button(left + width - 60, y, 60, 20,
-					new TranslatableComponent("button.orespawn.clear"),
+			Button clear = addButton(new Button(left + width - 60, y, 60, 20,
+					new TranslationTextComponent("button.orespawn.clear"),
 					button -> { surface.remove(key); rebuildWidgets(); }));
 			clear.active = !current.isEmpty();
 			y += 24;
@@ -140,21 +139,21 @@ final class BiomePlacementScreen extends Screen {
 		label(left, y + 6, width / 2 - 5, "option.orespawn.filler_depth");
 	}
 
-	private Component materialLabel(String key, String value) {
-		return new TranslatableComponent("option.orespawn." + key,
-				value.isEmpty() ? new TranslatableComponent("value.orespawn.not_set")
-						: new TextComponent(value));
+	private ITextComponent materialLabel(String key, String value) {
+		return new TranslationTextComponent("option.orespawn." + key,
+				value.isEmpty() ? new TranslationTextComponent("value.orespawn.not_set")
+						: new StringTextComponent(value));
 	}
 
-	private EditBox field(int x, int y, int width, double value) {
-		EditBox result = addRenderableWidget(new EditBox(font, x, y, width, 20, TextComponent.EMPTY));
+	private TextFieldWidget field(int x, int y, int width, double value) {
+		TextFieldWidget result = addButton(new TextFieldWidget(font, x, y, width, 20, StringTextComponent.EMPTY));
 		result.setValue(Double.toString(value));
 		return result;
 	}
 
 	private void label(int x, int y, int labelWidth, String key) {
-		addRenderableWidget(new Button(x, y - 6, Math.max(1, labelWidth), 20,
-				new TranslatableComponent(key), button -> { })).active = false;
+		addButton(new Button(x, y - 6, Math.max(1, labelWidth), 20,
+				new TranslationTextComponent(key), button -> { })).active = false;
 	}
 
 	private void saveFields() {
@@ -173,7 +172,7 @@ final class BiomePlacementScreen extends Screen {
 		}
 	}
 
-	private static void putDouble(JsonObject root, String key, EditBox field,
+	private static void putDouble(JsonObject root, String key, TextFieldWidget field,
 			double min, double max) {
 		try {
 			double value = Double.parseDouble(field.getValue().trim());
@@ -181,14 +180,14 @@ final class BiomePlacementScreen extends Screen {
 		} catch (NumberFormatException ignored) { }
 	}
 
-	private void rebuildWidgets() { clearWidgets(); init(); }
+	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 10, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(biomeId), width / 2, 28, 0xCCCCCC);
+		drawCenteredString(poseStack, font, new StringTextComponent(biomeId), width / 2, 28, 0xCCCCCC);
 		super.render(poseStack, mouseX, mouseY, partialTick);
 		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}

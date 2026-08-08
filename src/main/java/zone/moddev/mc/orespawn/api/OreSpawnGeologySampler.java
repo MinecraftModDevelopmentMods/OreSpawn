@@ -12,25 +12,25 @@ import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.server.ServerWorld;
 
 final class OreSpawnGeologySampler implements GeologySampler {
 	private static final ResourceLocation CYANO_GEOME = new ResourceLocation("orespawn", "cyano");
 
-	private final ServerLevel level;
+	private final ServerWorld level;
 	private final ResourceLocation dimension;
 	private final BakedGeomeConfig config;
 	private final GeologyMode mode;
 	private final GeomeGeology sky;
 	private final Geology cyano;
 
-	private OreSpawnGeologySampler(ServerLevel level) {
+	private OreSpawnGeologySampler(ServerWorld level) {
 		this.level = level;
 		dimension = level.dimension().location();
 		config = GeomeConfig.baked(level.dimension());
@@ -46,7 +46,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 	}
 
-	static GeologySampler create(ServerLevel level) {
+	static GeologySampler create(ServerWorld level) {
 		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()) {
 			throw new IllegalStateException("The level is not part of OreSpawn's active server");
 		}

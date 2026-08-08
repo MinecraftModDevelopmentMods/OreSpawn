@@ -12,7 +12,7 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Algorithm;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

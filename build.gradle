@@ -17,9 +17,9 @@ group = mod_group_id
 
 archivesBaseName = "OreSpawn-${minecraft_version}"
 
-// Minecraft 1.17.1 and Forge 37 target Java 16.
+// Minecraft 1.16.5 and Forge 36 target Java 8.
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(16)
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
     withSourcesJar()
     withJavadocJar()
 }
@@ -308,9 +308,8 @@ def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegration
 	classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
 	destinationDirectory.set(surfaceIntegrationClasses)
 	javaCompiler.set(javaToolchains.compilerFor {
-				languageVersion = JavaLanguageVersion.of(16)
+				languageVersion = JavaLanguageVersion.of(8)
 	})
-	options.release = 16
 	options.encoding = 'UTF-8'
 }
 
@@ -335,7 +334,7 @@ def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTes
 		}
 		new File(runDirectory, 'server.properties').setText('''\
 level-name=surface-integration-world
-# Minecraft 1.17.1 treats numeric zero as "choose a random seed". This
+# Minecraft 1.16.5 treats numeric zero as "choose a random seed". This
 # non-numeric token has Java String.hashCode() == 0, so the actual seed is 0.
 level-seed=zsjpxah
 level-type=minecraft:normal
@@ -362,37 +361,50 @@ def surfaceIntegrationProcess = { String phase, dependency ->
 		dependsOn dependency, "prepareRunSurfaceIntegration${phase}"
 		doFirst {
 			JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
-			File argumentFile = layout.buildDirectory.file(
-					"surface-integration-fixture/${phase.toLowerCase(Locale.ROOT)}.args").get().asFile
-			argumentFile.parentFile.mkdirs()
+			File classpathJar = layout.buildDirectory.file(
+					"surface-integration-fixture/${phase.toLowerCase(Locale.ROOT)}-classpath.jar").get().asFile
+			classpathJar.parentFile.mkdirs()
+			java.util.jar.Manifest manifest = new java.util.jar.Manifest()
+			manifest.mainAttributes.put(java.util.jar.Attributes.Name.MANIFEST_VERSION, '1.0')
+			manifest.mainAttributes.put(java.util.jar.Attributes.Name.CLASS_PATH,
+					runTask.classpath.files.collect { File entry -> entry.toURI().toASCIIString() }.join(' '))
+			classpathJar.withOutputStream { output ->
+				new java.util.jar.JarOutputStream(output, manifest).close()
+			}
 			List<String> arguments = []
 			arguments.addAll(runTask.allJvmArgs)
 			arguments.add('-cp')
-			arguments.add(runTask.classpath.asPath)
+			arguments.add(classpathJar.absolutePath)
 			arguments.add(runTask.main)
 			arguments.addAll(runTask.args)
-			argumentFile.setText(arguments.collect { String value ->
-				'"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
-			}.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
 
 			workingDir runTask.workingDir
 			environment runTask.environment
 			File javaExecutable = runTask.javaLauncher.get().executablePath.asFile
 			if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('windows')) {
-				// Forge 37's direct JavaExec server shutdown also terminates Gradle 7.2's
+				// Forge 36's direct JavaExec server shutdown can also terminate Gradle's
 				// single-use daemon. cmd/call keeps the server as a grandchild so Gradle
 				// receives the real exit code and can continue to the reload assertion.
-				commandLine 'cmd.exe', '/d', '/s', '/c',
-						"call \"${javaExecutable.absolutePath}\" \"@${argumentFile.absolutePath}\""
+				String command = 'call "' + javaExecutable.absolutePath + '" ' +
+						arguments.collect { String value -> '"' + value.replace('"', '""') + '"' }.join(' ')
+				commandLine 'cmd.exe', '/d', '/s', '/c', command
 			} else {
-				commandLine 'sh', '-c',
-						"\"${javaExecutable.absolutePath}\" \"@${argumentFile.absolutePath}\""
+				commandLine javaExecutable.absolutePath, arguments
 			}
 		}
 	}
 }
 
 def surfaceIntegrationFreshProcess = surfaceIntegrationProcess('Fresh', prepareSurfaceIntegrationTest)
+surfaceIntegrationFreshProcess.configure {
+	doLast {
+		File marker = surfaceIntegrationRunDirectory.get().file(
+				'surface-integration-world/surfaceprobe-integration.properties').asFile
+		if (!marker.isFile()) {
+			throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
+		}
+	}
+}
 def surfaceIntegrationReloadProcess = surfaceIntegrationProcess('Reload', surfaceIntegrationFreshProcess)
 
 def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
@@ -430,8 +442,10 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
         Set<File> classpathFiles = fileTree(classpathDir) {
             include '*_minecraftClasspath.txt'
         }.files
-        if (classpathFiles.isEmpty()) {
-            throw new GradleException('Missing Forge run classpaths. Run genEclipseRuns before launching from Eclipse.')
+        boolean hasForgeGradle5Launches = ['runClient.launch', 'runServer.launch',
+                'runData.launch'].every { file(it).isFile() }
+        if (classpathFiles.isEmpty() && !hasForgeGradle5Launches) {
+            throw new GradleException('Missing Forge run metadata. Run genEclipseRuns before launching from Eclipse.')
         }
 
         File buildshipPreferences = file('.settings/org.eclipse.buildship.core.prefs')

@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.block.BlockState;
 
 /** Immutable runtime data used by biome, surface, aquifer, and weather hooks. */
 final class BakedBiomeWorldgen {

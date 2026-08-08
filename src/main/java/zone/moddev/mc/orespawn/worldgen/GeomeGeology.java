@@ -4,16 +4,16 @@ import java.util.Random;
 
 import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.Block;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.IWorld;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.block.BlockState;
 
 public final class GeomeGeology {
 	private static final double GEOME_TRANSITION_SCORE_WIDTH = 0.125D;
@@ -84,11 +84,11 @@ public final class GeomeGeology {
 		}
 	}
 
-	public void replaceStoneInChunk(LevelAccessor world, ChunkAccess chunk, BakedTerrainDimension terrain) {
+	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getMinBlockX();
 		int zOffset = chunkPos.getMinBlockZ();
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		BlockPos.Mutable cursor = new BlockPos.Mutable();
 		double[] regionalValues = new double[config.geomeCount()];
 		boolean changed = false;
 
@@ -96,7 +96,7 @@ public final class GeomeGeology {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
+				int surfaceY = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
 				cursor.set(x, surfaceY, z);
 				Biome biome = world.getBiome(cursor);
 				ResourceLocation biomeId = world.registryAccess()
@@ -114,7 +114,7 @@ public final class GeomeGeology {
 							regionalValues, baseRockValue,
 							formationRegion, x, z, surfaceY, terrain);
 				} else {
-					for (int y = surfaceY; y >= chunk.getMinBuildHeight(); y--) {
+					for (int y = surfaceY; y >= 0; y--) {
 						cursor.set(x, y, z);
 						if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
 							chunk.setBlockState(cursor,
@@ -131,7 +131,7 @@ public final class GeomeGeology {
 		}
 	}
 
-	private boolean replaceStableColumn(ChunkAccess chunk, BlockPos.MutableBlockPos cursor, int geomeIndex,
+	private boolean replaceStableColumn(IChunk chunk, BlockPos.Mutable cursor, int geomeIndex,
 			int secondGeome, double[] geomeScores, int baseRockValue,
 			long formationRegion, int x, int z, int surfaceY,
 			BakedTerrainDimension terrain) {
@@ -143,7 +143,7 @@ public final class GeomeGeology {
 		boolean changed = false;
 		cursor.set(x, surfaceY, z);
 
-		for (int y = surfaceY; y >= chunk.getMinBuildHeight(); y--) {
+		for (int y = surfaceY; y >= 0; y--) {
 			int stratum = baseRockValue + y;
 			if (stratum < layerStart) {
 				layerIndex--;
@@ -242,7 +242,7 @@ public final class GeomeGeology {
 		return config.scoreGeomes(biome, biomeId, regionalValues, boundary);
 	}
 
-	private net.minecraft.world.level.block.state.BlockState pickReplacement(int geomeIndex, int baseRockValue,
+	private net.minecraft.block.BlockState pickReplacement(int geomeIndex, int baseRockValue,
 			long formationRegion, int x, int y, int z) {
 		int stratum = baseRockValue + y;
 		int layerIndex = Math.floorDiv(stratum, layerThickness);

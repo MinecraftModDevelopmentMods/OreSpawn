@@ -51,7 +51,7 @@ stone without enabling strata:
           "max_quantity": 11,
           "pattern": "vein",
           "height_distribution": "triangle",
-          "host_tags": ["minecraft:stone_ore_replaceables"]
+          "host_tags": ["forge:stone"]
         }
       }
     }
@@ -100,7 +100,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
-					.hostTag(new ResourceLocation("minecraft", "stone_ore_replaceables"))))
+					.hostTag(new ResourceLocation("forge", "stone"))))
         .build();
 
     OreSpawnApi.enqueue(provider);
@@ -173,7 +173,7 @@ The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
 Biome filters retain their exact registry IDs. Do not compare baked `Biome`
-instances by identity: 1.17 worldgen can supply equivalent values from a
+instances by identity: 1.16.5 worldgen can supply equivalent values from a
 dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
 chunk invocation and no registry lookup in the placement loop.
 

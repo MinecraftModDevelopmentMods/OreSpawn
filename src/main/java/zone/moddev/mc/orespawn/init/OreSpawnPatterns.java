@@ -13,15 +13,15 @@ import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.Fluids;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.Fluids;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
-import net.minecraftforge.fmllegacy.RegistryObject;
+import net.minecraftforge.fml.RegistryObject;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {

@@ -1,14 +1,18 @@
 package zone.moddev.mc.orespawn.testmod;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -27,38 +31,38 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.levelgen.FlatLevelSource;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
-import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
-import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
-import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.WorldGenRegistries;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.item.DyeColor;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.world.World;
+import net.minecraft.world.ISeedReader;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.tileentity.ChestTileEntity;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.gen.FlatChunkGenerator;
+import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.Placement;
+import net.minecraft.world.storage.FolderName;
+import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -69,7 +73,7 @@ import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.fmllegacy.RegistryObject;
+import net.minecraftforge.fml.RegistryObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,8 +95,8 @@ public final class SurfaceProbeTestMod {
 	private static ConfiguredFeature<?, ?> terrainConfigured;
 	private static ConfiguredFeature<?, ?> structureConfigured;
 	private static ConfiguredFeature<?, ?> vegetationConfigured;
-	private static final ResourceKey<Level> OPEN = Level.END;
-	private static final ResourceKey<Level> ROOFED = Level.NETHER;
+	private static final RegistryKey<World> OPEN = World.END;
+	private static final RegistryKey<World> ROOFED = World.NETHER;
 	private static final ResourceLocation OPEN_ID = new ResourceLocation("minecraft:the_end");
 	private static final ResourceLocation ROOFED_ID = new ResourceLocation("minecraft:the_nether");
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
@@ -104,13 +108,14 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("orespawn:coastal_shelf"), new ResourceLocation("orespawn:arid_basin"),
 			new ResourceLocation("orespawn:wetland_basin"), new ResourceLocation("orespawn:glacial_highland")
 	};
-	private static final Set<ResourceLocation> BASE_BIOMES = Set.of(
+	private static final Set<ResourceLocation> BASE_BIOMES = Collections.unmodifiableSet(
+			new java.util.LinkedHashSet<ResourceLocation>(Arrays.asList(
 			new ResourceLocation("minecraft", "the_end"),
 			new ResourceLocation("minecraft", "nether_wastes"),
 			new ResourceLocation("minecraft", "soul_sand_valley"),
 			new ResourceLocation("minecraft", "crimson_forest"),
 			new ResourceLocation("minecraft", "warped_forest"),
-			new ResourceLocation("minecraft", "basalt_deltas"));
+			new ResourceLocation("minecraft", "basalt_deltas"))));
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
 	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
@@ -141,11 +146,11 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static ConfiguredFeature<?, ?> registerConfigured(String name,
-			Feature<NoneFeatureConfiguration> feature) {
+			Feature<NoFeatureConfig> feature) {
 		ResourceLocation id = new ResourceLocation(MODID, name);
-		return Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
-				feature.configured(NoneFeatureConfiguration.INSTANCE)
-						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
+		return Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
+				feature.configured(NoFeatureConfig.INSTANCE)
+						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
 	}
 
 	private void addFixtureFeatures(BiomeLoadingEvent event) {
@@ -153,11 +158,11 @@ public final class SurfaceProbeTestMod {
 		if (terrainConfigured == null || structureConfigured == null || vegetationConfigured == null) {
 			throw new IllegalStateException("Surface probe features were not registered before biome loading");
 		}
-		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.RAW_GENERATION),
+		addUnique(event.getGeneration().getFeatures(GenerationStage.Decoration.RAW_GENERATION),
 				terrainConfigured);
-		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.SURFACE_STRUCTURES),
+		addUnique(event.getGeneration().getFeatures(GenerationStage.Decoration.SURFACE_STRUCTURES),
 				structureConfigured);
-		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.VEGETAL_DECORATION),
+		addUnique(event.getGeneration().getFeatures(GenerationStage.Decoration.VEGETAL_DECORATION),
 				vegetationConfigured);
 	}
 
@@ -184,13 +189,13 @@ public final class SurfaceProbeTestMod {
 		provider.geome(PROBE_GEOME, geome -> geome
 				.baseWeight(0.0D)
 				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
-		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome"), blockId(Blocks.CALCITE),
+		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome"), blockId(Blocks.DIORITE),
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 1.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
 				});
-		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.BASALT),
+		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.GRANITE),
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 0.0D);
@@ -201,10 +206,10 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private void enableGeologyProbe(FMLServerAboutToStartEvent event) {
-		Path profile = event.getServer().getWorldPath(LevelResource.ROOT).resolve("serverconfig")
+		Path profile = event.getServer().getWorldPath(FolderName.ROOT).resolve("serverconfig")
 				.resolve("orespawn-worldgen.json");
 		JsonObject root;
-		try (var reader = Files.newBufferedReader(profile)) {
+		try (BufferedReader reader = Files.newBufferedReader(profile)) {
 			root = new JsonParser().parse(reader).getAsJsonObject();
 		} catch (IOException | RuntimeException exception) {
 			throw new IllegalStateException("Could not read the test-owned End geology profile", exception);
@@ -226,7 +231,7 @@ public final class SurfaceProbeTestMod {
 			end.add("host_blocks", hosts);
 			end.add("host_tags", new JsonArray());
 			terrain.add(OPEN_ID.toString(), end);
-			try (var writer = Files.newBufferedWriter(profile)) {
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
 				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
 			}
 		} catch (IOException | RuntimeException exception) {
@@ -292,7 +297,7 @@ public final class SurfaceProbeTestMod {
 					+ event.getServer().overworld().getSeed());
 		}
 
-		Path marker = event.getServer().getWorldPath(LevelResource.ROOT).resolve(MARKER_NAME);
+		Path marker = event.getServer().getWorldPath(FolderName.ROOT).resolve(MARKER_NAME);
 		Properties previous = phase.equals("reload") ? readMarker(marker) : null;
 		if (phase.equals("fresh") && Files.exists(marker)) {
 			throw new IllegalStateException("Fresh surface probe retained a reload marker");
@@ -322,16 +327,16 @@ public final class SurfaceProbeTestMod {
 		event.getServer().halt(false);
 	}
 
-	private static ServerLevel requireLevel(FMLServerStartedEvent event, ResourceKey<Level> key) {
-		ServerLevel level = event.getServer().getLevel(key);
+	private static ServerWorld requireLevel(FMLServerStartedEvent event, RegistryKey<World> key) {
+		ServerWorld level = event.getServer().getLevel(key);
 		if (level == null) throw new IllegalStateException("Surface probe dimension is unavailable: " + key.location());
-		if (level.getChunkSource().getGenerator() instanceof FlatLevelSource) {
+		if (level.getChunkSource().getGenerator() instanceof FlatChunkGenerator) {
 			throw new IllegalStateException("Surface probe requires normal noise terrain: " + key.location());
 		}
 		return level;
 	}
 
-	private static AuditResult auditDimension(ServerLevel level, boolean roofed) {
+	private static AuditResult auditDimension(ServerWorld level, boolean roofed) {
 		long top = 0L;
 		long underwater = 0L;
 		long filler = 0L;
@@ -342,20 +347,20 @@ public final class SurfaceProbeTestMod {
 		int biomeB = 0;
 		int edgeChanges = 0;
 		int sentinels = 0;
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		BlockPos.Mutable pos = new BlockPos.Mutable();
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
 			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
 				level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
-				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+				Chunk chunk = level.getChunk(chunkX, chunkZ);
 				int chunkMinX = chunkX << 4;
 				int chunkMinZ = chunkZ << 4;
 				for (int localZ = 0; localZ < 16; localZ++) {
 					for (int localX = 0; localX < 16; localX++) {
 						int x = chunkMinX + localX;
 						int z = chunkMinZ + localZ;
-						int groundY = findMarkedGround(chunk, pos, x, z, level.getMinBuildHeight(), level.getMaxBuildHeight());
-						var biome = level.getBiome(pos.set(x, groundY, z));
+						int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
+						Biome biome = level.getBiome(pos.set(x, groundY, z));
 						ResourceLocation biomeId = biomeId(level, biome);
 						Material material = material(biomeId, roofed);
 						float expectedTemperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
@@ -392,7 +397,7 @@ public final class SurfaceProbeTestMod {
 						if (!roofed) {
 							for (int depth = 6; depth <= 8; depth++) {
 								assertBlock(chunk, pos, x, groundY - depth, z,
-										Blocks.CALCITE.defaultBlockState(), "dynamic-biome geome rock");
+										Blocks.DIORITE.defaultBlockState(), "dynamic-biome geome rock");
 								geology++;
 							}
 						}
@@ -428,16 +433,16 @@ public final class SurfaceProbeTestMod {
 				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid);
 	}
 
-	private static long auditDefaultFluid(ServerLevel level) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+	private static long auditDefaultFluid(ServerWorld level) {
+		BlockPos.Mutable pos = new BlockPos.Mutable();
 		long water = 0L;
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
 			for (int chunkX = FLUID_PROBE_MIN_CHUNK_X; chunkX <= FLUID_PROBE_MAX_CHUNK_X; chunkX++) {
 				level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
-				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+				Chunk chunk = level.getChunk(chunkX, chunkZ);
 				for (int x = chunk.getPos().getMinBlockX(); x <= chunk.getPos().getMaxBlockX(); x++) {
 					for (int z = chunk.getPos().getMinBlockZ(); z <= chunk.getPos().getMaxBlockZ(); z++) {
-						for (int y = level.getMinBuildHeight(); y <= Math.min(63, level.getMaxBuildHeight() - 1); y++) {
+						for (int y = 0; y <= 63; y++) {
 							if (chunk.getBlockState(pos.set(x, y, z)).is(Blocks.WATER)) water++;
 						}
 					}
@@ -450,34 +455,38 @@ public final class SurfaceProbeTestMod {
 		return water;
 	}
 
-	private static int auditSentinels(ServerLevel level, LevelChunk chunk,
-			BlockPos.MutableBlockPos pos, int minX, int minZ) {
+	private static int auditSentinels(ServerWorld level, Chunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ) {
 		int groundTree = findMarkedGround(chunk, pos, minX + 4, minZ + 4,
-				level.getMinBuildHeight(), level.getMaxBuildHeight());
+				0, 256);
 		assertBlock(chunk, pos, minX + 4, groundTree + 1, minZ + 4,
 				Blocks.OAK_LOG.defaultBlockState(), "tree log");
 		assertBlock(chunk, pos, minX + 4, groundTree + 3, minZ + 4,
 				Blocks.OAK_LEAVES.defaultBlockState(), "tree leaves");
 
 		int groundVegetation = findMarkedGround(chunk, pos, minX + 6, minZ + 6,
-				level.getMinBuildHeight(), level.getMaxBuildHeight());
+				0, 256);
 		assertBlock(chunk, pos, minX + 6, groundVegetation + 1, minZ + 6,
 				Blocks.DIRT.defaultBlockState(), "vegetation substrate");
 		assertBlock(chunk, pos, minX + 6, groundVegetation + 2, minZ + 6,
 				Blocks.OAK_SAPLING.defaultBlockState(), "vegetation");
 
 		int groundStructure = findMarkedGround(chunk, pos, minX + 8, minZ + 8,
-				level.getMinBuildHeight(), level.getMaxBuildHeight());
+				0, 256);
 		assertBlock(chunk, pos, minX + 8, groundStructure + 1, minZ + 8,
 				Blocks.GOLD_BLOCK.defaultBlockState(), "authored structure");
 
 		int groundChest = findMarkedGround(chunk, pos, minX + 10, minZ + 10,
-				level.getMinBuildHeight(), level.getMaxBuildHeight());
+				0, 256);
 		assertBlock(chunk, pos, minX + 10, groundChest + 1, minZ + 10,
 				Blocks.CHEST.defaultBlockState(), "chest sentinel");
 		if (!(level.getBlockEntity(pos.set(minX + 10, groundChest + 1, minZ + 10))
-				instanceof ChestBlockEntity chest)
-				|| !chest.getItem(0).is(Items.DIAMOND)
+				instanceof ChestTileEntity)) {
+			throw new IllegalStateException("Chest block entity data changed at " + pos);
+		}
+		ChestTileEntity chest = (ChestTileEntity) level.getBlockEntity(pos);
+		if (chest == null
+				|| chest.getItem(0).getItem() != Items.DIAMOND
 				|| chest.getItem(0).getHoverName() == null
 				|| !CHEST_ITEM_NAME.equals(chest.getItem(0).getHoverName().getString())) {
 			throw new IllegalStateException("Chest block entity data changed at " + pos);
@@ -485,7 +494,7 @@ public final class SurfaceProbeTestMod {
 		return 4;
 	}
 
-	private static int findMarkedGround(ChunkAccess chunk, BlockPos.MutableBlockPos pos,
+	private static int findMarkedGround(IChunk chunk, BlockPos.Mutable pos,
 			int x, int z, int minY, int maxY) {
 		for (int y = maxY - 1; y >= minY; y--) {
 			if (chunk.getBlockState(pos.set(x, y, z)).is(concreteBlock(DyeColor.BLACK))) return y + 5;
@@ -493,7 +502,7 @@ public final class SurfaceProbeTestMod {
 		throw new IllegalStateException("Independent surface marker missing at " + x + "," + z);
 	}
 
-	private static void assertBlock(ChunkAccess chunk, BlockPos.MutableBlockPos pos,
+	private static void assertBlock(IChunk chunk, BlockPos.Mutable pos,
 			int x, int y, int z, BlockState expected, String purpose) {
 		BlockState actual = chunk.getBlockState(pos.set(x, y, z));
 		if (!actual.is(expected.getBlock())) {
@@ -519,27 +528,25 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static Block concreteBlock(DyeColor color) {
-		return switch (color) {
-			case WHITE -> Blocks.WHITE_CONCRETE;
-			case ORANGE -> Blocks.ORANGE_CONCRETE;
-			case MAGENTA -> Blocks.MAGENTA_CONCRETE;
-			case LIGHT_BLUE -> Blocks.LIGHT_BLUE_CONCRETE;
-			case YELLOW -> Blocks.YELLOW_CONCRETE;
-			case LIME -> Blocks.LIME_CONCRETE;
-			case PINK -> Blocks.PINK_CONCRETE;
-			case GRAY -> Blocks.GRAY_CONCRETE;
-			case LIGHT_GRAY -> Blocks.LIGHT_GRAY_CONCRETE;
-			case CYAN -> Blocks.CYAN_CONCRETE;
-			case PURPLE -> Blocks.PURPLE_CONCRETE;
-			case BLUE -> Blocks.BLUE_CONCRETE;
-			case BROWN -> Blocks.BROWN_CONCRETE;
-			case GREEN -> Blocks.GREEN_CONCRETE;
-			case RED -> Blocks.RED_CONCRETE;
-			case BLACK -> Blocks.BLACK_CONCRETE;
-		};
+		if (color == DyeColor.WHITE) return Blocks.WHITE_CONCRETE;
+		if (color == DyeColor.ORANGE) return Blocks.ORANGE_CONCRETE;
+		if (color == DyeColor.MAGENTA) return Blocks.MAGENTA_CONCRETE;
+		if (color == DyeColor.LIGHT_BLUE) return Blocks.LIGHT_BLUE_CONCRETE;
+		if (color == DyeColor.YELLOW) return Blocks.YELLOW_CONCRETE;
+		if (color == DyeColor.LIME) return Blocks.LIME_CONCRETE;
+		if (color == DyeColor.PINK) return Blocks.PINK_CONCRETE;
+		if (color == DyeColor.GRAY) return Blocks.GRAY_CONCRETE;
+		if (color == DyeColor.LIGHT_GRAY) return Blocks.LIGHT_GRAY_CONCRETE;
+		if (color == DyeColor.CYAN) return Blocks.CYAN_CONCRETE;
+		if (color == DyeColor.PURPLE) return Blocks.PURPLE_CONCRETE;
+		if (color == DyeColor.BLUE) return Blocks.BLUE_CONCRETE;
+		if (color == DyeColor.BROWN) return Blocks.BROWN_CONCRETE;
+		if (color == DyeColor.GREEN) return Blocks.GREEN_CONCRETE;
+		if (color == DyeColor.RED) return Blocks.RED_CONCRETE;
+		return Blocks.BLACK_CONCRETE;
 	}
 
-	private static ResourceLocation biomeId(ServerLevel level, Biome biome) {
+	private static ResourceLocation biomeId(ServerWorld level, Biome biome) {
 		return level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
 	}
 
@@ -589,48 +596,46 @@ public final class SurfaceProbeTestMod {
 
 	private enum ProbeStage { TERRAIN, STRUCTURE, VEGETATION }
 
-	private static final class ProbeFeature extends Feature<NoneFeatureConfiguration> {
+	private static final class ProbeFeature extends Feature<NoFeatureConfig> {
 		private final ProbeStage stage;
 
 		private ProbeFeature(ProbeStage stage) {
-			super(NoneFeatureConfiguration.CODEC);
+			super(NoFeatureConfig.CODEC);
 			this.stage = stage;
 		}
 
 		@Override
-		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
-			WorldGenLevel world = context.level();
-			ChunkAccess chunk = world.getChunk(context.origin());
-			return switch (stage) {
-				case TERRAIN -> prepareTerrain(world, chunk);
-				case STRUCTURE -> placeStructureSentinels(world, chunk);
-				case VEGETATION -> placeVegetationSentinels(world, chunk);
-			};
+		public boolean place(ISeedReader world, ChunkGenerator chunkGenerator, Random random,
+				BlockPos origin, NoFeatureConfig config) {
+			IChunk chunk = world.getChunk(origin);
+			if (stage == ProbeStage.TERRAIN) return prepareTerrain(world, chunk);
+			if (stage == ProbeStage.STRUCTURE) return placeStructureSentinels(world, chunk);
+			return placeVegetationSentinels(world, chunk);
 		}
 	}
 
-	private static boolean prepareTerrain(WorldGenLevel world, ChunkAccess chunk) {
+	private static boolean prepareTerrain(ISeedReader world, IChunk chunk) {
 		boolean roofed = world.getLevel().dimension().equals(ROOFED);
 		if (roofed && chunk.getPos().x >= FLUID_PROBE_MIN_CHUNK_X
 				&& chunk.getPos().x <= FLUID_PROBE_MAX_CHUNK_X
 				&& chunk.getPos().z >= MINIMUM_CHUNK && chunk.getPos().z <= MAXIMUM_CHUNK) return false;
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		BlockPos.Mutable pos = new BlockPos.Mutable();
 		Heightmap surfaceHeight = chunk.getOrCreateHeightmapUnprimed(
-				Heightmap.Types.WORLD_SURFACE_WG);
+				Heightmap.Type.WORLD_SURFACE_WG);
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int x = minX + localX;
 				int z = minZ + localZ;
-				int groundY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ);
+				int groundY = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, localX, localZ);
 				if (roofed) {
-					while (groundY > world.getMinBuildHeight()
+					while (groundY > 0
 							&& solid(chunk.getBlockState(pos.set(x, groundY, z)))) groundY--;
 				}
-				while (groundY > world.getMinBuildHeight()
+				while (groundY > 0
 						&& !solid(chunk.getBlockState(pos.set(x, groundY, z)))) groundY--;
-				if (!roofed && groundY <= world.getMinBuildHeight()) groundY = 64;
+				if (!roofed && groundY <= 0) groundY = 64;
 				chunk.setBlockState(pos.set(x, groundY, z), Blocks.GRASS_BLOCK.defaultBlockState(), false);
 				surfaceHeight.update(localX, groundY, localZ, Blocks.GRASS_BLOCK.defaultBlockState());
 				for (int depth = 1; depth <= 3; depth++) {
@@ -644,7 +649,7 @@ public final class SurfaceProbeTestMod {
 				chunk.setBlockState(pos.set(x, groundY - 5, z),
 						concreteBlock(DyeColor.BLACK).defaultBlockState(), false);
 				if (roofed) {
-					for (int openY = groundY + 1; openY < world.getMaxBuildHeight(); openY++) {
+					for (int openY = groundY + 1; openY < 256; openY++) {
 						chunk.setBlockState(pos.set(x, openY, z), Blocks.AIR.defaultBlockState(), false);
 					}
 					for (int roofY = groundY + 8; roofY <= groundY + 10; roofY++) {
@@ -666,8 +671,8 @@ public final class SurfaceProbeTestMod {
 		return !state.isAir() && state.getFluidState().isEmpty();
 	}
 
-	private static boolean placeStructureSentinels(WorldGenLevel world, ChunkAccess chunk) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+	private static boolean placeStructureSentinels(ISeedReader world, IChunk chunk) {
+		BlockPos.Mutable pos = new BlockPos.Mutable();
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
 		int structureY = markedGroundOrMissing(chunk, pos, minX + 8, minZ + 8, world);
@@ -676,17 +681,18 @@ public final class SurfaceProbeTestMod {
 				Blocks.GOLD_BLOCK.defaultBlockState(), 2);
 		int chestY = markedGround(chunk, pos, minX + 10, minZ + 10, world);
 		world.setBlock(pos.set(minX + 10, chestY + 1, minZ + 10), Blocks.CHEST.defaultBlockState(), 2);
-		if (world.getBlockEntity(pos) instanceof ChestBlockEntity chest) {
+		if (world.getBlockEntity(pos) instanceof ChestTileEntity) {
+			ChestTileEntity chest = (ChestTileEntity) world.getBlockEntity(pos);
 			ItemStack sentinel = new ItemStack(Items.DIAMOND);
-			sentinel.setHoverName(new TextComponent(CHEST_ITEM_NAME));
+			sentinel.setHoverName(new StringTextComponent(CHEST_ITEM_NAME));
 			chest.setItem(0, sentinel);
 			chest.setChanged();
 		}
 		return true;
 	}
 
-	private static boolean placeVegetationSentinels(WorldGenLevel world, ChunkAccess chunk) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+	private static boolean placeVegetationSentinels(ISeedReader world, IChunk chunk) {
+		BlockPos.Mutable pos = new BlockPos.Mutable();
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
 		int treeY = markedGroundOrMissing(chunk, pos, minX + 4, minZ + 4, world);
@@ -701,23 +707,77 @@ public final class SurfaceProbeTestMod {
 		return true;
 	}
 
-	private static int markedGround(ChunkAccess chunk, BlockPos.MutableBlockPos pos,
-			int x, int z, WorldGenLevel world) {
-		return findMarkedGround(chunk, pos, x, z, world.getMinBuildHeight(), world.getMaxBuildHeight());
+	private static int markedGround(IChunk chunk, BlockPos.Mutable pos,
+			int x, int z, ISeedReader world) {
+		return findMarkedGround(chunk, pos, x, z, 0, 256);
 	}
 
-	private static int markedGroundOrMissing(ChunkAccess chunk, BlockPos.MutableBlockPos pos,
-			int x, int z, WorldGenLevel world) {
-		for (int y = world.getMaxBuildHeight() - 1; y >= world.getMinBuildHeight(); y--) {
+	private static int markedGroundOrMissing(IChunk chunk, BlockPos.Mutable pos,
+			int x, int z, ISeedReader world) {
+		for (int y = 255; y >= 0; y--) {
 			if (chunk.getBlockState(pos.set(x, y, z)).is(concreteBlock(DyeColor.BLACK))) return y + 5;
 		}
 		return Integer.MIN_VALUE;
 	}
 
-	private record Material(BlockState top, BlockState filler,
-			BlockState underwater, BlockState ceiling) { }
+	private static final class Material {
+		private final BlockState top;
+		private final BlockState filler;
+		private final BlockState underwater;
+		private final BlockState ceiling;
 
-	private record AuditResult(long top, long underwater, long filler, long geology,
-			long ceiling, long roofTop, int biomeA, int biomeB,
-			int edgeChanges, int sentinels, long aquiferFluid) { }
+		Material(BlockState top, BlockState filler, BlockState underwater, BlockState ceiling) {
+			this.top = top;
+			this.filler = filler;
+			this.underwater = underwater;
+			this.ceiling = ceiling;
+		}
+
+		BlockState top() { return top; }
+		BlockState filler() { return filler; }
+		BlockState underwater() { return underwater; }
+		BlockState ceiling() { return ceiling; }
+	}
+
+	private static final class AuditResult {
+		private final long top;
+		private final long underwater;
+		private final long filler;
+		private final long geology;
+		private final long ceiling;
+		private final long roofTop;
+		private final int biomeA;
+		private final int biomeB;
+		private final int edgeChanges;
+		private final int sentinels;
+		private final long aquiferFluid;
+
+		AuditResult(long top, long underwater, long filler, long geology, long ceiling,
+				long roofTop, int biomeA, int biomeB, int edgeChanges, int sentinels,
+				long aquiferFluid) {
+			this.top = top;
+			this.underwater = underwater;
+			this.filler = filler;
+			this.geology = geology;
+			this.ceiling = ceiling;
+			this.roofTop = roofTop;
+			this.biomeA = biomeA;
+			this.biomeB = biomeB;
+			this.edgeChanges = edgeChanges;
+			this.sentinels = sentinels;
+			this.aquiferFluid = aquiferFluid;
+		}
+
+		long top() { return top; }
+		long underwater() { return underwater; }
+		long filler() { return filler; }
+		long geology() { return geology; }
+		long ceiling() { return ceiling; }
+		long roofTop() { return roofTop; }
+		int biomeA() { return biomeA; }
+		int biomeB() { return biomeB; }
+		int edgeChanges() { return edgeChanges; }
+		int sentinels() { return sentinels; }
+		long aquiferFluid() { return aquiferFluid; }
+	}
 }

@@ -22,31 +22,31 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.WorldGenRegistries;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biome.BiomeCategory;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
+import net.minecraft.world.ISeedReader;
+import net.minecraft.world.biome.Biome;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.WorldGenRegion;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.placement.Placement;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.fluid.Fluid;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -54,16 +54,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** One dynamic feature for every OreSpawn-managed ore and dimension. */
-public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguration> {
+public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig> {
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final OreSpawnOreGeneration FEATURE = new OreSpawnOreGeneration();
 	private static final BakedOre[] NO_ORES = new BakedOre[0];
-	private static final Map<ResourceKey<Level>, BakedOre[]> EMPTY_DIMENSIONS = Collections.emptyMap();
+	private static final Map<RegistryKey<World>, BakedOre[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
 	private static ConfiguredFeature<?, ?> configuredFeature;
-	private static volatile Map<ResourceKey<Level>, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
-	private static volatile Map<ResourceKey<Level>, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
+	private static volatile Map<RegistryKey<World>, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
+	private static volatile Map<RegistryKey<World>, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
 	private static volatile BakedOre[] selectorOres = NO_ORES;
 	private static volatile Set<Block> selectorVanillaTakeoverOutputs = Collections.emptySet();
 	private static volatile BakedGeomeConfig geomeConfig;
@@ -73,15 +73,15 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			ThreadLocal.withInitial(GenerationScratch::new);
 
 	private OreSpawnOreGeneration() {
-		super(NoneFeatureConfiguration.CODEC);
+		super(NoFeatureConfig.CODEC);
 		setRegistryName(OreSpawn.MODID, "managed_ores");
 	}
 
 	public static void registerConfiguredFeatures() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "managed_ores");
-		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
-				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
-						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
+		configuredFeature = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoFeatureConfig.INSTANCE)
+						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
 		VanillaOreFeatureGate.register();
 		refreshWorldConfig();
 	}
@@ -103,28 +103,28 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
 		VanillaOreFeatureGate.wrapVanillaOres(event);
 		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && configuredFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
+				&& event.getCategory() != Biome.Category.NONE && configuredFeature != null) {
+			event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 					.add(() -> configuredFeature);
 		}
 	}
 
-	static boolean takesOverVanillaOre(ResourceKey<Level> dimension, Block output) {
+	static boolean takesOverVanillaOre(RegistryKey<World> dimension, Block output) {
 		Set<Block> outputs = vanillaTakeoverOutputs.get(dimension);
 		if (outputs == null && selectorAllows(dimension)) outputs = selectorVanillaTakeoverOutputs;
 		return !WorldgenBenchmark.isVanillaBaseline() && outputs != null && outputs.contains(output);
 	}
 
 	@Override
-	public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
-		WorldGenLevel world = context.level();
-		ResourceKey<Level> dimension = world.getLevel().dimension();
+	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
+		ISeedReader world = context.level();
+		RegistryKey<World> dimension = world.getLevel().dimension();
 		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) {
 			return false;
 		}
 
-		ChunkAccess chunk = world.getChunk(context.origin());
+		IChunk chunk = world.getChunk(context.origin());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
 		Biome biome = world.getBiome(scratch.cursor);
@@ -136,8 +136,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return changed;
 	}
 
-	static boolean retrogen(ServerLevel level, LevelChunk chunk) {
-		ResourceKey<Level> dimension = level.dimension();
+	static boolean retrogen(ServerWorld level, Chunk chunk) {
+		RegistryKey<World> dimension = level.dimension();
 		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) return false;
 		long seed = mix(level.getSeed(), chunk.getPos().toLong(),
@@ -151,21 +151,21 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				new Random(seed), ores, true, scratch);
 	}
 
-	private static void setCenter(BlockPos.MutableBlockPos cursor, ChunkAccess chunk) {
+	private static void setCenter(BlockPos.Mutable cursor, IChunk chunk) {
 		ChunkPos chunkPos = chunk.getPos();
 		cursor.set(chunkPos.getMinBlockX() + 8,
-				Math.max(chunk.getMinBuildHeight(), 0), chunkPos.getMinBlockZ() + 8);
+				Math.max(0, 0), chunkPos.getMinBlockZ() + 8);
 	}
 
-	private static boolean generateChunk(WorldGenLevel world, ChunkAccess chunk, Biome biome,
+	private static boolean generateChunk(ISeedReader world, IChunk chunk, Biome biome,
 			ResourceLocation biomeId,
-			ResourceKey<Level> dimension, long worldSeed, Random random, BakedOre[] ores,
+			RegistryKey<World> dimension, long worldSeed, Random random, BakedOre[] ores,
 			boolean retrogenOnly, GenerationScratch scratch) {
 		ChunkPos chunkPos = chunk.getPos();
 		int centerX = chunkPos.getMinBlockX() + 8;
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int geome = -1;
-		if (Level.OVERWORLD.equals(dimension)) {
+		if (World.OVERWORLD.equals(dimension)) {
 			geome = classifier(worldSeed).classifyColumn(biome, biomeId, centerX, centerZ,
 					scratch.geomeValues(geomeConfig.geomeCount()));
 		}
@@ -200,11 +200,11 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return value ^ (value >>> 31);
 	}
 
-	private static boolean placeAttempt(WorldGenLevel world, ChunkAccess chunk, Random random,
+	private static boolean placeAttempt(ISeedReader world, IChunk chunk, Random random,
 			BakedOre ore, int geome,
 			GenerationScratch scratch) {
-		int minY = Math.max(ore.minY, chunk.getMinBuildHeight());
-		int maxY = Math.min(ore.maxY, chunk.getMaxBuildHeight() - 1);
+		int minY = Math.max(ore.minY, 0);
+		int maxY = Math.min(ore.maxY, 256 - 1);
 		if (maxY < minY) {
 			return false;
 		}
@@ -222,26 +222,26 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				: minQuantity + random.nextInt(maxQuantity - minQuantity + 1);
 	}
 
-	static boolean selectorAllows(ResourceKey<Level> dimension) {
-		return !Level.NETHER.equals(dimension) && !Level.END.equals(dimension);
+	static boolean selectorAllows(RegistryKey<World> dimension) {
+		return !World.NETHER.equals(dimension) && !World.END.equals(dimension);
 	}
 
-	static <T> T selectRule(Map<ResourceKey<Level>, T> explicit,
-			Set<ResourceKey<Level>> explicitDimensions, T selector, ResourceKey<Level> dimension) {
+	static <T> T selectRule(Map<RegistryKey<World>, T> explicit,
+			Set<RegistryKey<World>> explicitDimensions, T selector, RegistryKey<World> dimension) {
 		return explicitDimensions.contains(dimension) ? explicit.get(dimension)
 				: selectorAllows(dimension) ? selector : null;
 	}
 
-	private static BakedOre[] oresForDimension(ResourceKey<Level> dimension) {
+	private static BakedOre[] oresForDimension(RegistryKey<World> dimension) {
 		BakedOre[] exact = oresByDimension.get(dimension);
 		return exact != null ? exact : selectorAllows(dimension) ? selectorOres : NO_ORES;
 	}
 
-	private static boolean insideChunk(ChunkAccess chunk, int x, int y, int z) {
+	private static boolean insideChunk(IChunk chunk, int x, int y, int z) {
 		ChunkPos pos = chunk.getPos();
 		return x >= pos.getMinBlockX() && x <= pos.getMaxBlockX()
 				&& z >= pos.getMinBlockZ() && z <= pos.getMaxBlockZ()
-				&& y >= chunk.getMinBuildHeight() && y < chunk.getMaxBuildHeight();
+				&& y >= 0 && y < 256;
 	}
 
 	private static BakedOres bakeOres(JsonObject profile, BakedGeomeConfig config) {
@@ -251,7 +251,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		boolean manageVanillaOres = bool(profile, "manage_vanilla_ores", false);
 		Map<ResourceLocation, Set<Block>> resolvedTags = new HashMap<>();
 		List<BakedOreRule> rules = new ArrayList<>();
-		Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
+		Set<RegistryKey<World>> explicitDimensions = new HashSet<>();
 		for (Entry<String, JsonElement> oreEntry : profile.getAsJsonObject("ores").entrySet()) {
 			if (!oreEntry.getValue().isJsonObject()) {
 				continue;
@@ -291,7 +291,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 							dimensionEntry.getKey(), oreEntry.getKey());
 					continue;
 				}
-				ResourceKey<Level> dimensionKey = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
+				RegistryKey<World> dimensionKey = RegistryKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
 				rule.explicitDimensions.add(dimensionKey);
 				explicitDimensions.add(dimensionKey);
 				if (!dimensionEntry.getValue().isJsonObject()) {
@@ -331,9 +331,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			rules.add(rule);
 		}
 
-		Map<ResourceKey<Level>, BakedOre[]> result = new HashMap<>();
-		Map<ResourceKey<Level>, Set<Block>> vanillaOutputs = new HashMap<>();
-		for (ResourceKey<Level> dimension : explicitDimensions) {
+		Map<RegistryKey<World>, BakedOre[]> result = new HashMap<>();
+		Map<RegistryKey<World>, Set<Block>> vanillaOutputs = new HashMap<>();
+		for (RegistryKey<World> dimension : explicitDimensions) {
 			List<BakedOre> combined = new ArrayList<>();
 			Set<Block> suppressed = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
 			for (BakedOreRule rule : rules) {
@@ -357,8 +357,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		BakedOre[] selectorResult = selectorList.toArray(new BakedOre[selectorList.size()]);
 		LOGGER.info("Baked {} OreSpawn-managed ore definitions across {} dimensions",
 				rules.size(), result.size());
-		Map<ResourceKey<Level>, Set<Block>> immutableVanillaOutputs = new LinkedHashMap<>();
-		for (Entry<ResourceKey<Level>, Set<Block>> entry : vanillaOutputs.entrySet()) {
+		Map<RegistryKey<World>, Set<Block>> immutableVanillaOutputs = new LinkedHashMap<>();
+		for (Entry<RegistryKey<World>, Set<Block>> entry : vanillaOutputs.entrySet()) {
 			immutableVanillaOutputs.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
 		}
 		return new BakedOres(Collections.unmodifiableMap(result),
@@ -529,7 +529,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					for (ResourceKey<Biome> key : net.minecraftforge.common.BiomeDictionary.getBiomes(
+					for (RegistryKey<Biome> key : net.minecraftforge.common.BiomeDictionary.getBiomes(
 							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString()))) {
 						Biome biome = ForgeRegistries.BIOMES.getValue(key.location());
 						if (biome != null) result.add(biome);
@@ -717,8 +717,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	private static final class BakedOreRule {
 		final Block output;
 		final boolean suppressVanilla;
-		final Map<ResourceKey<Level>, BakedOre> explicit = new HashMap<>();
-		final Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
+		final Map<RegistryKey<World>, BakedOre> explicit = new HashMap<>();
+		final Set<RegistryKey<World>> explicitDimensions = new HashSet<>();
 		BakedOre selector;
 
 		BakedOreRule(Block output, boolean suppressVanilla) {
@@ -749,13 +749,13 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		static final BakedOres EMPTY = new BakedOres(EMPTY_DIMENSIONS, Collections.emptyMap(),
 				NO_ORES, Collections.emptySet());
 
-		final Map<ResourceKey<Level>, BakedOre[]> byDimension;
-		final Map<ResourceKey<Level>, Set<Block>> vanillaOutputs;
+		final Map<RegistryKey<World>, BakedOre[]> byDimension;
+		final Map<RegistryKey<World>, Set<Block>> vanillaOutputs;
 		final BakedOre[] selectorOres;
 		final Set<Block> selectorVanillaOutputs;
 
-		BakedOres(Map<ResourceKey<Level>, BakedOre[]> byDimension,
-				Map<ResourceKey<Level>, Set<Block>> vanillaOutputs, BakedOre[] selectorOres,
+		BakedOres(Map<RegistryKey<World>, BakedOre[]> byDimension,
+				Map<RegistryKey<World>, Set<Block>> vanillaOutputs, BakedOre[] selectorOres,
 				Set<Block> selectorVanillaOutputs) {
 			this.byDimension = byDimension;
 			this.vanillaOutputs = vanillaOutputs;
@@ -765,7 +765,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static final class GenerationScratch {
-		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		final BlockPos.Mutable cursor = new BlockPos.Mutable();
 		final PatternContext patternContext = new PatternContext(cursor);
 		private double[] geomeValues = new double[0];
 
@@ -778,10 +778,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static final class PatternContext implements OrePlacementContext {
-		private final BlockPos.MutableBlockPos cursor;
-		private final BlockPos.MutableBlockPos airCursor = new BlockPos.MutableBlockPos();
-		private WorldGenLevel world;
-		private ChunkAccess chunk;
+		private final BlockPos.Mutable cursor;
+		private final BlockPos.Mutable airCursor = new BlockPos.Mutable();
+		private ISeedReader world;
+		private IChunk chunk;
 		private Random random;
 		private BakedOre ore;
 		private int geome;
@@ -792,11 +792,11 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		private int maxY;
 		private int quantity;
 
-		PatternContext(BlockPos.MutableBlockPos cursor) {
+		PatternContext(BlockPos.Mutable cursor) {
 			this.cursor = cursor;
 		}
 
-		void initialize(WorldGenLevel world, ChunkAccess chunk, Random random, BakedOre ore, int geome,
+		void initialize(ISeedReader world, IChunk chunk, Random random, BakedOre ore, int geome,
 				int originX, int originY, int originZ, int minY, int maxY, int quantity) {
 			this.world = world;
 			this.chunk = chunk;
@@ -824,11 +824,13 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 		@Override
 		public boolean inside(int x, int y, int z) {
-			if (y < minY || y > maxY || y < chunk.getMinBuildHeight()
-					|| y >= chunk.getMaxBuildHeight()) return false;
+			if (y < minY || y > maxY || y < 0
+					|| y >= 256) return false;
 			if (world == null) return insideChunk(chunk, x, y, z);
 			cursor.set(x, y, z);
-			return world.ensureCanWrite(cursor);
+			return world instanceof WorldGenRegion
+					? ((WorldGenRegion) world).hasChunk(x >> 4, z >> 4)
+					: insideChunk(chunk, x, y, z);
 		}
 
 		@Override
@@ -863,7 +865,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 
 		private boolean isAir(int x, int y, int z) {
-			if (y < chunk.getMinBuildHeight() || y >= chunk.getMaxBuildHeight()) {
+			if (y < 0 || y >= 256) {
 				return false;
 			}
 			if (world == null && !insideChunk(chunk, x, y, z)) {

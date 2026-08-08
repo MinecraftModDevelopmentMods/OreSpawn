@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,20 +19,20 @@ class OreSpawnScreenLayoutTest {
 		Path directory = Paths.get("src", "main", "java", "zone", "moddev", "mc",
 				"orespawn", "client");
 		List<Path> screens;
-		try (var files = Files.list(directory)) {
+		try (Stream<Path> files = Files.list(directory)) {
 			screens = files
 					.filter(path -> path.getFileName().toString().endsWith("Screen.java"))
 					.sorted()
-					.toList();
+					.collect(Collectors.toList());
 		}
 		assertEquals(24, screens.size(), "Review this render-order gate when screens are added or removed");
 		for (Path screen : screens) {
-			String source = Files.readString(screen, StandardCharsets.UTF_8);
-			int render = source.indexOf("public void render(PoseStack");
+			String source = new String(Files.readAllBytes(screen), StandardCharsets.UTF_8);
+			int render = source.indexOf("public void render(MatrixStack");
 			int background = source.indexOf("renderBackground(poseStack);", render);
 			int widgets = source.indexOf("super.render(poseStack", render);
 			String name = screen.getFileName().toString();
-			assertTrue(render >= 0, name + " must own its 1.17.1 render pass");
+			assertTrue(render >= 0, name + " must own its 1.16.5 render pass");
 			assertTrue(background > render, name + " must clear the previous frame");
 			assertTrue(widgets > background, name + " must clear before drawing widgets and tooltips");
 		}

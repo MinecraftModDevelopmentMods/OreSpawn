@@ -19,10 +19,10 @@ editing it or one topic at a time.
 There is no requirement to use rock strata. Ore-only mods can use OreSpawn to
 place ores in ordinary vanilla stone while every geology control remains idle.
 When no provider supplies rocks, **Configure Rock Strata...** starts with a
-balanced editable set of vanilla stone, deepslate, granite, diorite, andesite,
-tuff. Calcite and dripstone keep their special vanilla placement unless a
-player deliberately adds them. You can remove the starter rocks or add blocks
-from installed mods before creating the world.
+balanced editable set of vanilla stone, granite, diorite, and andesite. Other
+vanilla terrain blocks keep their normal placement unless a player deliberately
+adds them. You can remove the starter rocks or add blocks from installed mods
+before creating the world.
 
 Mods can also offer new biomes and world materials without enabling strata.
 Use **Biomes & World Materials** to inspect installed dimension palettes,
@@ -55,15 +55,16 @@ safely instead of breaking world creation.
   opts them in.
 
 **World Materials** applies across an entire dimension. **Aquifer Fluid**
-changes the normal below-sea-level fluid, while **Deep Aquifer** can use a
-second fluid below a chosen Y level. Snow and ordinary ice can also be replaced.
-Use **Fluid Deposits**, not World Materials, for occasional underground lakes
-or pockets.
+changes the normal below-sea-level fluid. Minecraft 1.16.5 exposes only that
+single generator fluid, so the later-format **Deep Aquifer** values remain
+stored but their controls are disabled on this branch. Snow and ordinary ice
+can also be replaced. Use **Fluid Deposits**, not World Materials, for
+occasional underground lakes or pockets.
 
 ## Rocks, Ores, And Other Mods
 
 The material picker lists blocks from installed mods by full registry ID, for
-example `minecraft:calcite` or `examplemod:slate`. **Safe Only** hides doors,
+example `minecraft:granite` or `examplemod:slate`. **Safe Only** hides doors,
 machines, and other blocks that are poor choices for underground terrain.
 
 Ore richness changes attempts per chunk. Each richness step halves or doubles

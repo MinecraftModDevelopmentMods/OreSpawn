@@ -8,7 +8,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.fml.InterModComms;
 
 /** Entry point for OreSpawn API version 1. */
@@ -46,7 +46,7 @@ public final class OreSpawnApi {
 		return Optional.of(new GeologyProfileView(WorldGeologyProfileManager.activeProfile().toJson()));
 	}
 
-	public static Optional<GeologySampler> createSampler(ServerLevel level) {
+	public static Optional<GeologySampler> createSampler(ServerWorld level) {
 		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()
 				|| GeomeConfig.baked(level.dimension()) == null) {
 			return Optional.empty();

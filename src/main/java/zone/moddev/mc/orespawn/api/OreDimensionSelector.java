@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.api;
 
 import java.util.Locale;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 /** Built-in dimension policies available to declarative ore providers. */
 public enum OreDimensionSelector {

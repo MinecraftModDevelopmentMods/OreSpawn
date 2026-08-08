@@ -37,9 +37,9 @@
       "weight": 1.0,
       "ore_replaceable": true
     },
-    "minecraft:calcite": {
+    "minecraft:diorite": {
       "enabled": true,
-      "family": "metamorphic",
+      "family": "igneous_intrusive",
       "depth_peak": 20,
       "depth_spread": 36,
       "min_y": 0,
@@ -63,7 +63,7 @@
       "enabled": true,
       "biome_ids": [],
       "biome_namespaces": [],
-      "host_blocks": ["minecraft:stone", "minecraft:deepslate"],
+      "host_blocks": ["minecraft:stone"],
       "host_tags": []
     }
   },

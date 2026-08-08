@@ -12,10 +12,10 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.Registry;
-import net.minecraft.world.level.Level;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.World;
 
 class OreSpawnOreGenerationTest {
 	@Test
@@ -37,29 +37,29 @@ class OreSpawnOreGenerationTest {
 
 	@Test
 	void broadSelectorNeverLeaksIntoNetherOrEnd() {
-		assertTrue(OreSpawnOreGeneration.selectorAllows(Level.OVERWORLD));
-		assertTrue(OreSpawnOreGeneration.selectorAllows(ResourceKey.create(
+		assertTrue(OreSpawnOreGeneration.selectorAllows(World.OVERWORLD));
+		assertTrue(OreSpawnOreGeneration.selectorAllows(RegistryKey.create(
 				Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:moon"))));
-		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.NETHER));
-		assertFalse(OreSpawnOreGeneration.selectorAllows(Level.END));
+		assertFalse(OreSpawnOreGeneration.selectorAllows(World.NETHER));
+		assertFalse(OreSpawnOreGeneration.selectorAllows(World.END));
 	}
 
 	@Test
 	void explicitDimensionRulesOverrideSelectorFallbacks() {
-		Map<ResourceKey<Level>, String> explicit = new HashMap<>();
-		Set<ResourceKey<Level>> configured = new HashSet<>();
-		explicit.put(Level.OVERWORLD, "overworld");
-		configured.add(Level.OVERWORLD);
-		configured.add(ResourceKey.create(Registry.DIMENSION_REGISTRY,
+		Map<RegistryKey<World>, String> explicit = new HashMap<>();
+		Set<RegistryKey<World>> configured = new HashSet<>();
+		explicit.put(World.OVERWORLD, "overworld");
+		configured.add(World.OVERWORLD);
+		configured.add(RegistryKey.create(Registry.DIMENSION_REGISTRY,
 				new ResourceLocation("examplemod:disabled")));
 
 		assertEquals("overworld", OreSpawnOreGeneration.selectRule(
-				explicit, configured, "selector", Level.OVERWORLD));
+				explicit, configured, "selector", World.OVERWORLD));
 		assertEquals("selector", OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:moon"))));
+				RegistryKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:moon"))));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
-				ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:disabled"))));
-		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector", Level.NETHER));
+				RegistryKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("examplemod:disabled"))));
+		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector", World.NETHER));
 	}
 
 	private static final class CountingRandom extends Random {

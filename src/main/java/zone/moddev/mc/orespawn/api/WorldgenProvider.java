@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 /**
  * Immutable declarative world-generation contribution submitted to OreSpawn.

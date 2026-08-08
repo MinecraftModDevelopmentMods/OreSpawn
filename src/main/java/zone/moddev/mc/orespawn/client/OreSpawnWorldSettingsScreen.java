@@ -12,17 +12,16 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.TemplateDefinition;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class OreSpawnWorldSettingsScreen extends Screen {
@@ -49,7 +48,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private CycleButton<Preset> wavinessButton;
 	private CycleButton<Preset> edgeIrregularityButton;
 	private CycleButton<Preset> formationContinuityButton;
-	private Component validationError;
+	private ITextComponent validationError;
 	private int columnWidth = 150;
 
 	public OreSpawnWorldSettingsScreen(Screen parent, WorldGeologyProfile profile) {
@@ -57,7 +56,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	}
 
 	OreSpawnWorldSettingsScreen(Screen parent, WorldGeologyProfile profile, List<String> availableDimensions) {
-		super(new TranslatableComponent("screen.orespawn.world_settings"));
+		super(new TranslationTextComponent("screen.orespawn.world_settings"));
 		this.parent = parent;
 		this.session = new GeologyEditorSession(profile, availableDimensions);
 		templateChoices = availableTemplates(profile);
@@ -83,44 +82,44 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		int rowIndex = 0;
 		if (templateChoices.size() > 1) {
 			TemplateChoice initialTemplate = templateChoice(selectedTemplate);
-			OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(TemplateChoice::label)
+			OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(TemplateChoice::label)
 					.withValues(templateChoices).withInitialValue(initialTemplate)
 					.create(left, top + (row * rowIndex++), contentWidth, BUTTON_HEIGHT,
-							new TranslatableComponent("option.orespawn.template"),
+							new TranslationTextComponent("option.orespawn.template"),
 							(button, value) -> selectTemplate(value.id))), "tooltip.orespawn.main.template");
 		}
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
-				contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.recommended"),
+		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
+				contentWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.recommended"),
 				button -> resetRecommended(), "tooltip.orespawn.main.recommended"));
 
 		if (!terrain) {
 			vanillaOresButton = addVanillaOresButton(left, top + (row * rowIndex), columnWidth);
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
-					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.materials"),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.materials"),
 					button -> openMaterials(), "tooltip.orespawn.main.materials"));
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
-					contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.configure_strata"),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
+					contentWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.configure_strata"),
 					button -> configureRockStrata(), "tooltip.orespawn.main.configure_strata"));
 			if (fluids) {
 				fluidDepositsButton = addFluidToggle(left, top + (row * rowIndex), columnWidth);
-				addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
+				addButton(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
 						columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits(),
 						"tooltip.orespawn.main.fluid_editor"));
 			}
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex++),
 					contentWidth, BUTTON_HEIGHT,
-					new TranslatableComponent("button.orespawn.biomes_world_materials"),
+					new TranslationTextComponent("button.orespawn.biomes_world_materials"),
 					button -> openBiomeWorldMaterials(), "tooltip.orespawn.main.biomes_materials"));
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
-					contentWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.help"),
+			addButton(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
+					contentWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.help"),
 					button -> openHelp()));
 		} else {
 			geologyModeButton = OreSpawnScreenLayout.explain(this,
-					addRenderableWidget(CycleButton.builder(this::geologyModeName)
+					addButton(CycleButton.builder(this::geologyModeName)
 					.withValues(Arrays.asList(GeologyMode.GEOME, GeologyMode.LEGACY))
 					.withInitialValue(geologyMode)
 					.create(left, top + (row * rowIndex), columnWidth, BUTTON_HEIGHT,
-							new TranslatableComponent("option.orespawn.geology_mode"),
+							new TranslationTextComponent("option.orespawn.geology_mode"),
 							(button, value) -> { geologyMode = value; updateFormationControls(); })),
 					"tooltip.orespawn.geology_mode");
 			if (fluids) fluidDepositsButton = addFluidToggle(right, top + (row * rowIndex), columnWidth);
@@ -145,27 +144,27 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			if (fluids) vanillaOresButton = addVanillaOresButton(right,
 					top + (row * rowIndex), columnWidth);
 			rowIndex++;
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
-					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.materials"),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.materials"),
 					button -> openMaterials(), "tooltip.orespawn.main.materials"));
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT,
-					new TranslatableComponent("button.orespawn.biomes_world_materials"),
+					new TranslationTextComponent("button.orespawn.biomes_world_materials"),
 					button -> openBiomeWorldMaterials(), "tooltip.orespawn.main.biomes_materials"));
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
-					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.advanced"),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.advanced"),
 					button -> openAdvanced(), "tooltip.orespawn.main.advanced"));
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
-					columnWidth, BUTTON_HEIGHT, new TranslatableComponent("button.orespawn.help"),
+			addButton(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TranslationTextComponent("button.orespawn.help"),
 					button -> openHelp()));
-			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
 					contentWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits(),
 					"tooltip.orespawn.main.fluid_editor"));
 		}
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
-				CommonComponents.GUI_DONE, button -> saveAndClose()));
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, this.height - 28, columnWidth, BUTTON_HEIGHT,
-				CommonComponents.GUI_CANCEL, button -> onClose()));
+		addButton(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
+				DialogTexts.GUI_DONE, button -> saveAndClose()));
+		addButton(OreSpawnScreenLayout.button(this, font, right, this.height - 28, columnWidth, BUTTON_HEIGHT,
+				DialogTexts.GUI_CANCEL, button -> onClose()));
 		updateFormationControls();
 	}
 
@@ -181,15 +180,15 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	}
 
 	private CycleButton<Boolean> addVanillaOresButton(int x, int y, int width) {
-		return OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.onOffBuilder(manageVanillaOres)
+		return OreSpawnScreenLayout.explain(this, addButton(CycleButton.onOffBuilder(manageVanillaOres)
 				.create(x, y, width, BUTTON_HEIGHT,
-						new TranslatableComponent("option.orespawn.manage_vanilla_ores"),
+						new TranslationTextComponent("option.orespawn.manage_vanilla_ores"),
 						(button, value) -> manageVanillaOres = value)),
 				"tooltip.orespawn.manage_vanilla_ores");
 	}
 
 	private CycleButton<Boolean> addFluidToggle(int x, int y, int width) {
-		return OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.onOffBuilder(placeFluidDeposits)
+		return OreSpawnScreenLayout.explain(this, addButton(CycleButton.onOffBuilder(placeFluidDeposits)
 				.create(x, y, width, BUTTON_HEIGHT, fluidControlLabel(),
 						(button, value) -> placeFluidDeposits = value)),
 				"tooltip.orespawn.fluid_deposits");
@@ -197,10 +196,10 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	private CycleButton<Preset> addPresetButton(int x, int y, String labelKey, String tooltipKey,
 			Preset initialValue, PresetConsumer consumer) {
-		return OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.builder(this::presetName)
+		return OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::presetName)
 				.withValues(Arrays.asList(Preset.values()))
 				.withInitialValue(initialValue)
-				.create(x, y, columnWidth, BUTTON_HEIGHT, new TranslatableComponent(labelKey),
+				.create(x, y, columnWidth, BUTTON_HEIGHT, new TranslationTextComponent(labelKey),
 						(button, value) -> consumer.accept(value))), tooltipKey);
 	}
 
@@ -259,15 +258,15 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	private static List<TemplateChoice> availableTemplates(WorldGeologyProfile profile) {
 		List<TemplateChoice> result = new ArrayList<>();
-		result.add(new TemplateChoice(null, new TranslatableComponent("value.orespawn.template.none")));
+		result.add(new TemplateChoice(null, new TranslationTextComponent("value.orespawn.template.none")));
 		for (TemplateDefinition template : WorldgenIntegrationManager.templates()) {
 			if (template.available()) {
-				result.add(new TemplateChoice(template.id(), new TranslatableComponent(template.nameKey())));
+				result.add(new TemplateChoice(template.id(), new TranslationTextComponent(template.nameKey())));
 			}
 		}
 		ResourceLocation selected = profile.selectedTemplate().orElse(null);
 		if (selected != null && result.stream().noneMatch(choice -> selected.equals(choice.id))) {
-			result.add(new TemplateChoice(selected, new TextComponent(selected.toString())));
+			result.add(new TemplateChoice(selected, new StringTextComponent(selected.toString())));
 		}
 		return result;
 	}
@@ -276,7 +275,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		syncSession();
 		List<String> errors = session.validate();
 		if (!errors.isEmpty()) {
-			validationError = new net.minecraft.network.chat.TextComponent(errors.get(0));
+			validationError = new net.minecraft.util.text.StringTextComponent(errors.get(0));
 			return;
 		}
 		WorldGeologyProfileManager.setPendingNewWorldProfile(session.profile());
@@ -333,7 +332,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2,
 				OreSpawnScreenLayout.mainTitleY(this.height), 0xFFFFFF);
@@ -345,33 +344,33 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}
 
-	private Component geologyModeName(GeologyMode mode) {
-		return new TranslatableComponent("value.orespawn.geology_mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
+	private ITextComponent geologyModeName(GeologyMode mode) {
+		return new TranslationTextComponent("value.orespawn.geology_mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
 	}
 
-	private Component presetName(Preset preset) {
-		return new TranslatableComponent("value.orespawn.preset." + preset.configName());
+	private ITextComponent presetName(Preset preset) {
+		return new TranslationTextComponent("value.orespawn.preset." + preset.configName());
 	}
 
-	private Component fluidControlLabel() {
+	private ITextComponent fluidControlLabel() {
 		List<String> ids = session.fluidDepositIds();
 		if (ids.size() == 1) {
 			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
 			ResourceLocation blockId = access.resource("block");
 			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
-			if (block != null) return new TranslatableComponent(block.getDescriptionId());
+			if (block != null) return new TranslationTextComponent(block.getDescriptionId());
 		}
-		return new TranslatableComponent("option.orespawn.fluid_deposits");
+		return new TranslationTextComponent("option.orespawn.fluid_deposits");
 	}
 
-	private Component fluidEditorLabel() {
+	private ITextComponent fluidEditorLabel() {
 		int total = session.fluidDepositIds().size();
 		int enabled = session.enabledFluidDepositCount();
-		return new TranslatableComponent("button.orespawn.fluid_deposits_count", enabled, total);
+		return new TranslationTextComponent("button.orespawn.fluid_deposits_count", enabled, total);
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -391,11 +390,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 
 	private static final class TemplateChoice {
 		final ResourceLocation id;
-		final Component label;
-		TemplateChoice(ResourceLocation id, Component label) {
+		final ITextComponent label;
+		TemplateChoice(ResourceLocation id, ITextComponent label) {
 			this.id = id;
 			this.label = label;
 		}
-		Component label() { return label; }
+		ITextComponent label() { return label; }
 	}
 }

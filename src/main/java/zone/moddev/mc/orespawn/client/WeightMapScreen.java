@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 
 final class WeightMapScreen extends Screen {
 	private static final int PAGE_SIZE = 7;
@@ -21,20 +21,20 @@ final class WeightMapScreen extends Screen {
 	private final double defaultWeight;
 	private final String tooltipKey;
 	private final Runnable removeAction;
-	private final List<EditBox> editors = new ArrayList<>();
+	private final List<TextFieldWidget> editors = new ArrayList<>();
 	private int page;
-	private Component error;
+	private ITextComponent error;
 
-	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight) {
+	WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight) {
 		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.entry_weight", null);
 	}
 
-	WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys, double defaultWeight,
+	WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight,
 			Runnable removeAction) {
 		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.biome_weight", removeAction);
 	}
 
-	private WeightMapScreen(Screen parent, Component title, JsonObject weights, List<String> keys,
+	private WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys,
 			double defaultWeight, String tooltipKey, Runnable removeAction) {
 		super(title);
 		this.parent = parent;
@@ -53,26 +53,26 @@ final class WeightMapScreen extends Screen {
 		int end = Math.min(keys.size(), start + PAGE_SIZE);
 		for (int i = start; i < end; i++) {
 			String key = keys.get(i);
-			EditBox box = new EditBox(font, width / 2 + 5, 38 + ((i - start) * 24), 110, 20,
-					new TextComponent(key));
+			TextFieldWidget box = new TextFieldWidget(font, width / 2 + 5, 38 + ((i - start) * 24), 110, 20,
+					new StringTextComponent(key));
 			box.setMaxLength(24);
 			box.setValue(weights.has(key) ? weights.get(key).getAsString() : Double.toString(defaultWeight));
-			editors.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box), tooltipKey));
+			editors.add(OreSpawnScreenLayout.explain(this, addButton(box), tooltipKey));
 		}
 		int bottom = height - 28;
-		addRenderableWidget(new Button(width / 2 - 155, bottom, 100, 20, CommonComponents.GUI_DONE,
+		addButton(new Button(width / 2 - 155, bottom, 100, 20, DialogTexts.GUI_DONE,
 				button -> saveAndClose()));
-		addRenderableWidget(new Button(width / 2 + 55, bottom, 100, 20, CommonComponents.GUI_CANCEL,
+		addButton(new Button(width / 2 + 55, bottom, 100, 20, DialogTexts.GUI_CANCEL,
 				button -> onClose()));
-		Button previous = addRenderableWidget(new Button(width / 2 - 50, bottom, 45, 20,
-				new TextComponent("<"), button -> changePage(-1)));
-		Button next = addRenderableWidget(new Button(width / 2 + 5, bottom, 45, 20,
-				new TextComponent(">"), button -> changePage(1)));
+		Button previous = addButton(new Button(width / 2 - 50, bottom, 45, 20,
+				new StringTextComponent("<"), button -> changePage(-1)));
+		Button next = addButton(new Button(width / 2 + 5, bottom, 45, 20,
+				new StringTextComponent(">"), button -> changePage(1)));
 		previous.active = page > 0;
 		next.active = (page + 1) * PAGE_SIZE < keys.size();
 		if (removeAction != null) {
-			addRenderableWidget(new Button(width - 105, 8, 95, 20,
-					new TextComponent("Remove rule"), button -> {
+			addButton(new Button(width - 105, 8, 95, 20,
+					new StringTextComponent("Remove rule"), button -> {
 						removeAction.run(); minecraft.setScreen(parent);
 					}));
 		}
@@ -86,7 +86,7 @@ final class WeightMapScreen extends Screen {
 	}
 
 	private void rebuildWidgets() {
-		clearWidgets();
+		buttons.clear(); children.clear();
 		init();
 	}
 
@@ -104,7 +104,7 @@ final class WeightMapScreen extends Screen {
 				}
 				weights.addProperty(keys.get(start + i), value);
 			} catch (NumberFormatException e) {
-				error = new TextComponent("Weights must be between 0 and 1000.");
+				error = new StringTextComponent("Weights must be between 0 and 1000.");
 				return false;
 			}
 		}
@@ -118,7 +118,7 @@ final class WeightMapScreen extends Screen {
 	}
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
 		int start = page * PAGE_SIZE;

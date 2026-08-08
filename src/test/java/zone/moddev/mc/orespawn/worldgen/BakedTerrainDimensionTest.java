@@ -7,7 +7,7 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 class BakedTerrainDimensionTest {
 	@Test

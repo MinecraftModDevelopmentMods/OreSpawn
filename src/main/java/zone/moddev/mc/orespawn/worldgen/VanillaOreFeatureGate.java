@@ -10,16 +10,15 @@ import com.mojang.serialization.Codec;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 
-import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.WorldGenRegistries;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Block;
+import net.minecraft.world.gen.GenerationStage;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -54,7 +53,7 @@ public final class VanillaOreFeatureGate {
 		List<Gate> registered = new ArrayList<>();
 		for (int definitionIndex = 0; definitionIndex < DEFINITIONS.length; definitionIndex++) {
 			Definition definition = DEFINITIONS[definitionIndex];
-			ConfiguredFeature<?, ?> original = BuiltinRegistries.CONFIGURED_FEATURE
+			ConfiguredFeature<?, ?> original = WorldGenRegistries.CONFIGURED_FEATURE
 					.get(definition.placedFeatureId);
 			Block output = ForgeRegistries.BLOCKS.getValue(definition.oreBlockId);
 			if (original == null || output == null) {
@@ -67,8 +66,8 @@ public final class VanillaOreFeatureGate {
 					"vanilla_ore_gate/" + definition.placedFeatureId.getPath());
 			GateFeature feature = FEATURES[definitionIndex];
 			feature.initialize(original, output);
-			ConfiguredFeature<?, ?> wrapper = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE,
-					wrapperId, feature.configured(NoneFeatureConfiguration.INSTANCE));
+			ConfiguredFeature<?, ?> wrapper = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE,
+					wrapperId, feature.configured(NoFeatureConfig.INSTANCE));
 			registered.add(new Gate(definition.placedFeatureId, wrapper));
 		}
 		gates = registered.toArray(new Gate[registered.size()]);
@@ -76,15 +75,15 @@ public final class VanillaOreFeatureGate {
 	}
 
 	static void wrapVanillaOres(BiomeLoadingEvent event) {
-		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES));
-		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_DECORATION));
+		wrapFeatureList(event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES));
+		wrapFeatureList(event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_DECORATION));
 	}
 
 	static boolean wrapFeatureList(List<Supplier<ConfiguredFeature<?, ?>>> features) {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Supplier<ConfiguredFeature<?, ?>> feature = features.get(featureIndex);
-			ResourceLocation featureId = BuiltinRegistries.CONFIGURED_FEATURE.getKey(feature.get());
+			ResourceLocation featureId = WorldGenRegistries.CONFIGURED_FEATURE.getKey(feature.get());
 			boolean wrapped = false;
 			for (Gate gate : gates) {
 				if (gate.originalId.equals(featureId)) {
@@ -108,10 +107,10 @@ public final class VanillaOreFeatureGate {
 
 	private static void registerSuppressibleOreGates() {
 		Map<ResourceLocation, ConfiguredFeature<?, ?>> registered = new LinkedHashMap<>();
-		List<Map.Entry<net.minecraft.resources.ResourceKey<ConfiguredFeature<?, ?>>,
+		List<Map.Entry<net.minecraft.util.RegistryKey<ConfiguredFeature<?, ?>>,
 				ConfiguredFeature<?, ?>>> candidates =
-				new ArrayList<>(BuiltinRegistries.CONFIGURED_FEATURE.entrySet());
-		for (Map.Entry<net.minecraft.resources.ResourceKey<ConfiguredFeature<?, ?>>,
+				new ArrayList<>(WorldGenRegistries.CONFIGURED_FEATURE.entrySet());
+		for (Map.Entry<net.minecraft.util.RegistryKey<ConfiguredFeature<?, ?>>,
 				ConfiguredFeature<?, ?>> entry : candidates) {
 			ResourceLocation id = entry.getKey().location();
 			ConfiguredFeature<?, ?> original = entry.getValue();
@@ -121,7 +120,7 @@ public final class VanillaOreFeatureGate {
 			}
 			ResourceLocation wrapperId = new ResourceLocation(OreSpawn.MODID,
 					"all_ore_gate/" + id.getNamespace() + "/" + id.getPath());
-			ConfiguredFeature<?, ?> wrapper = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE,
+			ConfiguredFeature<?, ?> wrapper = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE,
 					wrapperId, SUPPRESSIBLE_FEATURE.configured(new SuppressibleConfig(() -> original)));
 			registered.put(id, wrapper);
 		}
@@ -135,8 +134,8 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static boolean isStandardOreFeature(ConfiguredFeature<?, ?> configuredFeature) {
-		return configuredFeature.getFeatures().anyMatch(configured -> configured.feature() == Feature.ORE
-				|| configured.feature() == Feature.SCATTERED_ORE);
+		return configuredFeature.getFeatures().anyMatch(configured ->
+				configured.feature() == Feature.ORE || configured.feature() == Feature.NO_SURFACE_ORE);
 	}
 
 	private static Definition[] definitions() {
@@ -149,7 +148,6 @@ public final class VanillaOreFeatureGate {
 				definition("ore_diamond", "diamond_ore"),
 				definition("ore_lapis", "lapis_ore"),
 				definition("ore_emerald", "emerald_ore"),
-				definition("ore_copper", "copper_ore"),
 				definition("ore_gold_deltas", "nether_gold_ore"),
 				definition("ore_gold_nether", "nether_gold_ore"),
 				definition("ore_quartz_deltas", "nether_quartz_ore"),
@@ -174,12 +172,12 @@ public final class VanillaOreFeatureGate {
 				new ResourceLocation("minecraft", block));
 	}
 
-	private static final class GateFeature extends Feature<NoneFeatureConfiguration> {
+	private static final class GateFeature extends ContextFeature<NoFeatureConfig> {
 		private ConfiguredFeature<?, ?> original;
 		private Block output;
 
 		GateFeature() {
-			super(NoneFeatureConfiguration.CODEC);
+			super(NoFeatureConfig.CODEC);
 		}
 
 		void initialize(ConfiguredFeature<?, ?> original, Block output) {
@@ -188,7 +186,7 @@ public final class VanillaOreFeatureGate {
 		}
 
 		@Override
-		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
+		boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 				return false;
 			}
@@ -201,7 +199,7 @@ public final class VanillaOreFeatureGate {
 		}
 	}
 
-	private static final class SuppressibleConfig implements FeatureConfiguration {
+	private static final class SuppressibleConfig implements IFeatureConfig {
 		static final Codec<SuppressibleConfig> CODEC = ConfiguredFeature.CODEC
 				.fieldOf("delegate")
 				.xmap(SuppressibleConfig::new, value -> value.delegate)
@@ -213,14 +211,14 @@ public final class VanillaOreFeatureGate {
 		}
 	}
 
-	private static final class SuppressibleGateFeature extends Feature<SuppressibleConfig> {
+	private static final class SuppressibleGateFeature extends ContextFeature<SuppressibleConfig> {
 		SuppressibleGateFeature() {
 			super(SuppressibleConfig.CODEC);
 			setRegistryName(OreSpawn.MODID, "suppressible_ore_gate");
 		}
 
 		@Override
-		public boolean place(FeaturePlaceContext<SuppressibleConfig> context) {
+		boolean place(FeaturePlaceContext<SuppressibleConfig> context) {
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
 			return context.config().delegate.get().place(context.level(), context.chunkGenerator(),
 					context.random(), context.origin());

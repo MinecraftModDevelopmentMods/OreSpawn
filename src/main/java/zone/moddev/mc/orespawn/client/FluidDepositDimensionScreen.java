@@ -9,18 +9,17 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.ResourceLocation;
 
 final class FluidDepositDimensionScreen extends Screen {
 	private enum Page { PLACEMENT, HOSTS, BIOMES }
@@ -31,35 +30,35 @@ final class FluidDepositDimensionScreen extends Screen {
 	private final String dimensionId;
 	private final EnumSet<RockFamily> families = EnumSet.noneOf(RockFamily.class);
 	private final List<Button> pageButtons = new ArrayList<>();
-	private final List<AbstractWidget> placementWidgets = new ArrayList<>();
-	private final List<AbstractWidget> hostWidgets = new ArrayList<>();
-	private final List<AbstractWidget> biomeWidgets = new ArrayList<>();
+	private final List<Widget> placementWidgets = new ArrayList<>();
+	private final List<Widget> hostWidgets = new ArrayList<>();
+	private final List<Widget> biomeWidgets = new ArrayList<>();
 	private boolean enabled;
 	private Page page = Page.PLACEMENT;
-	private EditBox minY;
-	private EditBox maxY;
-	private EditBox frequency;
-	private EditBox minRadius;
-	private EditBox maxRadius;
-	private EditBox minVertical;
-	private EditBox maxVertical;
-	private EditBox maxLobes;
-	private EditBox minCover;
-	private EditBox minShell;
-	private EditBox hostBlocks;
-	private EditBox hostTags;
-	private EditBox biomeIds;
-	private EditBox excludedBiomeIds;
-	private EditBox biomeDictionary;
-	private EditBox excludedBiomeDictionary;
-	private Component error;
+	private TextFieldWidget minY;
+	private TextFieldWidget maxY;
+	private TextFieldWidget frequency;
+	private TextFieldWidget minRadius;
+	private TextFieldWidget maxRadius;
+	private TextFieldWidget minVertical;
+	private TextFieldWidget maxVertical;
+	private TextFieldWidget maxLobes;
+	private TextFieldWidget minCover;
+	private TextFieldWidget minShell;
+	private TextFieldWidget hostBlocks;
+	private TextFieldWidget hostTags;
+	private TextFieldWidget biomeIds;
+	private TextFieldWidget excludedBiomeIds;
+	private TextFieldWidget biomeDictionary;
+	private TextFieldWidget excludedBiomeDictionary;
+	private ITextComponent error;
 	private int left;
 	private int contentWidth;
 	private int columnWidth;
 
 	FluidDepositDimensionScreen(Screen parent, GeologyEditorSession session,
 			String depositId, String dimensionId) {
-		super(new TranslatableComponent("screen.orespawn.fluid_deposit_dimension"));
+		super(new TranslationTextComponent("screen.orespawn.fluid_deposit_dimension"));
 		this.parent = parent;
 		this.session = session;
 		this.depositId = depositId;
@@ -92,21 +91,21 @@ final class FluidDepositDimensionScreen extends Screen {
 		JsonObject rule = rule();
 		int right = left + columnWidth + 5;
 		OreSpawnScreenLayout.explain(this,
-				addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 42, columnWidth, 20,
-						new TranslatableComponent("option.orespawn.enabled"),
+				addButton(CycleButton.onOffBuilder(enabled).create(left, 42, columnWidth, 20,
+						new TranslationTextComponent("option.orespawn.enabled"),
 						(button, value) -> enabled = value)),
 				"tooltip.orespawn.enabled");
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, 42, columnWidth, 20,
-				new TranslatableComponent("button.orespawn.remove_dimension"), button -> removeDimension()));
+		addButton(OreSpawnScreenLayout.button(this, font, right, 42, columnWidth, 20,
+				new TranslationTextComponent("button.orespawn.remove_dimension"), button -> removeDimension()));
 		int tabWidth = (contentWidth - 10) / 3;
-		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 66, tabWidth, 20,
-				new TranslatableComponent("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
-		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+		pageButtons.add(addButton(OreSpawnScreenLayout.button(this, font, left, 66, tabWidth, 20,
+				new TranslationTextComponent("tab.orespawn.placement"), button -> showPage(Page.PLACEMENT))));
+		pageButtons.add(addButton(OreSpawnScreenLayout.button(this, font,
 				left + tabWidth + 5, 66, tabWidth, 20,
-				new TranslatableComponent("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
-		pageButtons.add(addRenderableWidget(OreSpawnScreenLayout.button(this, font,
+				new TranslationTextComponent("tab.orespawn.hosts"), button -> showPage(Page.HOSTS))));
+		pageButtons.add(addButton(OreSpawnScreenLayout.button(this, font,
 				left + ((tabWidth + 5) * 2), 66, contentWidth - ((tabWidth + 5) * 2), 20,
-				new TranslatableComponent("tab.orespawn.biomes"), button -> showPage(Page.BIOMES))));
+				new TranslationTextComponent("tab.orespawn.biomes"), button -> showPage(Page.BIOMES))));
 
 		minY = placementField(0, "min_y", text(rule, "min_y", 0));
 		maxY = placementField(1, "max_y", text(rule, "max_y", 48));
@@ -127,9 +126,9 @@ final class FluidDepositDimensionScreen extends Screen {
 			int x = (i & 1) == 0 ? left : right;
 			int y = 136 + ((i / 2) * 24);
 			hostWidgets.add(OreSpawnScreenLayout.explain(this,
-					addRenderableWidget(CycleButton.onOffBuilder(families.contains(family))
+					addButton(CycleButton.onOffBuilder(families.contains(family))
 					.create(x, y, columnWidth, 20,
-							new TranslatableComponent("value.orespawn.family." + family.configName),
+							new TranslationTextComponent("value.orespawn.family." + family.configName),
 							(button, selected) -> {
 								if (selected) families.add(family); else families.remove(family);
 							})),
@@ -141,47 +140,47 @@ final class FluidDepositDimensionScreen extends Screen {
 		biomeDictionary = biomeField(2, "biome_dictionary", join(rule.get("biome_dictionary"), ""));
 		excludedBiomeDictionary = biomeField(3, "excluded_biome_dictionary",
 				join(rule.get("excluded_biome_dictionary"), ""));
-		Button weights = addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, 180,
-				contentWidth, 20, new TranslatableComponent("button.orespawn.geome_weights"),
+		Button weights = addButton(OreSpawnScreenLayout.button(this, font, left, 180,
+				contentWidth, 20, new TranslationTextComponent("button.orespawn.geome_weights"),
 				button -> openWeights()));
 		OreSpawnScreenLayout.explain(this, weights, "tooltip.orespawn.geome_weights");
 		weights.active = "minecraft:overworld".equals(dimensionId) && !session.geomeIds().isEmpty();
 		biomeWidgets.add(weights);
 
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, height - 28, columnWidth, 20,
-				CommonComponents.GUI_DONE, button -> saveAndClose()));
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, height - 28, columnWidth, 20,
-				CommonComponents.GUI_CANCEL, button -> onClose()));
+		addButton(OreSpawnScreenLayout.button(this, font, left, height - 28, columnWidth, 20,
+				DialogTexts.GUI_DONE, button -> saveAndClose()));
+		addButton(OreSpawnScreenLayout.button(this, font, right, height - 28, columnWidth, 20,
+				DialogTexts.GUI_CANCEL, button -> onClose()));
 		showPage(page);
 	}
 
-	private EditBox placementField(int index, String key, String value) {
+	private TextFieldWidget placementField(int index, String key, String value) {
 		int groupX = index < 5 ? left : left + columnWidth + 5;
 		int row = index < 5 ? index : index - 5;
 		int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
-		EditBox box = new EditBox(font, groupX + columnWidth - fieldWidth, 90 + (row * 24),
-				fieldWidth, 20, new TextComponent(key));
+		TextFieldWidget box = new TextFieldWidget(font, groupX + columnWidth - fieldWidth, 90 + (row * 24),
+				fieldWidth, 20, new StringTextComponent(key));
 		box.setValue(value); box.setMaxLength(32);
-		placementWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
+		placementWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				placementHelp(key)));
 		return box;
 	}
 
-	private EditBox hostField(int index, String key, String value) {
+	private TextFieldWidget hostField(int index, String key, String value) {
 		int x = index == 0 ? left : left + columnWidth + 5;
-		EditBox box = new EditBox(font, x, 106, columnWidth, 20, new TextComponent(key));
+		TextFieldWidget box = new TextFieldWidget(font, x, 106, columnWidth, 20, new StringTextComponent(key));
 		box.setValue(value); box.setMaxLength(1024);
-		hostWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
+		hostWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				"tooltip.orespawn." + key));
 		return box;
 	}
 
-	private EditBox biomeField(int index, String key, String value) {
+	private TextFieldWidget biomeField(int index, String key, String value) {
 		int x = (index & 1) == 0 ? left : left + columnWidth + 5;
 		int y = 106 + ((index / 2) * 44);
-		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
+		TextFieldWidget box = new TextFieldWidget(font, x, y, columnWidth, 20, new StringTextComponent(key));
 		box.setValue(value); box.setMaxLength(1024);
-		biomeWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
+		biomeWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				"tooltip.orespawn.fluid." + key));
 		return box;
 	}
@@ -193,9 +192,9 @@ final class FluidDepositDimensionScreen extends Screen {
 	private void showPage(Page selected) {
 		page = selected;
 		for (int i = 0; i < pageButtons.size(); i++) pageButtons.get(i).active = i != selected.ordinal();
-		for (AbstractWidget widget : placementWidgets) widget.visible = selected == Page.PLACEMENT;
-		for (AbstractWidget widget : hostWidgets) widget.visible = selected == Page.HOSTS;
-		for (AbstractWidget widget : biomeWidgets) widget.visible = selected == Page.BIOMES;
+		for (Widget widget : placementWidgets) widget.visible = selected == Page.PLACEMENT;
+		for (Widget widget : hostWidgets) widget.visible = selected == Page.HOSTS;
+		for (Widget widget : biomeWidgets) widget.visible = selected == Page.BIOMES;
 	}
 
 	private void openWeights() {
@@ -204,7 +203,7 @@ final class FluidDepositDimensionScreen extends Screen {
 				? rule().getAsJsonObject("geomes") : new JsonObject();
 		rule().add("geomes", weights);
 		minecraft.setScreen(new WeightMapScreen(this,
-				new TranslatableComponent("screen.orespawn.geome_weights"),
+				new TranslationTextComponent("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
@@ -227,7 +226,7 @@ final class FluidDepositDimensionScreen extends Screen {
 			JsonArray blocks = ids(hostBlocks.getValue());
 			JsonArray tags = ids(hostTags.getValue());
 			if (enabled && blocks.size() == 0 && tags.size() == 0 && families.isEmpty()) {
-				error = new TranslatableComponent("error.orespawn.host_required");
+				error = new TranslationTextComponent("error.orespawn.host_required");
 				return false;
 			}
 			JsonObject rule = rule();
@@ -254,7 +253,7 @@ final class FluidDepositDimensionScreen extends Screen {
 			error = null;
 			return true;
 		} catch (RuntimeException e) {
-			error = new TranslatableComponent("error.orespawn.invalid_values");
+			error = new TranslationTextComponent("error.orespawn.invalid_values");
 			return false;
 		}
 	}
@@ -310,13 +309,13 @@ final class FluidDepositDimensionScreen extends Screen {
 		return result;
 	}
 
-	private static int integer(EditBox field, int min, int max) {
+	private static int integer(TextFieldWidget field, int min, int max) {
 		int value = Integer.parseInt(field.getValue().trim());
 		if (value < min || value > max) throw new NumberFormatException();
 		return value;
 	}
 
-	private static double number(EditBox field, double min, double max) {
+	private static double number(TextFieldWidget field, double min, double max) {
 		double value = Double.parseDouble(field.getValue().trim());
 		if (!Double.isFinite(value) || value < min || value > max) throw new NumberFormatException();
 		return value;
@@ -329,11 +328,11 @@ final class FluidDepositDimensionScreen extends Screen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
 		drawCenteredString(poseStack, font, title, width / 2, 8, 0xFFFFFF);
 		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font,
-				new TextComponent(depositId + " / " + dimensionId), Math.min(390, width - 24)),
+				new StringTextComponent(depositId + " / " + dimensionId), Math.min(390, width - 24)),
 				width / 2, 24, 0xAAAAAA);
 		if (page == Page.PLACEMENT) {
 			String[] keys = { "min_y", "max_y", "frequency", "min_radius", "max_radius",
@@ -345,15 +344,15 @@ final class FluidDepositDimensionScreen extends Screen {
 				int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
 				int labelWidth = columnWidth - fieldWidth - 5;
 				drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
-						new TranslatableComponent("option.orespawn." + keys[i]), labelWidth),
+						new TranslationTextComponent("option.orespawn." + keys[i]), labelWidth),
 						groupX, 96 + (row * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.HOSTS) {
 			drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
-					new TranslatableComponent("option.orespawn.host_blocks_short"), columnWidth),
+					new TranslationTextComponent("option.orespawn.host_blocks_short"), columnWidth),
 					left, 94, 0xDDDDDD);
 			drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
-					new TranslatableComponent("option.orespawn.host_tags_short"), columnWidth),
+					new TranslationTextComponent("option.orespawn.host_tags_short"), columnWidth),
 					left + columnWidth + 5, 94, 0xDDDDDD);
 		} else {
 			String[] keys = { "biome_ids_short", "excluded_biome_ids_short",
@@ -362,7 +361,7 @@ final class FluidDepositDimensionScreen extends Screen {
 				int x = (i & 1) == 0 ? left : left + columnWidth + 5;
 				int y = 94 + ((i / 2) * 44);
 				drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
-						new TranslatableComponent("option.orespawn." + keys[i]), columnWidth),
+						new TranslationTextComponent("option.orespawn." + keys[i]), columnWidth),
 						x, y, 0xDDDDDD);
 			}
 		}

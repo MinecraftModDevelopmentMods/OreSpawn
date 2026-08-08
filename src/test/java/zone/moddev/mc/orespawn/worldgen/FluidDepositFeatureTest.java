@@ -7,11 +7,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.block.Blocks;
 
 class FluidDepositFeatureTest {
 	@Test
@@ -21,7 +21,7 @@ class FluidDepositFeatureTest {
 		ids.add("minecraft:cold_ocean");
 		rule.add("biome_ids", ids);
 
-		ResourceKey<Biome> expected = ResourceKey.create(Registry.BIOME_REGISTRY,
+		RegistryKey<Biome> expected = RegistryKey.create(Registry.BIOME_REGISTRY,
 				new ResourceLocation("minecraft", "cold_ocean"));
 		assertTrue(FluidDepositFeature.resolveBiomes(rule, "biome_ids", "biome_dictionary")
 				.contains(expected));
