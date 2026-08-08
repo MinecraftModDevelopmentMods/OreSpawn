@@ -21,14 +21,15 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.fmllegacy.RegistryObject;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {
 	private static final DeferredRegister<OrePatternType> TYPES =
-			DeferredRegister.create(OreSpawnPatternRegistry.REGISTRY_NAME, OreSpawn.MODID);
+			DeferredRegister.create(OrePatternType.class, OreSpawn.MODID);
 	private static final Supplier<IForgeRegistry<OrePatternType>> REGISTRY = TYPES.makeRegistry(
-			OrePatternType.class, () -> new RegistryBuilder<OrePatternType>().disableSaving().disableSync());
+			"ore_pattern_types", () -> new RegistryBuilder<OrePatternType>()
+					.setName(OreSpawnPatternRegistry.REGISTRY_NAME).disableSaving().disableSync());
 
 	public static final RegistryObject<OrePatternType> DEFAULT = register("default", OreSpawnPatterns::compact);
 	public static final RegistryObject<OrePatternType> VEIN = register("vein", OreSpawnPatterns::vein);

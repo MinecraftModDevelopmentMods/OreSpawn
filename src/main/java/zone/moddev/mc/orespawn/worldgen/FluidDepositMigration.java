@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -81,7 +83,7 @@ final class FluidDepositMigration {
 	private static void copyNumber(JsonObject source, JsonObject target, String key, Number fallback) {
 		if (source.has(key) && source.get(key).isJsonPrimitive()
 				&& source.getAsJsonPrimitive(key).isNumber()) {
-			target.add(key, source.get(key).deepCopy());
+			target.add(key, JsonCopies.copy(source.get(key)));
 		} else {
 			target.addProperty(key, fallback);
 		}

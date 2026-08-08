@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,7 +87,7 @@ final class GeologyEditorSession {
 	void applyProfile(WorldGeologyProfile profile) {
 		root.entrySet().clear();
 		for (Entry<String, JsonElement> entry : profile.rootCopy().entrySet()) {
-			root.add(entry.getKey(), entry.getValue().deepCopy());
+			root.add(entry.getKey(), JsonCopies.copy(entry.getValue()));
 		}
 		normalizeRegistrySections(root);
 	}
@@ -116,7 +118,7 @@ final class GeologyEditorSession {
 			if (!oreElement.isJsonObject()) continue;
 			JsonObject ore = oreElement.getAsJsonObject();
 			if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()) continue;
-			for (String id : ore.getAsJsonObject("dimensions").keySet()) {
+			for (String id : JsonCopies.keys(ore.getAsJsonObject("dimensions"))) {
 				if (validResource(id)) result.add(new ResourceLocation(id).toString());
 			}
 		}
@@ -137,7 +139,7 @@ final class GeologyEditorSession {
 		String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
 		List<String> result = new ArrayList<>();
 		if (tab == MaterialTab.ORES) {
-			result.addAll(section("ores").keySet());
+			result.addAll(JsonCopies.keys(section("ores")));
 		} else if (tab == MaterialTab.UNASSIGNED) {
 			return availableBlockIds(query, "", showAll);
 		} else {
@@ -199,7 +201,7 @@ final class GeologyEditorSession {
 			if (!depositEntry.getValue().isJsonObject()) continue;
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) continue;
-			for (String id : deposit.getAsJsonObject("dimensions").keySet()) {
+			for (String id : JsonCopies.keys(deposit.getAsJsonObject("dimensions"))) {
 				if (validResource(id)) result.add(new ResourceLocation(id).toString());
 			}
 		}
@@ -230,8 +232,8 @@ final class GeologyEditorSession {
 		rock.addProperty("family", family.configName);
 		rock.addProperty("depth_peak", defaultPeak(family));
 		rock.addProperty("depth_spread", 40);
-		rock.addProperty("min_y", -64);
-		rock.addProperty("max_y", 319);
+		rock.addProperty("min_y", 0);
+		rock.addProperty("max_y", 255);
 		rock.addProperty("weight", 1.0D);
 		rock.addProperty("ore_replaceable", true);
 		rock.add("geomes", new JsonObject());
@@ -247,17 +249,17 @@ final class GeologyEditorSession {
 		}
 		ensureDefaultGeologyRules();
 		addStarterRock("minecraft:stone", RockFamily.SEDIMENTARY,
-				64, 96, -64, 319, 5.0D);
+				64, 96, 0, 255, 5.0D);
 		addStarterRock("minecraft:deepslate", RockFamily.METAMORPHIC,
-				-32, 40, -64, 48, 3.0D);
+				0, 40, 0, 48, 3.0D);
 		addStarterRock("minecraft:granite", RockFamily.IGNEOUS_INTRUSIVE,
-				0, 72, -64, 192, 1.5D);
+				0, 72, 0, 192, 1.5D);
 		addStarterRock("minecraft:diorite", RockFamily.IGNEOUS_INTRUSIVE,
-				24, 64, -64, 192, 1.25D);
+				24, 64, 0, 192, 1.25D);
 		addStarterRock("minecraft:andesite", RockFamily.IGNEOUS_VOLCANIC,
-				48, 64, -32, 224, 1.5D);
+				48, 64, 0, 224, 1.5D);
 		addStarterRock("minecraft:tuff", RockFamily.IGNEOUS_VOLCANIC,
-				-16, 56, -64, 96, 1.0D);
+				0, 56, 0, 96, 1.0D);
 		ensureDefaultOverworldTerrain();
 		return true;
 	}
@@ -265,7 +267,7 @@ final class GeologyEditorSession {
 	private void ensureDefaultGeologyRules() {
 		JsonObject defaults = GeomeConfig.defaultEditorGeology();
 		for (String key : new String[] { "geomes", "biomes", "biome_dictionary" }) {
-			if (section(key).entrySet().isEmpty()) root.add(key, defaults.get(key).deepCopy());
+			if (section(key).entrySet().isEmpty()) root.add(key, JsonCopies.copy(defaults.get(key)));
 		}
 	}
 
@@ -347,7 +349,7 @@ final class GeologyEditorSession {
 	void resetEntry(String section, String id) {
 		JsonObject originalSection = object(original, section);
 		if (originalSection.has(id)) {
-			section(section).add(id, originalSection.get(id).deepCopy());
+			section(section).add(id, JsonCopies.copy(originalSection.get(id)));
 		}
 	}
 
@@ -422,7 +424,7 @@ final class GeologyEditorSession {
 	List<String> biomePlacementIds(String dimensionId) {
 		JsonObject palette = biomePalette(dimensionId, false);
 		if (palette == null) return Collections.emptyList();
-		List<String> result = new ArrayList<>(object(palette, "biomes").keySet());
+		List<String> result = new ArrayList<>(JsonCopies.keys(object(palette, "biomes")));
 		Collections.sort(result);
 		return result;
 	}
@@ -572,7 +574,7 @@ final class GeologyEditorSession {
 	private static JsonObject defaultFluidDepositDimension(boolean terrainActive) {
 		JsonObject rule = new JsonObject();
 		rule.addProperty("enabled", true);
-		rule.addProperty("min_y", -48);
+		rule.addProperty("min_y", 0);
 		rule.addProperty("max_y", 48);
 		rule.addProperty("frequency", 0.08D);
 		rule.addProperty("min_radius", 5);
@@ -601,13 +603,13 @@ final class GeologyEditorSession {
 	}
 
 	List<String> geomeIds() {
-		List<String> ids = new ArrayList<>(section("geomes").keySet());
+		List<String> ids = new ArrayList<>(JsonCopies.keys(section("geomes")));
 		Collections.sort(ids);
 		return ids;
 	}
 
 	List<String> configuredBiomeIds() {
-		TreeSet<String> ids = new TreeSet<>(section("biomes").keySet());
+		TreeSet<String> ids = new TreeSet<>(JsonCopies.keys(section("biomes")));
 		for (net.minecraft.world.level.biome.Biome biome : ForgeRegistries.BIOMES.getValues()) {
 			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
 			if (id != null) {
@@ -618,7 +620,7 @@ final class GeologyEditorSession {
 	}
 
 	List<String> dictionaryIds() {
-		List<String> ids = new ArrayList<>(section("biome_dictionary").keySet());
+		List<String> ids = new ArrayList<>(JsonCopies.keys(section("biome_dictionary")));
 		Collections.sort(ids);
 		return ids;
 	}
@@ -728,8 +730,10 @@ final class GeologyEditorSession {
 				errors.add("Invalid family for " + entry.getKey());
 				continue;
 			}
-			if (integer(rock, "min_y", -64) > integer(rock, "max_y", 319)) {
-				errors.add("Minimum Y is above maximum Y for " + entry.getKey());
+			int rockMinY = integer(rock, "min_y", 0);
+			int rockMaxY = integer(rock, "max_y", 255);
+			if (rockMinY < 0 || rockMaxY > 255 || rockMinY > rockMaxY) {
+				errors.add("Rock Y range must stay within 0..255 for " + entry.getKey());
 			}
 			if (rock.has("dimensions") && !validIdArray(rock.get("dimensions"))) {
 				errors.add("Invalid or empty terrain dimension list for " + entry.getKey());
@@ -767,13 +771,13 @@ final class GeologyEditorSession {
 				errors.add("Ore has no dimension rules: " + entry.getKey());
 				continue;
 			}
-			JsonObject allRules = dimensions.deepCopy();
+			JsonObject allRules = JsonCopies.copy(dimensions);
 			for (Entry<String, JsonElement> selector : selectors.entrySet()) {
 				if (!OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString().equals(selector.getKey())) {
 					errors.add("Invalid dimension selector for " + entry.getKey());
 					continue;
 				}
-				allRules.add(selector.getKey(), selector.getValue().deepCopy());
+				allRules.add(selector.getKey(), JsonCopies.copy(selector.getValue()));
 			}
 			for (Entry<String, JsonElement> dimension : allRules.entrySet()) {
 				if (!validResource(dimension.getKey()) || !dimension.getValue().isJsonObject()) {
@@ -786,7 +790,9 @@ final class GeologyEditorSession {
 				int minQuantity = hasMinQuantity ? integer(rule, "min_quantity", 0)
 						: integer(rule, "quantity", 0);
 				int maxQuantity = hasMaxQuantity ? integer(rule, "max_quantity", 0) : minQuantity;
-				if (integer(rule, "min_y", -64) > integer(rule, "max_y", 320)
+				int oreMinY = integer(rule, "min_y", 0);
+				int oreMaxY = integer(rule, "max_y", 255);
+				if (oreMinY < 0 || oreMaxY > 255 || oreMinY > oreMaxY
 						|| decimal(rule, "frequency", 0.0D) < 0.0D
 						|| decimal(rule, "frequency", 0.0D) > 64.0D
 						|| decimal(rule, "discard_chance_on_air_exposure", 0.0D) < 0.0D
@@ -866,7 +872,9 @@ final class GeologyEditorSession {
 				int maxRadius = integer(rule, "max_radius", 0);
 				int minVertical = integer(rule, "min_vertical_radius", 0);
 				int maxVertical = integer(rule, "max_vertical_radius", 0);
-				if (integer(rule, "min_y", -64) > integer(rule, "max_y", 320)
+				int fluidMinY = integer(rule, "min_y", 0);
+				int fluidMaxY = integer(rule, "max_y", 255);
+				if (fluidMinY < 0 || fluidMaxY > 255 || fluidMinY > fluidMaxY
 						|| decimal(rule, "frequency", -1.0D) < 0.0D
 						|| decimal(rule, "frequency", -1.0D) > 64.0D
 						|| minRadius < 1 || minRadius > maxRadius || maxRadius > 64
@@ -1024,7 +1032,7 @@ final class GeologyEditorSession {
 	static JsonObject defaultOreDimension() {
 		JsonObject dimension = new JsonObject();
 		dimension.addProperty("enabled", true);
-		dimension.addProperty("min_y", -64);
+		dimension.addProperty("min_y", 0);
 		dimension.addProperty("max_y", 64);
 		dimension.addProperty("frequency", 1.0D);
 		dimension.addProperty("quantity", 8);
@@ -1089,7 +1097,7 @@ final class GeologyEditorSession {
 					if (target != null) id = target;
 				} catch (RuntimeException ignored) { }
 			}
-			normalized.putIfAbsent(id, entry.getValue().deepCopy());
+			normalized.putIfAbsent(id, JsonCopies.copy(entry.getValue()));
 		}
 		JsonObject replacement = new JsonObject();
 		for (Entry<String, JsonElement> entry : normalized.entrySet()) {

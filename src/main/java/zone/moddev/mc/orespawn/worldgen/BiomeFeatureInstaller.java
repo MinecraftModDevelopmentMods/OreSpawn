@@ -6,19 +6,19 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeGenerationSettings;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
 
 /**
  * Adds OreSpawn's dynamic features to code-registered palette biomes, which do
@@ -36,7 +36,7 @@ final class BiomeFeatureInstaller {
 		Set<Biome> visited = Collections.newSetFromMap(new IdentityHashMap<>());
 		for (Palette palette : config.palettes) {
 			for (Entry entry : palette.entries) {
-				Biome biome = entry.biome.value();
+				Biome biome = entry.biome;
 				if (visited.add(biome)) install(biome, dimension);
 			}
 		}
@@ -51,20 +51,20 @@ final class BiomeFeatureInstaller {
 
 	private static void install(Biome biome, ResourceKey<Level> dimension) {
 		BiomeGenerationSettings original = biome.getGenerationSettings();
-		List<List<Holder<PlacedFeature>>> features = copyFeatures(original);
+		List<List<Supplier<ConfiguredFeature<?, ?>>>> features = copyFeatures(original);
 		boolean changed = false;
 
-		List<Holder<PlacedFeature>> underground =
+		List<Supplier<ConfiguredFeature<?, ?>>> underground =
 				step(features, GenerationStep.Decoration.UNDERGROUND_ORES);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(underground);
 		if (GeomeConfig.hasTerrainReplacement(dimension)) {
 			changed |= StoneReplacer.removeVanillaMatchingStoneFeatures(underground);
 		}
-		changed |= addUnique(underground, StoneReplacer.placedFeature());
-		changed |= addUnique(underground, OreSpawnOreGeneration.placedFeature());
-		changed |= addUnique(underground, FluidDepositFeature.placedFeature());
+		changed |= addUnique(underground, StoneReplacer.configuredFeature());
+		changed |= addUnique(underground, OreSpawnOreGeneration.configuredFeature());
+		changed |= addUnique(underground, FluidDepositFeature.configuredFeature());
 
-		List<Holder<PlacedFeature>> undergroundDecoration =
+		List<Supplier<ConfiguredFeature<?, ?>>> undergroundDecoration =
 				step(features, GenerationStep.Decoration.UNDERGROUND_DECORATION);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(undergroundDecoration);
 
@@ -75,53 +75,55 @@ final class BiomeFeatureInstaller {
 		biome.generationSettings = rebuild(original, features);
 	}
 
-	static boolean installSurfaceStages(List<List<Holder<PlacedFeature>>> features) {
-		List<Holder<PlacedFeature>> local =
+	static boolean installSurfaceStages(List<List<Supplier<ConfiguredFeature<?, ?>>>> features) {
+		List<Supplier<ConfiguredFeature<?, ?>>> local =
 				step(features, GenerationStep.Decoration.LOCAL_MODIFICATIONS);
-		List<Holder<PlacedFeature>> top =
+		List<Supplier<ConfiguredFeature<?, ?>>> top =
 				step(features, GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		boolean changed = addUnique(local, BiomeSurfaceFeature.placedFeature());
-		changed |= addUnique(top, FlatBedrockFeature.placedFeature());
+		boolean changed = addUnique(local, BiomeSurfaceFeature.configuredFeature());
+		changed |= addUnique(top, FlatBedrockFeature.configuredFeature());
 		return changed;
 	}
 
-	private static List<List<Holder<PlacedFeature>>> copyFeatures(
+	private static List<List<Supplier<ConfiguredFeature<?, ?>>>> copyFeatures(
 			BiomeGenerationSettings settings) {
-		List<List<Holder<PlacedFeature>>> copy = new ArrayList<>();
-		for (HolderSet<PlacedFeature> featureStep : settings.features()) {
-			List<Holder<PlacedFeature>> values = new ArrayList<>();
-			featureStep.forEach(values::add);
-			copy.add(values);
+		List<List<Supplier<ConfiguredFeature<?, ?>>>> copy = new ArrayList<>();
+		for (List<Supplier<ConfiguredFeature<?, ?>>> featureStep : settings.features()) {
+			copy.add(new ArrayList<>(featureStep));
 		}
 		return copy;
 	}
 
-	private static List<Holder<PlacedFeature>> step(
-			List<List<Holder<PlacedFeature>>> features, GenerationStep.Decoration step) {
+	private static List<Supplier<ConfiguredFeature<?, ?>>> step(
+			List<List<Supplier<ConfiguredFeature<?, ?>>>> features, GenerationStep.Decoration step) {
 		while (features.size() <= step.ordinal()) features.add(new ArrayList<>());
 		return features.get(step.ordinal());
 	}
 
-	private static boolean addUnique(List<Holder<PlacedFeature>> features,
-			Holder<PlacedFeature> feature) {
+	private static boolean addUnique(List<Supplier<ConfiguredFeature<?, ?>>> features,
+			ConfiguredFeature<?, ?> feature) {
 		if (feature == null || features.stream().anyMatch(existing ->
-				existing.value() == feature.value())) return false;
-		features.add(feature);
+				existing.get() == feature)) return false;
+		features.add(() -> feature);
 		return true;
 	}
 
 	private static BiomeGenerationSettings rebuild(BiomeGenerationSettings original,
-			List<List<Holder<PlacedFeature>>> features) {
+			List<List<Supplier<ConfiguredFeature<?, ?>>>> features) {
 		BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder();
+		builder.surfaceBuilder(original.getSurfaceBuilder());
 		for (GenerationStep.Carving carving : GenerationStep.Carving.values()) {
-			for (Holder<ConfiguredWorldCarver<?>> carver : original.getCarvers(carving)) {
-				builder.addCarver(carving, carver);
+			for (Supplier<ConfiguredWorldCarver<?>> carver : original.getCarvers(carving)) {
+				builder.addCarver(carving, carver.get());
 			}
 		}
 		for (int step = 0; step < features.size(); step++) {
-			for (Holder<PlacedFeature> feature : features.get(step)) {
+			for (Supplier<ConfiguredFeature<?, ?>> feature : features.get(step)) {
 				builder.addFeature(step, feature);
 			}
+		}
+		for (Supplier<ConfiguredStructureFeature<?, ?>> structure : original.structures()) {
+			builder.addStructureStart(structure.get());
 		}
 		return builder.build();
 	}

@@ -1,14 +1,12 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import java.util.Random;
-import java.util.Optional;
 
 import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
 
 import net.minecraft.world.level.block.Block;
-import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
@@ -100,10 +98,9 @@ public final class GeomeGeology {
 				int z = zOffset + dz;
 				int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
 				cursor.set(x, surfaceY, z);
-				Holder<Biome> biomeHolder = world.getBiome(cursor);
-				Biome biome = biomeHolder.value();
-				Optional<ResourceKey<Biome>> biomeKey = biomeHolder.unwrapKey();
-				ResourceLocation biomeId = biomeKey.isPresent() ? biomeKey.get().location() : null;
+				Biome biome = world.getBiome(cursor);
+				ResourceLocation biomeId = world.registryAccess()
+						.registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
 				if (!terrain.acceptsBiome(biomeId)) {
 					continue;
 				}

@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -36,7 +38,7 @@ class LegacyConfigMigratorTest {
 		JsonObject ores = migrated.getAsJsonObject("ores");
 		assertEquals(11, ores.size());
 		int selectorRules = 0;
-		for (String id : ores.keySet()) {
+		for (String id : JsonCopies.keys(ores)) {
 			JsonObject ore = ores.getAsJsonObject(id);
 			JsonObject rule;
 			if (ore.has("dimension_selectors")) {

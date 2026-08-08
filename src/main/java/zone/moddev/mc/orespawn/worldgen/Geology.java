@@ -12,7 +12,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 
@@ -71,8 +71,9 @@ public class Geology {
 				int y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
 				if (terrain.hasBiomeFilter()) {
 					cursor.set(x, y, z);
-					Holder<Biome> biome = world.getBiome(cursor);
-					ResourceLocation biomeId = biome.unwrapKey().map(key -> key.location()).orElse(null);
+					Biome biome = world.getBiome(cursor);
+					ResourceLocation biomeId = world.registryAccess()
+							.registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
 					if (!terrain.acceptsBiome(biomeId)) {
 						continue;
 					}

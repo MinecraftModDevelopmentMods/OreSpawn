@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -22,13 +23,12 @@ import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.TagKey;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
@@ -44,7 +44,8 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -60,7 +61,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	private static final Map<ResourceKey<Level>, BakedOre[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static Holder<PlacedFeature> placedFeature;
+	private static ConfiguredFeature<?, ?> configuredFeature;
 	private static volatile Map<ResourceKey<Level>, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceKey<Level>, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
 	private static volatile BakedOre[] selectorOres = NO_ORES;
@@ -78,11 +79,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	public static void registerConfiguredFeatures() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "managed_ores");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, OreSpawnOreGeneration>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 		VanillaOreFeatureGate.register();
 		refreshWorldConfig();
 	}
@@ -104,8 +103,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
 		VanillaOreFeatureGate.wrapVanillaOres(event);
 		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES).add(placedFeature);
+				&& event.getCategory() != BiomeCategory.NONE && configuredFeature != null) {
+			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
+					.add(() -> configuredFeature);
 		}
 	}
 
@@ -127,7 +127,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		ChunkAccess chunk = world.getChunk(context.origin());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
-		boolean changed = generateChunk(world, chunk, world.getBiome(scratch.cursor), dimension,
+		Biome biome = world.getBiome(scratch.cursor);
+		ResourceLocation biomeId = world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
+				.getKey(biome);
+		boolean changed = generateChunk(world, chunk, biome, biomeId, dimension,
 				world.getSeed(), context.random(), ores, false, scratch);
 		OreRetrogenManager.markGenerated(dimension, chunk.getPos());
 		return changed;
@@ -141,7 +144,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				WorldGeologyProfileManager.activeProfile().generationRevision());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
-		return generateChunk(null, chunk, level.getBiome(scratch.cursor), dimension, level.getSeed(),
+		Biome biome = level.getBiome(scratch.cursor);
+		ResourceLocation biomeId = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
+				.getKey(biome);
+		return generateChunk(null, chunk, biome, biomeId, dimension, level.getSeed(),
 				new Random(seed), ores, true, scratch);
 	}
 
@@ -151,7 +157,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				Math.max(chunk.getMinBuildHeight(), 0), chunkPos.getMinBlockZ() + 8);
 	}
 
-	private static boolean generateChunk(WorldGenLevel world, ChunkAccess chunk, Holder<Biome> biome,
+	private static boolean generateChunk(WorldGenLevel world, ChunkAccess chunk, Biome biome,
+			ResourceLocation biomeId,
 			ResourceKey<Level> dimension, long worldSeed, Random random, BakedOre[] ores,
 			boolean retrogenOnly, GenerationScratch scratch) {
 		ChunkPos chunkPos = chunk.getPos();
@@ -159,15 +166,14 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int geome = -1;
 		if (Level.OVERWORLD.equals(dimension)) {
-			ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
-			geome = classifier(worldSeed).classifyColumn(biome.value(), biomeId, centerX, centerZ,
+			geome = classifier(worldSeed).classifyColumn(biome, biomeId, centerX, centerZ,
 					scratch.geomeValues(geomeConfig.geomeCount()));
 		}
 
 		boolean changed = false;
 		for (BakedOre ore : ores) {
 			if (retrogenOnly && !ore.retrogen) continue;
-			if (!ore.acceptsBiome(biome.value())) {
+			if (!ore.acceptsBiome(biome, biomeId)) {
 				continue;
 			}
 			double frequency = ore.frequency;
@@ -243,7 +249,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			return BakedOres.EMPTY;
 		}
 		boolean manageVanillaOres = bool(profile, "manage_vanilla_ores", false);
-		Map<TagKey<Block>, Set<Block>> resolvedTags = new HashMap<>();
+		Map<ResourceLocation, Set<Block>> resolvedTags = new HashMap<>();
 		List<BakedOreRule> rules = new ArrayList<>();
 		Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
 		for (Entry<String, JsonElement> oreEntry : profile.getAsJsonObject("ores").entrySet()) {
@@ -372,8 +378,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		}
 	}
 
-	static Holder<PlacedFeature> placedFeature() {
-		return placedFeature;
+	static ConfiguredFeature<?, ?> configuredFeature() {
+		return configuredFeature;
 	}
 
 	private static JsonObject objectOrEmpty(JsonObject root, String key) {
@@ -382,10 +388,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 
 	private static BakedOre bakeOre(BlockState output, BlockState deepOutput, int deepOutputMaxY,
 			BakedOutput[] outputs,
-			JsonObject json, BakedGeomeConfig config, Map<TagKey<Block>, Set<Block>> resolvedTags,
+			JsonObject json, BakedGeomeConfig config, Map<ResourceLocation, Set<Block>> resolvedTags,
 			boolean retrogen) {
-		int minY = integer(json, "min_y", -64);
-		int maxY = integer(json, "max_y", 320);
+		int minY = integer(json, "min_y", 0);
+		int maxY = integer(json, "max_y", 255);
 		double frequency = decimal(json, "frequency", 0.0D);
 		boolean hasMinQuantity = json.has("min_quantity");
 		boolean hasMaxQuantity = json.has("max_quantity");
@@ -439,13 +445,17 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				}
 			}
 		}
-		Set<Biome> includedBiomes = resolveBiomes(json, "biome_ids", "biome_dictionary");
-		Set<Biome> excludedBiomes = resolveBiomes(json, "excluded_biome_ids", "excluded_biome_dictionary");
+		Set<ResourceLocation> includedBiomeIds = resolveBiomeIds(json, "biome_ids");
+		Set<ResourceLocation> excludedBiomeIds = resolveBiomeIds(json, "excluded_biome_ids");
+		Set<Biome> includedDictionaryBiomes = resolveBiomeDictionary(json, "biome_dictionary");
+		Set<Biome> excludedDictionaryBiomes = resolveBiomeDictionary(json,
+				"excluded_biome_dictionary");
 		return new BakedOre(output, deepOutput, deepOutputMaxY, outputs,
 				minY, maxY, Math.min(64.0D, frequency), minQuantity, maxQuantity,
 				pattern, heightDistribution, discardChanceOnAirExposure,
 				spread, verticalSpread, nodeSize,
-				hostBlocks, familyMask, geomeWeights, includedBiomes, excludedBiomes, retrogen);
+				hostBlocks, familyMask, geomeWeights, includedBiomeIds, excludedBiomeIds,
+				includedDictionaryBiomes, excludedDictionaryBiomes, retrogen);
 	}
 
 	private static BakedOutput[] bakeOutputs(JsonObject ore, BlockState fallback) {
@@ -486,7 +496,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static void addTags(Map<Block, Double> target, JsonElement element,
-			Map<TagKey<Block>, Set<Block>> resolvedTags) {
+			Map<ResourceLocation, Set<Block>> resolvedTags) {
 		if (element == null || !element.isJsonArray()) {
 			return;
 		}
@@ -496,23 +506,26 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			if (id == null) {
 				continue;
 			}
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
-			Set<Block> blocks = resolvedTags.computeIfAbsent(tag, OreSpawnOreGeneration::resolveTag);
+			Set<Block> blocks = resolvedTags.computeIfAbsent(id, OreSpawnOreGeneration::resolveTag);
 			double weight = Math.max(0.0D, Math.min(1.0D,
 					object == null ? 1.0D : decimal(object, "weight", 1.0D)));
 			for (Block block : blocks) target.merge(block, weight, Math::max);
 		}
 	}
 
-	private static Set<Biome> resolveBiomes(JsonObject rule, String idsKey, String dictionaryKey) {
-		Set<Biome> result = Collections.newSetFromMap(new IdentityHashMap<Biome, Boolean>());
+	private static Set<ResourceLocation> resolveBiomeIds(JsonObject rule, String idsKey) {
+		Set<ResourceLocation> result = new HashSet<>();
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				Biome biome = id == null ? null : ForgeRegistries.BIOMES.getValue(id);
-				if (biome != null) result.add(biome);
+				if (id != null) result.add(id);
 			}
 		}
+		return result;
+	}
+
+	private static Set<Biome> resolveBiomeDictionary(JsonObject rule, String dictionaryKey) {
+		Set<Biome> result = Collections.newSetFromMap(new IdentityHashMap<Biome, Boolean>());
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
@@ -528,13 +541,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return result;
 	}
 
-	private static Set<Block> resolveTag(TagKey<Block> tag) {
+	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			if (block.defaultBlockState().is(tag)) {
-				result.add(block);
-			}
-		}
+		result.addAll(BlockTags.getAllTags().getTagOrEmpty(tag).getValues());
 		return result;
 	}
 
@@ -632,8 +641,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		final Map<Block, Double> hostBlocks;
 		final int familyMask;
 		final double[] geomeWeights;
-		final Set<Biome> includedBiomes;
-		final Set<Biome> excludedBiomes;
+		final Set<ResourceLocation> includedBiomeIds;
+		final Set<ResourceLocation> excludedBiomeIds;
+		final Set<Biome> includedDictionaryBiomes;
+		final Set<Biome> excludedDictionaryBiomes;
 		final boolean retrogen;
 
 		BakedOre(BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
@@ -642,7 +653,9 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 				double discardChanceOnAirExposure,
 				int spread, int verticalSpread, int nodeSize,
 				Map<Block, Double> hostBlocks, int familyMask, double[] geomeWeights,
-				Set<Biome> includedBiomes, Set<Biome> excludedBiomes, boolean retrogen) {
+				Set<ResourceLocation> includedBiomeIds, Set<ResourceLocation> excludedBiomeIds,
+				Set<Biome> includedDictionaryBiomes, Set<Biome> excludedDictionaryBiomes,
+				boolean retrogen) {
 			this.output = output;
 			this.deepOutput = deepOutput;
 			this.deepOutputMaxY = deepOutputMaxY;
@@ -661,8 +674,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			this.hostBlocks = hostBlocks;
 			this.familyMask = familyMask;
 			this.geomeWeights = geomeWeights;
-			this.includedBiomes = includedBiomes;
-			this.excludedBiomes = excludedBiomes;
+			this.includedBiomeIds = includedBiomeIds;
+			this.excludedBiomeIds = excludedBiomeIds;
+			this.includedDictionaryBiomes = includedDictionaryBiomes;
+			this.excludedDictionaryBiomes = excludedDictionaryBiomes;
 			this.retrogen = retrogen;
 		}
 
@@ -690,9 +705,12 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 					&& (familyMask & (1 << family.ordinal())) != 0;
 		}
 
-		boolean acceptsBiome(Biome biome) {
-			return !excludedBiomes.contains(biome)
-					&& (includedBiomes.isEmpty() || includedBiomes.contains(biome));
+		boolean acceptsBiome(Biome biome, ResourceLocation biomeId) {
+			if (excludedBiomeIds.contains(biomeId) || excludedDictionaryBiomes.contains(biome)) {
+				return false;
+			}
+			return (includedBiomeIds.isEmpty() && includedDictionaryBiomes.isEmpty())
+					|| includedBiomeIds.contains(biomeId) || includedDictionaryBiomes.contains(biome);
 		}
 	}
 

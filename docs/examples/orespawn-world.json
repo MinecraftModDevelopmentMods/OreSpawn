@@ -32,8 +32,8 @@
       "family": "sedimentary",
       "depth_peak": 64,
       "depth_spread": 40,
-      "min_y": -64,
-      "max_y": 319,
+      "min_y": 0,
+      "max_y": 255,
       "weight": 1.0,
       "ore_replaceable": true
     },
@@ -42,8 +42,8 @@
       "family": "metamorphic",
       "depth_peak": 20,
       "depth_spread": 36,
-      "min_y": -64,
-      "max_y": 319,
+      "min_y": 0,
+      "max_y": 255,
       "weight": 1.0,
       "ore_replaceable": true
     },
@@ -52,8 +52,8 @@
       "family": "igneous_intrusive",
       "depth_peak": 12,
       "depth_spread": 44,
-      "min_y": -64,
-      "max_y": 319,
+      "min_y": 0,
+      "max_y": 255,
       "weight": 1.0,
       "ore_replaceable": true
     }

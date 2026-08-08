@@ -58,7 +58,7 @@ biome filters, and geome weights:
   "dimensions": {
     "minecraft:overworld": {
       "enabled": true,
-      "min_y": -48,
+      "min_y": 0,
       "max_y": 32,
       "frequency": 0.05,
       "min_radius": 4,

@@ -9,7 +9,6 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -27,7 +26,8 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -36,7 +36,7 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 	public static final FlatBedrockFeature FEATURE = new FlatBedrockFeature();
 	private static final int BEDROCK_NOISE_DEPTH = 5;
 
-	private static Holder<PlacedFeature> placedFeature;
+	private static ConfiguredFeature<?, ?> configuredFeature;
 	private static volatile Settings settings = Settings.DISABLED;
 
 	private FlatBedrockFeature() {
@@ -46,25 +46,22 @@ public final class FlatBedrockFeature extends Feature<NoneFeatureConfiguration> 
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "flat_bedrock");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-				BuiltinRegistries.CONFIGURED_FEATURE, id,
-				new ConfiguredFeature<NoneFeatureConfiguration, FlatBedrockFeature>(
-						FEATURE, NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 		refreshWorldConfig();
 	}
 
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
 		if (!WorldgenBenchmark.isVanillaBaseline() && event.getCategory() != BiomeCategory.NONE
-				&& placedFeature != null) {
+				&& configuredFeature != null) {
 			event.getGeneration().getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION)
-					.add(placedFeature);
+					.add(() -> configuredFeature);
 		}
 	}
 
-	static Holder<PlacedFeature> placedFeature() {
-		return placedFeature;
+	static ConfiguredFeature<?, ?> configuredFeature() {
+		return configuredFeature;
 	}
 
 	public static void refreshWorldConfig() {

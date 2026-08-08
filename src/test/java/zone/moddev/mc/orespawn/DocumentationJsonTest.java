@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -127,7 +129,7 @@ class DocumentationJsonTest {
 		}
 		if (schema.has("additionalProperties") && schema.get("additionalProperties").isJsonPrimitive()
 				&& !schema.get("additionalProperties").getAsBoolean()) {
-			for (String property : value.keySet()) {
+			for (String property : JsonCopies.keys(value)) {
 				require(properties.has(property), path + " has unsupported property " + property);
 			}
 		}

@@ -17,7 +17,6 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -30,7 +29,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.Aquifer;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -42,6 +40,10 @@ final class BiomeWorldgenManager {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceKey<Level>, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
+	private static final Map<NoiseBasedChunkGenerator, BlockState> ORIGINAL_DEFAULT_FLUIDS =
+			new IdentityHashMap<>();
+	private static final Set<ResourceKey<Level>> WARNED_DEEP_FLUID_DIMENSIONS =
+			new LinkedHashSet<>();
 
 	private BiomeWorldgenManager() {
 	}
@@ -92,6 +94,11 @@ final class BiomeWorldgenManager {
 
 	static synchronized void clear() {
 		BiomeFeatureInstaller.restoreAll();
+		for (Entry<NoiseBasedChunkGenerator, BlockState> entry : ORIGINAL_DEFAULT_FLUIDS.entrySet()) {
+			entry.getKey().defaultFluid = entry.getValue();
+		}
+		ORIGINAL_DEFAULT_FLUIDS.clear();
+		WARNED_DEEP_FLUID_DIMENSIONS.clear();
 		baked = Collections.emptyMap();
 	}
 
@@ -102,7 +109,7 @@ final class BiomeWorldgenManager {
 	private static BakedBiomeWorldgen bake(ServerLevel level, JsonObject root) {
 		Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
 		ResourceLocation dimensionId = level.dimension().location();
-		Map<Holder<Biome>, Surface> surfaces = new IdentityHashMap<>();
+		Map<Biome, Surface> surfaces = new IdentityHashMap<>();
 		List<Palette> palettes = bakePalettes(root, biomes, dimensionId, surfaces);
 		DimensionMaterials materials = bakeMaterials(root, dimensionId);
 		if (palettes.isEmpty() && surfaces.isEmpty() && materials == null) return null;
@@ -112,7 +119,7 @@ final class BiomeWorldgenManager {
 	}
 
 	private static List<Palette> bakePalettes(JsonObject root, Registry<Biome> registry,
-			ResourceLocation dimension, Map<Holder<Biome>, Surface> surfaces) {
+			ResourceLocation dimension, Map<Biome, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
 		for (Entry<String, JsonElement> paletteEntry : section.entrySet()) {
@@ -127,9 +134,8 @@ final class BiomeWorldgenManager {
 				ResourceLocation biomeId;
 				try { biomeId = new ResourceLocation(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
-				Holder<Biome> holder = registry.getHolder(ResourceKey.create(
-						Registry.BIOME_REGISTRY, biomeId)).orElse(null);
-				if (holder == null) {
+				Biome biome = registry.get(biomeId);
+				if (biome == null) {
 					LOGGER.warn("Skipping missing optional OreSpawn biome '{}'", biomeId);
 					continue;
 				}
@@ -149,7 +155,7 @@ final class BiomeWorldgenManager {
 				similar.addAll(required);
 				double weight = decimal(placement, "weight", 1.0D);
 				if (weight <= 0.0D) continue;
-				entries.add(new BakedBiomeWorldgen.Entry(holder, weight,
+				entries.add(new BakedBiomeWorldgen.Entry(biome, weight,
 						Collections.unmodifiableSet(similar),
 						(float) decimal(placement, "min_temperature", -2.0D),
 						(float) decimal(placement, "max_temperature", 2.0D),
@@ -157,7 +163,7 @@ final class BiomeWorldgenManager {
 						(float) decimal(placement, "max_downfall", 1.0D)));
 				if (placement.has("surface") && placement.get("surface").isJsonObject()) {
 					Surface surface = surface(placement.getAsJsonObject("surface"));
-					if (surface != null) surfaces.put(holder, surface);
+					if (surface != null) surfaces.put(biome, surface);
 				}
 			}
 			if (entries.isEmpty()) continue;
@@ -197,8 +203,7 @@ final class BiomeWorldgenManager {
 			}
 			if (count == 0) continue;
 
-			@SuppressWarnings("unchecked")
-			Holder<Biome>[] outputs = new Holder[count];
+			Biome[] outputs = new Biome[count];
 			double[] cumulative = new double[count];
 			double total = fallbackWeight;
 			int index = 0;
@@ -278,16 +283,17 @@ final class BiomeWorldgenManager {
 		ChunkGenerator raw = level.getChunkSource().getGenerator();
 		if (!(raw instanceof NoiseBasedChunkGenerator)) return;
 		NoiseBasedChunkGenerator generator = (NoiseBasedChunkGenerator) raw;
-		Aquifer.FluidPicker original = generator.globalFluidPicker;
-		while (original instanceof ConfiguredFluidPicker) {
-			original = ((ConfiguredFluidPicker) original).original();
+		BlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
+				ignored -> generator.defaultFluid);
+		generator.defaultFluid = materials != null && materials.defaultFluid != null
+				? materials.defaultFluid : original;
+		if (materials != null && materials.deepFluid != null
+				&& !materials.deepFluid.equals(generator.defaultFluid)
+				&& materials.deepFluidMaxY >= level.getMinBuildHeight()
+				&& WARNED_DEEP_FLUID_DIMENSIONS.add(level.dimension())) {
+			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.17.1 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
+					level.dimension().location(), materials.deepFluidMaxY);
 		}
-		if (materials == null || !materials.hasAquiferOverride()) {
-			generator.globalFluidPicker = original;
-			return;
-		}
-		generator.globalFluidPicker = new ConfiguredFluidPicker(original,
-				generator.getSeaLevel(), materials);
 	}
 
 	private static Surface surface(JsonObject json) {
@@ -369,31 +375,4 @@ final class BiomeWorldgenManager {
 		return root.has(key) ? root.get(key).getAsDouble() : fallback;
 	}
 
-	private static final class ConfiguredFluidPicker implements Aquifer.FluidPicker {
-		private final Aquifer.FluidPicker original;
-		private final Aquifer.FluidStatus defaultFluid;
-		private final Aquifer.FluidStatus deepFluid;
-		private final int deepMaxY;
-
-		ConfiguredFluidPicker(Aquifer.FluidPicker original, int seaLevel,
-				DimensionMaterials materials) {
-			this.original = original;
-			defaultFluid = materials.defaultFluid == null ? null
-					: new Aquifer.FluidStatus(seaLevel, materials.defaultFluid);
-			deepFluid = materials.deepFluid == null ? null
-					: new Aquifer.FluidStatus(materials.deepFluidMaxY, materials.deepFluid);
-			deepMaxY = materials.deepFluidMaxY;
-		}
-
-		Aquifer.FluidPicker original() {
-			return original;
-		}
-
-		@Override
-		public Aquifer.FluidStatus computeFluid(int x, int y, int z) {
-			if (deepFluid != null && y < deepMaxY) return deepFluid;
-			if (defaultFluid != null) return defaultFluid;
-			return original.computeFluid(x, y, z);
-		}
-	}
 }

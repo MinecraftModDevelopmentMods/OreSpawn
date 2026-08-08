@@ -44,7 +44,7 @@ stone without enabling strata:
       "dimensions": {
         "minecraft:overworld": {
           "enabled": true,
-          "min_y": -16,
+          "min_y": 0,
           "max_y": 96,
           "frequency": 6.0,
           "min_quantity": 4,
@@ -95,7 +95,7 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
             .retrogen(false)
 			.dimensionSelector(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END,
 				placement -> placement
-					.yRange(-16, 96)
+					.yRange(0, 96)
 					.attempts(6.0)
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
@@ -172,9 +172,9 @@ registry IDs, tags, dimensions, geomes, aliases, and block states while baking.
 The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
-Biome filters are baked as `ResourceKey<Biome>` values. Do not compare baked
-`Biome` instances by identity: 1.18 worldgen can supply equivalent values from
-a dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
+Biome filters retain their exact registry IDs. Do not compare baked `Biome`
+instances by identity: 1.17 worldgen can supply equivalent values from a
+dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
 chunk invocation and no registry lookup in the placement loop.
 
 Biome palettes wrap the dimension's already-selected biome source and bake

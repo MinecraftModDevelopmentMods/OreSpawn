@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -60,7 +62,7 @@ final class LegacyConfigMigrator {
 
 		List<Path> legacy = legacyFiles(config);
 		if (legacy.isEmpty()) return null;
-		JsonObject migrated = defaults.deepCopy();
+		JsonObject migrated = JsonCopies.copy(defaults);
 		JsonObject ores = object(migrated, "ores");
 		List<String> report = new ArrayList<>();
 		int imported = 0;
@@ -197,7 +199,7 @@ final class LegacyConfigMigrator {
 		} else if (dimensionElement.isJsonArray()) {
 			for (JsonElement dimension : dimensionElement.getAsJsonArray()) {
 				String id = legacyDimension(dimension);
-				if (id != null) dimensions.add(id, rule.deepCopy());
+				if (id != null) dimensions.add(id, JsonCopies.copy(rule));
 				else report.add("Skipped unknown numeric dimension for " + name + ": " + dimension);
 			}
 		} else if (dimensionElement.isJsonObject()) {
@@ -206,11 +208,11 @@ final class LegacyConfigMigrator {
 					: array(whitelist, "whitelist");
 			for (JsonElement dimension : values) {
 				String id = legacyDimension(dimension);
-				if (id != null) dimensions.add(id, rule.deepCopy());
+				if (id != null) dimensions.add(id, JsonCopies.copy(rule));
 			}
 		}
 		if (dimensions.size() == 0 && selectors.size() == 0) {
-			report.add("Skipped " + name + ": no 1.18 dimension mapping could be inferred.");
+			report.add("Skipped " + name + ": no supported dimension mapping could be inferred.");
 			return null;
 		}
 		if (dimensions.size() > 0) ore.add("dimensions", dimensions);

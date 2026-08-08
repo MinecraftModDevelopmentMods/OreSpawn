@@ -1,12 +1,12 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import java.util.Collections;
+import java.util.function.Supplier;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.WorldGenLevel;
@@ -18,14 +18,15 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
 import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 
 /** Applies provider surfaces after base surfaces and lakes, before late features. */
 public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration> {
 	public static final BiomeSurfaceFeature FEATURE = new BiomeSurfaceFeature();
-	private static Holder<PlacedFeature> placedFeature;
+	private static ConfiguredFeature<?, ?> configuredFeature;
 
 	private BiomeSurfaceFeature() {
 		super(NoneFeatureConfiguration.CODEC);
@@ -34,12 +35,9 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "biome_surfaces");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-				BuiltinRegistries.CONFIGURED_FEATURE, id,
-				new ConfiguredFeature<NoneFeatureConfiguration, BiomeSurfaceFeature>(
-						FEATURE, NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 	}
 
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
@@ -47,18 +45,18 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	static boolean install(BiomeGenerationSettingsBuilder generation) {
-		if (placedFeature == null) return false;
-		java.util.List<Holder<PlacedFeature>> features = generation.getFeatures(
+		if (configuredFeature == null) return false;
+		java.util.List<Supplier<ConfiguredFeature<?, ?>>> features = generation.getFeatures(
 				GenerationStep.Decoration.LOCAL_MODIFICATIONS);
-		if (features.stream().anyMatch(existing -> existing.value() == placedFeature.value())) {
+		if (features.stream().anyMatch(existing -> existing.get() == configuredFeature)) {
 			return false;
 		}
-		features.add(placedFeature);
+		features.add(() -> configuredFeature);
 		return true;
 	}
 
-	static Holder<PlacedFeature> placedFeature() {
-		return placedFeature;
+	static ConfiguredFeature<?, ?> configuredFeature() {
+		return configuredFeature;
 	}
 
 	@Override

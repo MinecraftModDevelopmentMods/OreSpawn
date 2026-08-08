@@ -108,7 +108,7 @@ final class FluidDepositDimensionScreen extends Screen {
 				left + ((tabWidth + 5) * 2), 66, contentWidth - ((tabWidth + 5) * 2), 20,
 				new TranslatableComponent("tab.orespawn.biomes"), button -> showPage(Page.BIOMES))));
 
-		minY = placementField(0, "min_y", text(rule, "min_y", -48));
+		minY = placementField(0, "min_y", text(rule, "min_y", 0));
 		maxY = placementField(1, "max_y", text(rule, "max_y", 48));
 		frequency = placementField(2, "frequency", text(rule, "frequency", 0.08D));
 		minRadius = placementField(3, "min_radius", text(rule, "min_radius", 5));
@@ -212,8 +212,8 @@ final class FluidDepositDimensionScreen extends Screen {
 
 	private boolean save() {
 		try {
-			int parsedMinY = integer(minY, -2048, 2048);
-			int parsedMaxY = integer(maxY, -2048, 2048);
+			int parsedMinY = integer(minY, 0, 255);
+			int parsedMaxY = integer(maxY, 0, 255);
 			double parsedFrequency = number(frequency, 0.0D, 64.0D);
 			int parsedMinRadius = integer(minRadius, 1, 64);
 			int parsedMaxRadius = integer(maxRadius, 1, 64);

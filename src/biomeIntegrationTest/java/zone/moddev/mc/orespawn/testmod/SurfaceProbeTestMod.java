@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -27,7 +28,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -53,10 +54,11 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
+import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -67,7 +69,7 @@ import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.fmllegacy.RegistryObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,9 +88,9 @@ public final class SurfaceProbeTestMod {
 			FEATURES.register("structure_sentinels", () -> new ProbeFeature(ProbeStage.STRUCTURE));
 	private static final RegistryObject<ProbeFeature> VEGETATION_FEATURE =
 			FEATURES.register("vegetation_sentinels", () -> new ProbeFeature(ProbeStage.VEGETATION));
-	private static Holder<PlacedFeature> terrainPlaced;
-	private static Holder<PlacedFeature> structurePlaced;
-	private static Holder<PlacedFeature> vegetationPlaced;
+	private static ConfiguredFeature<?, ?> terrainConfigured;
+	private static ConfiguredFeature<?, ?> structureConfigured;
+	private static ConfiguredFeature<?, ?> vegetationConfigured;
 	private static final ResourceKey<Level> OPEN = Level.END;
 	private static final ResourceKey<Level> ROOFED = Level.NETHER;
 	private static final ResourceLocation OPEN_ID = new ResourceLocation("minecraft:the_end");
@@ -111,6 +113,8 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("minecraft", "basalt_deltas"));
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
+	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
+	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
 	private static final int EXPECTED_FILLER = EXPECTED_COLUMNS * 3;
 	private static final String PHASE_PROPERTY = "surfaceprobe.integrationPhase";
@@ -130,47 +134,47 @@ public final class SurfaceProbeTestMod {
 
 	private void setup(FMLCommonSetupEvent event) {
 		event.enqueueWork(() -> {
-			terrainPlaced = registerPlaced("terrain_setup", TERRAIN_FEATURE.get());
-			structurePlaced = registerPlaced("structure_sentinels", STRUCTURE_FEATURE.get());
-			vegetationPlaced = registerPlaced("vegetation_sentinels", VEGETATION_FEATURE.get());
+			terrainConfigured = registerConfigured("terrain_setup", TERRAIN_FEATURE.get());
+			structureConfigured = registerConfigured("structure_sentinels", STRUCTURE_FEATURE.get());
+			vegetationConfigured = registerConfigured("vegetation_sentinels", VEGETATION_FEATURE.get());
 		});
 	}
 
-	private static Holder<PlacedFeature> registerPlaced(String name,
+	private static ConfiguredFeature<?, ?> registerConfigured(String name,
 			Feature<NoneFeatureConfiguration> feature) {
 		ResourceLocation id = new ResourceLocation(MODID, name);
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-				BuiltinRegistries.CONFIGURED_FEATURE, id,
-				new ConfiguredFeature<>(feature, NoneFeatureConfiguration.INSTANCE));
-		return BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		return Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				feature.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 	}
 
 	private void addFixtureFeatures(BiomeLoadingEvent event) {
 		if (!BASE_BIOMES.contains(event.getName())) return;
-		if (terrainPlaced == null || structurePlaced == null || vegetationPlaced == null) {
+		if (terrainConfigured == null || structureConfigured == null || vegetationConfigured == null) {
 			throw new IllegalStateException("Surface probe features were not registered before biome loading");
 		}
 		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.RAW_GENERATION),
-				terrainPlaced);
+				terrainConfigured);
 		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.SURFACE_STRUCTURES),
-				structurePlaced);
+				structureConfigured);
 		addUnique(event.getGeneration().getFeatures(GenerationStep.Decoration.VEGETAL_DECORATION),
-				vegetationPlaced);
+				vegetationConfigured);
 	}
 
-	private static void addUnique(java.util.List<Holder<PlacedFeature>> features,
-			Holder<PlacedFeature> feature) {
-		if (features.stream().noneMatch(existing -> existing.value() == feature.value())) {
-			features.add(feature);
+	private static void addUnique(java.util.List<Supplier<ConfiguredFeature<?, ?>>> features,
+			ConfiguredFeature<?, ?> feature) {
+		if (features.stream().noneMatch(existing -> existing.get() == feature)) {
+			features.add(() -> feature);
 		}
 	}
 
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addDynamicBiomeGeology(provider);
-		addPalette(provider, "open_palette", OPEN_ID, false);
-		addPalette(provider, "roofed_palette", ROOFED_ID, true);
+		addPalette(provider, "open_palette_0", OPEN_ID, false);
+		addPalette(provider, "roofed_palette_0", ROOFED_ID, true);
+		provider.dimensionMaterials(new ResourceLocation(MODID + ":materials/nether"), ROOFED_ID,
+				materials -> materials.defaultFluid(blockId(Blocks.WATER)));
 		if (!OreSpawnApi.enqueue(provider.build())) {
 			throw new IllegalStateException("Could not enqueue surface probe provider");
 		}
@@ -196,7 +200,7 @@ public final class SurfaceProbeTestMod {
 		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
 	}
 
-	private void enableGeologyProbe(ServerAboutToStartEvent event) {
+	private void enableGeologyProbe(FMLServerAboutToStartEvent event) {
 		Path profile = event.getServer().getWorldPath(LevelResource.ROOT).resolve("serverconfig")
 				.resolve("orespawn-worldgen.json");
 		JsonObject root;
@@ -275,13 +279,17 @@ public final class SurfaceProbeTestMod {
 		return ForgeRegistries.BLOCKS.getKey(block);
 	}
 
-	private void auditGeneratedSurfaces(ServerStartedEvent event) {
+	private void auditGeneratedSurfaces(FMLServerStartedEvent event) {
 		String phase = System.getProperty(PHASE_PROPERTY, "").trim();
 		if (!phase.equals("fresh") && !phase.equals("reload")) {
 			throw new IllegalStateException("Missing or invalid " + PHASE_PROPERTY + ": " + phase);
 		}
 		if (OreSpawnApi.getProviderStatus(MODID) != ProviderStatus.ACTIVE) {
 			throw new IllegalStateException("Surface probe provider is not active");
+		}
+		if (event.getServer().overworld().getSeed() != 0L) {
+			throw new IllegalStateException("Surface probe expected actual world seed 0 but found "
+					+ event.getServer().overworld().getSeed());
 		}
 
 		Path marker = event.getServer().getWorldPath(LevelResource.ROOT).resolve(MARKER_NAME);
@@ -314,7 +322,7 @@ public final class SurfaceProbeTestMod {
 		event.getServer().halt(false);
 	}
 
-	private static ServerLevel requireLevel(ServerStartedEvent event, ResourceKey<Level> key) {
+	private static ServerLevel requireLevel(FMLServerStartedEvent event, ResourceKey<Level> key) {
 		ServerLevel level = event.getServer().getLevel(key);
 		if (level == null) throw new IllegalStateException("Surface probe dimension is unavailable: " + key.location());
 		if (level.getChunkSource().getGenerator() instanceof FlatLevelSource) {
@@ -337,7 +345,6 @@ public final class SurfaceProbeTestMod {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
-			ResourceLocation previousChunkBiome = null;
 			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
 				level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
 				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
@@ -349,11 +356,11 @@ public final class SurfaceProbeTestMod {
 						int z = chunkMinZ + localZ;
 						int groundY = findMarkedGround(chunk, pos, x, z, level.getMinBuildHeight(), level.getMaxBuildHeight());
 						var biome = level.getBiome(pos.set(x, groundY, z));
-						ResourceLocation biomeId = biomeId(biome);
+						ResourceLocation biomeId = biomeId(level, biome);
 						Material material = material(biomeId, roofed);
 						float expectedTemperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
 						float expectedDownfall = BIOME_A.equals(biomeId) ? 0.15F : 0.8F;
-						Biome biomeValue = biome.value();
+						Biome biomeValue = biome;
 						if (Float.compare(biomeValue.getBaseTemperature(), expectedTemperature) != 0
 								|| Float.compare(biomeValue.getDownfall(), expectedDownfall) != 0) {
 							throw new IllegalStateException("Provider climate changed for " + biomeId
@@ -362,6 +369,16 @@ public final class SurfaceProbeTestMod {
 									+ biomeValue.getDownfall());
 						}
 						if (BIOME_A.equals(biomeId)) biomeA++; else biomeB++;
+						if (x > (MINIMUM_CHUNK << 4)) {
+							ResourceLocation westBiome = biomeId(level,
+									level.getBiome(pos.set(x - 1, groundY, z)));
+							if (!westBiome.equals(biomeId)) edgeChanges++;
+						}
+						if (z > (MINIMUM_CHUNK << 4)) {
+							ResourceLocation northBiome = biomeId(level,
+									level.getBiome(pos.set(x, groundY, z - 1)));
+							if (!northBiome.equals(biomeId)) edgeChanges++;
+						}
 						boolean waterColumn = localX == 1 && localZ == 1;
 						BlockState expectedTop = waterColumn ? material.underwater() : material.top();
 						assertBlock(chunk, pos, x, groundY, z, expectedTop,
@@ -380,7 +397,7 @@ public final class SurfaceProbeTestMod {
 							}
 						}
 						if (roofed) {
-							ResourceLocation ceilingBiome = biomeId(level.getBiome(
+							ResourceLocation ceilingBiome = biomeId(level, level.getBiome(
 									pos.set(x, groundY + 8, z)));
 							BlockState expectedCeiling = material(ceilingBiome, true).ceiling();
 							assertBlock(chunk, pos, x, groundY + 8, z, expectedCeiling,
@@ -392,11 +409,6 @@ public final class SurfaceProbeTestMod {
 						}
 					}
 				}
-				ResourceLocation centerBiome = biomeId(level.getBiome(pos.set(chunkMinX + 8,
-						findMarkedGround(chunk, pos, chunkMinX + 8, chunkMinZ + 8,
-								level.getMinBuildHeight(), level.getMaxBuildHeight()), chunkMinZ + 8)));
-				if (previousChunkBiome != null && !previousChunkBiome.equals(centerBiome)) edgeChanges++;
-				previousChunkBiome = centerBiome;
 				sentinels += auditSentinels(level, chunk, pos, chunkMinX, chunkMinZ);
 			}
 		}
@@ -411,8 +423,31 @@ public final class SurfaceProbeTestMod {
 					+ ", sentinels=" + sentinels + ", geology=" + geology
 					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop);
 		}
+		long aquiferFluid = roofed ? auditDefaultFluid(level) : 0L;
 		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
-				biomeA, biomeB, edgeChanges, sentinels);
+				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid);
+	}
+
+	private static long auditDefaultFluid(ServerLevel level) {
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		long water = 0L;
+		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
+			for (int chunkX = FLUID_PROBE_MIN_CHUNK_X; chunkX <= FLUID_PROBE_MAX_CHUNK_X; chunkX++) {
+				level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
+				LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+				for (int x = chunk.getPos().getMinBlockX(); x <= chunk.getPos().getMaxBlockX(); x++) {
+					for (int z = chunk.getPos().getMinBlockZ(); z <= chunk.getPos().getMaxBlockZ(); z++) {
+						for (int y = level.getMinBuildHeight(); y <= Math.min(63, level.getMaxBuildHeight() - 1); y++) {
+							if (chunk.getBlockState(pos.set(x, y, z)).is(Blocks.WATER)) water++;
+						}
+					}
+				}
+			}
+		}
+		if (water == 0L) {
+			throw new IllegalStateException("Minecraft 1.17.1 default-fluid override produced no water in the fixed untouched Nether probe strip");
+		}
+		return water;
 	}
 
 	private static int auditSentinels(ServerLevel level, LevelChunk chunk,
@@ -504,8 +539,8 @@ public final class SurfaceProbeTestMod {
 		};
 	}
 
-	private static ResourceLocation biomeId(net.minecraft.core.Holder<Biome> biome) {
-		return biome.unwrapKey().map(key -> key.location()).orElse(null);
+	private static ResourceLocation biomeId(ServerLevel level, Biome biome) {
+		return level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
 	}
 
 	private static Properties properties(long seed, Map<String, AuditResult> results) {
@@ -526,6 +561,7 @@ public final class SurfaceProbeTestMod {
 			values.setProperty(prefix + "biome_b", Integer.toString(result.biomeB()));
 			values.setProperty(prefix + "edge_changes", Integer.toString(result.edgeChanges()));
 			values.setProperty(prefix + "sentinels", Integer.toString(result.sentinels()));
+			values.setProperty(prefix + "aquifer_fluid", Long.toString(result.aquiferFluid()));
 		}
 		return values;
 	}
@@ -575,6 +611,9 @@ public final class SurfaceProbeTestMod {
 
 	private static boolean prepareTerrain(WorldGenLevel world, ChunkAccess chunk) {
 		boolean roofed = world.getLevel().dimension().equals(ROOFED);
+		if (roofed && chunk.getPos().x >= FLUID_PROBE_MIN_CHUNK_X
+				&& chunk.getPos().x <= FLUID_PROBE_MAX_CHUNK_X
+				&& chunk.getPos().z >= MINIMUM_CHUNK && chunk.getPos().z <= MAXIMUM_CHUNK) return false;
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		Heightmap surfaceHeight = chunk.getOrCreateHeightmapUnprimed(
 				Heightmap.Types.WORLD_SURFACE_WG);
@@ -631,7 +670,8 @@ public final class SurfaceProbeTestMod {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
-		int structureY = markedGround(chunk, pos, minX + 8, minZ + 8, world);
+		int structureY = markedGroundOrMissing(chunk, pos, minX + 8, minZ + 8, world);
+		if (structureY == Integer.MIN_VALUE) return false;
 		world.setBlock(pos.set(minX + 8, structureY + 1, minZ + 8),
 				Blocks.GOLD_BLOCK.defaultBlockState(), 2);
 		int chestY = markedGround(chunk, pos, minX + 10, minZ + 10, world);
@@ -649,7 +689,8 @@ public final class SurfaceProbeTestMod {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = chunk.getPos().getMinBlockX();
 		int minZ = chunk.getPos().getMinBlockZ();
-		int treeY = markedGround(chunk, pos, minX + 4, minZ + 4, world);
+		int treeY = markedGroundOrMissing(chunk, pos, minX + 4, minZ + 4, world);
+		if (treeY == Integer.MIN_VALUE) return false;
 		for (int y = 1; y <= 2; y++) {
 			world.setBlock(pos.set(minX + 4, treeY + y, minZ + 4), Blocks.OAK_LOG.defaultBlockState(), 2);
 		}
@@ -665,10 +706,18 @@ public final class SurfaceProbeTestMod {
 		return findMarkedGround(chunk, pos, x, z, world.getMinBuildHeight(), world.getMaxBuildHeight());
 	}
 
+	private static int markedGroundOrMissing(ChunkAccess chunk, BlockPos.MutableBlockPos pos,
+			int x, int z, WorldGenLevel world) {
+		for (int y = world.getMaxBuildHeight() - 1; y >= world.getMinBuildHeight(); y--) {
+			if (chunk.getBlockState(pos.set(x, y, z)).is(concreteBlock(DyeColor.BLACK))) return y + 5;
+		}
+		return Integer.MIN_VALUE;
+	}
+
 	private record Material(BlockState top, BlockState filler,
 			BlockState underwater, BlockState ceiling) { }
 
 	private record AuditResult(long top, long underwater, long filler, long geology,
 			long ceiling, long roofTop, int biomeA, int biomeB,
-			int edgeChanges, int sentinels) { }
+			int edgeChanges, int sentinels, long aquiferFluid) { }
 }

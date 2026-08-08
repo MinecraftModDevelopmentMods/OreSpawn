@@ -30,7 +30,7 @@ class WorldgenProviderTest {
 						.discardChanceOnAirExposure(0.75D)
 						.hostFamily(GeologyFamily.METAMORPHIC)
 						.hostBlock(id("minecraft:deepslate"), 0.75D)))
-				.biome(id("minecraft:jagged_peaks"),
+				.biome(id("minecraft:mountains"),
 						Collections.singletonMap(id("orespawn:mountain_belt"), 2.0D))
 				.build();
 
@@ -51,7 +51,7 @@ class WorldgenProviderTest {
 		assertEquals(0.75D, ore.getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld")
 				.get("discard_chance_on_air_exposure").getAsDouble());
-		assertTrue(json.getAsJsonObject("biome_rules").has("minecraft:jagged_peaks"));
+		assertTrue(json.getAsJsonObject("biome_rules").has("minecraft:mountains"));
 
 		json.getAsJsonObject("rocks").remove("examplemod:rock/examplemod/slate");
 		assertTrue(provider.toJson().getAsJsonObject("rocks")

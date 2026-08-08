@@ -68,15 +68,12 @@ quantities, or patterns are treated as pack/player choices and are never
 rewritten.
 
 World profiles are backed up beside the active file before an ore-default
-revision is written. Revision 8 also folds the temporary Mineralogy-owned
-vanilla ore IDs from the 1.18 extraction experiment into OreSpawn's canonical
-IDs, preserving edited rules and removing duplicate placement.
+revision is written. Revision 8 folds temporary Mineralogy-owned vanilla ore
+IDs into OreSpawn's canonical IDs, preserving edited rules and removing
+duplicate placement. Revision 9 recognizes the later-port deep-biased defaults
+so a profile copied from a newer OreSpawn branch can still be migrated safely.
 
-Revision 9 updates untouched redstone and diamond defaults with deep-biased
-height sampling and air-exposure discard. This aligns both their underground
-totals and cave-facing rarity with Minecraft 1.18. Customized distributions,
-frequencies, or discard values remain unchanged.
-
-Revision 10 trims the untouched managed-emerald frequency from `0.40` to
-`0.33` after a fixed-seed 529-chunk comparison. Hand-edited emerald rules are
-preserved.
+On Minecraft 1.17.1, revision 10 converts only untouched managed-ore signatures
+to the target's native height range, frequency, quantity, pattern, and exposure
+behavior. It also restores the separate Badlands gold rule. Hand-edited rules
+and explicitly stored Custom values are preserved.

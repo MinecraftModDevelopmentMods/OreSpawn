@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -181,15 +183,17 @@ class WorldGeologyProfileTest {
 	}
 
 	@Test
-	void oreDefaultsUpgradeUntouchedClusterRules() {
+	void oreDefaultsUpgradeUntouchedCoalRulesForTarget() {
 		JsonObject original = oreDefaultsFixture(20.0D);
 		JsonObject refreshed = GeomeConfig.refreshOreDefaults(original, original);
 		JsonObject coal = refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld");
 
 		assertEquals(0, coal.get("min_y").getAsInt());
-		assertEquals(96, coal.get("max_y").getAsInt());
-		assertEquals(6.27D, coal.get("frequency").getAsDouble());
+		assertEquals(127, coal.get("max_y").getAsInt());
+		assertEquals(20.0D, coal.get("frequency").getAsDouble());
+		assertEquals("vein", coal.get("pattern").getAsString());
+		assertEquals("uniform", coal.get("height_distribution").getAsString());
 	}
 
 	@Test
@@ -202,7 +206,8 @@ class WorldGeologyProfileTest {
 		JsonObject coal = refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld");
 
-		assertEquals(6.27D, coal.get("frequency").getAsDouble());
+		assertEquals(20.0D, coal.get("frequency").getAsDouble());
+		assertEquals(127, coal.get("max_y").getAsInt());
 	}
 
 	@Test
@@ -215,7 +220,7 @@ class WorldGeologyProfileTest {
 
 		JsonObject refreshed = GeomeConfig.refreshWorldOreDefaults(original);
 		JsonObject ores = refreshed.getAsJsonObject("ores");
-		assertEquals(6.27D, ores.getAsJsonObject("minecraft:coal_ore")
+		assertEquals(20.0D, ores.getAsJsonObject("minecraft:coal_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.get("frequency").getAsDouble());
 		assertFalse(ores.has("minecraft:iron_ore"));
@@ -232,12 +237,12 @@ class WorldGeologyProfileTest {
 		canonical.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.addProperty("max_y", 96);
 		ores.add("minecraft:coal_ore", canonical);
-		ores.add("mineralogy:ore/minecraft/coal_ore", canonical.deepCopy());
+		ores.add("mineralogy:ore/minecraft/coal_ore", JsonCopies.copy(canonical));
 
 		JsonObject refreshed = GeomeConfig.refreshWorldOreDefaults(original);
 		assertFalse(refreshed.getAsJsonObject("ores")
 				.has("mineralogy:ore/minecraft/coal_ore"));
-		assertEquals(6.27D, refreshed.getAsJsonObject("ores")
+		assertEquals(20.0D, refreshed.getAsJsonObject("ores")
 				.getAsJsonObject("minecraft:coal_ore").getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld").get("frequency").getAsDouble());
 	}
@@ -251,7 +256,7 @@ class WorldGeologyProfileTest {
 		canonical.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.addProperty("max_y", 96);
 		ores.add("minecraft:coal_ore", canonical);
-		JsonObject customizedLegacy = canonical.deepCopy();
+		JsonObject customizedLegacy = JsonCopies.copy(canonical);
 		customizedLegacy.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.addProperty("frequency", 2.75D);
 		customizedLegacy.addProperty("orphaned_provider", true);
@@ -301,7 +306,7 @@ class WorldGeologyProfileTest {
 				.get("frequency").getAsDouble());
 
 		JsonObject result = loaded.toJson();
-		assertEquals(6.27D, result.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
+		assertEquals(20.0D, result.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.get("frequency").getAsDouble());
 		assertEquals(7.5D, result.getAsJsonObject("ores").getAsJsonObject("minecraft:iron_ore")
@@ -323,7 +328,7 @@ class WorldGeologyProfileTest {
 		rule.addProperty("pattern", "clusters");
 
 		JsonObject refreshed = GeomeConfig.refreshOreDefaults(original, original);
-		assertEquals(6.27D, refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
+		assertEquals(20.0D, refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.get("frequency").getAsDouble());
 	}
@@ -347,7 +352,7 @@ class WorldGeologyProfileTest {
 	}
 
 	@Test
-	void oreDefaultsUpgradeUntouchedVeinRules() {
+	void oreDefaultsUpgradeUntouchedIronRulesForTarget() {
 		JsonObject rule = new JsonObject();
 		rule.addProperty("min_y", -64);
 		rule.addProperty("max_y", 256);
@@ -358,9 +363,12 @@ class WorldGeologyProfileTest {
 		JsonObject original = objectWith("ores", objectWith("minecraft:iron_ore", iron));
 		JsonObject refreshed = GeomeConfig.refreshOreDefaults(original, original);
 
-		assertEquals(25.5D, refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:iron_ore")
-				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
-				.get("frequency").getAsDouble());
+		JsonObject migrated = refreshed.getAsJsonObject("ores").getAsJsonObject("minecraft:iron_ore")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld");
+		assertEquals(0, migrated.get("min_y").getAsInt());
+		assertEquals(63, migrated.get("max_y").getAsInt());
+		assertEquals(20.0D, migrated.get("frequency").getAsDouble());
+		assertEquals("uniform", migrated.get("height_distribution").getAsString());
 	}
 
 	@Test
@@ -378,7 +386,7 @@ class WorldGeologyProfileTest {
 	void worldOreDefaultsUpgradeVanillaVisibilityRulesWithoutChangingCustomizedRules() {
 		JsonObject redstoneRule = oreRule(-64, 15, 4.7D, 8, "vein", "triangle", 0.0D);
 		JsonObject diamondRule = oreRule(-64, 16, 1.8D, 8, "cluster", "triangle", 0.0D);
-		JsonObject customDiamondRule = diamondRule.deepCopy();
+		JsonObject customDiamondRule = JsonCopies.copy(diamondRule);
 		customDiamondRule.addProperty("discard_chance_on_air_exposure", 0.25D);
 		JsonObject ores = new JsonObject();
 		ores.add("minecraft:redstone_ore", objectWith("dimensions",
@@ -396,10 +404,10 @@ class WorldGeologyProfileTest {
 				.getAsJsonObject("minecraft:diamond_ore").getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld");
 
-		assertEquals(4.68D, migratedRedstone.get("frequency").getAsDouble());
-		assertEquals("uniform_bottom_triangle",
+		assertEquals(8.0D, migratedRedstone.get("frequency").getAsDouble());
+		assertEquals("uniform",
 				migratedRedstone.get("height_distribution").getAsString());
-		assertEquals(0.78D,
+		assertEquals(0.0D,
 				migratedRedstone.get("discard_chance_on_air_exposure").getAsDouble());
 		assertEquals(1.8D, preservedDiamond.get("frequency").getAsDouble());
 		assertEquals("triangle", preservedDiamond.get("height_distribution").getAsString());
@@ -421,7 +429,12 @@ class WorldGeologyProfileTest {
 		JsonObject migrated = refreshed.getAsJsonObject("ores")
 				.getAsJsonObject("minecraft:emerald_ore").getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld");
-		assertEquals(0.33D, migrated.get("frequency").getAsDouble());
+		assertEquals(4, migrated.get("min_y").getAsInt());
+		assertEquals(31, migrated.get("max_y").getAsInt());
+		assertEquals(1.0D, migrated.get("frequency").getAsDouble());
+		assertFalse(migrated.has("quantity"));
+		assertEquals(3, migrated.get("min_quantity").getAsInt());
+		assertEquals(8, migrated.get("max_quantity").getAsInt());
 
 		original.getAsJsonObject("ores").getAsJsonObject("minecraft:emerald_ore")
 				.getAsJsonObject("dimensions").add("minecraft:overworld", custom);
@@ -469,7 +482,7 @@ class WorldGeologyProfileTest {
 		JsonObject repaired = GeomeConfig.refreshWorldgenAliasDefaults(original, defaults);
 		JsonObject repairedRocks = repaired.getAsJsonObject("rocks");
 		assertEquals(Arrays.asList("minecraft:andesite", "orespawn:basaltic_glass", "minecraft:diorite"),
-				new ArrayList<>(repairedRocks.keySet()));
+				new ArrayList<>(JsonCopies.keys(repairedRocks)));
 		assertEquals(2.25D, repairedRocks.getAsJsonObject("minecraft:andesite").get("weight").getAsDouble());
 		assertFalse(repairedRocks.has("orespawn:andesite"));
 		assertTrue(repaired.getAsJsonObject("worldgen_aliases").has("orespawn:andesite"));

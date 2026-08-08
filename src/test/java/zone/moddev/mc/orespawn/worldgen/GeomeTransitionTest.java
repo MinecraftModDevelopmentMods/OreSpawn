@@ -16,7 +16,7 @@ import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
 
 class GeomeTransitionTest {
-	private static final ResourceLocation WINDSWEPT_HILLS = new ResourceLocation("minecraft:windswept_hills");
+	private static final ResourceLocation MOUNTAINS = new ResourceLocation("minecraft:mountains");
 
 	@Test
 	void configuredBiomeWeightsWorkWithoutAForgeBiomeRegistryEntry() {
@@ -24,10 +24,10 @@ class GeomeTransitionTest {
 		indexes.put("orespawn:first", 0);
 		indexes.put("orespawn:mountain_belt", 1);
 		Map<ResourceLocation, double[]> weights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
-				Map.of(WINDSWEPT_HILLS.toString(), new double[] { 1.0D, 4.0D }));
+				Map.of(MOUNTAINS.toString(), new double[] { 1.0D, 4.0D }));
 		BakedGeomeConfig config = config(weights);
 
-		assertEquals(1, config.pickGeome(null, WINDSWEPT_HILLS, new double[2], 0.0D));
+		assertEquals(1, config.pickGeome(null, MOUNTAINS, new double[2], 0.0D));
 	}
 
 	@Test
@@ -37,8 +37,8 @@ class GeomeTransitionTest {
 		double[] leftScores = new double[config.geomeCount()];
 		double[] rightScores = new double[config.geomeCount()];
 
-		assertEquals(1, geology.classifyColumn(null, WINDSWEPT_HILLS, 225, -261, leftScores));
-		assertEquals(1, geology.classifyColumn(null, WINDSWEPT_HILLS, 226, -261, rightScores));
+		assertEquals(1, geology.classifyColumn(null, MOUNTAINS, 225, -261, leftScores));
+		assertEquals(1, geology.classifyColumn(null, MOUNTAINS, 226, -261, rightScores));
 	}
 
 	@Test
@@ -109,7 +109,7 @@ class GeomeTransitionTest {
 		rule[0] = 1.0D;
 		rule[1] = 4.0D;
 		Map<ResourceLocation, double[]> biomeWeights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
-				Map.of(WINDSWEPT_HILLS.toString(), rule));
+				Map.of(MOUNTAINS.toString(), rule));
 		double[] rockWeights = new double[names.length];
 		java.util.Arrays.fill(rockWeights, 1.0D);
 		RockEntry[] rocks = {

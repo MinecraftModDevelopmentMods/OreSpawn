@@ -64,8 +64,8 @@ final class RockEntryScreen extends Screen {
 		weight = addField(right, 64, "weight", value(rock, "weight", 1.0D));
 		peak = addField(right, 86, "depth_peak", value(rock, "depth_peak", 48));
 		spread = addField(right, 108, "depth_spread", value(rock, "depth_spread", 40));
-		minY = addField(right, 130, "min_y", value(rock, "min_y", -64));
-		maxY = addField(right, 152, "max_y", value(rock, "max_y", 319));
+		minY = addField(right, 130, "min_y", value(rock, "min_y", 0));
+		maxY = addField(right, 152, "max_y", value(rock, "max_y", 255));
 		addRenderableWidget(OreSpawnScreenLayout.explain(this,
 				CycleButton.onOffBuilder(oreReplaceable)
 						.create(left, 176, 150, 20,
@@ -115,10 +115,10 @@ final class RockEntryScreen extends Screen {
 	private boolean save() {
 		try {
 			double parsedWeight = number(weight, 0.0D, 1000.0D);
-			int parsedPeak = integer(peak, -64, 319);
+			int parsedPeak = integer(peak, 0, 255);
 			int parsedSpread = integer(spread, 1, 512);
-			int parsedMin = integer(minY, -64, 319);
-			int parsedMax = integer(maxY, -64, 319);
+			int parsedMin = integer(minY, 0, 255);
+			int parsedMax = integer(maxY, 0, 255);
 			if (parsedMin > parsedMax) throw new NumberFormatException();
 			JsonObject rock = session.rock(blockId);
 			rock.addProperty("enabled", enabled);

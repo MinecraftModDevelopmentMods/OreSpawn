@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.api;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -15,7 +17,7 @@ public final class GeologyProfileView {
 	private final JsonObject root;
 
 	GeologyProfileView(JsonObject root) {
-		this.root = root.deepCopy();
+		this.root = JsonCopies.copy(root);
 	}
 
 	public int schemaVersion() {
@@ -67,7 +69,7 @@ public final class GeologyProfileView {
 
 	/** Returns a defensive copy suitable for diagnostics or tooling. */
 	public JsonObject toJson() {
-		return root.deepCopy();
+		return JsonCopies.copy(root);
 	}
 
 	private Set<ResourceLocation> keys(String section) {
@@ -75,7 +77,7 @@ public final class GeologyProfileView {
 			return Collections.emptySet();
 		}
 		Set<ResourceLocation> values = new LinkedHashSet<>();
-		for (String value : root.getAsJsonObject(section).keySet()) {
+		for (String value : JsonCopies.keys(root.getAsJsonObject(section))) {
 			try {
 				values.add(new ResourceLocation(value));
 			} catch (RuntimeException ignored) {

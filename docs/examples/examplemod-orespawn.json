@@ -9,8 +9,8 @@
       "family": "metamorphic",
       "depth_peak": 20,
       "depth_spread": 36,
-      "min_y": -64,
-      "max_y": 319,
+      "min_y": 0,
+      "max_y": 255,
       "weight": 1.2,
       "ore_replaceable": true,
       "dimensions": ["minecraft:overworld"],
@@ -22,8 +22,8 @@
       "family": "igneous_intrusive",
       "depth_peak": 32,
       "depth_spread": 64,
-      "min_y": -64,
-      "max_y": 319,
+      "min_y": 0,
+      "max_y": 255,
       "weight": 1.0,
       "ore_replaceable": true,
       "dimensions": ["examplemod:crystal_caverns"]
@@ -34,14 +34,14 @@
       "block": "examplemod:tin_ore",
       "outputs": [
         { "block": "examplemod:tin_ore", "weight": 90 },
-        { "block": "examplemod:rich_tin_ore", "weight": 10, "min_y": -64, "max_y": 24 }
+        { "block": "examplemod:rich_tin_ore", "weight": 10, "min_y": 0, "max_y": 24 }
       ],
       "enabled": true,
       "source_mod": "examplemod",
       "dimensions": {
         "minecraft:overworld": {
           "enabled": true,
-          "min_y": -16,
+          "min_y": 0,
           "max_y": 96,
           "frequency": 6.0,
           "quantity": 8,
@@ -75,7 +75,7 @@
       "dimensions": {
         "minecraft:overworld": {
           "enabled": true,
-          "min_y": -48,
+          "min_y": 0,
           "max_y": 32,
           "frequency": 0.05,
           "min_radius": 6,
@@ -109,7 +109,7 @@
     }
   },
   "biome_rules": {
-    "minecraft:jagged_peaks": {
+    "minecraft:mountains": {
       "examplemod:crystal_province": 2.5,
       "orespawn:mountain_belt": 2.0
     }
@@ -159,8 +159,6 @@
       "dimension": "examplemod:crystal_caverns",
       "enabled": true,
       "default_fluid": "examplemod:liquid_crystal",
-      "deep_aquifer_fluid": "examplemod:liquid_crystal",
-      "deep_aquifer_max_y": -32,
       "snow_block": "examplemod:crystal_snow",
       "ice_block": "examplemod:crystal_ice"
     }

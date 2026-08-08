@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.api;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +32,7 @@ public final class WorldgenProvider {
 	private WorldgenProvider(String modId, int revision, JsonObject definition) {
 		this.modId = modId;
 		this.revision = revision;
-		this.definition = definition.deepCopy();
+		this.definition = JsonCopies.copy(definition);
 	}
 
 	public static Builder builder(String modId, int revision) {
@@ -47,7 +49,7 @@ public final class WorldgenProvider {
 
 	/** Returns a defensive JSON representation matching provider schema 4. */
 	public JsonObject toJson() {
-		return definition.deepCopy();
+		return JsonCopies.copy(definition);
 	}
 
 	public static final class Builder {
@@ -309,8 +311,8 @@ public final class WorldgenProvider {
 			private boolean enabled = true;
 			private int depthPeak = 48;
 			private int depthSpread = 40;
-			private int minY = -64;
-			private int maxY = 319;
+			private int minY = 0;
+			private int maxY = 255;
 			private double weight = 1.0D;
 			private boolean oreReplaceable = true;
 			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
@@ -539,7 +541,7 @@ public final class WorldgenProvider {
 			maxQuantity = builder.maxQuantity;
 			pattern = builder.pattern;
 			patternType = builder.patternType;
-			patternSettings = builder.patternSettings.deepCopy();
+			patternSettings = JsonCopies.copy(builder.patternSettings);
 			heightDistribution = builder.heightDistribution;
 			discardChanceOnAirExposure = builder.discardChanceOnAirExposure;
 			spread = builder.spread;
@@ -565,7 +567,7 @@ public final class WorldgenProvider {
 		public int maxQuantity() { return maxQuantity; }
 		public OrePattern pattern() { return pattern; }
 		public ResourceLocation patternType() { return patternType; }
-		public JsonObject patternSettings() { return patternSettings.deepCopy(); }
+		public JsonObject patternSettings() { return JsonCopies.copy(patternSettings); }
 		public OreHeightDistribution heightDistribution() { return heightDistribution; }
 		public double discardChanceOnAirExposure() { return discardChanceOnAirExposure; }
 		public int spread() { return spread; }
@@ -596,7 +598,7 @@ public final class WorldgenProvider {
 			} else {
 				JsonObject configuredPattern = new JsonObject();
 				configuredPattern.addProperty("type", patternType.toString());
-				configuredPattern.add("settings", patternSettings.deepCopy());
+				configuredPattern.add("settings", JsonCopies.copy(patternSettings));
 				json.add("pattern", configuredPattern);
 			}
 			json.addProperty("height_distribution", heightDistribution.configName());
@@ -616,8 +618,8 @@ public final class WorldgenProvider {
 		public static final class Builder {
 			private final ResourceLocation dimension;
 			private boolean enabled = true;
-			private int minY = -64;
-			private int maxY = 319;
+			private int minY = 0;
+			private int maxY = 255;
 			private double frequency = 1.0D;
 			private int minQuantity = 8;
 			private int maxQuantity = 8;
@@ -652,7 +654,7 @@ public final class WorldgenProvider {
 			/** Uses a codec-backed pattern registered through {@link OreSpawnPatternRegistry}. */
 			public Builder pattern(ResourceLocation type, JsonObject settings) {
 				patternType = Objects.requireNonNull(type, "type");
-				patternSettings = Objects.requireNonNull(settings, "settings").deepCopy();
+				patternSettings = JsonCopies.copy(Objects.requireNonNull(settings, "settings"));
 				return this;
 			}
 			public Builder heightDistribution(OreHeightDistribution value) { heightDistribution = Objects.requireNonNull(value); return this; }
@@ -856,7 +858,7 @@ public final class WorldgenProvider {
 		public static final class Builder {
 			private final ResourceLocation dimension;
 			private boolean enabled = true;
-			private int minY = -48;
+			private int minY = 0;
 			private int maxY = 48;
 			private double frequency = 0.08D;
 			private int minRadius = 5;
@@ -1055,7 +1057,7 @@ public final class WorldgenProvider {
 			this.waviness = Objects.requireNonNull(waviness);
 			this.edge = Objects.requireNonNull(edge);
 			this.continuity = Objects.requireNonNull(continuity);
-			this.custom = custom == null ? new JsonObject() : custom.deepCopy();
+			this.custom = custom == null ? new JsonObject() : JsonCopies.copy(custom);
 		}
 
 		public static Builder builder() { return new Builder(); }
@@ -1066,7 +1068,7 @@ public final class WorldgenProvider {
 		public FormationPreset waviness() { return waviness; }
 		public FormationPreset edgeIrregularity() { return edge; }
 		public FormationPreset continuity() { return continuity; }
-		public JsonObject customValues() { return custom.deepCopy(); }
+		public JsonObject customValues() { return JsonCopies.copy(custom); }
 
 		@Override
 		public JsonObject toJson() {
@@ -1077,7 +1079,7 @@ public final class WorldgenProvider {
 			json.addProperty("waviness", waviness.configName());
 			json.addProperty("edge_irregularity", edge.configName());
 			json.addProperty("formation_continuity", continuity.configName());
-			json.add("custom", custom.deepCopy());
+			json.add("custom", JsonCopies.copy(custom));
 			return json;
 		}
 
@@ -1107,7 +1109,7 @@ public final class WorldgenProvider {
 			public Builder customValues(JsonObject values) {
 				custom.entrySet().clear();
 				if (values != null) {
-					values.entrySet().forEach(entry -> custom.add(entry.getKey(), entry.getValue().deepCopy()));
+					values.entrySet().forEach(entry -> custom.add(entry.getKey(), JsonCopies.copy(entry.getValue())));
 				}
 				return this;
 			}
@@ -1178,7 +1180,7 @@ public final class WorldgenProvider {
 		}
 
 		public static final class Builder {
-			private int minY = -48;
+			private int minY = 0;
 			private int maxY = 40;
 			private double frequency = 0.035D;
 			private int minRadius = 8;
@@ -1218,7 +1220,7 @@ public final class WorldgenProvider {
 			requiredMods = Collections.unmodifiableSet(new LinkedHashSet<>(builder.requiredMods));
 			autoSelect = builder.autoSelect;
 			autoSelectPriority = builder.autoSelectPriority;
-			profile = builder.profile.deepCopy();
+			profile = JsonCopies.copy(builder.profile);
 		}
 
 		public static Builder builder(ResourceLocation id) { return new Builder(id); }
@@ -1228,7 +1230,7 @@ public final class WorldgenProvider {
 		public Set<String> requiredMods() { return requiredMods; }
 		public boolean autoSelect() { return autoSelect; }
 		public int autoSelectPriority() { return autoSelectPriority; }
-		public JsonObject profile() { return profile.deepCopy(); }
+		public JsonObject profile() { return JsonCopies.copy(profile); }
 		@Override
 		public JsonObject toJson() {
 			JsonObject json = new JsonObject();
@@ -1239,7 +1241,7 @@ public final class WorldgenProvider {
 			json.add("required_mods", mods);
 			json.addProperty("auto_select", autoSelect);
 			json.addProperty("auto_select_priority", autoSelectPriority);
-			json.add("profile", profile.deepCopy());
+			json.add("profile", JsonCopies.copy(profile));
 			return json;
 		}
 
@@ -1260,7 +1262,7 @@ public final class WorldgenProvider {
 			public Builder requiresMod(String value) { requiredMods.add(requireModId(value)); return this; }
 			public Builder autoSelect(boolean value) { autoSelect = value; return this; }
 			public Builder autoSelectPriority(int value) { autoSelectPriority = value; return this; }
-			public Builder profile(JsonObject value) { profile.entrySet().clear(); value.entrySet().forEach(e -> profile.add(e.getKey(), e.getValue().deepCopy())); return this; }
+			public Builder profile(JsonObject value) { profile.entrySet().clear(); value.entrySet().forEach(e -> profile.add(e.getKey(), JsonCopies.copy(e.getValue()))); return this; }
 			public Builder formations(FormationDefinition value) { profile.add("formations", value.toJson()); return this; }
 			public Builder fluidDeposit(FluidDepositDefinition value) {
 				JsonObject deposits = profile.has("fluid_deposits") && profile.get("fluid_deposits").isJsonObject()

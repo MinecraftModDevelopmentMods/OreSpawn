@@ -2,6 +2,7 @@ package zone.moddev.mc.orespawn.worldgen;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import com.mojang.serialization.Codec;
@@ -10,10 +11,8 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 
-import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.Climate;
 
 /** Delegates biome choice first, then applies pre-baked provider palettes. */
 final class BiomeOverlaySource extends BiomeSource {
@@ -38,12 +37,12 @@ final class BiomeOverlaySource extends BiomeSource {
 		return delegate;
 	}
 
-	private static Stream<Holder<Biome>> possible(BiomeSource delegate, List<Palette> palettes) {
-		List<Holder<Biome>> values = new ArrayList<>(delegate.possibleBiomes());
+	private static Stream<Supplier<Biome>> possible(BiomeSource delegate, List<Palette> palettes) {
+		List<Biome> values = new ArrayList<>(delegate.possibleBiomes());
 		for (Palette palette : palettes) {
 			for (Entry entry : palette.entries) values.add(entry.biome);
 		}
-		return values.stream();
+		return values.stream().map(biome -> () -> biome);
 	}
 
 	@Override
@@ -58,15 +57,14 @@ final class BiomeOverlaySource extends BiomeSource {
 	}
 
 	@Override
-	public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ,
-			Climate.Sampler sampler) {
-		Holder<Biome> selected = delegate.getNoiseBiome(quartX, quartY, quartZ, sampler);
+	public Biome getNoiseBiome(int quartX, int quartY, int quartZ) {
+		Biome selected = delegate.getNoiseBiome(quartX, quartY, quartZ);
 		for (Palette palette : palettes) selected = select(palette, selected, quartX, quartZ);
 		return selected;
 	}
 
-	private Holder<Biome> select(Palette palette, Holder<Biome> source, int quartX, int quartZ) {
-		Choice choice = palette.choices.get(source.value());
+	private Biome select(Palette palette, Biome source, int quartX, int quartZ) {
+		Choice choice = palette.choices.get(source);
 		if (choice == null) return source;
 		int regionX = Math.floorDiv(quartX, palette.regionQuartSize);
 		int regionZ = Math.floorDiv(quartZ, palette.regionQuartSize);

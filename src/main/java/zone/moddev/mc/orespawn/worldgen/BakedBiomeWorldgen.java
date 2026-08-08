@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
@@ -14,10 +13,10 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Immutable runtime data used by biome, surface, aquifer, and weather hooks. */
 final class BakedBiomeWorldgen {
 	final List<Palette> palettes;
-	final Map<Holder<Biome>, Surface> surfaces;
+	final Map<Biome, Surface> surfaces;
 	final DimensionMaterials materials;
 
-	BakedBiomeWorldgen(List<Palette> palettes, Map<Holder<Biome>, Surface> surfaces,
+	BakedBiomeWorldgen(List<Palette> palettes, Map<Biome, Surface> surfaces,
 			DimensionMaterials materials) {
 		this.palettes = Collections.unmodifiableList(palettes);
 		this.surfaces = Collections.unmodifiableMap(new IdentityHashMap<>(surfaces));
@@ -57,13 +56,13 @@ final class BakedBiomeWorldgen {
 	}
 
 	static final class Choice {
-		final Holder<Biome>[] outputs;
+		final Biome[] outputs;
 		final double[] cumulativeWeights;
 		final double fallbackWeight;
 		final double totalWeight;
 		final int sourceHash;
 
-		Choice(Holder<Biome>[] outputs, double[] cumulativeWeights,
+		Choice(Biome[] outputs, double[] cumulativeWeights,
 				double fallbackWeight, double totalWeight, int sourceHash) {
 			this.outputs = outputs;
 			this.cumulativeWeights = cumulativeWeights;
@@ -74,7 +73,7 @@ final class BakedBiomeWorldgen {
 	}
 
 	static final class Entry {
-		final Holder<Biome> biome;
+		final Biome biome;
 		final double weight;
 		final Set<ResourceLocation> similarBiomes;
 		final float minTemperature;
@@ -82,7 +81,7 @@ final class BakedBiomeWorldgen {
 		final float minDownfall;
 		final float maxDownfall;
 
-		Entry(Holder<Biome> biome, double weight, Set<ResourceLocation> similarBiomes,
+		Entry(Biome biome, double weight, Set<ResourceLocation> similarBiomes,
 				float minTemperature, float maxTemperature, float minDownfall,
 				float maxDownfall) {
 			this.biome = biome;

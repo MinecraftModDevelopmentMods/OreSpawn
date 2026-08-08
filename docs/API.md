@@ -59,7 +59,7 @@ FluidDepositDefinition brine = FluidDepositDefinition.builder(
         new ResourceLocation("examplemod", "fluid_deposit/brine"),
         new ResourceLocation("examplemod", "brine"))
     .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
-        .yRange(-48, 32)
+        .yRange(0, 32)
         .attempts(0.05)
         .radius(4, 10)
         .verticalRadius(2, 4)
@@ -121,7 +121,7 @@ OreSpawnApi.getActiveProfile(server).ifPresent(profile ->
     LOGGER.info("Configured rocks: {}", profile.rockIds().size()));
 
 OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
-    GeologyColumn column = sampler.sampleColumn(120, -40, 92);
+    GeologyColumn column = sampler.sampleColumn(120, 20, 92);
     LOGGER.info("{} / {} / {}", column.biome(), column.geome(), column.rockAt(20));
 });
 ```

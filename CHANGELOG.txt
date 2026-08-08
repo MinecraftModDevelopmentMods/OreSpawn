@@ -1,16 +1,20 @@
 Version 4.0.6
 
+* Port OreSpawn 4.0.6 to Minecraft 1.17.1 and Forge 37.1.1 using Java 16
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
+* Preserve exact datapack-biome rules and stagger close Stable Layers geome boundaries.
+* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.17.1.
+* Support the single 1.17 dimension fluid while retaining later deep-aquifer profile fields as inactive data.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
 
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
-* Verify both public biome-registration helpers on Forge 40
-* Confirm Minecraft 1.18.2 ResourceLocation documentation and ForgeGradle workflow
+* Verify both public biome-registration helpers on Forge 37
+* Confirm Minecraft 1.17.1 ResourceLocation documentation and ForgeGradle 5 workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1

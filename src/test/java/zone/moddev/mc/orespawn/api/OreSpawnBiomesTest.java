@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import net.minecraft.SharedConstants;
-import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.biome.Biome;
@@ -16,7 +15,8 @@ import net.minecraft.world.level.biome.BiomeGenerationSettings;
 import net.minecraft.world.level.biome.BiomeSpecialEffects;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fmllegacy.RegistryObject;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +34,8 @@ class OreSpawnBiomesTest {
 		Biome source = new Biome.BiomeBuilder()
 				.precipitation(Biome.Precipitation.NONE)
 				.biomeCategory(Biome.BiomeCategory.ICY)
+				.depth(0.1F)
+				.scale(0.2F)
 				.temperature(0.45F)
 				.temperatureAdjustment(Biome.TemperatureModifier.FROZEN)
 				.downfall(0.75F)
@@ -41,7 +43,7 @@ class OreSpawnBiomesTest {
 				.mobSpawnSettings(MobSpawnSettings.EMPTY)
 				.generationSettings(BiomeGenerationSettings.EMPTY)
 				.build();
-		DeferredRegister<Biome> biomes = DeferredRegister.create(Registry.BIOME_REGISTRY, "test");
+		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
 
 		RegistryObject<Biome> registered = OreSpawnBiomes.copyAndRegister(
 				biomes, "copied", () -> source,
@@ -63,12 +65,14 @@ class OreSpawnBiomesTest {
 	@Test
 	void buildsBlankBiomeWhenProviderSuppliesEveryRequiredField() throws Exception {
 		BiomeSpecialEffects effects = effects(0x654321);
-		DeferredRegister<Biome> biomes = DeferredRegister.create(Registry.BIOME_REGISTRY, "test");
+		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
 
 		RegistryObject<Biome> registered = OreSpawnBiomes.blankAndRegister(
 				biomes, "blank", builder -> builder
 						.precipitation(Biome.Precipitation.NONE)
 						.biomeCategory(Biome.BiomeCategory.NONE)
+						.depth(0.1F)
+						.scale(0.2F)
 						.temperature(1.35F)
 						.downfall(0.15F)
 						.specialEffects(effects)

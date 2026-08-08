@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,8 +55,8 @@ final class OreEntryScreen extends Screen {
 		addRenderableWidget(new Button(width / 2 + 5, 48, 150, 20,
 				new TranslatableComponent("button.orespawn.reset"), button -> reset()));
 
-		List<String> ids = new ArrayList<>(dimensions.keySet());
-		ids.addAll(selectors.keySet());
+		List<String> ids = new ArrayList<>(JsonCopies.keys(dimensions));
+		ids.addAll(JsonCopies.keys(selectors));
 		Collections.sort(ids);
 		int listTop = 76;
 		int pickerY = height - 76;

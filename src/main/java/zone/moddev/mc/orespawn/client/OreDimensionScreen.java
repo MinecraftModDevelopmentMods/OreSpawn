@@ -147,7 +147,7 @@ final class OreDimensionScreen extends Screen {
 		placementWidgets.add(richness);
 		int fixedQuantity = GeologyEditorSession.integer(rule, "quantity", 8);
 		if (OreSpawnScreenLayout.compact(height)) {
-			minY = addPlacementField(left, compactPlacementFieldY(0), "min_y", text(rule, "min_y", -64));
+			minY = addPlacementField(left, compactPlacementFieldY(0), "min_y", text(rule, "min_y", 0));
 			maxY = addPlacementField(right, compactPlacementFieldY(0), "max_y", text(rule, "max_y", 64));
 			frequency = addPlacementField(left, compactPlacementFieldY(1), "frequency",
 					text(rule, "frequency", 1.0D));
@@ -158,7 +158,7 @@ final class OreDimensionScreen extends Screen {
 			maxQuantity = addPlacementField(right, compactPlacementFieldY(2), "max_quantity",
 					text(rule, "max_quantity", fixedQuantity));
 		} else {
-			minY = addPlacementField(right, 104, "min_y", text(rule, "min_y", -64));
+			minY = addPlacementField(right, 104, "min_y", text(rule, "min_y", 0));
 			maxY = addPlacementField(right, 128, "max_y", text(rule, "max_y", 64));
 			frequency = addPlacementField(right, 152, "frequency", text(rule, "frequency", 1.0D));
 			minQuantity = addPlacementField(right, 176, "min_quantity",
@@ -313,8 +313,8 @@ final class OreDimensionScreen extends Screen {
 
 	private boolean save() {
 		try {
-			int parsedMin = integer(minY, -2048, 2048);
-			int parsedMax = integer(maxY, -2048, 2048);
+			int parsedMin = integer(minY, 0, 255);
+			int parsedMax = integer(maxY, 0, 255);
 			double parsedFrequency = number(frequency, 0.0D, 64.0D);
 			int parsedMinQuantity = integer(minQuantity, 1, 64);
 			int parsedMaxQuantity = integer(maxQuantity, 1, 64);

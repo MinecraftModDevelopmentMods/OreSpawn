@@ -15,8 +15,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class BakedGeomeConfig {
-	static final int MIN_Y = -64;
-	static final int MAX_Y = 319;
+	static final int MIN_Y = 0;
+	static final int MAX_Y = 255;
 	private static final int HEIGHT = MAX_Y - MIN_Y + 1;
 	private static final int LEGACY_MAX_Y = 255;
 	private static final int FORMATION_BUCKETS = 256;

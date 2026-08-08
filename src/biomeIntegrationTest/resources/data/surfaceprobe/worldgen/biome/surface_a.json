@@ -1,6 +1,7 @@
 {
   "carvers": {},
   "downfall": 0.15,
+  "depth": 0.1,
   "effects": {
     "fog_color": 3344392,
     "sky_color": 7254527,
@@ -20,12 +21,14 @@
     ["surfaceprobe:vegetation_sentinels"],
     []
   ],
+  "scale": 0.2,
+  "starts": [],
+  "surface_builder": "minecraft:grass",
   "precipitation": "rain",
   "category": "none",
   "spawn_costs": {},
   "spawners": {
     "ambient": [],
-    "axolotls": [],
     "creature": [],
     "misc": [],
     "monster": [],

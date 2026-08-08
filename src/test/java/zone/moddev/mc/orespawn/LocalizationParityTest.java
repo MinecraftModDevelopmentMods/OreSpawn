@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -78,7 +80,7 @@ class LocalizationParityTest {
 	@Test
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
 		JsonObject english = read(LANG_DIR.resolve("en_us.json"));
-		Set<String> englishKeys = english.keySet();
+		Set<String> englishKeys = JsonCopies.keys(english);
 		assertEquals(357, englishKeys.size(),
 				"The target locale contract changed; review every shipped translation");
 		Set<String> localeFiles = new HashSet<>();
@@ -92,7 +94,7 @@ class LocalizationParityTest {
 				localeFiles.add(locale);
 				JsonObject translations = read(file);
 
-				assertEquals(englishKeys, translations.keySet(), locale + " must match en_us keys exactly");
+				assertEquals(englishKeys, JsonCopies.keys(translations), locale + " must match en_us keys exactly");
 				for (String key : englishKeys) {
 					JsonElement translated = translations.get(key);
 					assertTrue(translated.isJsonPrimitive() && translated.getAsJsonPrimitive().isString(),
@@ -144,7 +146,7 @@ class LocalizationParityTest {
 
 	private static JsonObject read(Path path) throws Exception {
 		try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-			return JsonParser.parseReader(reader).getAsJsonObject();
+			return new JsonParser().parse(reader).getAsJsonObject();
 		}
 	}
 }

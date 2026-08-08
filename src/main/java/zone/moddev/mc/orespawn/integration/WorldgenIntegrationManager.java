@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.integration;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -189,12 +191,12 @@ public final class WorldgenIntegrationManager {
 				JsonObject providerSection = provider.section(sectionName);
 				String knownKey = "known_" + sectionName;
 				Set<String> known = stringSet(manifest.get(knownKey));
-				Set<String> current = providerSection.keySet();
+				Set<String> current = JsonCopies.keys(providerSection);
 
 				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
 					String id = entry.getKey();
 					if (!targetSection.has(id) && !known.contains(id)) {
-						JsonObject value = entry.getValue().getAsJsonObject().deepCopy();
+						JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
 						if (!"biome_rules".equals(sectionName)) {
 							value.addProperty("source_provider", provider.modId);
 						}
@@ -219,11 +221,11 @@ public final class WorldgenIntegrationManager {
 			}
 
 			manifest.addProperty("provider_revision", provider.revision);
-			manifest.add("known_templates", sortedArray(provider.section("templates").keySet()));
+			manifest.add("known_templates", sortedArray(JsonCopies.keys(provider.section("templates"))));
 			manifests.add(provider.modId, manifest);
 			JsonObject legacy = object(legacyOreManifests, provider.modId);
 			legacy.addProperty("provider_revision", provider.revision);
-			legacy.add("known_ores", manifest.get("known_ores").deepCopy());
+			legacy.add("known_ores", JsonCopies.copy(manifest.get("known_ores")));
 			legacyOreManifests.add(provider.modId, legacy);
 		}
 
@@ -278,7 +280,7 @@ public final class WorldgenIntegrationManager {
 		if (template == null || !template.available) {
 			throw new IllegalArgumentException("Unknown or unavailable OreSpawn template: " + templateId);
 		}
-		JsonObject result = base.deepCopy();
+		JsonObject result = JsonCopies.copy(base);
 		mergeOverlay(result, template.profile);
 		applyLegacyTemplateOil(result, template.profile);
 		result.addProperty("selected_template", templateId.toString());
@@ -337,7 +339,7 @@ public final class WorldgenIntegrationManager {
 		for (String key : new String[] { "min_y", "max_y", "frequency", "min_radius", "max_radius",
 				"min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover" }) {
 			if (legacy.has(key)) {
-				dimension.add(key, legacy.get(key).deepCopy());
+				dimension.add(key, JsonCopies.copy(legacy.get(key)));
 			}
 		}
 		result.addProperty("place_fluid_deposits", true);
@@ -359,7 +361,7 @@ public final class WorldgenIntegrationManager {
 			}
 			JsonObject root = element.getAsJsonObject();
 			validateProvider(providerId, root);
-			FILE_PROVIDERS.put(providerId, root.deepCopy());
+			FILE_PROVIDERS.put(providerId, JsonCopies.copy(root));
 		} catch (IOException | RuntimeException e) {
 			INVALID_PROVIDERS.add(providerId);
 			LOGGER.error("Rejected OreSpawn provider file '{}'; {} native generation must remain enabled",
@@ -390,7 +392,7 @@ public final class WorldgenIntegrationManager {
 				}
 				JsonObject root = element.getAsJsonObject();
 				validateProvider(providerId, root);
-				RESOURCE_PROVIDERS.put(providerId, root.deepCopy());
+				RESOURCE_PROVIDERS.put(providerId, JsonCopies.copy(root));
 			} catch (IOException | RuntimeException e) {
 				INVALID_PROVIDERS.add(providerId);
 				LOGGER.error("Rejected packaged OreSpawn provider '{}' from '{}'", providerId, path, e);
@@ -428,7 +430,7 @@ public final class WorldgenIntegrationManager {
 				validateProvider(providerId, root);
 				claimOwnedEntries(providerId, root, owners);
 				ProviderDefinition provider = new ProviderDefinition(providerId,
-						integer(root, "provider_revision", -1), root.deepCopy());
+						integer(root, "provider_revision", -1), JsonCopies.copy(root));
 				ACTIVE_PROVIDERS.put(providerId, provider);
 				readTemplates(provider);
 			} catch (RuntimeException e) {
@@ -528,8 +530,8 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("unknown rock block: " + blockId);
 		}
 		RockFamily.fromConfigName(string(rock, "family", ""));
-		int minY = integer(rock, "min_y", -64);
-		int maxY = integer(rock, "max_y", 319);
+		int minY = integer(rock, "min_y", 0);
+		int maxY = integer(rock, "max_y", 255);
 		if (minY < -2048 || maxY > 2048 || minY > maxY
 				|| decimal(rock, "weight", 1.0D) < 0.0D) {
 			throw new JsonSyntaxException("invalid rock range or weight: " + idText);
@@ -871,7 +873,7 @@ public final class WorldgenIntegrationManager {
 	static void claimOwnedEntries(String provider, JsonObject root, Map<String, String> owners) {
 		for (String section : new String[] { "rocks", "ores", "fluid_deposits",
 				"biome_palettes", "dimension_materials" }) {
-			for (String id : optionalObject(root, section).keySet()) {
+			for (String id : JsonCopies.keys(optionalObject(root, section))) {
 				String key = section + ':' + id;
 				String previous = owners.putIfAbsent(key, provider);
 				if (previous != null) {
@@ -895,7 +897,7 @@ public final class WorldgenIntegrationManager {
 					string(json, "name_key", "orespawn.template." + id.getNamespace() + '.' + id.getPath()),
 					string(json, "description_key", "orespawn.template." + id.getNamespace() + '.'
 							+ id.getPath() + ".description"),
-					json.getAsJsonObject("profile").deepCopy(), available,
+					JsonCopies.copy(json.getAsJsonObject("profile")), available,
 					bool(json, "auto_select", false),
 					integer(json, "auto_select_priority", 0)));
 		}
@@ -907,7 +909,7 @@ public final class WorldgenIntegrationManager {
 					&& target.get(entry.getKey()).isJsonObject()) {
 				mergeOverlay(target.getAsJsonObject(entry.getKey()), entry.getValue().getAsJsonObject());
 			} else {
-				target.add(entry.getKey(), entry.getValue().deepCopy());
+				target.add(entry.getKey(), JsonCopies.copy(entry.getValue()));
 			}
 		}
 	}

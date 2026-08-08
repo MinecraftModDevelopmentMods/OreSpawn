@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -44,7 +46,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Registry;
-import net.minecraft.tags.TagKey;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
@@ -101,11 +103,11 @@ public final class GeomeConfig {
 		if (changed) {
 			writeProviderMerge(root);
 		}
-		globalBaseConfigRoot = root.deepCopy();
+		globalBaseConfigRoot = JsonCopies.copy(root);
 		globalBaseProfile = WorldGeologyProfile.fromGlobalConfig(root,
 				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
 		root = applyFreshWorldTemplate(root);
-		globalConfigRoot = root.deepCopy();
+		globalConfigRoot = JsonCopies.copy(root);
 		globalProfile = WorldGeologyProfile.fromGlobalConfig(root,
 				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
 		bakeDimensions(root);
@@ -122,7 +124,7 @@ public final class GeomeConfig {
 		if (globalConfigRoot == null) {
 			bake();
 		}
-		return globalConfigRoot.deepCopy();
+		return JsonCopies.copy(globalConfigRoot);
 	}
 
 	public static WorldGeologyProfile globalProfile() {
@@ -155,7 +157,7 @@ public final class GeomeConfig {
 
 	public static JsonObject globalBaseConfigSnapshot() {
 		if (globalBaseConfigRoot == null) bake();
-		return globalBaseConfigRoot.deepCopy();
+		return JsonCopies.copy(globalBaseConfigRoot);
 	}
 
 	public static WorldGeologyProfile globalBaseProfile() {
@@ -194,7 +196,7 @@ public final class GeomeConfig {
 		try {
 			int schemaVersion = getInt(root, "schema_version", 1);
 			if (schemaVersion < SCHEMA_VERSION) {
-				JsonObject migrated = schemaVersion <= 1 ? migrateV1(root) : root.deepCopy();
+				JsonObject migrated = schemaVersion <= 1 ? migrateV1(root) : JsonCopies.copy(root);
 				migrated = migrateToV6(migrated, defaults);
 				writeMigratedConfig(migrated,
 						schemaVersion <= 1 ? CONFIG_BACKUP_PATH
@@ -362,12 +364,7 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
-			for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-				if (block.defaultBlockState().is(tag)) {
-					target.add(block);
-				}
-			}
+			target.addAll(BlockTags.getAllTags().getTagOrEmpty(id).getValues());
 		}
 	}
 
@@ -638,7 +635,7 @@ public final class GeomeConfig {
 	}
 
 	private static JsonObject migrateV1(JsonObject original) {
-		JsonObject migrated = original.deepCopy();
+		JsonObject migrated = JsonCopies.copy(original);
 		migrated.add("formations", legacyFormationConfig());
 
 		if (migrated.has("rocks") && migrated.get("rocks").isJsonObject()) {
@@ -658,14 +655,14 @@ public final class GeomeConfig {
 
 	private static JsonObject migrateToV6(JsonObject original, JsonObject defaults) {
 		JsonObject migrated = getInt(original, "biome_defaults_revision", 0) < BIOME_DEFAULTS_REVISION
-				? refreshBiomeDefaults(original, defaults) : original.deepCopy();
+				? refreshBiomeDefaults(original, defaults) : JsonCopies.copy(original);
 		FluidDepositMigration.normalize(migrated);
 		for (String key : new String[] { "geology_mode", "place_fluid_deposits", "fluid_deposits",
 				"manage_vanilla_ores", "ore_defaults_revision", "cyano", "ores",
 				"ore_providers", "providers", "worldgen_aliases", "default_template",
 				"terrain_dimensions", "biome_palettes", "dimension_materials" }) {
 			if (!migrated.has(key)) {
-				migrated.add(key, defaults.get(key).deepCopy());
+				migrated.add(key, JsonCopies.copy(defaults.get(key)));
 			}
 		}
 		migrated = refreshWorldgenAliasDefaults(migrated, defaults);
@@ -674,7 +671,7 @@ public final class GeomeConfig {
 	}
 
 	private static JsonObject refreshBiomeDefaults(JsonObject original, JsonObject defaults) {
-		JsonObject refreshed = original.deepCopy();
+		JsonObject refreshed = JsonCopies.copy(original);
 		mergeMissingEntries(refreshed, defaults, "biomes");
 		mergeMissingEntries(refreshed, defaults, "biome_dictionary");
 		refreshed.addProperty("biome_defaults_revision", BIOME_DEFAULTS_REVISION);
@@ -682,7 +679,7 @@ public final class GeomeConfig {
 	}
 
 	static JsonObject refreshWorldgenAliasDefaults(JsonObject original, JsonObject defaults) {
-		JsonObject refreshed = original.deepCopy();
+		JsonObject refreshed = JsonCopies.copy(original);
 		mergeMissingEntries(refreshed, defaults, "worldgen_aliases");
 		if (refreshed.has("rocks") && refreshed.get("rocks").isJsonObject()) {
 			JsonObject rocks = refreshed.getAsJsonObject("rocks");
@@ -696,7 +693,7 @@ public final class GeomeConfig {
 					} catch (RuntimeException ignored) { }
 				}
 				if (!normalized.has(id)) {
-					normalized.add(id, entry.getValue().deepCopy());
+					normalized.add(id, JsonCopies.copy(entry.getValue()));
 				}
 			}
 			refreshed.add("rocks", normalized);
@@ -706,7 +703,7 @@ public final class GeomeConfig {
 	}
 
 	static JsonObject refreshOreDefaults(JsonObject original, JsonObject defaults) {
-		JsonObject refreshed = original.deepCopy();
+		JsonObject refreshed = JsonCopies.copy(original);
 		if (!refreshed.has("manage_vanilla_ores")) {
 			refreshed.addProperty("manage_vanilla_ores", false);
 		}
@@ -722,7 +719,7 @@ public final class GeomeConfig {
 	}
 
 	static JsonObject refreshWorldOreDefaults(JsonObject original) {
-		JsonObject refreshed = original.deepCopy();
+		JsonObject refreshed = JsonCopies.copy(original);
 		normalizeLegacyMineralogyVanillaOres(refreshed);
 		upgradeOrePatternDefaults(refreshed);
 		refreshed.addProperty("ore_defaults_revision", ORE_DEFAULTS_REVISION);
@@ -740,10 +737,10 @@ public final class GeomeConfig {
 			String legacyId = LEGACY_MINERALOGY_VANILLA_ORE_PREFIX + oreId;
 			if (!ores.has(legacyId) || !ores.get(legacyId).isJsonObject()) continue;
 			String canonicalId = "minecraft:" + oreId;
-			JsonObject legacy = ores.getAsJsonObject(legacyId).deepCopy();
+			JsonObject legacy = JsonCopies.copy(ores.getAsJsonObject(legacyId));
 
 			JsonObject probeOres = new JsonObject();
-			probeOres.add(canonicalId, legacy.deepCopy());
+			probeOres.add(canonicalId, JsonCopies.copy(legacy));
 			JsonObject probeRoot = new JsonObject();
 			probeRoot.add("ores", probeOres);
 			boolean untouchedDefault = upgradeOrePatternDefaults(probeRoot);
@@ -828,7 +825,97 @@ public final class GeomeConfig {
 		upgraded |= upgradeOreFidelityRule(root, "minecraft:emerald_ore", "minecraft:overworld",
 				-16, 128, 0.40D, 3, "cluster", OreHeightDistribution.TRIANGLE, 0.65D,
 				0.33D, OreHeightDistribution.TRIANGLE, 0.65D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:coal_ore", 0, 96, 6.27D, 17,
+				"clusters", OreHeightDistribution.TRIANGLE, 0.87D,
+				0, 127, 20.0D, 17, "vein", OreHeightDistribution.UNIFORM, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:iron_ore", -64, 256, 25.5D, 9,
+				"vein", OreHeightDistribution.TRIANGLE, 0.80D,
+				0, 63, 20.0D, 9, "vein", OreHeightDistribution.UNIFORM, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:copper_ore", -16, 112, 12.65D, 10,
+				"normal_cloud", OreHeightDistribution.TRIANGLE, 0.27D,
+				0, 96, 6.0D, 10, "vein", OreHeightDistribution.TRIANGLE, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:gold_ore", -64, 32, 2.95D, 9,
+				"vein", OreHeightDistribution.TRIANGLE, 0.94D,
+				0, 31, 2.0D, 9, "vein", OreHeightDistribution.UNIFORM, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:redstone_ore", -64, 15, 4.68D, 8,
+				"vein", OreHeightDistribution.UNIFORM_BOTTOM_TRIANGLE, 0.78D,
+				0, 15, 8.0D, 8, "vein", OreHeightDistribution.UNIFORM, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:diamond_ore", -64, 16, 1.83D, 8,
+				"clusters", OreHeightDistribution.BOTTOM_TRIANGLE, 0.94D,
+				0, 15, 1.0D, 8, "vein", OreHeightDistribution.UNIFORM, 0.0D);
+		upgraded |= upgradeOreForTarget(root, "minecraft:lapis_ore", -64, 64, 3.38D, 7,
+				"normal_cloud", OreHeightDistribution.TRIANGLE, 0.80D,
+				0, 30, 1.0D, 7, "vein", OreHeightDistribution.TRIANGLE, 0.0D);
+		upgraded |= upgradeEmeraldForTarget(root);
 		return upgraded;
+	}
+
+	private static boolean upgradeOreForTarget(JsonObject root, String oreId,
+			int oldMinY, int oldMaxY, double oldFrequency, int oldQuantity, String oldPattern,
+			OreHeightDistribution oldDistribution, double oldDiscardChance,
+			int newMinY, int newMaxY, double newFrequency, int newQuantity, String newPattern,
+			OreHeightDistribution newDistribution, double newDiscardChance) {
+		JsonObject rule = oreRule(root, oreId, "minecraft:overworld");
+		if (rule == null || rule.has("min_quantity") || rule.has("max_quantity")
+				|| getInt(rule, "min_y", Integer.MIN_VALUE) != oldMinY
+				|| getInt(rule, "max_y", Integer.MIN_VALUE) != oldMaxY
+				|| Math.abs(getDouble(rule, "frequency", -1.0D) - oldFrequency) >= 0.000001D
+				|| getInt(rule, "quantity", -1) != oldQuantity
+				|| !oldPattern.equals(normalizePattern(getString(rule, "pattern", "")))
+				|| !oldDistribution.configName.equals(getString(rule, "height_distribution", "uniform"))
+				|| Math.abs(getDouble(rule, "discard_chance_on_air_exposure", 0.0D)
+						- oldDiscardChance) >= 0.000001D) return false;
+		rule.addProperty("min_y", newMinY);
+		rule.addProperty("max_y", newMaxY);
+		rule.addProperty("frequency", newFrequency);
+		rule.addProperty("quantity", newQuantity);
+		rule.addProperty("pattern", newPattern);
+		rule.addProperty("height_distribution", newDistribution.configName);
+		rule.addProperty("discard_chance_on_air_exposure", newDiscardChance);
+		return true;
+	}
+
+	private static boolean upgradeEmeraldForTarget(JsonObject root) {
+		JsonObject rule = oreRule(root, "minecraft:emerald_ore", "minecraft:overworld");
+		if (rule == null || rule.has("min_quantity") || rule.has("max_quantity")
+				|| getInt(rule, "min_y", Integer.MIN_VALUE) != -16
+				|| getInt(rule, "max_y", Integer.MIN_VALUE) != 128
+				|| Math.abs(getDouble(rule, "frequency", -1.0D) - 0.33D) >= 0.000001D
+				|| getInt(rule, "quantity", -1) != 3
+				|| !"clusters".equals(normalizePattern(getString(rule, "pattern", "")))
+				|| !OreHeightDistribution.TRIANGLE.configName.equals(
+						getString(rule, "height_distribution", "uniform"))
+				|| Math.abs(getDouble(rule, "discard_chance_on_air_exposure", 0.0D) - 0.65D)
+						>= 0.000001D) return false;
+		rule.addProperty("min_y", 4);
+		rule.addProperty("max_y", 31);
+		rule.addProperty("frequency", 1.0D);
+		rule.remove("quantity");
+		rule.addProperty("min_quantity", 3);
+		rule.addProperty("max_quantity", 8);
+		rule.addProperty("pattern", "clusters");
+		rule.addProperty("height_distribution", OreHeightDistribution.UNIFORM.configName);
+		rule.addProperty("discard_chance_on_air_exposure", 0.0D);
+		rule.addProperty("node_size", 1);
+		return true;
+	}
+
+	private static JsonObject oreRule(JsonObject root, String oreId, String dimensionId) {
+		if (!root.has("ores") || !root.get("ores").isJsonObject()) return null;
+		JsonObject ores = root.getAsJsonObject("ores");
+		if (!ores.has(oreId) || !ores.get(oreId).isJsonObject()) return null;
+		JsonObject ore = ores.getAsJsonObject(oreId);
+		if (!ore.has("dimensions") || !ore.get("dimensions").isJsonObject()) return null;
+		JsonObject dimensions = ore.getAsJsonObject("dimensions");
+		return dimensions.has(dimensionId) && dimensions.get(dimensionId).isJsonObject()
+				? dimensions.getAsJsonObject(dimensionId) : null;
+	}
+
+	private static String normalizePattern(String value) {
+		String normalized = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+		if ("cluster".equals(normalized)) return "clusters";
+		if ("cloud".equals(normalized) || "normal-cloud".equals(normalized)) return "normal_cloud";
+		return normalized;
 	}
 
 	private static boolean upgradeOreFidelityRule(JsonObject root, String oreId, String dimensionId,
@@ -902,7 +989,7 @@ public final class GeomeConfig {
 	private static void mergeMissingEntries(JsonObject targetRoot, JsonObject defaultsRoot, String key) {
 		JsonObject defaults = defaultsRoot.getAsJsonObject(key);
 		if (!targetRoot.has(key)) {
-			targetRoot.add(key, defaults.deepCopy());
+			targetRoot.add(key, JsonCopies.copy(defaults));
 			return;
 		}
 		if (!targetRoot.get(key).isJsonObject()) {
@@ -913,7 +1000,7 @@ public final class GeomeConfig {
 		JsonObject target = targetRoot.getAsJsonObject(key);
 		for (Entry<String, JsonElement> entry : defaults.entrySet()) {
 			if (!target.has(entry.getKey())) {
-				target.add(entry.getKey(), entry.getValue().deepCopy());
+				target.add(entry.getKey(), JsonCopies.copy(entry.getValue()));
 			}
 		}
 	}
@@ -1362,7 +1449,7 @@ public final class GeomeConfig {
 		JsonObject defaults = defaultConfig();
 		JsonObject result = new JsonObject();
 		for (String key : new String[] { "geomes", "biomes", "biome_dictionary" }) {
-			result.add(key, defaults.get(key).deepCopy());
+			result.add(key, JsonCopies.copy(defaults.get(key)));
 		}
 		return result;
 	}
@@ -1392,30 +1479,30 @@ public final class GeomeConfig {
 
 	private static JsonObject defaultOreConfig() {
 		JsonObject ores = new JsonObject();
-		addVanillaOverworldOre(ores, "coal_ore", "deepslate_coal_ore", 0, 96, 6.27D, 17,
-				OrePattern.CLUSTER, 10, 4, 6);
-		setOreFidelity(ores, "coal_ore", OreHeightDistribution.TRIANGLE, 0.87D);
-		addVanillaOverworldOre(ores, "iron_ore", "deepslate_iron_ore", -64, 256, 25.5D, 9,
+		addVanillaOverworldOre(ores, "coal_ore", "deepslate_coal_ore", 0, 127, 20.0D, 17,
 				OrePattern.VEIN, 8, 4, 4);
-		setOreFidelity(ores, "iron_ore", OreHeightDistribution.TRIANGLE, 0.80D);
-		addVanillaOverworldOre(ores, "copper_ore", "deepslate_copper_ore", -16, 112, 12.65D, 10,
-				OrePattern.CLOUD, 6, 4, 4);
-		setOreFidelity(ores, "copper_ore", OreHeightDistribution.TRIANGLE, 0.27D);
-		addVanillaOverworldOre(ores, "gold_ore", "deepslate_gold_ore", -64, 32, 2.95D, 9,
+		addVanillaOverworldOre(ores, "iron_ore", "deepslate_iron_ore", 0, 63, 20.0D, 9,
 				OrePattern.VEIN, 8, 4, 4);
-		setOreFidelity(ores, "gold_ore", OreHeightDistribution.TRIANGLE, 0.94D);
-		addVanillaOverworldOre(ores, "redstone_ore", "deepslate_redstone_ore", -64, 15, 4.68D, 8,
+		addVanillaOverworldOre(ores, "copper_ore", "deepslate_copper_ore", 0, 96, 6.0D, 10,
 				OrePattern.VEIN, 8, 4, 4);
-		setOreFidelity(ores, "redstone_ore", OreHeightDistribution.UNIFORM_BOTTOM_TRIANGLE, 0.78D);
-		addVanillaOverworldOre(ores, "diamond_ore", "deepslate_diamond_ore", -64, 16, 1.83D, 8,
-				OrePattern.CLUSTER, 6, 3, 4);
-		setOreFidelity(ores, "diamond_ore", OreHeightDistribution.BOTTOM_TRIANGLE, 0.94D);
-		addVanillaOverworldOre(ores, "lapis_ore", "deepslate_lapis_ore", -64, 64, 3.38D, 7,
-				OrePattern.CLOUD, 8, 4, 4);
-		setOreFidelity(ores, "lapis_ore", OreHeightDistribution.TRIANGLE, 0.80D);
-		addVanillaOverworldOre(ores, "emerald_ore", "deepslate_emerald_ore", -16, 128, 0.33D, 3,
-				OrePattern.CLUSTER, 8, 5, 3);
-		setOreFidelity(ores, "emerald_ore", OreHeightDistribution.TRIANGLE, 0.65D);
+		setOreFidelity(ores, "copper_ore", OreHeightDistribution.TRIANGLE, 0.0D);
+		addVanillaOverworldOre(ores, "gold_ore", "deepslate_gold_ore", 0, 31, 2.0D, 9,
+				OrePattern.VEIN, 8, 4, 4);
+		addVanillaBadlandsGoldOre(ores);
+		addVanillaOverworldOre(ores, "redstone_ore", "deepslate_redstone_ore", 0, 15, 8.0D, 8,
+				OrePattern.VEIN, 8, 4, 4);
+		addVanillaOverworldOre(ores, "diamond_ore", "deepslate_diamond_ore", 0, 15, 1.0D, 8,
+				OrePattern.VEIN, 8, 4, 4);
+		addVanillaOverworldOre(ores, "lapis_ore", "deepslate_lapis_ore", 0, 30, 1.0D, 7,
+				OrePattern.VEIN, 8, 4, 4);
+		setOreFidelity(ores, "lapis_ore", OreHeightDistribution.TRIANGLE, 0.0D);
+		addVanillaOverworldOre(ores, "emerald_ore", "deepslate_emerald_ore", 4, 31, 1.0D, 3,
+				OrePattern.CLUSTER, 8, 5, 1);
+		JsonObject emeraldRule = ores.getAsJsonObject("minecraft:emerald_ore")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld");
+		emeraldRule.remove("quantity");
+		emeraldRule.addProperty("min_quantity", 3);
+		emeraldRule.addProperty("max_quantity", 8);
 		setOreGeomeWeights(ores, "coal_ore", "sedimentary_basin", 1.8D,
 				"coastal_shelf", 1.5D, "wetland_basin", 1.4D, "volcanic_arc", 0.45D);
 		setOreGeomeWeights(ores, "iron_ore", "mountain_belt", 1.4D,
@@ -1435,6 +1522,26 @@ public final class GeomeConfig {
 		return ores;
 	}
 
+	private static void addVanillaBadlandsGoldOre(JsonObject ores) {
+		JsonObject ore = vanillaOre("gold_ore");
+		ore.addProperty("block", "minecraft:gold_ore");
+		ore.addProperty("deep_output", "minecraft:deepslate_gold_ore");
+		ore.addProperty("deep_output_max_y", -1);
+		JsonObject rule = oreRule(32, 79, 20.0D, 9, OrePattern.VEIN, 8, 4, 4);
+		JsonArray families = new JsonArray();
+		for (RockFamily family : RockFamily.values()) families.add(family.configName);
+		rule.add("host_families", families);
+		JsonArray tags = new JsonArray();
+		tags.add("minecraft:stone_ore_replaceables");
+		tags.add("minecraft:deepslate_ore_replaceables");
+		rule.add("host_tags", tags);
+		JsonArray biomes = new JsonArray();
+		biomes.add("MESA");
+		rule.add("biome_dictionary", biomes);
+		ore.getAsJsonObject("dimensions").add("minecraft:overworld", rule);
+		ores.add("orespawn:vanilla_gold_badlands", ore);
+	}
+
 	private static void addVanillaOverworldOre(JsonObject ores, String id, String deepId,
 			int minY, int maxY, double frequency, int quantity, OrePattern pattern,
 			int spread, int verticalSpread, int nodeSize) {
@@ -1442,7 +1549,7 @@ public final class GeomeConfig {
 		ore.addProperty("deep_output", "minecraft:" + deepId);
 		ore.addProperty("deep_output_max_y", -1);
 		JsonObject rule = oreRule(minY, maxY, frequency, quantity, pattern, spread, verticalSpread, nodeSize);
-		rule.addProperty("height_distribution", OreHeightDistribution.TRIANGLE.configName);
+		rule.addProperty("height_distribution", OreHeightDistribution.UNIFORM.configName);
 		JsonArray families = new JsonArray();
 		for (RockFamily family : RockFamily.values()) {
 			families.add(family.configName);
@@ -1608,6 +1715,7 @@ public final class GeomeConfig {
 		addWeights(biomes, "minecraft:ocean", "coastal_shelf", 4.0D);
 		addWeights(biomes, "minecraft:deep_ocean", "coastal_shelf", 4.0D, "sedimentary_basin", 1.5D);
 		addWeights(biomes, "minecraft:warm_ocean", "coastal_shelf", 4.0D, "sedimentary_basin", 1.0D);
+		addWeights(biomes, "minecraft:deep_warm_ocean", "coastal_shelf", 4.0D, "sedimentary_basin", 1.5D);
 		addWeights(biomes, "minecraft:lukewarm_ocean", "coastal_shelf", 4.0D, "sedimentary_basin", 1.0D);
 		addWeights(biomes, "minecraft:deep_lukewarm_ocean", "coastal_shelf", 4.0D, "sedimentary_basin", 1.5D);
 		addWeights(biomes, "minecraft:cold_ocean", "coastal_shelf", 4.0D, "glacial_highland", 0.8D);
@@ -1621,49 +1729,84 @@ public final class GeomeConfig {
 				"glacial_highland", 1.5D);
 		addWeights(biomes, "minecraft:beach", "coastal_shelf", 4.0D);
 		addWeights(biomes, "minecraft:snowy_beach", "coastal_shelf", 3.5D, "glacial_highland", 1.5D);
-		addWeights(biomes, "minecraft:stony_shore", "coastal_shelf", 2.5D, "mountain_belt", 1.5D);
+		addWeights(biomes, "minecraft:stone_shore", "coastal_shelf", 2.5D, "mountain_belt", 1.5D);
 		addWeights(biomes, "minecraft:plains", "stable_craton", 2.0D, "sedimentary_basin", 1.0D);
 		addWeights(biomes, "minecraft:sunflower_plains", "stable_craton", 2.0D, "sedimentary_basin", 1.0D);
-		addWeights(biomes, "minecraft:snowy_plains", "glacial_highland", 3.5D, "sedimentary_basin", 0.8D);
+		addWeights(biomes, "minecraft:snowy_tundra", "glacial_highland", 3.5D, "sedimentary_basin", 0.8D);
+		addWeights(biomes, "minecraft:snowy_mountains", "glacial_highland", 3.5D, "mountain_belt", 2.0D);
 		addWeights(biomes, "minecraft:ice_spikes", "glacial_highland", 4.0D, "mountain_belt", 1.2D);
 		addWeights(biomes, "minecraft:forest", "stable_craton", 2.0D);
 		addWeights(biomes, "minecraft:flower_forest", "stable_craton", 2.0D, "sedimentary_basin", 0.5D);
 		addWeights(biomes, "minecraft:birch_forest", "stable_craton", 2.0D);
-		addWeights(biomes, "minecraft:old_growth_birch_forest", "stable_craton", 2.3D);
+		addWeights(biomes, "minecraft:birch_forest_hills", "stable_craton", 2.0D, "mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:tall_birch_forest", "stable_craton", 2.3D);
+		addWeights(biomes, "minecraft:tall_birch_hills", "stable_craton", 2.3D, "mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:dark_forest", "stable_craton", 2.0D, "wetland_basin", 0.5D);
+		addWeights(biomes, "minecraft:dark_forest_hills", "stable_craton", 2.0D, "mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:taiga", "stable_craton", 1.5D, "glacial_highland", 0.75D);
+		addWeights(biomes, "minecraft:taiga_hills", "stable_craton", 1.5D, "glacial_highland", 0.75D,
+				"mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:taiga_mountains", "stable_craton", 1.2D, "glacial_highland", 1.0D,
+				"mountain_belt", 1.5D);
 		addWeights(biomes, "minecraft:snowy_taiga", "glacial_highland", 2.5D, "stable_craton", 1.0D);
-		addWeights(biomes, "minecraft:old_growth_pine_taiga", "stable_craton", 2.0D,
+		addWeights(biomes, "minecraft:snowy_taiga_hills", "glacial_highland", 2.5D, "stable_craton", 1.0D,
+				"mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:snowy_taiga_mountains", "glacial_highland", 2.5D,
+				"stable_craton", 0.8D, "mountain_belt", 1.5D);
+		addWeights(biomes, "minecraft:giant_tree_taiga", "stable_craton", 2.0D,
 				"glacial_highland", 0.8D);
-		addWeights(biomes, "minecraft:old_growth_spruce_taiga", "stable_craton", 2.0D,
+		addWeights(biomes, "minecraft:giant_tree_taiga_hills", "stable_craton", 2.0D,
+				"glacial_highland", 0.8D, "mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:giant_spruce_taiga", "stable_craton", 2.0D,
 				"glacial_highland", 1.0D);
+		addWeights(biomes, "minecraft:giant_spruce_taiga_hills", "stable_craton", 2.0D,
+				"glacial_highland", 1.0D, "mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:desert", "arid_basin", 4.0D, "sedimentary_basin", 1.5D);
+		addWeights(biomes, "minecraft:desert_hills", "arid_basin", 3.5D, "sedimentary_basin", 1.5D,
+				"mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:desert_lakes", "arid_basin", 3.5D, "sedimentary_basin", 2.0D);
 		addWeights(biomes, "minecraft:savanna", "arid_basin", 2.5D, "stable_craton", 0.75D);
 		addWeights(biomes, "minecraft:savanna_plateau", "arid_basin", 2.5D, "mountain_belt", 2.5D);
-		addWeights(biomes, "minecraft:windswept_savanna", "mountain_belt", 5.0D, "arid_basin", 1.5D);
+		addWeights(biomes, "minecraft:shattered_savanna", "mountain_belt", 5.0D, "arid_basin", 1.5D);
+		addWeights(biomes, "minecraft:shattered_savanna_plateau", "mountain_belt", 5.0D,
+				"arid_basin", 1.5D);
 		addWeights(biomes, "minecraft:badlands", "arid_basin", 3.5D, "sedimentary_basin", 3.0D);
-		addWeights(biomes, "minecraft:wooded_badlands", "arid_basin", 3.0D, "sedimentary_basin", 2.5D,
+		addWeights(biomes, "minecraft:badlands_plateau", "arid_basin", 3.0D, "sedimentary_basin", 2.5D,
+				"mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:wooded_badlands_plateau", "arid_basin", 3.0D, "sedimentary_basin", 2.5D,
 				"mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:eroded_badlands", "arid_basin", 3.0D, "sedimentary_basin", 3.0D,
 				"mountain_belt", 1.2D);
-		addWeights(biomes, "minecraft:windswept_hills", "mountain_belt", 4.0D, "stable_craton", 1.0D);
-		addWeights(biomes, "minecraft:windswept_forest", "mountain_belt", 3.0D, "stable_craton", 1.3D);
-		addWeights(biomes, "minecraft:windswept_gravelly_hills", "mountain_belt", 4.0D,
+		addWeights(biomes, "minecraft:modified_badlands_plateau", "arid_basin", 3.0D,
+				"sedimentary_basin", 2.5D, "mountain_belt", 1.2D);
+		addWeights(biomes, "minecraft:modified_wooded_badlands_plateau", "arid_basin", 3.0D,
+				"sedimentary_basin", 2.5D, "mountain_belt", 1.2D);
+		addWeights(biomes, "minecraft:mountains", "mountain_belt", 4.0D, "stable_craton", 1.0D);
+		addWeights(biomes, "minecraft:mountain_edge", "mountain_belt", 3.0D, "stable_craton", 1.3D);
+		addWeights(biomes, "minecraft:wooded_mountains", "mountain_belt", 3.0D, "stable_craton", 1.3D);
+		addWeights(biomes, "minecraft:wooded_hills", "mountain_belt", 1.5D, "stable_craton", 2.0D);
+		addWeights(biomes, "minecraft:gravelly_mountains", "mountain_belt", 4.0D,
 				"glacial_highland", 0.8D);
-		addWeights(biomes, "minecraft:meadow", "stable_craton", 1.7D, "mountain_belt", 1.2D);
-		addWeights(biomes, "minecraft:grove", "glacial_highland", 1.8D, "mountain_belt", 1.4D);
-		addWeights(biomes, "minecraft:snowy_slopes", "glacial_highland", 3.0D, "mountain_belt", 2.4D);
-		addWeights(biomes, "minecraft:jagged_peaks", "mountain_belt", 4.8D, "glacial_highland", 2.0D);
-		addWeights(biomes, "minecraft:frozen_peaks", "glacial_highland", 3.6D, "mountain_belt", 3.0D);
-		addWeights(biomes, "minecraft:stony_peaks", "mountain_belt", 4.5D, "volcanic_arc", 0.8D);
+		addWeights(biomes, "minecraft:modified_gravelly_mountains", "mountain_belt", 4.5D,
+				"glacial_highland", 0.8D);
 		addWeights(biomes, "minecraft:dripstone_caves", "sedimentary_basin", 2.8D, "coastal_shelf", 1.0D);
 		addWeights(biomes, "minecraft:lush_caves", "wetland_basin", 2.5D, "sedimentary_basin", 1.2D);
 		addWeights(biomes, "minecraft:swamp", "wetland_basin", 4.0D, "sedimentary_basin", 1.5D);
+		addWeights(biomes, "minecraft:swamp_hills", "wetland_basin", 4.0D, "sedimentary_basin", 1.5D,
+				"mountain_belt", 0.5D);
 		addWeights(biomes, "minecraft:jungle", "wetland_basin", 1.5D, "stable_craton", 1.5D);
-		addWeights(biomes, "minecraft:sparse_jungle", "stable_craton", 1.5D, "wetland_basin", 1.0D);
+		addWeights(biomes, "minecraft:jungle_hills", "wetland_basin", 1.5D, "stable_craton", 1.2D,
+				"mountain_belt", 0.8D);
+		addWeights(biomes, "minecraft:jungle_edge", "stable_craton", 1.5D, "wetland_basin", 1.0D);
+		addWeights(biomes, "minecraft:modified_jungle", "wetland_basin", 1.8D, "stable_craton", 1.2D);
+		addWeights(biomes, "minecraft:modified_jungle_edge", "stable_craton", 1.5D, "wetland_basin", 1.0D);
 		addWeights(biomes, "minecraft:bamboo_jungle", "wetland_basin", 2.0D, "stable_craton", 1.2D);
+		addWeights(biomes, "minecraft:bamboo_jungle_hills", "wetland_basin", 2.0D,
+				"stable_craton", 1.2D, "mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:mushroom_fields", "coastal_shelf", 2.0D, "volcanic_arc", 1.5D,
 				"stable_craton", 1.0D);
+		addWeights(biomes, "minecraft:mushroom_field_shore", "coastal_shelf", 3.0D,
+				"volcanic_arc", 1.0D, "stable_craton", 1.0D);
 	}
 
 	static JsonObject defaultBiomeRules() {

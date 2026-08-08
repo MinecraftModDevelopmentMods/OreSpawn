@@ -5,11 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import com.mojang.datafixers.util.Pair;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 
-import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -24,8 +22,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
+import net.minecraftforge.fmlserverevents.FMLServerStartedEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +51,7 @@ public final class WorldgenBenchmark {
 		return ENABLED && "vanilla".equals(MODE);
 	}
 
-	private static void onServerAboutToStart(ServerAboutToStartEvent event) {
+	private static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
 		if (isVanillaBaseline()) {
 			return;
 		}
@@ -71,7 +69,7 @@ public final class WorldgenBenchmark {
 		WorldGeologyProfileManager.applyBenchmarkProfile(benchmarkProfile);
 	}
 
-	private static void onServerStarted(ServerStartedEvent event) {
+	private static void onServerStarted(FMLServerStartedEvent event) {
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
 		ServerLevel level = event.getServer().getLevel(benchmarkDimensionKey(dimensionName));
@@ -159,13 +157,22 @@ public final class WorldgenBenchmark {
 		}
 		BiomeDictionary.Type type = BiomeDictionary.Type.getType(configured);
 		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
-		Pair<BlockPos, Holder<Biome>> located = level.findNearestBiome(holder -> holder.unwrapKey()
-				.map(key -> BiomeDictionary.hasType(key, type)).orElse(false), origin, 16384, 32);
+		BlockPos located = null;
+		double bestDistance = Double.POSITIVE_INFINITY;
+		Registry<Biome> registry = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+		for (Map.Entry<ResourceKey<Biome>, Biome> entry : registry.entrySet()) {
+			if (!BiomeDictionary.hasType(entry.getKey(), type)) continue;
+			BlockPos candidate = level.findNearestBiome(entry.getValue(), origin, 16384, 32);
+			if (candidate != null && candidate.distSqr(origin) < bestDistance) {
+				located = candidate;
+				bestDistance = candidate.distSqr(origin);
+			}
+		}
 		if (located == null) {
 			throw new IllegalStateException("Benchmark could not locate biome dictionary type " + configured);
 		}
-		int locatedX = located.getFirst().getX() >> 4;
-		int locatedZ = located.getFirst().getZ() >> 4;
+		int locatedX = located.getX() >> 4;
+		int locatedZ = located.getZ() >> 4;
 		LOGGER.info("ORESPAWN_BENCHMARK located biome_type={} center_chunk_x={} center_chunk_z={}",
 				configured.toUpperCase(Locale.ROOT), locatedX, locatedZ);
 		return new int[] { locatedX, locatedZ };

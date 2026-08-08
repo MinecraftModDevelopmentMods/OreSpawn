@@ -1,20 +1,19 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.data.worldgen.features.MiscOverworldFeatures;
+import com.google.common.collect.ImmutableSet;
+
+import net.minecraft.data.worldgen.Features;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration;
 
 final class VanillaSpringCompatibility {
-	private static final Map<SpringConfiguration, HolderSet<Block>> ORIGINAL_HOSTS = new IdentityHashMap<>();
+	private static final Map<SpringConfiguration, Set<Block>> ORIGINAL_HOSTS = new IdentityHashMap<>();
 
 	private VanillaSpringCompatibility() {
 		throw new IllegalAccessError("Not an instantiable class");
@@ -29,28 +28,32 @@ final class VanillaSpringCompatibility {
 	}
 
 	static synchronized void refreshBlocks(Iterable<Block> rocks) {
-		update(MiscOverworldFeatures.SPRING_LAVA_OVERWORLD.value().config(), rocks);
-		update(MiscOverworldFeatures.SPRING_WATER.value().config(), rocks);
+		update(vanillaSpring(Features.SPRING_LAVA), rocks);
+		update(vanillaSpring(Features.SPRING_WATER), rocks);
+	}
+
+	static SpringConfiguration vanillaSpring(ConfiguredFeature<?, ?> root) {
+		return root.getFeatures().map(ConfiguredFeature::config)
+				.filter(SpringConfiguration.class::isInstance)
+				.map(SpringConfiguration.class::cast).findFirst()
+				.orElseThrow(() -> new IllegalStateException("Vanilla spring configuration is missing"));
 	}
 
 	private static void update(SpringConfiguration spring, Iterable<Block> rocks) {
-		HolderSet<Block> original = ORIGINAL_HOSTS.computeIfAbsent(spring, ignored -> spring.validBlocks);
+		Set<Block> original = ORIGINAL_HOSTS.computeIfAbsent(spring, ignored -> spring.validBlocks);
 		spring.validBlocks = merge(original, rocks);
 	}
 
-	static HolderSet<Block> merge(HolderSet<Block> original, Iterable<Block> additionalBlocks) {
-		List<Holder<Block>> holders = new ArrayList<>(original.size());
+	static Set<Block> merge(Set<Block> original, Iterable<Block> additionalBlocks) {
 		Set<Block> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-		for (Holder<Block> holder : original) {
-			if (seen.add(holder.value())) {
-				holders.add(holder);
-			}
+		ImmutableSet.Builder<Block> merged = ImmutableSet.builder();
+		for (Block block : original) {
+			if (seen.add(block)) merged.add(block);
 		}
 		for (Block block : additionalBlocks) {
-			if (seen.add(block)) {
-				holders.add(block.builtInRegistryHolder());
-			}
+			if (seen.add(block)) merged.add(block);
 		}
-		return HolderSet.direct(holders);
+		// SpringConfiguration.CODEC casts this field to ImmutableSet in 1.17.1.
+		return merged.build();
 	}
 }

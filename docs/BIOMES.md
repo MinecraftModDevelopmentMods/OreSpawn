@@ -79,8 +79,6 @@ and OreSpawn warns once while baking.
       "dimension": "minecraft:overworld",
       "enabled": true,
       "default_fluid": "cakeworld:lemonade",
-      "deep_aquifer_fluid": "cakeworld:hot_fudge",
-      "deep_aquifer_max_y": -40,
       "snow_block": "cakeworld:icing",
       "ice_block": "cakeworld:frozen_lemonade"
     }
@@ -129,8 +127,12 @@ Surface correction is generation-only. Installing or updating OreSpawn does
 not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.
 
-Dimension materials support the ordinary aquifer fluid, a deep aquifer fluid
-and threshold, and replacements for vanilla snow and ice. OreSpawn converts
+Dimension materials support the ordinary aquifer fluid and replacements for
+vanilla snow and ice. Minecraft 1.17.1 has one exposed generator-fluid field,
+so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and
+`deep_aquifer_max_y` values remain readable and are preserved in saved profiles,
+but this branch disables their editor controls, warns when a distinct deep
+fluid was requested, and uses the ordinary fluid for generation. OreSpawn converts
 weather products in loaded chunks and around players; it does not replace every
 water or lava block after generation.
 

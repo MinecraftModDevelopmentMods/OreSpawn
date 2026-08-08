@@ -23,8 +23,8 @@ import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.fmlserverevents.FMLServerAboutToStartEvent;
+import net.minecraftforge.fmlserverevents.FMLServerStoppedEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraft.server.level.ServerLevel;
 
@@ -114,7 +114,7 @@ public final class WorldGeologyProfileManager {
 		return true;
 	}
 
-	public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+	public static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
 		activeServer = event.getServer();
 		Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT).normalize();
 		Path profilePath = worldRoot.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
@@ -161,7 +161,7 @@ public final class WorldGeologyProfileManager {
 				profile.enabledFluidDepositCount(), profile.fluidDepositCount());
 	}
 
-	public static void onServerStopped(ServerStoppedEvent event) {
+	public static void onServerStopped(FMLServerStoppedEvent event) {
 		activeServer = null;
 		activeProfile = null;
 		GeomeConfig.applyWorldProfile(globalProfile());

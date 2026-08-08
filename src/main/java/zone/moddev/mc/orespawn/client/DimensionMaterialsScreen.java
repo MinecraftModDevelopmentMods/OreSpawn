@@ -31,36 +31,39 @@ final class DimensionMaterialsScreen extends Screen {
 		int left = (width - contentWidth) / 2;
 		JsonObject materials = session.dimensionMaterials(dimension, true);
 		int y = 58;
-		y = materialRow(left, y, contentWidth, materials, "default_fluid", true);
-		y = materialRow(left, y, contentWidth, materials, "deep_aquifer_fluid", true);
+		y = materialRow(left, y, contentWidth, materials, "default_fluid", true, true);
+		y = materialRow(left, y, contentWidth, materials, "deep_aquifer_fluid", true, false);
 		deepY = addRenderableWidget(new EditBox(font, left + contentWidth / 2, y,
 				contentWidth / 2, 20, new TranslatableComponent("option.orespawn.deep_aquifer_y")));
 		deepY.setValue(Integer.toString(integer(materials, "deep_aquifer_max_y", -54)));
+		deepY.active = false;
 		OreSpawnScreenLayout.explain(this, deepY, "tooltip.orespawn.material.deep_aquifer_y");
 		addRenderableWidget(new Button(left, y, contentWidth / 2 - 5, 20,
 				new TranslatableComponent("option.orespawn.deep_aquifer_y"), button -> { })).active = false;
 		y += 26;
-		y = materialRow(left, y, contentWidth, materials, "snow_block", false);
-		materialRow(left, y, contentWidth, materials, "ice_block", false);
+		y = materialRow(left, y, contentWidth, materials, "snow_block", false, true);
+		materialRow(left, y, contentWidth, materials, "ice_block", false, true);
 		addRenderableWidget(new Button(left, OreSpawnScreenLayout.footerY(height),
 				contentWidth, 20, CommonComponents.GUI_DONE, button -> { save(); onClose(); }));
 	}
 
 	private int materialRow(int left, int y, int width, JsonObject materials,
-			String key, boolean fluid) {
+			String key, boolean fluid, boolean editable) {
 		String value = string(materials, key, "");
-		addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, y, width - 65, 20,
+		Button selector = addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font,
+				left, y, width - 65, 20,
 				label(key, value), button -> {
 					save();
 					minecraft.setScreen(new MaterialBlockPickerScreen(this, session, fluid,
 							id -> session.setMaterialBlock(dimension, key, id, fluid)));
 				}, materialHelp(key)));
+		selector.active = editable;
 		Button clear = addRenderableWidget(new Button(left + width - 60, y, 60, 20,
 				new TranslatableComponent("button.orespawn.clear"), button -> {
 					session.setMaterialBlock(dimension, key, null, fluid);
 					rebuildWidgets();
 				}));
-		clear.active = !value.isEmpty();
+		clear.active = editable && !value.isEmpty();
 		return y + 26;
 	}
 
@@ -75,11 +78,8 @@ final class DimensionMaterialsScreen extends Screen {
 	}
 
 	private void save() {
-		if (deepY == null) return;
-		try {
-			session.dimensionMaterials(dimension, true).addProperty("deep_aquifer_max_y",
-					Integer.parseInt(deepY.getValue().trim()));
-		} catch (NumberFormatException ignored) { }
+		// Minecraft 1.17.1 exposes one generator fluid. Retain stored deep-aquifer
+		// fields unchanged so the same provider/profile can still be used by later ports.
 	}
 
 	private void rebuildWidgets() { clearWidgets(); init(); }

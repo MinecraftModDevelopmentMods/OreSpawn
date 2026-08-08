@@ -6,13 +6,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.world.level.WorldGenLevel;
@@ -23,7 +24,8 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 
 public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
@@ -37,7 +39,7 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			new ResourceLocation("minecraft", "ore_andesite_lower"),
 			new ResourceLocation("minecraft", "ore_tuff")
 	};
-	private static Holder<PlacedFeature> placedFeature;
+	private static ConfiguredFeature<?, ?> configuredFeature;
 
 	private final Lock geologyLock = new ReentrantLock();
 	private final Map<net.minecraft.resources.ResourceKey<Level>, CachedGeology> geologyByDimension =
@@ -50,11 +52,9 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "stone_replacer");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, StoneReplacer>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 	}
 
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
@@ -66,17 +66,17 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 				OreSpawnConfig.placeOreSpawnRock(), GeomeConfig.hasTerrainReplacement(Level.OVERWORLD))) {
 			removeVanillaMatchingStoneFeatures(event);
 		}
-		if (placedFeature != null) {
+		if (configuredFeature != null) {
 			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
-					.add(placedFeature);
+					.add(() -> configuredFeature);
 		}
 	}
 
-	static Holder<PlacedFeature> placedFeature() {
-		return placedFeature;
+	static ConfiguredFeature<?, ?> configuredFeature() {
+		return configuredFeature;
 	}
 
-	static boolean removeVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
+	static boolean removeVanillaMatchingStoneFeatures(List<Supplier<ConfiguredFeature<?, ?>>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
@@ -106,9 +106,10 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 				.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
-	private static boolean isVanillaMatchingStoneFeature(Holder<PlacedFeature> feature) {
+	private static boolean isVanillaMatchingStoneFeature(Supplier<ConfiguredFeature<?, ?>> feature) {
+		ResourceLocation featureId = BuiltinRegistries.CONFIGURED_FEATURE.getKey(feature.get());
 		for (ResourceLocation id : VANILLA_MATCHING_STONE_FEATURES) {
-			if (feature.is(id)) {
+			if (id.equals(featureId)) {
 				return true;
 			}
 		}

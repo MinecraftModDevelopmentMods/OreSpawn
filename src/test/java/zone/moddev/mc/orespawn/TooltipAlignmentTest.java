@@ -181,7 +181,7 @@ class TooltipAlignmentTest {
 			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("Screen.java"))::iterator) {
 				String source = Files.readString(sourceFile, StandardCharsets.UTF_8);
 				assertFalse(source.contains(".withTooltip("), sourceFile.getFileName()
-						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.18");
+						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.17.1");
 			}
 		}
 	}
@@ -190,7 +190,7 @@ class TooltipAlignmentTest {
 	void everyDetailedControlTooltipHasEnglishText() throws Exception {
 		JsonObject english;
 		try (Reader reader = Files.newBufferedReader(ENGLISH, StandardCharsets.UTF_8)) {
-			english = JsonParser.parseReader(reader).getAsJsonObject();
+			english = new JsonParser().parse(reader).getAsJsonObject();
 		}
 		for (String key : REQUIRED_TOOLTIPS) {
 			assertTrue(english.has(key), key + " is missing from en_us.json");

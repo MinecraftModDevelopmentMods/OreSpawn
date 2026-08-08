@@ -13,8 +13,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -57,13 +56,14 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
 		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
-		Holder<Biome> holder = level.getBiome(position);
-		ResourceLocation biomeId = holder.unwrapKey().map(ResourceKey::location)
-				.orElse(new ResourceLocation("orespawn", "unregistered_biome"));
+		Biome biome = level.getBiome(position);
+		ResourceLocation biomeId = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
+				.getKey(biome);
+		if (biomeId == null) biomeId = new ResourceLocation("orespawn", "unregistered_biome");
 		if (mode == GeologyMode.LEGACY) {
 			return new CyanoColumn(biomeId, blockX, blockZ, surfaceY);
 		}
-		GeomeGeology.ColumnSample sample = sky.sampleColumn(holder.value(), biomeId, blockX, blockZ);
+		GeomeGeology.ColumnSample sample = sky.sampleColumn(biome, biomeId, blockX, blockZ);
 		return new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample);
 	}
 

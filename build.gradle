@@ -1,20 +1,25 @@
-plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+    }
 }
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 
 version = mod_version
 group = mod_group_id
 
-base {
-    archivesName = "OreSpawn-${minecraft_version}"
-}
+archivesBaseName = "OreSpawn-${minecraft_version}"
 
-// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
+// Minecraft 1.17.1 and Forge 37 target Java 16.
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    toolchain.languageVersion = JavaLanguageVersion.of(16)
     withSourcesJar()
     withJavadocJar()
 }
@@ -40,11 +45,6 @@ minecraft {
     // In most cases, it is not necessary to enable.
     // enableEclipsePrepareRuns = true
     // enableIdeaPrepareRuns = true
-
-    // This property allows configuring Gradle's ProcessResources task(s) to run on IDE output locations before launching the game.
-    // It is REQUIRED to be set to true for this template to function.
-    // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
-    copyIdeResources = true
 
     // When true, this property will add the folder name of all declared run configurations to generated IDE run configurations.
     // The folder name can be set on a run configuration using the "folderName" property.
@@ -179,6 +179,7 @@ minecraft {
 			create("surfaceIntegration${phase}") {
 				parent runs.server
 				workingDirectory layout.buildDirectory.dir('surface-integration-run').get().asFile
+				jvmArgs '-Xmx1536m'
 				property 'forge.logging.console.level', 'info'
 				property 'surfaceprobe.integrationPhase', phase.toLowerCase(Locale.ROOT)
 				args '--nogui'
@@ -279,6 +280,18 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
+// ForgeGradle 5 resolves the access-transformed mapped Forge dependency into
+// build/fg_cache during configuration. Deleting that cache afterward makes a
+// single-invocation `clean build` lose its compile classpath, because the
+// dependency has already been considered resolved. It is a dependency cache,
+// not a produced mod artifact, so retain it while cleaning every other build
+// output.
+tasks.named('clean', Delete).configure {
+    setDelete(fileTree(layout.buildDirectory) {
+        exclude 'fg_cache/**'
+    })
+}
+
 tasks.named('javadoc', Javadoc).configure {
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
@@ -295,9 +308,9 @@ def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegration
 	classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
 	destinationDirectory.set(surfaceIntegrationClasses)
 	javaCompiler.set(javaToolchains.compilerFor {
-		languageVersion = JavaLanguageVersion.of(17)
+				languageVersion = JavaLanguageVersion.of(16)
 	})
-	options.release = 17
+	options.release = 16
 	options.encoding = 'UTF-8'
 }
 
@@ -322,7 +335,9 @@ def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTes
 		}
 		new File(runDirectory, 'server.properties').setText('''\
 level-name=surface-integration-world
-level-seed=0
+# Minecraft 1.17.1 treats numeric zero as "choose a random seed". This
+# non-numeric token has Java String.hashCode() == 0, so the actual seed is 0.
+level-seed=zsjpxah
 level-type=minecraft:normal
 online-mode=false
 allow-nether=true
@@ -337,15 +352,53 @@ max-tick-time=-1
 tasks.configureEach {
 	if (name == 'runSurfaceIntegrationFresh') {
 		dependsOn prepareSurfaceIntegrationTest
-	} else if (name == 'runSurfaceIntegrationReload') {
-		dependsOn 'runSurfaceIntegrationFresh'
 	}
 }
+
+def surfaceIntegrationProcess = { String phase, dependency ->
+	tasks.register("surfaceIntegration${phase}Process", Exec) {
+		group = 'verification'
+		description = "Runs the ${phase.toLowerCase(Locale.ROOT)} surface-probe server behind a process boundary."
+		dependsOn dependency, "prepareRunSurfaceIntegration${phase}"
+		doFirst {
+			JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
+			File argumentFile = layout.buildDirectory.file(
+					"surface-integration-fixture/${phase.toLowerCase(Locale.ROOT)}.args").get().asFile
+			argumentFile.parentFile.mkdirs()
+			List<String> arguments = []
+			arguments.addAll(runTask.allJvmArgs)
+			arguments.add('-cp')
+			arguments.add(runTask.classpath.asPath)
+			arguments.add(runTask.main)
+			arguments.addAll(runTask.args)
+			argumentFile.setText(arguments.collect { String value ->
+				'"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+			}.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
+
+			workingDir runTask.workingDir
+			environment runTask.environment
+			File javaExecutable = runTask.javaLauncher.get().executablePath.asFile
+			if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('windows')) {
+				// Forge 37's direct JavaExec server shutdown also terminates Gradle 7.2's
+				// single-use daemon. cmd/call keeps the server as a grandchild so Gradle
+				// receives the real exit code and can continue to the reload assertion.
+				commandLine 'cmd.exe', '/d', '/s', '/c',
+						"call \"${javaExecutable.absolutePath}\" \"@${argumentFile.absolutePath}\""
+			} else {
+				commandLine 'sh', '-c',
+						"\"${javaExecutable.absolutePath}\" \"@${argumentFile.absolutePath}\""
+			}
+		}
+	}
+}
+
+def surfaceIntegrationFreshProcess = surfaceIntegrationProcess('Fresh', prepareSurfaceIntegrationTest)
+def surfaceIntegrationReloadProcess = surfaceIntegrationProcess('Reload', surfaceIntegrationFreshProcess)
 
 def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
 	group = 'verification'
 	description = 'Verifies provider surfaces and dynamic-biome geology across fresh and reloaded normal terrain.'
-	dependsOn 'runSurfaceIntegrationReload'
+	dependsOn surfaceIntegrationReloadProcess
 	doLast {
 		File marker = surfaceIntegrationRunDirectory.get().file(
 				'surface-integration-world/surfaceprobe-integration.properties').asFile
@@ -606,7 +659,54 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                 changedLaunchGroups++
             }
         }
-        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} test exclusions, ${changedLaunchGroups} direct project launches updated)")
+
+        // ForgeGradle 5 writes its Java launches directly at the project root,
+        // rather than producing the later *Slim.launch files above. Keep the
+        // ordinary player/developer launches on main output only; the isolated
+        // surface-probe launches remain available as their own explicit runs.
+        int changedDirectLaunches = 0
+        ['runClient.launch', 'runServer.launch', 'runGameTestServer.launch',
+                'runData.launch'].each { String launchName ->
+            File launchFile = file(launchName)
+            if (!launchFile.isFile()) {
+                return
+            }
+            String original = launchFile.getText('UTF-8')
+            String synced = mapCacheReferences(original)
+            stableClasspaths.each { File generated, File stable ->
+                synced = synced
+                        .replace(generated.absolutePath, stable.absolutePath)
+                        .replace(generated.absolutePath.replace('\\', '/'),
+                                stable.absolutePath.replace('\\', '/'))
+            }
+            String modClasses = "${mod_id}%%${file('bin/main').canonicalPath}"
+            synced = synced.replaceFirst(
+                    /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
+                "<mapEntry key=\"MOD_CLASSES\" value=\"${modClasses}\"/>"
+            }
+            String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+            String excludeTestAttribute =
+                    "<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
+            if (synced.contains("key=\"${excludeTestKey}\"")) {
+                synced = synced.replaceFirst(
+                        /<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+                        excludeTestAttribute)
+            } else {
+                int launchHeaderEnd = synced.indexOf('\n', synced.indexOf('<launchConfiguration'))
+                if (launchHeaderEnd < 0) {
+                    throw new GradleException("Malformed Eclipse Java launch configuration: ${launchFile}")
+                }
+                String lineSeparator = synced.contains('\r\n') ? '\r\n' : '\n'
+                synced = "${synced.substring(0, launchHeaderEnd + 1)}" +
+                        "  ${excludeTestAttribute}${lineSeparator}" +
+                        synced.substring(launchHeaderEnd + 1)
+            }
+            if (original != synced) {
+                launchFile.setText(synced, 'UTF-8')
+                changedDirectLaunches++
+            }
+        }
+        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} slim test exclusions, ${changedLaunchGroups} launch groups, ${changedDirectLaunches} ForgeGradle 5 launches updated)")
     }
 }
 

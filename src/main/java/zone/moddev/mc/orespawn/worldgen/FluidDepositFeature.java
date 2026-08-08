@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,18 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
@@ -37,7 +39,8 @@ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.FeatureDecorator;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneDecoratorConfiguration;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -53,7 +56,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	private static final Map<ResourceKey<Level>, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static Holder<PlacedFeature> placedFeature;
+	private static ConfiguredFeature<?, ?> configuredFeature;
 	private static volatile Map<ResourceKey<Level>, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceKey<Level>, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
 	private static volatile Map<ResourceKey<Level>, GeomeGeology> classifiers = Collections.emptyMap();
@@ -68,11 +71,9 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "fluid_deposits");
-		Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(BuiltinRegistries.CONFIGURED_FEATURE,
-				id, new ConfiguredFeature<NoneFeatureConfiguration, FluidDepositFeature>(FEATURE,
-						NoneFeatureConfiguration.INSTANCE));
-		placedFeature = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE, id,
-				new PlacedFeature(configured, Collections.emptyList()));
+		configuredFeature = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE, id,
+				FEATURE.configured(NoneFeatureConfiguration.INSTANCE)
+						.decorated(FeatureDecorator.NOPE.configured(NoneDecoratorConfiguration.INSTANCE)));
 		refreshWorldConfig();
 	}
 
@@ -95,13 +96,14 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 
 	public static void onBiomeLoading(BiomeLoadingEvent event) {
 		if (!WorldgenBenchmark.isVanillaBaseline()
-				&& event.getCategory() != BiomeCategory.NONE && placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES).add(placedFeature);
+				&& event.getCategory() != BiomeCategory.NONE && configuredFeature != null) {
+			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
+					.add(() -> configuredFeature);
 		}
 	}
 
-	static Holder<PlacedFeature> placedFeature() {
-		return placedFeature;
+	static ConfiguredFeature<?, ?> configuredFeature() {
+		return configuredFeature;
 	}
 
 	@Override
@@ -118,7 +120,11 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 8, 8);
 		scratch.cursor.set(centerX, surfaceY, centerZ);
-		Holder<Biome> biome = world.getBiome(scratch.cursor);
+		Biome biome = world.getBiome(scratch.cursor);
+		ResourceLocation biomeId = world.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
+				.getKey(biome);
+		ResourceKey<Biome> biomeKey = biomeId == null ? null
+				: ResourceKey.create(Registry.BIOME_REGISTRY, biomeId);
 		BakedGeomeConfig config = geomeConfigs.get(dimension);
 		int geome = -1;
 		boolean geomeClassified = false;
@@ -126,11 +132,10 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 		boolean changed = false;
 		Random random = context.random();
 		for (BakedDeposit deposit : deposits) {
-			if (!deposit.acceptsBiome(biome)) continue;
+			if (!deposit.acceptsBiome(biomeKey)) continue;
 			if (!geomeClassified && deposit.usesGeomeWeights && config != null) {
-				ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
 				geome = classifier(dimension, world.getSeed(), config).classifyColumn(
-						biome.value(), biomeId, centerX, centerZ, scratch.geomeValues(config.geomeCount()));
+						biome, biomeId, centerX, centerZ, scratch.geomeValues(config.geomeCount()));
 				geomeClassified = true;
 			}
 			double frequency = geome < 0 ? deposit.frequency : deposit.frequency * deposit.geomeWeights[geome];
@@ -318,7 +323,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 				|| !profile.has("fluid_deposits") || !profile.get("fluid_deposits").isJsonObject()) {
 			return EMPTY_DIMENSIONS;
 		}
-		Map<TagKey<Block>, Set<Block>> resolvedTags = new HashMap<>();
+		Map<ResourceLocation, Set<Block>> resolvedTags = new HashMap<>();
 		Map<ResourceKey<Level>, List<BakedDeposit>> grouped = new LinkedHashMap<>();
 		for (Map.Entry<String, JsonElement> depositEntry
 				: profile.getAsJsonObject("fluid_deposits").entrySet()) {
@@ -361,7 +366,7 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static BakedDeposit bakeDeposit(BlockState output, JsonObject rule, BakedGeomeConfig config,
-			Map<TagKey<Block>, Set<Block>> resolvedTags) {
+			Map<ResourceLocation, Set<Block>> resolvedTags) {
 		int minY = integer(rule, "min_y", -48);
 		int maxY = integer(rule, "max_y", 48);
 		double frequency = decimal(rule, "frequency", 0.0D);
@@ -422,22 +427,19 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 	}
 
 	private static void addTags(Set<Block> target, JsonElement element,
-			Map<TagKey<Block>, Set<Block>> resolvedTags) {
+			Map<ResourceLocation, Set<Block>> resolvedTags) {
 		if (element == null || !element.isJsonArray()) return;
 		for (JsonElement value : element.getAsJsonArray()) {
 			ResourceLocation id = resource(value.isJsonObject()
 					? string(value.getAsJsonObject(), "tag", "") : value.getAsString());
 			if (id == null) continue;
-			TagKey<Block> tag = TagKey.create(Registry.BLOCK_REGISTRY, id);
-			target.addAll(resolvedTags.computeIfAbsent(tag, FluidDepositFeature::resolveTag));
+			target.addAll(resolvedTags.computeIfAbsent(id, FluidDepositFeature::resolveTag));
 		}
 	}
 
-	private static Set<Block> resolveTag(TagKey<Block> tag) {
+	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-			if (block.defaultBlockState().is(tag)) result.add(block);
-		}
+		result.addAll(BlockTags.getAllTags().getTagOrEmpty(tag).getValues());
 		return result;
 	}
 
@@ -572,11 +574,10 @@ public final class FluidDepositFeature extends Feature<NoneFeatureConfiguration>
 			return family != null && (familyMask & (1 << family.ordinal())) != 0;
 		}
 
-		boolean acceptsBiome(Holder<Biome> biome) {
-			java.util.Optional<ResourceKey<Biome>> key = biome.unwrapKey();
-			if (!key.isPresent()) return includedBiomes.isEmpty() && excludedBiomes.isEmpty();
-			return !excludedBiomes.contains(key.get())
-					&& (includedBiomes.isEmpty() || includedBiomes.contains(key.get()));
+		boolean acceptsBiome(ResourceKey<Biome> biome) {
+			if (biome == null) return includedBiomes.isEmpty() && excludedBiomes.isEmpty();
+			return !excludedBiomes.contains(biome)
+					&& (includedBiomes.isEmpty() || includedBiomes.contains(biome));
 		}
 	}
 

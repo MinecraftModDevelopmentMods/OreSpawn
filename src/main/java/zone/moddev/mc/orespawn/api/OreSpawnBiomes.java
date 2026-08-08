@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 import net.minecraft.world.level.biome.Biome;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.fmllegacy.RegistryObject;
 
 /**
  * Small registration helpers for provider mods which want to define biomes
@@ -26,8 +26,17 @@ public final class OreSpawnBiomes {
 		Objects.requireNonNull(edit, "edit");
 		return register.register(name, () -> {
 			Biome sourceBiome = source.get();
-			Biome.BiomeBuilder builder = Biome.BiomeBuilder.from(sourceBiome)
-					.temperatureAdjustment(sourceBiome.climateSettings.temperatureModifier);
+			Biome.BiomeBuilder builder = new Biome.BiomeBuilder()
+					.precipitation(sourceBiome.getPrecipitation())
+					.biomeCategory(sourceBiome.getBiomeCategory())
+					.depth(sourceBiome.getDepth())
+					.scale(sourceBiome.getScale())
+					.temperature(sourceBiome.getBaseTemperature())
+					.temperatureAdjustment(sourceBiome.climateSettings.temperatureModifier)
+					.downfall(sourceBiome.getDownfall())
+					.specialEffects(sourceBiome.getSpecialEffects())
+					.mobSpawnSettings(sourceBiome.getMobSettings())
+					.generationSettings(sourceBiome.getGenerationSettings());
 			edit.accept(builder);
 			return builder.build();
 		});

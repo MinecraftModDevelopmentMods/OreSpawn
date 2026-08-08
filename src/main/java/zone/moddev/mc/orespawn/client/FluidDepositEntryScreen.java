@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +50,7 @@ final class FluidDepositEntryScreen extends Screen {
 		int left = (width - contentWidth) / 2;
 		int column = (contentWidth - 5) / 2;
 		JsonObject dimensions = dimensions();
-		List<String> ids = new ArrayList<>(dimensions.keySet());
+		List<String> ids = new ArrayList<>(JsonCopies.keys(dimensions));
 		Collections.sort(ids);
 		OreSpawnScreenLayout.explain(this,
 				addRenderableWidget(CycleButton.onOffBuilder(enabled).create(left, 46, column, 20,

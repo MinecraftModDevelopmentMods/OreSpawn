@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

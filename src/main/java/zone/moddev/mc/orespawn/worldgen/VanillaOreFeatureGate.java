@@ -4,15 +4,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.mojang.serialization.Codec;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 
-import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.GenerationStep;
@@ -21,7 +20,6 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
-import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -40,7 +38,7 @@ public final class VanillaOreFeatureGate {
 	private static final GateFeature[] FEATURES = features();
 	private static final SuppressibleGateFeature SUPPRESSIBLE_FEATURE = new SuppressibleGateFeature();
 	private static Gate[] gates = new Gate[0];
-	private static Map<ResourceLocation, Holder<PlacedFeature>> suppressibleGates = new LinkedHashMap<>();
+	private static Map<ResourceLocation, ConfiguredFeature<?, ?>> suppressibleGates = new LinkedHashMap<>();
 
 	private VanillaOreFeatureGate() {
 	}
@@ -56,9 +54,8 @@ public final class VanillaOreFeatureGate {
 		List<Gate> registered = new ArrayList<>();
 		for (int definitionIndex = 0; definitionIndex < DEFINITIONS.length; definitionIndex++) {
 			Definition definition = DEFINITIONS[definitionIndex];
-			ResourceKey<PlacedFeature> key = ResourceKey.create(Registry.PLACED_FEATURE_REGISTRY,
-					definition.placedFeatureId);
-			Holder<PlacedFeature> original = BuiltinRegistries.PLACED_FEATURE.getHolder(key).orElse(null);
+			ConfiguredFeature<?, ?> original = BuiltinRegistries.CONFIGURED_FEATURE
+					.get(definition.placedFeatureId);
 			Block output = ForgeRegistries.BLOCKS.getValue(definition.oreBlockId);
 			if (original == null || output == null) {
 				LOGGER.warn("Could not create OreSpawn gate for vanilla ore feature '{}'",
@@ -69,15 +66,9 @@ public final class VanillaOreFeatureGate {
 			ResourceLocation wrapperId = new ResourceLocation(OreSpawn.MODID,
 					"vanilla_ore_gate/" + definition.placedFeatureId.getPath());
 			GateFeature feature = FEATURES[definitionIndex];
-			feature.initialize(original.value().feature(), output);
-			Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-					BuiltinRegistries.CONFIGURED_FEATURE, wrapperId,
-					new ConfiguredFeature<NoneFeatureConfiguration, GateFeature>(feature,
-							NoneFeatureConfiguration.INSTANCE));
-			// BiomeFilter must see the registered wrapper as the top feature. Moving
-			// these modifiers into the delegate leaks biome-specific ores.
-			Holder<PlacedFeature> wrapper = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE,
-					wrapperId, new PlacedFeature(configured, original.value().placement()));
+			feature.initialize(original, output);
+			ConfiguredFeature<?, ?> wrapper = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE,
+					wrapperId, feature.configured(NoneFeatureConfiguration.INSTANCE));
 			registered.add(new Gate(definition.placedFeatureId, wrapper));
 		}
 		gates = registered.toArray(new Gate[registered.size()]);
@@ -89,24 +80,25 @@ public final class VanillaOreFeatureGate {
 		wrapFeatureList(event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_DECORATION));
 	}
 
-	static boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
+	static boolean wrapFeatureList(List<Supplier<ConfiguredFeature<?, ?>>> features) {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
-			Holder<PlacedFeature> feature = features.get(featureIndex);
+			Supplier<ConfiguredFeature<?, ?>> feature = features.get(featureIndex);
+			ResourceLocation featureId = BuiltinRegistries.CONFIGURED_FEATURE.getKey(feature.get());
 			boolean wrapped = false;
 			for (Gate gate : gates) {
-				if (feature.is(gate.originalId)) {
-					features.set(featureIndex, gate.wrapper);
+				if (gate.originalId.equals(featureId)) {
+					features.set(featureIndex, () -> gate.wrapper);
 					wrapped = true;
 					changed = true;
 					break;
 				}
 			}
 			if (!wrapped) {
-				ResourceLocation id = BuiltinRegistries.PLACED_FEATURE.getKey(feature.value());
-				Holder<PlacedFeature> replacement = id == null ? null : suppressibleGates.get(id);
+				ConfiguredFeature<?, ?> replacement = featureId == null ? null
+						: suppressibleGates.get(featureId);
 				if (replacement != null) {
-					features.set(featureIndex, replacement);
+					features.set(featureIndex, () -> replacement);
 					changed = true;
 				}
 			}
@@ -115,24 +107,22 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static void registerSuppressibleOreGates() {
-		Map<ResourceLocation, Holder<PlacedFeature>> registered = new LinkedHashMap<>();
-		List<Map.Entry<ResourceKey<PlacedFeature>, PlacedFeature>> candidates =
-				new ArrayList<>(BuiltinRegistries.PLACED_FEATURE.entrySet());
-		for (Map.Entry<ResourceKey<PlacedFeature>, PlacedFeature> entry : candidates) {
+		Map<ResourceLocation, ConfiguredFeature<?, ?>> registered = new LinkedHashMap<>();
+		List<Map.Entry<net.minecraft.resources.ResourceKey<ConfiguredFeature<?, ?>>,
+				ConfiguredFeature<?, ?>>> candidates =
+				new ArrayList<>(BuiltinRegistries.CONFIGURED_FEATURE.entrySet());
+		for (Map.Entry<net.minecraft.resources.ResourceKey<ConfiguredFeature<?, ?>>,
+				ConfiguredFeature<?, ?>> entry : candidates) {
 			ResourceLocation id = entry.getKey().location();
-			PlacedFeature original = entry.getValue();
+			ConfiguredFeature<?, ?> original = entry.getValue();
 			if (OreSpawn.MODID.equals(id.getNamespace()) || isKnownVanillaGate(id)
 					|| !isStandardOreFeature(original)) {
 				continue;
 			}
 			ResourceLocation wrapperId = new ResourceLocation(OreSpawn.MODID,
 					"all_ore_gate/" + id.getNamespace() + "/" + id.getPath());
-			Holder<ConfiguredFeature<?, ?>> configured = BuiltinRegistries.register(
-					BuiltinRegistries.CONFIGURED_FEATURE, wrapperId,
-					new ConfiguredFeature<SuppressibleConfig, SuppressibleGateFeature>(SUPPRESSIBLE_FEATURE,
-							new SuppressibleConfig(original.feature())));
-			Holder<PlacedFeature> wrapper = BuiltinRegistries.register(BuiltinRegistries.PLACED_FEATURE,
-					wrapperId, new PlacedFeature(configured, original.placement()));
+			ConfiguredFeature<?, ?> wrapper = Registry.register(BuiltinRegistries.CONFIGURED_FEATURE,
+					wrapperId, SUPPRESSIBLE_FEATURE.configured(new SuppressibleConfig(() -> original)));
 			registered.put(id, wrapper);
 		}
 		suppressibleGates = registered;
@@ -144,36 +134,27 @@ public final class VanillaOreFeatureGate {
 		return false;
 	}
 
-	private static boolean isStandardOreFeature(PlacedFeature placed) {
-		return placed.getFeatures().anyMatch(configured -> configured.feature() == Feature.ORE
+	private static boolean isStandardOreFeature(ConfiguredFeature<?, ?> configuredFeature) {
+		return configuredFeature.getFeatures().anyMatch(configured -> configured.feature() == Feature.ORE
 				|| configured.feature() == Feature.SCATTERED_ORE);
 	}
 
 	private static Definition[] definitions() {
 		return new Definition[] {
-				definition("ore_coal_upper", "coal_ore"),
-				definition("ore_coal_lower", "coal_ore"),
-				definition("ore_iron_upper", "iron_ore"),
-				definition("ore_iron_middle", "iron_ore"),
-				definition("ore_iron_small", "iron_ore"),
+				definition("ore_coal", "coal_ore"),
+				definition("ore_iron", "iron_ore"),
 				definition("ore_gold_extra", "gold_ore"),
 				definition("ore_gold", "gold_ore"),
-				definition("ore_gold_lower", "gold_ore"),
 				definition("ore_redstone", "redstone_ore"),
-				definition("ore_redstone_lower", "redstone_ore"),
 				definition("ore_diamond", "diamond_ore"),
-				definition("ore_diamond_large", "diamond_ore"),
-				definition("ore_diamond_buried", "diamond_ore"),
 				definition("ore_lapis", "lapis_ore"),
-				definition("ore_lapis_buried", "lapis_ore"),
 				definition("ore_emerald", "emerald_ore"),
 				definition("ore_copper", "copper_ore"),
-				definition("ore_copper_large", "copper_ore"),
 				definition("ore_gold_deltas", "nether_gold_ore"),
 				definition("ore_gold_nether", "nether_gold_ore"),
 				definition("ore_quartz_deltas", "nether_quartz_ore"),
 				definition("ore_quartz_nether", "nether_quartz_ore"),
-				definition("ore_ancient_debris_large", "ancient_debris"),
+				definition("ore_debris_large", "ancient_debris"),
 				definition("ore_debris_small", "ancient_debris")
 		};
 	}
@@ -194,14 +175,14 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static final class GateFeature extends Feature<NoneFeatureConfiguration> {
-		private Holder<ConfiguredFeature<?, ?>> original;
+		private ConfiguredFeature<?, ?> original;
 		private Block output;
 
 		GateFeature() {
 			super(NoneFeatureConfiguration.CODEC);
 		}
 
-		void initialize(Holder<ConfiguredFeature<?, ?>> original, Block output) {
+		void initialize(ConfiguredFeature<?, ?> original, Block output) {
 			this.original = original;
 			this.output = output;
 		}
@@ -215,7 +196,7 @@ public final class VanillaOreFeatureGate {
 					context.level().getLevel().dimension(), output)) {
 				return false;
 			}
-			return original.value().place(context.level(), context.chunkGenerator(),
+			return original.place(context.level(), context.chunkGenerator(),
 					context.random(), context.origin());
 		}
 	}
@@ -225,9 +206,9 @@ public final class VanillaOreFeatureGate {
 				.fieldOf("delegate")
 				.xmap(SuppressibleConfig::new, value -> value.delegate)
 				.codec();
-		final Holder<ConfiguredFeature<?, ?>> delegate;
+		final Supplier<ConfiguredFeature<?, ?>> delegate;
 
-		SuppressibleConfig(Holder<ConfiguredFeature<?, ?>> delegate) {
+		SuppressibleConfig(Supplier<ConfiguredFeature<?, ?>> delegate) {
 			this.delegate = delegate;
 		}
 	}
@@ -241,7 +222,7 @@ public final class VanillaOreFeatureGate {
 		@Override
 		public boolean place(FeaturePlaceContext<SuppressibleConfig> context) {
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
-			return context.config().delegate.value().place(context.level(), context.chunkGenerator(),
+			return context.config().delegate.get().place(context.level(), context.chunkGenerator(),
 					context.random(), context.origin());
 		}
 	}
@@ -258,9 +239,9 @@ public final class VanillaOreFeatureGate {
 
 	private static final class Gate {
 		final ResourceLocation originalId;
-		final Holder<PlacedFeature> wrapper;
+		final ConfiguredFeature<?, ?> wrapper;
 
-		Gate(ResourceLocation originalId, Holder<PlacedFeature> wrapper) {
+		Gate(ResourceLocation originalId, ConfiguredFeature<?, ?> wrapper) {
 			this.originalId = originalId;
 			this.wrapper = wrapper;
 		}

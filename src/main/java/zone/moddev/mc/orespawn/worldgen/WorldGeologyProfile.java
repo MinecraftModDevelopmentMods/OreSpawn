@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import zone.moddev.mc.orespawn.util.JsonCopies;
+
 import java.util.Locale;
 import java.util.Optional;
 
@@ -32,7 +34,7 @@ public final class WorldGeologyProfile {
 	private final boolean placeFluidDeposits;
 
 	private WorldGeologyProfile(JsonObject root, GeologyMode fallbackMode, boolean fallbackFluidDeposits) {
-		this.root = root.deepCopy();
+		this.root = JsonCopies.copy(root);
 		FluidDepositMigration.normalize(this.root);
 		this.root.addProperty("schema_version", SCHEMA_VERSION);
 		geologyMode = enumValue(this.root, "geology_mode", GeologyMode.class, fallbackMode);
@@ -61,7 +63,7 @@ public final class WorldGeologyProfile {
 
 	public static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
 			GeologyMode geologyMode, boolean placeFluidDeposits) {
-		JsonObject root = globalRoot.deepCopy();
+		JsonObject root = JsonCopies.copy(globalRoot);
 		if (!root.has("geology_mode")) {
 			root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
 		}
@@ -77,11 +79,11 @@ public final class WorldGeologyProfile {
 			return new WorldGeologyProfile(json, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
 		if (schema == 2 || schema == 3 || schema == 4) {
-			JsonObject migrated = json.deepCopy();
+			JsonObject migrated = JsonCopies.copy(json);
 			for (String key : new String[] { "terrain_dimensions", "providers",
 					"biome_palettes", "dimension_materials" }) {
 				if (!migrated.has(key) && fallback.root.has(key)) {
-					migrated.add(key, fallback.root.get(key).deepCopy());
+					migrated.add(key, JsonCopies.copy(fallback.root.get(key)));
 				}
 			}
 			return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeFluidDeposits);
@@ -149,7 +151,7 @@ public final class WorldGeologyProfile {
 	}
 
 	public JsonObject rootCopy() {
-		JsonObject copy = root.deepCopy();
+		JsonObject copy = JsonCopies.copy(root);
 		copy.addProperty("schema_version", SCHEMA_VERSION);
 		return copy;
 	}
@@ -161,7 +163,7 @@ public final class WorldGeologyProfile {
 	}
 
 	public JsonObject toFormationJson() {
-		return root.getAsJsonObject("formations").deepCopy();
+		return JsonCopies.copy(root.getAsJsonObject("formations"));
 	}
 
 	public GeologyMode geologyMode() {
@@ -299,13 +301,13 @@ public final class WorldGeologyProfile {
 
 	private static JsonObject normalizedFormationJson(JsonObject source) {
 		JsonObject fallback = recommendedFormationJson();
-		JsonObject result = source.deepCopy();
+		JsonObject result = JsonCopies.copy(source);
 		JsonObject custom = object(result, "custom", fallback.getAsJsonObject("custom"));
 		for (String key : new String[] { "stratum_wavelength", "family_region_wavelength",
 				"vertical_thickness", "waviness_wavelength", "waviness_amplitude",
 				"edge_wavelength", "edge_amplitude", "edge_octaves", "continuity" }) {
 			if (!custom.has(key)) {
-				custom.add(key, fallback.getAsJsonObject("custom").get(key).deepCopy());
+				custom.add(key, JsonCopies.copy(fallback.getAsJsonObject("custom").get(key)));
 			}
 		}
 		result.add("custom", custom);
@@ -314,7 +316,7 @@ public final class WorldGeologyProfile {
 
 	private static void copyIfPresent(JsonObject source, JsonObject target, String key) {
 		if (source.has(key)) {
-			target.add(key, source.get(key).deepCopy());
+			target.add(key, JsonCopies.copy(source.get(key)));
 		}
 	}
 
@@ -356,7 +358,7 @@ public final class WorldGeologyProfile {
 
 	private static JsonObject object(JsonObject source, String key, JsonObject fallback) {
 		JsonElement element = source.get(key);
-		return element != null && element.isJsonObject() ? element.getAsJsonObject() : fallback.deepCopy();
+		return element != null && element.isJsonObject() ? element.getAsJsonObject() : JsonCopies.copy(fallback);
 	}
 
 	private static boolean booleanValue(JsonObject source, String key, boolean fallback) {
