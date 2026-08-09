@@ -74,16 +74,16 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y, half, 20,
 				new TranslationTextComponent("button.orespawn.biome_palette_count",
 						session.biomePlacementIds(dimension).size()),
-				button -> minecraft.setScreen(new BiomePaletteScreen(this, session, dimension)),
+				button -> minecraft.displayGuiScreen(new BiomePaletteScreen(this, session, dimension)),
 				"tooltip.orespawn.biome.entries"));
 		addButton(OreSpawnScreenLayout.explainedButton(this, font, left + half + 5, y, half, 20,
 				new TranslationTextComponent("button.orespawn.dimension_materials"),
-				button -> minecraft.setScreen(new DimensionMaterialsScreen(this, session, dimension)),
+				button -> minecraft.displayGuiScreen(new DimensionMaterialsScreen(this, session, dimension)),
 				"tooltip.orespawn.biome.dimension_materials"));
 		y += 26;
 		addButton(OreSpawnScreenLayout.explainedButton(this, font, left, y, contentWidth, 20,
 				new TranslationTextComponent("button.orespawn.geome_influences"),
-				button -> minecraft.setScreen(new GeomeBiomeScreen(this, session)),
+				button -> minecraft.displayGuiScreen(new GeomeBiomeScreen(this, session)),
 				"tooltip.orespawn.biome.geome_influences"));
 		addButton(new Button(width / 2 - 75, OreSpawnScreenLayout.footerY(height),
 				150, 20, DialogTexts.GUI_DONE, button -> onClose()));
@@ -92,10 +92,10 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 	private void setPaletteEnabled(boolean enabled) {
 		JsonObject palette = session.biomePalette(dimension, true);
 		if (enabled && session.biomePlacementIds(dimension).isEmpty()) {
-			minecraft.setScreen(new BiomePickerScreen(this, session,
+			minecraft.displayGuiScreen(new BiomePickerScreen(this, session,
 					id -> {
 						session.addBiomePlacement(dimension, id);
-						minecraft.setScreen(new BiomePlacementScreen(this, session, dimension, id));
+						minecraft.displayGuiScreen(new BiomePlacementScreen(this, session, dimension, id));
 					}));
 			return;
 		}
@@ -129,7 +129,7 @@ final class BiomeWorldMaterialsScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	@Override

@@ -63,7 +63,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 			String id = ids.get(start + i);
 			addButton(OreSpawnScreenLayout.button(this, font,
 					width / 2 - 155, listTop + (i * 24), 310, 20,
-					new StringTextComponent(id), button -> minecraft.setScreen(
+					new StringTextComponent(id), button -> minecraft.displayGuiScreen(
 							new OreDimensionScreen(this, session, oreId, id))));
 		}
 		Button previous = addButton(new Button(width / 2 - 155, controlsY, 45, 20,
@@ -112,7 +112,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 		if (!target.has(id)) {
 			target.add(id, defaultDimension(id));
 		}
-		minecraft.setScreen(new OreDimensionScreen(this, session, oreId, id));
+		minecraft.displayGuiScreen(new OreDimensionScreen(this, session, oreId, id));
 	}
 
 	private static JsonObject defaultDimension(String id) {
@@ -162,7 +162,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 
 	private void unassign() {
 		session.disableOrRemoveOre(oreId);
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	private static JsonObject dimensions(JsonObject ore) {
@@ -201,7 +201,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	@Override

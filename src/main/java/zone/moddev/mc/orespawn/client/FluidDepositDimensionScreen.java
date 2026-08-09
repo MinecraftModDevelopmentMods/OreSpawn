@@ -197,12 +197,12 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 		JsonObject weights = rule().has("geomes") && rule().get("geomes").isJsonObject()
 				? rule().getAsJsonObject("geomes") : new JsonObject();
 		rule().add("geomes", weights);
-		minecraft.setScreen(new WeightMapScreen(this,
+		minecraft.displayGuiScreen(new WeightMapScreen(this,
 				new TranslationTextComponent("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
-	private void saveAndClose() { if (save()) minecraft.setScreen(parent); }
+	private void saveAndClose() { if (save()) minecraft.displayGuiScreen(parent); }
 
 	private boolean save() {
 		try {
@@ -255,7 +255,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 
 	private void removeDimension() {
 		dimensions().remove(dimensionId);
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	private JsonObject rule() {
@@ -320,7 +320,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 		return json.has(key) ? json.get(key).getAsString() : fallback.toString();
 	}
 
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.displayGuiScreen(parent); }
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {

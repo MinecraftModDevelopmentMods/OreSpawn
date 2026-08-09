@@ -60,7 +60,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 
 		Button output = addButton(OreSpawnScreenLayout.button(this, font,
 				left, 70, contentWidth, 20, fluidName(outputBlock), button -> {
-					if (!ids.isEmpty()) minecraft.setScreen(
+					if (!ids.isEmpty()) minecraft.displayGuiScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
 		output.active = !ids.isEmpty();
@@ -76,7 +76,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addButton(OreSpawnScreenLayout.button(this, font, left, listTop + (i * 24),
-					contentWidth, 20, new StringTextComponent(id), button -> minecraft.setScreen(
+					contentWidth, 20, new StringTextComponent(id), button -> minecraft.displayGuiScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, id))));
 		}
 		Button previous = addButton(new Button(left, controlsY, 45, 20,
@@ -98,14 +98,14 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 				DialogTexts.GUI_DONE, button -> onClose()));
 		addButton(OreSpawnScreenLayout.button(this, font, width / 2 + 55, height - 28, 100, 20,
 				new TranslationTextComponent("button.orespawn.remove"), button -> {
-					session.removeFluidDeposit(depositId); minecraft.setScreen(parent);
+					session.removeFluidDeposit(depositId); minecraft.displayGuiScreen(parent);
 				}));
 	}
 
 	private void addDimension(String id) {
 		JsonObject dimensions = dimensions();
 		if (!dimensions.has(id)) dimensions.add(id, defaultDimension(id));
-		minecraft.setScreen(new FluidDepositDimensionScreen(this, session, depositId, id));
+		minecraft.displayGuiScreen(new FluidDepositDimensionScreen(this, session, depositId, id));
 	}
 
 	private static JsonObject defaultDimension(String id) {
@@ -165,7 +165,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 	}
 
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.displayGuiScreen(parent); }
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {

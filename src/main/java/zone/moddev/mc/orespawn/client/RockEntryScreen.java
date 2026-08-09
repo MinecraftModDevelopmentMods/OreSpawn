@@ -98,12 +98,12 @@ final class RockEntryScreen extends OreSpawnScreen {
 		JsonObject weights = rock.has("geomes") && rock.get("geomes").isJsonObject()
 				? rock.getAsJsonObject("geomes") : new JsonObject();
 		rock.add("geomes", weights);
-		minecraft.setScreen(new WeightMapScreen(this, new TranslationTextComponent("screen.orespawn.geome_weights"),
+		minecraft.displayGuiScreen(new WeightMapScreen(this, new TranslationTextComponent("screen.orespawn.geome_weights"),
 				weights, session.geomeIds(), 1.0D));
 	}
 
 	private void saveAndClose() {
-		if (save()) minecraft.setScreen(parent);
+		if (save()) minecraft.displayGuiScreen(parent);
 	}
 
 	private boolean save() {
@@ -144,7 +144,7 @@ final class RockEntryScreen extends OreSpawnScreen {
 
 	private void remove() {
 		session.removeRock(blockId);
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	private double number(TextFieldWidget box, double min, double max) {
@@ -169,7 +169,7 @@ final class RockEntryScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	@Override

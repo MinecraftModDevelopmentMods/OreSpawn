@@ -12,8 +12,6 @@ import net.minecraft.util.text.ITextComponent;
  * matrix-free {@link Screen#render(int, int, float)} contract directly.
  */
 abstract class OreSpawnScreen extends Screen {
-	protected final LegacyMinecraft minecraft = new LegacyMinecraft();
-
 	OreSpawnScreen(ITextComponent title) {
 		super(title);
 	}
@@ -33,12 +31,5 @@ abstract class OreSpawnScreen extends Screen {
 		List<String> text = new ArrayList<>();
 		for (ITextComponent line : lines) text.add(line.getFormattedText());
 		renderTooltip(text, mouseX, mouseY);
-	}
-
-	/** Keeps later screen navigation source local while calling the 1.15 client API. */
-	protected static final class LegacyMinecraft {
-		void setScreen(Screen screen) {
-			net.minecraft.client.Minecraft.getInstance().displayGuiScreen(screen);
-		}
 	}
 }

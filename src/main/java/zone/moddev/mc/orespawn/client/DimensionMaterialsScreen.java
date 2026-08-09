@@ -49,7 +49,7 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 				left, y, width - 65, 20,
 				label(key, value), button -> {
 					save();
-					minecraft.setScreen(new MaterialBlockPickerScreen(this, session, fluid,
+					minecraft.displayGuiScreen(new MaterialBlockPickerScreen(this, session, fluid,
 							id -> session.setMaterialBlock(dimension, key, id, fluid)));
 				}, materialHelp(key)));
 		selector.active = editable;
@@ -78,7 +78,7 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	}
 
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.displayGuiScreen(parent); }
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {

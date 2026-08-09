@@ -91,7 +91,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 
 	private void saveAndClose() {
 		if (savePage()) {
-			minecraft.setScreen(parent);
+			minecraft.displayGuiScreen(parent);
 		}
 	}
 
@@ -132,7 +132,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 
 	@Override
 	public void onClose() {
-		minecraft.setScreen(parent);
+		minecraft.displayGuiScreen(parent);
 	}
 
 	@Override

@@ -99,7 +99,7 @@ final class BiomeReferenceScreen extends OreSpawnScreen {
 	}
 
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
-	@Override public void onClose() { minecraft.setScreen(parent); }
+	@Override public void onClose() { minecraft.displayGuiScreen(parent); }
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {

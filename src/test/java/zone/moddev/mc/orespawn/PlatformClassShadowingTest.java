@@ -67,6 +67,26 @@ class PlatformClassShadowingTest {
 				"The Forge 31 MatrixStack ABI used by GameRenderer must be callable");
 	}
 
+	@Test
+	void clientScreensUseTheTargetNativeNavigationApi() throws Exception {
+		Path clientDirectory = MAIN_JAVA.resolve(Paths.get(
+				"zone", "moddev", "mc", "orespawn", "client"));
+		StringBuilder combined = new StringBuilder();
+		try (Stream<Path> files = Files.walk(clientDirectory)) {
+			for (Path source : files.filter(path -> path.getFileName().toString().endsWith(".java"))
+					.collect(Collectors.toList())) {
+				combined.append(new String(Files.readAllBytes(source), java.nio.charset.StandardCharsets.UTF_8));
+			}
+		}
+		String source = combined.toString();
+		assertTrue(!source.contains("LegacyMinecraft"),
+				"Do not wrap target-native Minecraft client methods in later-version facades");
+		assertTrue(!source.contains("minecraft.setScreen("),
+				"Minecraft 1.15 screens must use displayGuiScreen directly");
+		assertTrue(source.contains("minecraft.displayGuiScreen("),
+				"Screen navigation must use Minecraft 1.15's native displayGuiScreen method");
+	}
+
 	private static List<Path> platformNamespaceSources() throws Exception {
 		List<Path> sources = new ArrayList<>();
 		for (String root : Arrays.asList("com/mojang", "net/minecraft", "net/minecraftforge")) {

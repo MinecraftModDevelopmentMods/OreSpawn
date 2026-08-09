@@ -40,7 +40,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 			int y = listTop + (i * 24);
 			addButton(new Button(left, y, contentWidth - 82, 20,
 					OreSpawnScreenLayout.fit(font, depositName(id), contentWidth - 90),
-					button -> minecraft.setScreen(new FluidDepositEntryScreen(this, session, id)),
+					button -> minecraft.displayGuiScreen(new FluidDepositEntryScreen(this, session, id)),
 					(button, mouseX, mouseY) -> renderComponentTooltip(details(id), mouseX, mouseY)));
 			addButton(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
 					new TranslationTextComponent("button.orespawn.remove"), button -> {
@@ -58,7 +58,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 		OreSpawnScreenLayout.explain(this, addButton(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
 				new TranslationTextComponent("button.orespawn.add"), button ->
-						minecraft.setScreen(new FluidBlockPickerScreen(this, session)))),
+						minecraft.displayGuiScreen(new FluidBlockPickerScreen(this, session)))),
 				"tooltip.orespawn.fluid.add_deposit");
 		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
 				DialogTexts.GUI_DONE, button -> onClose()));
@@ -87,7 +87,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
 
 	@Override
-	public void onClose() { minecraft.setScreen(parent); }
+	public void onClose() { minecraft.displayGuiScreen(parent); }
 
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {
