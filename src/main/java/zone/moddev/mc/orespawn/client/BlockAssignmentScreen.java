@@ -1,10 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -63,12 +60,12 @@ final class BlockAssignmentScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new StringTextComponent(blockId), width / 2, 42, 0xDDDDDD);
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, 155, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		drawCenteredString(font, new StringTextComponent(blockId), width / 2, 42, 0xDDDDDD);
+		if (error != null) drawCenteredString(font, error, width / 2, 155, 0xFF5555);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

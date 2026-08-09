@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
@@ -78,9 +75,9 @@ final class BiomePickerScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
+		super.render(mouseX, mouseY, partialTick);
 	}
 }

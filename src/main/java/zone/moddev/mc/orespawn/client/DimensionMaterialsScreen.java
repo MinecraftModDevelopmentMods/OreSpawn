@@ -1,10 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -84,12 +81,12 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new StringTextComponent(dimension), width / 2, 30, 0xCCCCCC);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+		drawCenteredString(font, new StringTextComponent(dimension), width / 2, 30, 0xCCCCCC);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 
 	private static String string(JsonObject root, String key, String fallback) {

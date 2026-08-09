@@ -13,11 +13,8 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.worldgen.OreHeightDistribution;
 import zone.moddev.mc.orespawn.worldgen.OrePattern;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -434,58 +431,58 @@ final class OreDimensionScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 2, 0xFFFFFF);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 2, 0xFFFFFF);
 		ITextComponent blockName = new StringTextComponent(
 				session.materialBlockId(GeologyEditorSession.MaterialTab.ORES, oreId));
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
+		drawCenteredString(font, OreSpawnScreenLayout.fit(font, blockName, contentWidth),
 				width / 2, 13, 0xDDDDDD);
 		ITextComponent dimensionName = dimensionSelector
 				? new TranslationTextComponent("value.orespawn.dimension.all_except_nether_end")
 				: new StringTextComponent(dimensionId);
 		boolean compact = OreSpawnScreenLayout.compact(height);
 		if (error == null || !compact) {
-			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
+			drawCenteredString(font, OreSpawnScreenLayout.fit(font, dimensionName, contentWidth),
 					width / 2, 23, 0xAAAAAA);
 		}
 		if (page == Page.PLACEMENT) {
 			if (compact) {
-				drawCompactPlacementLabels(poseStack);
+				drawCompactPlacementLabels();
 			} else {
 				String[] labels = { "min_y", "max_y", "frequency", "min_quantity", "max_quantity",
 						"discard_air_exposure" };
 				for (int i = 0; i < labels.length; i++) {
 					ITextComponent label = new TranslationTextComponent("option.orespawn." + labels[i]);
-					drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
+					drawString(font, OreSpawnScreenLayout.fit(font, label, columnWidth - 5),
 							contentLeft, 110 + (i * 24), 0xDDDDDD);
 				}
 			}
 		} else if (page == Page.PATTERN && !externalPattern) {
 			String[] labels = { "spread", "vertical_spread", "node_size" };
 			for (int i = 0; i < labels.length; i++) {
-				drawString(poseStack, font, new TranslationTextComponent("option.orespawn." + labels[i]),
+				drawString(font, new TranslationTextComponent("option.orespawn." + labels[i]),
 						contentLeft, 134 + (i * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.PATTERN) {
-			drawCenteredString(poseStack, font,
+			drawCenteredString(font,
 					new TranslationTextComponent("message.orespawn.external_pattern_read_only"),
 					width / 2, 132, 0xAAAAAA);
 		} else {
-			drawString(poseStack, font, new TranslationTextComponent("option.orespawn.host_blocks"),
+			drawString(font, new TranslationTextComponent("option.orespawn.host_blocks"),
 					contentLeft, 78, 0xDDDDDD);
-			drawString(poseStack, font, new TranslationTextComponent("option.orespawn.host_tags"),
+			drawString(font, new TranslationTextComponent("option.orespawn.host_tags"),
 					contentLeft, 110, 0xDDDDDD);
 		}
 		if (error != null) {
-			drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font, error, contentWidth),
+			drawCenteredString(font, OreSpawnScreenLayout.fit(font, error, contentWidth),
 					width / 2, compact ? 23 : height - 40, 0xFF5555);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 
-	private void drawCompactPlacementLabels(MatrixStack poseStack) {
+	private void drawCompactPlacementLabels() {
 		String[][] labels = {
 				{ "min_y", "max_y" },
 				{ "frequency", "discard_air_exposure" },
@@ -495,7 +492,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 			for (int column = 0; column < labels[row].length; column++) {
 				ITextComponent label = new TranslationTextComponent("option.orespawn." + labels[row][column]);
 				int x = column == 0 ? contentLeft : contentLeft + columnWidth + 5;
-				drawString(poseStack, font, OreSpawnScreenLayout.fit(font, label, columnWidth),
+				drawString(font, OreSpawnScreenLayout.fit(font, label, columnWidth),
 						x, OreSpawnScreenLayout.compactOrePlacementLabelY(height, row), 0xDDDDDD);
 			}
 		}

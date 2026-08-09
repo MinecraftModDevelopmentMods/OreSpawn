@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 
@@ -116,15 +113,15 @@ final class WeightMapScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 14, 0xFFFFFF);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
 		int start = page * PAGE_SIZE;
 		for (int i = 0; i < editors.size(); i++) {
-			drawString(poseStack, font, keys.get(start + i), width / 2 - 155, 44 + (i * 24), 0xDDDDDD);
+			drawString(font, keys.get(start + i), width / 2 - 155, 44 + (i * 24), 0xDDDDDD);
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		if (error != null) drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

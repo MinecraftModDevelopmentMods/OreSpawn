@@ -10,6 +10,7 @@ Version 4.0.6
 * Support the single 1.15.2 dimension fluid while retaining later deep-aquifer profile fields as inactive data.
 * Adapt static biome features and set-based biome providers to Forge 31 without changing public contracts.
 * Restore reliable 1.15.2 editor backgrounds and tooltip clearing.
+* Use Forge 31's native client rendering classes so entering a newly created world cannot be blocked by a compatibility-class collision.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5

@@ -9,11 +9,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -326,10 +323,10 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 8, 0xFFFFFF);
-		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font,
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+		drawCenteredString(font, OreSpawnScreenLayout.fit(font,
 				new StringTextComponent(depositId + " / " + dimensionId), Math.min(390, width - 24)),
 				width / 2, 24, 0xAAAAAA);
 		if (page == Page.PLACEMENT) {
@@ -341,15 +338,15 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 				int row = i < 5 ? i : i - 5;
 				int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
 				int labelWidth = columnWidth - fieldWidth - 5;
-				drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
+				drawString(font, OreSpawnScreenLayout.fit(font,
 						new TranslationTextComponent("option.orespawn." + keys[i]), labelWidth),
 						groupX, 96 + (row * 24), 0xDDDDDD);
 			}
 		} else if (page == Page.HOSTS) {
-			drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
+			drawString(font, OreSpawnScreenLayout.fit(font,
 					new TranslationTextComponent("option.orespawn.host_blocks_short"), columnWidth),
 					left, 94, 0xDDDDDD);
-			drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
+			drawString(font, OreSpawnScreenLayout.fit(font,
 					new TranslationTextComponent("option.orespawn.host_tags_short"), columnWidth),
 					left + columnWidth + 5, 94, 0xDDDDDD);
 		} else {
@@ -358,13 +355,13 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 			for (int i = 0; i < keys.length; i++) {
 				int x = (i & 1) == 0 ? left : left + columnWidth + 5;
 				int y = 94 + ((i / 2) * 44);
-				drawString(poseStack, font, OreSpawnScreenLayout.fit(font,
+				drawString(font, OreSpawnScreenLayout.fit(font,
 						new TranslationTextComponent("option.orespawn." + keys[i]), columnWidth),
 						x, y, 0xDDDDDD);
 			}
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 40, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		if (error != null) drawCenteredString(font, error, width / 2, height - 40, 0xFF5555);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

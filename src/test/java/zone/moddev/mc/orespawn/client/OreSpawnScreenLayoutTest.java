@@ -29,9 +29,10 @@ class OreSpawnScreenLayoutTest {
 		assertEquals(24, screens.size(), "Review this render-order gate when screens are added or removed");
 		for (Path screen : screens) {
 			String source = new String(Files.readAllBytes(screen), StandardCharsets.UTF_8);
-			int render = source.indexOf("public void render(MatrixStack");
-			int background = source.indexOf("renderBackground(poseStack);", render);
-			int widgets = source.indexOf("super.render(poseStack", render);
+			int render = source.indexOf(
+					"public void render(int mouseX, int mouseY, float partialTick)");
+			int background = source.indexOf("renderBackground();", render);
+			int widgets = source.indexOf("super.render(mouseX, mouseY, partialTick);", render);
 			String name = screen.getFileName().toString();
 			assertTrue(render >= 0, name + " must own its 1.15.2 render pass");
 			assertTrue(background > render, name + " must clear the previous frame");

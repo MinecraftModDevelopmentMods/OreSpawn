@@ -112,11 +112,6 @@ final class OreSpawnScreenLayout {
 		}
 	}
 
-	static void renderExplanations(Screen screen,
-			com.mojang.blaze3d.matrix.MatrixStack ignored, int mouseX, int mouseY) {
-		renderExplanations(screen, mouseX, mouseY);
-	}
-
 	private static final class ExplainedWidget {
 		final Widget widget;
 		final String text;

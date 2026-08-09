@@ -2,10 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import java.util.List;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -55,8 +52,8 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 			addButton(new Button(left, listTop + (i * 24), contentWidth, 20,
 					OreSpawnScreenLayout.fit(font, fluidName(id), contentWidth - 8),
 					button -> choose(id),
-					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(
-							poseStack, java.util.Collections.singletonList(new StringTextComponent(id)),
+					(button, mouseX, mouseY) -> renderComponentTooltip(
+							java.util.Collections.singletonList(new StringTextComponent(id)),
 							mouseX, mouseY)));
 		}
 
@@ -97,9 +94,9 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		super.render(mouseX, mouseY, partialTick);
 	}
 }

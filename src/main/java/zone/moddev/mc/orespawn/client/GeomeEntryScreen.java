@@ -5,10 +5,7 @@ import java.util.Map;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -119,20 +116,20 @@ final class GeomeEntryScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new StringTextComponent(geomeId), width / 2, 30, 0xDDDDDD);
-		drawString(poseStack, font, new TranslationTextComponent("option.orespawn.base_weight"),
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+		drawCenteredString(font, new StringTextComponent(geomeId), width / 2, 30, 0xDDDDDD);
+		drawString(font, new TranslationTextComponent("option.orespawn.base_weight"),
 				width / 2 - 155, 58, 0xDDDDDD);
 		int index = 0;
 		for (RockFamily family : RockFamily.values()) {
-			drawString(poseStack, font, new TranslationTextComponent("value.orespawn.family." + family.configName),
+			drawString(font, new TranslationTextComponent("value.orespawn.family." + family.configName),
 					width / 2 - 155, 88 + (index * 25), 0xDDDDDD);
 			index++;
 		}
-		if (error != null) drawCenteredString(poseStack, font, error, width / 2, height - 42, 0xFF5555);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		if (error != null) drawCenteredString(font, error, width / 2, height - 42, 0xFF5555);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

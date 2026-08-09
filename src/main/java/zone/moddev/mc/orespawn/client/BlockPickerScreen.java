@@ -4,10 +4,7 @@ import java.util.List;
 
 import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -117,14 +114,14 @@ final class BlockPickerScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 8, 0xFFFFFF);
-		drawCenteredString(poseStack, font,
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+		drawCenteredString(font,
 				new TranslationTextComponent("label.orespawn.adding_to",
 						new TranslationTextComponent("tab.orespawn." + target.key)),
 				width / 2, 20, 0xCCCCCC);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

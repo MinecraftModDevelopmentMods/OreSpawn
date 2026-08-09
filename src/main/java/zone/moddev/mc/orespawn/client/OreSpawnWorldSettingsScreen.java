@@ -12,10 +12,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.TemplateDefinition;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.StringTextComponent;
@@ -331,16 +328,16 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	}
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2,
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2,
 				OreSpawnScreenLayout.mainTitleY(this.height), 0xFFFFFF);
 		if (validationError != null) {
-			drawCenteredString(poseStack, font, validationError, width / 2,
+			drawCenteredString(font, validationError, width / 2,
 					OreSpawnScreenLayout.mainErrorY(this.height), 0xFF5555);
 		}
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 
 	private ITextComponent geologyModeName(GeologyMode mode) {

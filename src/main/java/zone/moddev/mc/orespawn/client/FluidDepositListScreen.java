@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -44,8 +41,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 			addButton(new Button(left, y, contentWidth - 82, 20,
 					OreSpawnScreenLayout.fit(font, depositName(id), contentWidth - 90),
 					button -> minecraft.setScreen(new FluidDepositEntryScreen(this, session, id)),
-					(button, poseStack, mouseX, mouseY) -> renderComponentTooltip(poseStack,
-							details(id), mouseX, mouseY)));
+					(button, mouseX, mouseY) -> renderComponentTooltip(details(id), mouseX, mouseY)));
 			addButton(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
 					new TranslationTextComponent("button.orespawn.remove"), button -> {
 						session.removeFluidDeposit(id);
@@ -94,10 +90,10 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 	public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 18, 0xFFFFFF);
-		super.render(poseStack, mouseX, mouseY, partialTick);
-		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }
