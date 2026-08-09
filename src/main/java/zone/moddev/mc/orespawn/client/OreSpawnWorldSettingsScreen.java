@@ -14,7 +14,6 @@ import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.TemplateDefinition;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
@@ -24,7 +23,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public final class OreSpawnWorldSettingsScreen extends Screen {
+public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	private static final int BUTTON_HEIGHT = 20;
 
 	private final Screen parent;
@@ -358,7 +357,7 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
 			ResourceLocation blockId = access.resource("block");
 			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
-			if (block != null) return new TranslationTextComponent(block.getDescriptionId());
+			if (block != null) return new TranslationTextComponent(block.getTranslationKey());
 		}
 		return new TranslationTextComponent("option.orespawn.fluid_deposits");
 	}

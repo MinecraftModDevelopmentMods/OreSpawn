@@ -85,7 +85,7 @@ import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 
 private void enqueueWorldgen(InterModEnqueueEvent event) {
@@ -172,14 +172,14 @@ registry IDs, tags, dimensions, geomes, aliases, and block states while baking.
 The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
-Biome filters retain their exact registry IDs. Do not compare baked `Biome`
-instances by identity: 1.16.5 worldgen can supply equivalent values from a
-dynamic registry. Fluid deposits perform one keyed surface-biome lookup per
-chunk invocation and no registry lookup in the placement loop.
+Biome filters retain their exact registry IDs. Minecraft 1.15.2 uses a static
+Forge-backed biome registry, so generation carries those stable IDs alongside
+the selected biome instances. Fluid deposits perform one keyed surface-biome
+lookup per chunk invocation and no registry lookup in the placement loop.
 
-Biome palettes wrap the dimension's already-selected biome source and bake
-registry holders, climate ranges, namespace filters, weights, surfaces, and
-world materials at server activation. No TerraBlender API is called. A
+Biome palettes wrap the dimension's already-selected biome provider and bake
+static-registry biomes, climate ranges, namespace filters, weights, surfaces,
+and world materials at server activation. No TerraBlender API is called. A
 dimension without a palette or material rule keeps the original generator path.
 
 Definitions normally change after a restart. `/orespawn reload` is intended for

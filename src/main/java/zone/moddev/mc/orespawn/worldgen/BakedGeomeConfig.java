@@ -21,7 +21,7 @@ public final class BakedGeomeConfig {
 	private static final int LEGACY_MAX_Y = 255;
 	private static final int FORMATION_BUCKETS = 256;
 	private static final int PICKER_SCALE = 1000;
-	private static final BlockState FALLBACK = Blocks.STONE.defaultBlockState();
+	private static final BlockState FALLBACK = Blocks.STONE.getDefaultState();
 
 	final GeomeDefinition[] geomes;
 	final double geomeScale;

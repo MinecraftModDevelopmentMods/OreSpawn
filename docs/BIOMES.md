@@ -128,7 +128,7 @@ not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.
 
 Dimension materials support the ordinary aquifer fluid and replacements for
-vanilla snow and ice. Minecraft 1.16.5 has one exposed generator-fluid field,
+vanilla snow and ice. Minecraft 1.15.2 has one exposed generator-fluid field,
 so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and
 `deep_aquifer_max_y` values remain readable and are preserved in saved profiles,
 but this branch disables their editor controls, warns when a distinct deep
@@ -170,5 +170,5 @@ existing worlds remain editable through their self-contained server profile.
 OreSpawn resolves dimensions, biomes, blocks, fluids, namespace filters,
 climate ranges, and surfaces while the profile is baked. Runtime biome
 selection uses the delegated source result, integer region hashing, primitive
-weights, and cached holders. It performs no provider callback, JSON access,
+weights, and pre-baked biome instances. It performs no provider callback, JSON access,
 registry lookup, tag lookup, logging, or per-column allocation.

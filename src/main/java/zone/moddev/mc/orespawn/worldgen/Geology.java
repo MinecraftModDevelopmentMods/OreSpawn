@@ -12,7 +12,6 @@ import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
 import net.minecraft.block.BlockState;
 import net.minecraft.world.IWorld;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 
@@ -59,8 +58,8 @@ public class Geology {
 
 	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
-		int xOffset = chunkPos.getMinBlockX();
-		int zOffset = chunkPos.getMinBlockZ();
+		int xOffset = chunkPos.getXStart();
+		int zOffset = chunkPos.getZStart();
 		BlockPos.Mutable cursor = new BlockPos.Mutable();
 		boolean changed = false;
 
@@ -68,12 +67,11 @@ public class Geology {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int y = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
+				int y = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
 				if (terrain.hasBiomeFilter()) {
-					cursor.set(x, y, z);
+					cursor.setPos(x, y, z);
 					Biome biome = world.getBiome(cursor);
-					ResourceLocation biomeId = world.registryAccess()
-							.registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
+					ResourceLocation biomeId = WorldIds.biome(biome);
 					if (!terrain.acceptsBiome(biomeId)) {
 						continue;
 					}
@@ -82,9 +80,12 @@ public class Geology {
 				int geomeBase = (int) geomeNoiseLayer.valueAt(x, z);
 
 				for (; y >= 0; y--) {
-					cursor.set(x, y, z);
-					if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-						chunk.setBlockState(cursor, pickReplacement(baseRockVal, geomeBase, y), false);
+					cursor.setPos(x, y, z);
+					BlockState current = chunk.getBlockState(cursor);
+					if (terrain.isReplaceable(current)) {
+						BlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
+						if (!GeomeGeology.changes(current, replacement)) continue;
+						chunk.setBlockState(cursor, replacement, false);
 						changed = true;
 					}
 				}
@@ -92,7 +93,7 @@ public class Geology {
 		}
 
 		if (changed) {
-			chunk.setUnsaved(true);
+			chunk.setModified(true);
 		}
 	}
 
@@ -126,7 +127,7 @@ public class Geology {
 
 	private BlockState pickStateFromList(int value, BlockState[] list) {
 		if (list.length == 0) {
-			return Blocks.STONE.defaultBlockState();
+			return Blocks.STONE.getDefaultState();
 		}
 
 		return list[whiteNoiseArray[(value / layerThickness) & 0xFF] % list.length];

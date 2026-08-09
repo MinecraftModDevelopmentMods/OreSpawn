@@ -6,14 +6,12 @@ import java.util.List;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 
-final class WeightMapScreen extends Screen {
+final class WeightMapScreen extends OreSpawnScreen {
 	private static final int PAGE_SIZE = 7;
 	private final Screen parent;
 	private final JsonObject weights;

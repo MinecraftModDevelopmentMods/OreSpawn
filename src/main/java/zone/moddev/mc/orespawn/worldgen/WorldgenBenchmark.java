@@ -9,9 +9,8 @@ import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.World;
 import net.minecraft.block.Block;
@@ -72,7 +71,7 @@ public final class WorldgenBenchmark {
 	private static void onServerStarted(FMLServerStartedEvent event) {
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
-		ServerWorld level = event.getServer().getLevel(benchmarkDimensionKey(dimensionName));
+		ServerWorld level = event.getServer().getWorld(benchmarkDimension(dimensionName));
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
@@ -89,7 +88,7 @@ public final class WorldgenBenchmark {
 
 		LOGGER.info("ORESPAWN_BENCHMARK start mode={} dimension={} seed={} target_chunks={} repetitions={} "
 				+ "java={} processors={} max_heap_mb={}",
-				MODE, level.dimension().location(), level.getSeed(), chunks, repetitions,
+				MODE, WorldIds.dimension(level), level.getSeed(), chunks, repetitions,
 				System.getProperty("java.version"),
 				Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory() / (1024L * 1024L));
 
@@ -117,26 +116,30 @@ public final class WorldgenBenchmark {
 				format(sorted[0]), format(sorted[sorted.length - 1]));
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
 			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
-			event.getServer().halt(false);
+			event.getServer().initiateShutdown(false);
 		}
 	}
 
-	static RegistryKey<World> benchmarkDimensionKey(String configured) {
+	static DimensionType benchmarkDimension(String configured) {
 		String dimensionName = configured.trim().toLowerCase(Locale.ROOT);
 		if ("overworld".equals(dimensionName)) {
-			return World.OVERWORLD;
+			return DimensionType.OVERWORLD;
 		}
 		if ("nether".equals(dimensionName)) {
-			return World.NETHER;
+			return DimensionType.THE_NETHER;
 		}
 		if ("end".equals(dimensionName)) {
-			return World.END;
+			return DimensionType.THE_END;
 		}
 		ResourceLocation id = resourceLocation(dimensionName);
 		if (id == null) {
 			throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 		}
-		return RegistryKey.create(Registry.DIMENSION_REGISTRY, id);
+		DimensionType type = DimensionType.byName(id);
+		if (type == null) {
+			throw new IllegalArgumentException("Unknown benchmark dimension: " + configured);
+		}
+		return type;
 	}
 
 	private static void generateSquare(ServerWorld level, int centerX, int centerZ, int radius) {
@@ -161,13 +164,14 @@ public final class WorldgenBenchmark {
 		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
 		BlockPos located = null;
 		double bestDistance = Double.POSITIVE_INFINITY;
-		Registry<Biome> registry = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
-		for (Map.Entry<RegistryKey<Biome>, Biome> entry : registry.entrySet()) {
-			if (!BiomeDictionary.hasType(entry.getKey(), type)) continue;
-			BlockPos candidate = level.findNearestBiome(entry.getValue(), origin, 16384, 32);
-			if (candidate != null && candidate.distSqr(origin) < bestDistance) {
+		for (Biome biome : net.minecraftforge.registries.ForgeRegistries.BIOMES.getValues()) {
+			if (!BiomeDictionary.hasType(biome, type)) continue;
+			BlockPos candidate = level.getChunkProvider().getChunkGenerator().getBiomeProvider()
+					.func_225531_a_(origin.getX(), origin.getY(), origin.getZ(), 16384,
+							java.util.Collections.singletonList(biome), level.getRandom());
+			if (candidate != null && candidate.distanceSq(origin) < bestDistance) {
 				located = candidate;
-				bestDistance = candidate.distSqr(origin);
+				bestDistance = candidate.distanceSq(origin);
 			}
 		}
 		if (located == null) {
@@ -183,10 +187,8 @@ public final class WorldgenBenchmark {
 	private static void auditOres(ServerWorld level, int centerX, int centerZ, int radius,
 			int repetition) {
 		Map<String, OreAudit> audits = new LinkedHashMap<>();
-		if (net.minecraft.world.World.NETHER.equals(level.dimension())) {
-			audits.put("nether_gold", new OreAudit(Blocks.NETHER_GOLD_ORE, Blocks.NETHER_GOLD_ORE));
+		if (WorldIds.NETHER.equals(WorldIds.dimension(level))) {
 			audits.put("quartz", new OreAudit(Blocks.NETHER_QUARTZ_ORE, Blocks.NETHER_QUARTZ_ORE));
-			audits.put("ancient_debris", new OreAudit(Blocks.ANCIENT_DEBRIS, Blocks.ANCIENT_DEBRIS));
 		} else {
 			audits.put("coal", new OreAudit(Blocks.COAL_ORE, Blocks.COAL_ORE));
 			audits.put("iron", new OreAudit(Blocks.IRON_ORE, Blocks.IRON_ORE));
@@ -203,11 +205,11 @@ public final class WorldgenBenchmark {
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
 				Chunk chunk = level.getChunk(chunkX, chunkZ);
-				int minX = chunk.getPos().getMinBlockX();
-				int minZ = chunk.getPos().getMinBlockZ();
+				int minX = chunk.getPos().getXStart();
+				int minZ = chunk.getPos().getZStart();
 				for (int localX = 0; localX < 16; localX++) {
 					for (int localZ = 0; localZ < 16; localZ++) {
-						cursor.set(minX + localX, 0, minZ + localZ);
+						cursor.setPos(minX + localX, 0, minZ + localZ);
 						for (int y = 0; y < 256; y++) {
 							cursor.setY(y);
 							BlockState state = chunk.getBlockState(cursor);
@@ -264,19 +266,20 @@ public final class WorldgenBenchmark {
 				throw new IllegalArgumentException(
 						"Benchmark audit expectation must be present or absent: " + specification);
 			}
-			audits.put(id.toString(), new OreAudit(Registry.BLOCK.get(id), Registry.BLOCK.get(id),
+			Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(id);
+			audits.put(id.toString(), new OreAudit(block, block,
 					minimumY, maximumY, required));
 		}
 	}
 
 	private static boolean isAdjacentToAir(ServerWorld level, int x, int y, int z,
 			BlockPos.Mutable cursor) {
-		return level.getBlockState(cursor.set(x + 1, y, z)).isAir()
-				|| level.getBlockState(cursor.set(x - 1, y, z)).isAir()
-				|| level.getBlockState(cursor.set(x, y + 1, z)).isAir()
-				|| level.getBlockState(cursor.set(x, y - 1, z)).isAir()
-				|| level.getBlockState(cursor.set(x, y, z + 1)).isAir()
-				|| level.getBlockState(cursor.set(x, y, z - 1)).isAir();
+		return level.isAirBlock(cursor.setPos(x + 1, y, z))
+				|| level.isAirBlock(cursor.setPos(x - 1, y, z))
+				|| level.isAirBlock(cursor.setPos(x, y + 1, z))
+				|| level.isAirBlock(cursor.setPos(x, y - 1, z))
+				|| level.isAirBlock(cursor.setPos(x, y, z + 1))
+				|| level.isAirBlock(cursor.setPos(x, y, z - 1));
 	}
 
 	private static ResourceLocation resourceLocation(String value) {

@@ -5,16 +5,14 @@ import java.util.List;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.util.IReorderingProcessor;
 
 /** A short, player-facing guide available while a world is being configured. */
-final class OreSpawnGuideScreen extends Screen {
+final class OreSpawnGuideScreen extends OreSpawnScreen {
 	private static final List<GuidePage> PAGES = Arrays.asList(
 			page("welcome", 3),
 			page("world", 3),
@@ -73,8 +71,8 @@ final class OreSpawnGuideScreen extends Screen {
 		int x = (width - textWidth) / 2;
 		int y = 58;
 		for (ITextComponent paragraph : current.paragraphs) {
-			for (IReorderingProcessor line : font.split(paragraph, textWidth)) {
-				font.draw(poseStack, line, x, y, 0xEEEEEE);
+			for (String line : font.listFormattedStringToWidth(paragraph.getFormattedText(), textWidth)) {
+				font.drawString(line, x, y, 0xEEEEEE);
 				y += 10;
 			}
 			y += 6;

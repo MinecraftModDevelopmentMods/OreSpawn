@@ -1,26 +1,18 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import java.util.function.Supplier;
-
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.WorldGenRegistries;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.ISeedReader;
+import net.minecraft.world.IWorld;
 import net.minecraft.block.BlockState;
 import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.GenerationStage;
 import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
 import net.minecraft.world.gen.placement.Placement;
 import net.minecraft.world.gen.placement.NoPlacementConfig;
-import net.minecraftforge.common.world.BiomeGenerationSettingsBuilder;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 
 /** Applies provider surfaces after base surfaces and lakes, before late features. */
 public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
@@ -28,30 +20,13 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	private static ConfiguredFeature<?, ?> configuredFeature;
 
 	private BiomeSurfaceFeature() {
-		super(NoFeatureConfig.CODEC);
+		super(NoFeatureConfig::deserialize);
 		setRegistryName(OreSpawn.MODID, "biome_surfaces");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "biome_surfaces");
-		configuredFeature = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
-				FEATURE.configured(NoFeatureConfig.INSTANCE)
-						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		install(event.getGeneration());
-	}
-
-	static boolean install(BiomeGenerationSettingsBuilder generation) {
-		if (configuredFeature == null) return false;
-		java.util.List<Supplier<ConfiguredFeature<?, ?>>> features = generation.getFeatures(
-				GenerationStage.Decoration.LOCAL_MODIFICATIONS);
-		if (features.stream().anyMatch(existing -> existing.get() == configuredFeature)) {
-			return false;
-		}
-		features.add(() -> configuredFeature);
-		return true;
+		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
+				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
 	}
 
 	static ConfiguredFeature<?, ?> configuredFeature() {
@@ -60,15 +35,15 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 
 	@Override
 	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
-		ISeedReader world = context.level();
-		BakedBiomeWorldgen config = BiomeWorldgenManager.get(world.getLevel().dimension());
+		IWorld world = context.level();
+		BakedBiomeWorldgen config = BiomeWorldgenManager.get(WorldIds.dimension(world));
 		if (config == null || !config.hasSurfaces()) return false;
 		IChunk chunk = world.getChunk(context.origin());
 		BlockPos.Mutable cursor = new BlockPos.Mutable();
 		boolean changed = false;
-		int minX = chunk.getPos().getMinBlockX();
-		int minZ = chunk.getPos().getMinBlockZ();
-		boolean ceilingDimension = world.getLevel().dimensionType().hasCeiling();
+		int minX = chunk.getPos().getXStart();
+		int minZ = chunk.getPos().getZStart();
+		boolean ceilingDimension = WorldIds.NETHER.equals(WorldIds.dimension(world));
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int x = minX + localX;
@@ -98,43 +73,43 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 
 	private static int findOpenGround(IChunk chunk, BlockPos.Mutable cursor,
 			int x, int z, int localX, int localZ, int minY) {
-		int y = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, localX, localZ);
-		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		int y = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, localX, localZ);
+		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		return y;
 	}
 
 	private static long findCeilingAndGround(IChunk chunk,
 			BlockPos.Mutable cursor, int x, int z, int maxY, int minY) {
 		int y = maxY - 1;
-		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		if (y < minY) return pack(Integer.MIN_VALUE, Integer.MIN_VALUE);
-		while (y >= minY && !open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		while (y >= minY && !open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		int ceilingY = y + 1;
-		while (y >= minY && open(chunk.getBlockState(cursor.set(x, y, z)))) y--;
+		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		return pack(ceilingY, y);
 	}
 
-	private static boolean applyGround(IChunk chunk, ISeedReader world,
+	private static boolean applyGround(IChunk chunk, IWorld world,
 			BakedBiomeWorldgen config, BlockPos.Mutable cursor,
 			int x, int z, int y, int minY) {
-		cursor.set(x, y, z);
+		cursor.setPos(x, y, z);
 		BlockState source = chunk.getBlockState(cursor);
 		if (!replaceable(source)) return false;
 		Surface surface = config.surfaces.get(world.getBiome(cursor));
 		if (surface == null) return false;
-		cursor.set(x, y + 1, z);
+		cursor.setPos(x, y + 1, z);
 		boolean underwater = !chunk.getBlockState(cursor).getFluidState().isEmpty();
 		BlockState top = underwater && surface.underwater != null
 				? surface.underwater : surface.top;
 		boolean changed = false;
-		cursor.set(x, y, z);
+		cursor.setPos(x, y, z);
 		if (top != null) {
 			chunk.setBlockState(cursor, top, false);
 			changed = true;
 		}
 		if (surface.filler != null) {
 			for (int depth = 1; depth <= surface.fillerDepth && y - depth >= minY; depth++) {
-				cursor.set(x, y - depth, z);
+				cursor.setPos(x, y - depth, z);
 				if (!replaceable(chunk.getBlockState(cursor))) break;
 				chunk.setBlockState(cursor, surface.filler, false);
 				changed = true;
@@ -143,10 +118,10 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		return changed;
 	}
 
-	private static boolean applyCeiling(IChunk chunk, ISeedReader world,
+	private static boolean applyCeiling(IChunk chunk, IWorld world,
 			BakedBiomeWorldgen config, BlockPos.Mutable cursor,
 			int x, int z, int ceilingY) {
-		cursor.set(x, ceilingY, z);
+		cursor.setPos(x, ceilingY, z);
 		BlockState source = chunk.getBlockState(cursor);
 		if (!replaceable(source)) return false;
 		Surface surface = config.surfaces.get(world.getBiome(cursor));

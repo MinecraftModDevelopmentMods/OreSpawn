@@ -3,15 +3,13 @@ package zone.moddev.mc.orespawn.client;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-final class DimensionMaterialsScreen extends Screen {
+final class DimensionMaterialsScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
@@ -78,7 +76,7 @@ final class DimensionMaterialsScreen extends Screen {
 	}
 
 	private void save() {
-		// Minecraft 1.16.5 exposes one generator fluid. Retain stored deep-aquifer
+		// Minecraft 1.15.2 exposes one generator fluid. Retain stored deep-aquifer
 		// fields unchanged so the same provider/profile can still be used by later ports.
 	}
 

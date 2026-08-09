@@ -83,7 +83,7 @@ class GeomeTransitionTest {
 				new GeomeDefinition("orespawn:second", 1.0D, familyWeights.clone())
 		};
 		RockEntry[] rocks = {
-				new RockEntry(Blocks.STONE.defaultBlockState(), RockFamily.SEDIMENTARY,
+				new RockEntry(Blocks.STONE.getDefaultState(), RockFamily.SEDIMENTARY,
 						64, 64, -64, 319, 1.0D, true, new double[] { 1.0D, 1.0D })
 		};
 		FormationSettings formations = new FormationSettings(FormationSettings.Algorithm.STABLE_LAYERS,
@@ -113,7 +113,7 @@ class GeomeTransitionTest {
 		double[] rockWeights = new double[names.length];
 		java.util.Arrays.fill(rockWeights, 1.0D);
 		RockEntry[] rocks = {
-				new RockEntry(Blocks.STONE.defaultBlockState(), RockFamily.SEDIMENTARY,
+				new RockEntry(Blocks.STONE.getDefaultState(), RockFamily.SEDIMENTARY,
 						64, 64, -64, 319, 1.0D, true, rockWeights)
 		};
 		FormationSettings formations = new FormationSettings(FormationSettings.Algorithm.STABLE_LAYERS,

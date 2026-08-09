@@ -57,11 +57,6 @@ public class OreSpawn {
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueInterMod);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processInterMod);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
-		MinecraftForge.EVENT_BUS.addListener(StoneReplacer::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(OreSpawnOreGeneration::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(FluidDepositFeature::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(FlatBedrockFeature::onBiomeLoading);
-		MinecraftForge.EVENT_BUS.addListener(BiomeSurfaceFeature::onBiomeLoading);
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
@@ -75,14 +70,12 @@ public class OreSpawn {
 	}
 
 	private void loadComplete(final FMLLoadCompleteEvent event) {
-		event.enqueueWork(() -> {
-			WorldgenIntegrationManager.freeze();
-			GeomeConfig.bake();
-			OreSpawnOreGeneration.refreshWorldConfig();
-			FlatBedrockFeature.refreshWorldConfig();
-			OreRetrogenManager.refreshWorldConfig();
-			WorldgenIntegrationManager.markFeatureReady();
-		});
+		WorldgenIntegrationManager.freeze();
+		GeomeConfig.bake();
+		OreSpawnOreGeneration.refreshWorldConfig();
+		FlatBedrockFeature.refreshWorldConfig();
+		OreRetrogenManager.refreshWorldConfig();
+		WorldgenIntegrationManager.markFeatureReady();
 	}
 
 	private void enqueueInterMod(final InterModEnqueueEvent event) {
@@ -104,15 +97,13 @@ public class OreSpawn {
 		WorldgenIntegrationManager.initialize();
 		GeomeConfig.bake();
 		logGeomeSampler();
-		event.enqueueWork(() -> {
-			BiomeWorldgenBootstrap.registerCodecs();
-			DocumentationExporter.exportBundledGuide();
-			StoneReplacer.registerConfiguredFeature();
-			OreSpawnOreGeneration.registerConfiguredFeatures();
-			FluidDepositFeature.registerConfiguredFeature();
-			FlatBedrockFeature.registerConfiguredFeature();
-			BiomeSurfaceFeature.registerConfiguredFeature();
-		});
+		BiomeWorldgenBootstrap.registerCodecs();
+		DocumentationExporter.exportBundledGuide();
+		StoneReplacer.registerConfiguredFeature();
+		OreSpawnOreGeneration.registerConfiguredFeatures();
+		FluidDepositFeature.registerConfiguredFeature();
+		FlatBedrockFeature.registerConfiguredFeature();
+		BiomeSurfaceFeature.registerConfiguredFeature();
 	}
 
 	private static void logGeomeSampler() {

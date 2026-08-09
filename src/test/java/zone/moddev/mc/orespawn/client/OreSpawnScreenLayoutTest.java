@@ -22,6 +22,7 @@ class OreSpawnScreenLayoutTest {
 		try (Stream<Path> files = Files.list(directory)) {
 			screens = files
 					.filter(path -> path.getFileName().toString().endsWith("Screen.java"))
+					.filter(path -> !path.getFileName().toString().equals("OreSpawnScreen.java"))
 					.sorted()
 					.collect(Collectors.toList());
 		}
@@ -32,7 +33,7 @@ class OreSpawnScreenLayoutTest {
 			int background = source.indexOf("renderBackground(poseStack);", render);
 			int widgets = source.indexOf("super.render(poseStack", render);
 			String name = screen.getFileName().toString();
-			assertTrue(render >= 0, name + " must own its 1.16.5 render pass");
+			assertTrue(render >= 0, name + " must own its 1.15.2 render pass");
 			assertTrue(background > render, name + " must clear the previous frame");
 			assertTrue(widgets > background, name + " must clear before drawing widgets and tooltips");
 		}

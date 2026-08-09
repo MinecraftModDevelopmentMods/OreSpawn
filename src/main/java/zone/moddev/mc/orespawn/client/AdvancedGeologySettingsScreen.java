@@ -2,13 +2,12 @@ package zone.moddev.mc.orespawn.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.TranslationTextComponent;
 
 /** Less commonly changed numeric controls, kept off the world settings overview. */
-final class AdvancedGeologySettingsScreen extends Screen {
+final class AdvancedGeologySettingsScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 

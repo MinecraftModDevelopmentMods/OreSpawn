@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.JsonObject;
 
 class BiomeDefaultsTest {
-	private static final String MINECRAFT_116_OVERWORLD =
+	private static final String MINECRAFT_115_OVERWORLD =
 			"ocean plains desert mountains forest taiga swamp river frozen_ocean frozen_river "
 			+ "snowy_tundra snowy_mountains mushroom_fields mushroom_field_shore beach desert_hills "
 			+ "wooded_hills taiga_hills mountain_edge jungle jungle_hills jungle_edge deep_ocean "
@@ -64,12 +64,12 @@ class BiomeDefaultsTest {
 	@Test
 	void doesNotMapKnownNetherOrEndBiomes() {
 		JsonObject defaults = GeomeConfig.defaultBiomeRules();
-		Set<String> expectedMinecraft = Arrays.stream(MINECRAFT_116_OVERWORLD.split(" "))
+		Set<String> expectedMinecraft = Arrays.stream(MINECRAFT_115_OVERWORLD.split(" "))
 				.map(path -> "minecraft:" + path).collect(Collectors.toSet());
 		Set<String> actualMinecraft = defaults.entrySet().stream().map(java.util.Map.Entry::getKey)
 				.filter(id -> id.startsWith("minecraft:")).collect(Collectors.toSet());
 		assertEquals(expectedMinecraft, actualMinecraft,
-				"vanilla defaults must use exactly the Forge 36 / Minecraft 1.16.5 biome IDs");
+				"vanilla defaults must use exactly the Forge 31 / Minecraft 1.15.2 biome IDs");
 		for (String id : new String[] { "biomesoplenty:crystalline_chasm", "biomesoplenty:erupting_inferno",
 				"biomesoplenty:spider_nest", "biomesoplenty:undergrowth", "biomesoplenty:visceral_heap",
 				"biomesoplenty:withered_abyss", "byg:brimstone_caverns", "byg:magma_wastes",

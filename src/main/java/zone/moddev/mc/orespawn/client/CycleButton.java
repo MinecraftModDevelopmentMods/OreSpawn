@@ -6,11 +6,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-/** Java 8/1.16 equivalent of the vanilla cycle button introduced in 1.17. */
+/** Java 8 equivalent of the vanilla cycle button introduced after this target. */
 final class CycleButton<T> extends Button {
 	private final ITextComponent label;
 	private final Function<T, ITextComponent> valueLabel;
@@ -55,9 +54,10 @@ final class CycleButton<T> extends Button {
 		callback.onValueChange(this, value);
 	}
 
-	private static <T> ITextComponent message(ITextComponent label,
+	private static <T> String message(ITextComponent label,
 			Function<T, ITextComponent> valueLabel, T value) {
-		return new TranslationTextComponent("options.generic_value", label, valueLabel.apply(value));
+		return new TranslationTextComponent("options.generic_value", label, valueLabel.apply(value))
+				.getFormattedText();
 	}
 
 	interface OnValueChange<T> {

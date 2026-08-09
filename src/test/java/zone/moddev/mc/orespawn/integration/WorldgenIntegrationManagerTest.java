@@ -20,7 +20,7 @@ import net.minecraft.util.registry.Bootstrap;
 class WorldgenIntegrationManagerTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.bootStrap();
+		Bootstrap.register();
 	}
 
 	@Test

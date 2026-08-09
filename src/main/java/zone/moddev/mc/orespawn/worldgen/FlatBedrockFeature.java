@@ -9,14 +9,9 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.WorldGenRegistries;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.World;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.IWorld;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -28,7 +23,6 @@ import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
 import net.minecraft.world.gen.placement.Placement;
 import net.minecraft.world.gen.placement.NoPlacementConfig;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Optional flat bedrock generation compatible with OreSpawn 3 profiles. */
@@ -40,24 +34,15 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 	private static volatile Settings settings = Settings.DISABLED;
 
 	private FlatBedrockFeature() {
-		super(NoFeatureConfig.CODEC);
+		super(NoFeatureConfig::deserialize);
 		setRegistryName(OreSpawn.MODID, "flat_bedrock");
 	}
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "flat_bedrock");
-		configuredFeature = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
-				FEATURE.configured(NoFeatureConfig.INSTANCE)
-						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
+		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
+				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
 		refreshWorldConfig();
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (!WorldgenBenchmark.isVanillaBaseline() && event.getCategory() != Biome.Category.NONE
-				&& configuredFeature != null) {
-			event.getGeneration().getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION)
-					.add(() -> configuredFeature);
-		}
 	}
 
 	static ConfiguredFeature<?, ?> configuredFeature() {
@@ -68,28 +53,34 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 		settings = readSettings(WorldGeologyProfileManager.activeProfile().rootCopy());
 	}
 
+	static boolean enabledFor(ResourceLocation dimension) {
+		Settings current = settings;
+		return current.enabled && current.dimensions.contains(dimension);
+	}
+
 	@Override
 	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
 		return flatten(context.level(), context.level().getChunk(context.origin()));
 	}
 
-	static boolean flatten(ISeedReader world, IChunk chunk) {
-		return flattenChunk(world.getLevel(), chunk);
+	static boolean flatten(IWorld world, IChunk chunk) {
+		return flattenChunk((ServerWorld) world.getWorld(), chunk);
 	}
 
 	static boolean flattenChunk(ServerWorld level, IChunk chunk) {
 		Settings current = settings;
-		if (!current.enabled || level.isFlat() || !current.dimensions.contains(level.dimension())) {
+		ResourceLocation dimension = WorldIds.dimension(level);
+		if (!current.enabled || !current.dimensions.contains(dimension)) {
 			return false;
 		}
 
-		BlockState replacement = World.NETHER.equals(level.dimension())
+		BlockState replacement = WorldIds.NETHER.equals(dimension)
 				? current.netherReplacement : current.bottomReplacement;
 		boolean changed = flattenBottom(chunk, current.layers, replacement);
-		if (World.NETHER.equals(level.dimension())) {
+		if (WorldIds.NETHER.equals(dimension)) {
 			changed |= flattenTop(chunk, current.layers, current.netherReplacement);
 		}
-		if (changed) chunk.setUnsaved(true);
+		if (changed) chunk.setModified(true);
 		return changed;
 	}
 
@@ -100,11 +91,11 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
 				for (int offset = 0; offset < BEDROCK_NOISE_DEPTH; offset++) {
-					cursor.set(chunk.getPos().getMinBlockX() + x, minY + offset,
-							chunk.getPos().getMinBlockZ() + z);
+					cursor.setPos(chunk.getPos().getXStart() + x, minY + offset,
+							chunk.getPos().getZStart() + z);
 					BlockState old = chunk.getBlockState(cursor);
-					BlockState next = offset < layers ? Blocks.BEDROCK.defaultBlockState()
-							: old.is(Blocks.BEDROCK) ? replacement : old;
+					BlockState next = offset < layers ? Blocks.BEDROCK.getDefaultState()
+							: old.getBlock() == Blocks.BEDROCK ? replacement : old;
 					if (old != next) {
 						chunk.setBlockState(cursor, next, false);
 						changed = true;
@@ -122,11 +113,11 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
 				for (int offset = 0; offset < BEDROCK_NOISE_DEPTH; offset++) {
-					cursor.set(chunk.getPos().getMinBlockX() + x, maxY - offset,
-							chunk.getPos().getMinBlockZ() + z);
+					cursor.setPos(chunk.getPos().getXStart() + x, maxY - offset,
+							chunk.getPos().getZStart() + z);
 					BlockState old = chunk.getBlockState(cursor);
-					BlockState next = offset < layers ? Blocks.BEDROCK.defaultBlockState()
-							: old.is(Blocks.BEDROCK) ? replacement : old;
+					BlockState next = offset < layers ? Blocks.BEDROCK.getDefaultState()
+							: old.getBlock() == Blocks.BEDROCK ? replacement : old;
 					if (old != next) {
 						chunk.setBlockState(cursor, next, false);
 						changed = true;
@@ -142,30 +133,29 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 				? root.getAsJsonObject("flat_bedrock") : new JsonObject();
 		boolean enabled = bool(json, "enabled", false);
 		int layers = Math.max(1, Math.min(BEDROCK_NOISE_DEPTH, integer(json, "layers", 1)));
-		Set<RegistryKey<World>> dimensions = new HashSet<>();
+		Set<ResourceLocation> dimensions = new HashSet<>();
 		if (json.has("dimensions") && json.get("dimensions").isJsonArray()) {
 			for (JsonElement element : json.getAsJsonArray("dimensions")) {
 				try {
-					dimensions.add(RegistryKey.create(Registry.DIMENSION_REGISTRY,
-							new ResourceLocation(element.getAsString())));
+					dimensions.add(new ResourceLocation(element.getAsString()));
 				} catch (RuntimeException ignored) {
 				}
 			}
 		}
 		if (dimensions.isEmpty()) {
-			dimensions.add(World.OVERWORLD);
-			dimensions.add(World.NETHER);
+			dimensions.add(WorldIds.OVERWORLD);
+			dimensions.add(WorldIds.NETHER);
 		}
 		return new Settings(enabled, layers, dimensions,
-				blockState(json, "bottom_replacement", Blocks.STONE.defaultBlockState()),
-				blockState(json, "nether_replacement", Blocks.NETHERRACK.defaultBlockState()));
+				blockState(json, "bottom_replacement", Blocks.STONE.getDefaultState()),
+				blockState(json, "nether_replacement", Blocks.NETHERRACK.getDefaultState()));
 	}
 
 	private static BlockState blockState(JsonObject json, String key, BlockState fallback) {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					json.has(key) ? json.get(key).getAsString() : ""));
-			return block == null || block == Blocks.AIR ? fallback : block.defaultBlockState();
+			return block == null || block == Blocks.AIR ? fallback : block.getDefaultState();
 		} catch (RuntimeException e) {
 			return fallback;
 		}
@@ -183,14 +173,14 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 
 	private static final class Settings {
 		static final Settings DISABLED = new Settings(false, 1, Collections.emptySet(),
-				Blocks.STONE.defaultBlockState(), Blocks.NETHERRACK.defaultBlockState());
+				Blocks.STONE.getDefaultState(), Blocks.NETHERRACK.getDefaultState());
 		final boolean enabled;
 		final int layers;
-		final Set<RegistryKey<World>> dimensions;
+		final Set<ResourceLocation> dimensions;
 		final BlockState bottomReplacement;
 		final BlockState netherReplacement;
 
-		Settings(boolean enabled, int layers, Set<RegistryKey<World>> dimensions,
+		Settings(boolean enabled, int layers, Set<ResourceLocation> dimensions,
 				BlockState bottomReplacement, BlockState netherReplacement) {
 			this.enabled = enabled;
 			this.layers = layers;

@@ -5,10 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.TickEvent;
@@ -49,7 +48,7 @@ public final class OreRetrogenManager {
 	public static void onChunkSave(ChunkDataEvent.Save event) {
 		if (!(event.getWorld() instanceof ServerWorld)) return;
 		ServerWorld level = (ServerWorld) event.getWorld();
-		ChunkKey key = new ChunkKey(level.dimension(), event.getChunk().getPos().toLong());
+		ChunkKey key = new ChunkKey(WorldIds.dimension(level), event.getChunk().getPos().asLong());
 		if (!COMPLETE.contains(key)) return;
 		CompoundNBT marker = event.getData().getCompound(ROOT_TAG);
 		marker.putInt(REVISION_TAG, settings.revision);
@@ -62,25 +61,25 @@ public final class OreRetrogenManager {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;
 			QUEUED.remove(queued.key);
-			if (queued.level.getChunkSource().getChunkNow(
+			if (queued.level.getChunkProvider().getChunkWithoutLoading(
 					queued.chunk.getPos().x, queued.chunk.getPos().z) != queued.chunk) continue;
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
-			queued.chunk.setUnsaved(true);
+			queued.chunk.setModified(true);
 			COMPLETE.add(queued.key);
 		}
 	}
 
-	static void markGenerated(RegistryKey<World> dimension, ChunkPos chunk) {
-		COMPLETE.add(new ChunkKey(dimension, chunk.toLong()));
+	static void markGenerated(ResourceLocation dimension, ChunkPos chunk) {
+		COMPLETE.add(new ChunkKey(dimension, chunk.asLong()));
 	}
 
 	public static int queueLoadedArea(ServerWorld level, ChunkPos center, int radius) {
 		int count = 0;
 		for (int x = center.x - radius; x <= center.x + radius; x++) {
 			for (int z = center.z - radius; z <= center.z + radius; z++) {
-				Chunk chunk = level.getChunkSource().getChunkNow(x, z);
+				Chunk chunk = level.getChunkProvider().getChunkWithoutLoading(x, z);
 				if (chunk != null && enqueue(level, chunk)) count++;
 			}
 		}
@@ -99,7 +98,7 @@ public final class OreRetrogenManager {
 	}
 
 	private static boolean enqueue(ServerWorld level, Chunk chunk) {
-		ChunkKey key = new ChunkKey(level.dimension(), chunk.getPos().toLong());
+		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunk.getPos().asLong());
 		if (!QUEUED.add(key)) return false;
 		QUEUE.add(new QueuedChunk(level, chunk, key));
 		return true;
@@ -134,9 +133,9 @@ public final class OreRetrogenManager {
 	}
 
 	private static final class ChunkKey {
-		final RegistryKey<World> dimension;
+		final ResourceLocation dimension;
 		final long position;
-		ChunkKey(RegistryKey<World> dimension, long position) {
+		ChunkKey(ResourceLocation dimension, long position) {
 			this.dimension = dimension;
 			this.position = position;
 		}

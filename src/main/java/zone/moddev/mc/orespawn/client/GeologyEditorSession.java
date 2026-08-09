@@ -486,7 +486,7 @@ final class GeologyEditorSession {
 		if (!validResource(blockId)) return;
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockId));
 		if (block == null || block == Blocks.AIR
-				|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return;
+				|| (fluid && block.getDefaultState().getFluidState().isEmpty())) return;
 		JsonObject materials = dimensionMaterials(dimensionId, true);
 		materials.addProperty(key, blockId);
 		materials.addProperty("enabled", true);
@@ -503,8 +503,8 @@ final class GeologyEditorSession {
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
-					|| (fluidOnly && block.defaultBlockState().getFluidState().isEmpty())
-					|| (!fluidOnly && block.defaultBlockState().hasTileEntity())
+					|| (fluidOnly && block.getDefaultState().getFluidState().isEmpty())
+					|| (!fluidOnly && block.getDefaultState().hasTileEntity())
 					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
 			result.add(id.toString());
 		}
@@ -533,7 +533,7 @@ final class GeologyEditorSession {
 		List<String> result = new ArrayList<>();
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id != null && block != Blocks.AIR && !block.defaultBlockState().getFluidState().isEmpty()
+			if (id != null && block != Blocks.AIR && !block.getDefaultState().getFluidState().isEmpty()
 					&& !configured.contains(id.toString())
 					&& (query.isEmpty() || id.toString().contains(query))) result.add(id.toString());
 		}
@@ -1053,10 +1053,9 @@ final class GeologyEditorSession {
 		if (showAll) {
 			return true;
 		}
-		return !block.defaultBlockState().hasTileEntity()
-				&& block.defaultBlockState().getMaterial().blocksMotion()
-				&& Block.isShapeFullBlock(block.defaultBlockState().getCollisionShape(
-						EmptyBlockReader.INSTANCE, BlockPos.ZERO));
+		return !block.getDefaultState().hasTileEntity()
+				&& block.getDefaultState().getMaterial().blocksMovement()
+				&& block.getDefaultState().isOpaqueCube(EmptyBlockReader.INSTANCE, BlockPos.ZERO);
 	}
 
 	String canonicalBlockId(String id) {
@@ -1158,7 +1157,7 @@ final class GeologyEditorSession {
 	private static boolean validFluidBlock(String id) {
 		if (!validResource(id)) return false;
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-		return block != null && block != Blocks.AIR && !block.defaultBlockState().getFluidState().isEmpty();
+		return block != null && block != Blocks.AIR && !block.getDefaultState().getFluidState().isEmpty();
 	}
 
 	private static boolean validResource(String id) {

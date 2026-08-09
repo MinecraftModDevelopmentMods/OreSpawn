@@ -42,7 +42,6 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.JSONUtils;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.registry.Registry;
@@ -80,13 +79,12 @@ public final class GeomeConfig {
 	private static final String LEGACY_MINERALOGY_VANILLA_ORE_PREFIX = "mineralogy:ore/minecraft/";
 	private static final String[] VANILLA_ORE_IDS = {
 			"coal_ore", "iron_ore", "gold_ore", "redstone_ore",
-			"diamond_ore", "lapis_ore", "emerald_ore", "nether_gold_ore",
-			"nether_quartz_ore", "ancient_debris"
+			"diamond_ore", "lapis_ore", "emerald_ore", "nether_quartz_ore"
 	};
 
 	private static volatile BakedGeomeConfig bakedConfig = null;
-	private static volatile Map<RegistryKey<World>, BakedGeomeConfig> bakedConfigs = Collections.emptyMap();
-	private static volatile Map<RegistryKey<World>, BakedTerrainDimension> terrainDimensions = Collections.emptyMap();
+	private static volatile Map<ResourceLocation, BakedGeomeConfig> bakedConfigs = Collections.emptyMap();
+	private static volatile Map<ResourceLocation, BakedTerrainDimension> terrainDimensions = Collections.emptyMap();
 	private static JsonObject globalConfigRoot = null;
 	private static JsonObject globalBaseConfigRoot = null;
 	private static volatile WorldGeologyProfile globalProfile = null;
@@ -141,14 +139,14 @@ public final class GeomeConfig {
 		return bakedConfig;
 	}
 
-	public static BakedGeomeConfig baked(RegistryKey<World> dimension) {
+	public static BakedGeomeConfig baked(ResourceLocation dimension) {
 		if (bakedConfig == null) {
 			bake();
 		}
 		return bakedConfigs.get(dimension);
 	}
 
-	static BakedTerrainDimension terrainDimension(RegistryKey<World> dimension) {
+	static BakedTerrainDimension terrainDimension(ResourceLocation dimension) {
 		if (bakedConfig == null) {
 			bake();
 		}
@@ -165,7 +163,7 @@ public final class GeomeConfig {
 		return globalBaseProfile;
 	}
 
-	static boolean hasTerrainReplacement(RegistryKey<World> dimension) {
+	static boolean hasTerrainReplacement(ResourceLocation dimension) {
 		return terrainDimension(dimension) != null;
 	}
 
@@ -254,22 +252,22 @@ public final class GeomeConfig {
 	}
 
 	private static void bakeDimensions(JsonObject root) {
-		Map<RegistryKey<World>, BakedTerrainDimension> terrain = readTerrainDimensions(root);
-		Map<RegistryKey<World>, BakedGeomeConfig> configs = new LinkedHashMap<>();
-		Map<RegistryKey<World>, BakedTerrainDimension> usableTerrain = new LinkedHashMap<>();
-		for (Entry<RegistryKey<World>, BakedTerrainDimension> entry : terrain.entrySet()) {
-			BakedGeomeConfig config = bake(root, entry.getKey().location());
+		Map<ResourceLocation, BakedTerrainDimension> terrain = readTerrainDimensions(root);
+		Map<ResourceLocation, BakedGeomeConfig> configs = new LinkedHashMap<>();
+		Map<ResourceLocation, BakedTerrainDimension> usableTerrain = new LinkedHashMap<>();
+		for (Entry<ResourceLocation, BakedTerrainDimension> entry : terrain.entrySet()) {
+			BakedGeomeConfig config = bake(root, entry.getKey());
 			if (config != null) {
 				configs.put(entry.getKey(), config);
 				usableTerrain.put(entry.getKey(), entry.getValue());
 			}
 		}
-		VanillaSpringCompatibility.refresh(configs.get(World.OVERWORLD));
+		VanillaSpringCompatibility.refresh(configs.get(WorldIds.OVERWORLD));
 		bakedConfigs = Collections.unmodifiableMap(configs);
 		terrainDimensions = Collections.unmodifiableMap(usableTerrain);
-		bakedConfig = configs.get(World.OVERWORLD);
+		bakedConfig = configs.get(WorldIds.OVERWORLD);
 		if (bakedConfig == null) {
-			bakedConfig = bake(root, World.OVERWORLD.location());
+			bakedConfig = bake(root, WorldIds.OVERWORLD);
 		}
 	}
 
@@ -286,7 +284,7 @@ public final class GeomeConfig {
 		Map<String, double[]> dictionaryRules = readWeightRules(root, "biome_dictionary", geomeIndexes);
 		Map<ResourceLocation, ResourceLocation> worldgenAliases = readWorldgenAliases(root);
 		RockEntry[] rocks = readRocks(root, geomeIndexes, worldgenAliases, dimension);
-		if (rocks.length == 0 && !World.OVERWORLD.location().equals(dimension)) {
+		if (rocks.length == 0 && !WorldIds.OVERWORLD.equals(dimension)) {
 			LOGGER.warn("Disabling OreSpawn terrain replacement in '{}' because it has no eligible rocks", dimension);
 			return null;
 		}
@@ -321,9 +319,9 @@ public final class GeomeConfig {
 		}
 	}
 
-	private static Map<RegistryKey<World>, BakedTerrainDimension> readTerrainDimensions(JsonObject root) {
+	private static Map<ResourceLocation, BakedTerrainDimension> readTerrainDimensions(JsonObject root) {
 		JsonObject definitions = getObject(root, "terrain_dimensions", defaultTerrainDimensions());
-		Map<RegistryKey<World>, BakedTerrainDimension> result = new LinkedHashMap<>();
+		Map<ResourceLocation, BakedTerrainDimension> result = new LinkedHashMap<>();
 		for (Entry<String, JsonElement> entry : definitions.entrySet()) {
 			if (!entry.getValue().isJsonObject()) {
 				LOGGER.warn("Ignoring terrain dimension '{}' because it is not an object", entry.getKey());
@@ -344,8 +342,7 @@ public final class GeomeConfig {
 				}
 				Set<ResourceLocation> biomeIds = resourceLocations(json.get("biome_ids"));
 				Set<String> namespaces = strings(json.get("biome_namespaces"));
-				RegistryKey<World> key = RegistryKey.create(Registry.DIMENSION_REGISTRY, id);
-				result.put(key, new BakedTerrainDimension(key, biomeIds, namespaces, hosts));
+				result.put(id, new BakedTerrainDimension(id, biomeIds, namespaces, hosts));
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn terrain dimension '{}'", entry.getKey());
 			}
@@ -364,7 +361,7 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			target.addAll(BlockTags.getAllTags().getTagOrEmpty(id).getValues());
+			target.addAll(BlockTags.getCollection().getOrCreate(id).getAllElements());
 		}
 	}
 
@@ -390,7 +387,7 @@ public final class GeomeConfig {
 
 	private static boolean rockAppliesToDimension(JsonObject rock, ResourceLocation dimension) {
 		if (!rock.has("dimensions")) {
-			return World.OVERWORLD.location().equals(dimension);
+			return WorldIds.OVERWORLD.equals(dimension);
 		}
 		if (!rock.get("dimensions").isJsonArray()) {
 			return false;
@@ -478,7 +475,7 @@ public final class GeomeConfig {
 	}
 
 	private static GeomeDefinition[] readGeomes(JsonObject root, LinkedHashMap<String, Integer> geomeIndexes) {
-		JsonObject geomeRoot = JSONUtils.getAsJsonObject(root, "geomes", defaultConfig().getAsJsonObject("geomes"));
+		JsonObject geomeRoot = getObject(root, "geomes", defaultConfig().getAsJsonObject("geomes"));
 		List<GeomeDefinition> geomes = new ArrayList<>();
 		for (Entry<String, JsonElement> entry : geomeRoot.entrySet()) {
 			if (!entry.getValue().isJsonObject()) {
@@ -503,7 +500,7 @@ public final class GeomeConfig {
 				familyWeights[family.ordinal()] = 1.0D;
 			}
 
-			JsonObject families = JSONUtils.getAsJsonObject(json, "families", new JsonObject());
+			JsonObject families = getObject(json, "families", new JsonObject());
 			for (RockFamily family : RockFamily.values()) {
 				familyWeights[family.ordinal()] = getNonNegativeDouble(families, family.configName,
 						familyWeights[family.ordinal()]);
@@ -595,9 +592,9 @@ public final class GeomeConfig {
 				continue;
 			}
 
-			JsonObject geomeWeightsJson = JSONUtils.getAsJsonObject(json, "geomes", new JsonObject());
+			JsonObject geomeWeightsJson = getObject(json, "geomes", new JsonObject());
 			double[] geomeWeights = readGeomeWeights(geomeWeightsJson, geomeIndexes, 1.0D);
-			BlockState state = GeologyBlockAliases.aliasState(id, block.defaultBlockState(), worldgenAliases);
+			BlockState state = GeologyBlockAliases.aliasState(id, block.getDefaultState(), worldgenAliases);
 			ResourceLocation previousId = configuredStates.putIfAbsent(state, ruleId);
 			if (previousId != null) {
 				LOGGER.warn("Ignoring duplicate OreSpawn geome rock rule '{}' because block '{}' resolves to the same state as '{}'",
@@ -616,7 +613,7 @@ public final class GeomeConfig {
 					geomeWeights));
 		}
 
-		if (rocks.isEmpty() && World.OVERWORLD.location().equals(dimension)) {
+		if (rocks.isEmpty() && WorldIds.OVERWORLD.equals(dimension)) {
 			boolean passive = rockRoot.size() == 0
 					&& getObject(root, "terrain_dimensions", defaultTerrainDimensions()).size() == 0;
 			if (passive) {
@@ -628,7 +625,7 @@ public final class GeomeConfig {
 			for (int i = 0; i < weights.length; i++) {
 				weights[i] = 1.0D;
 			}
-			rocks.add(new RockEntry(Blocks.STONE.defaultBlockState(), RockFamily.SEDIMENTARY, 64, 64,
+			rocks.add(new RockEntry(Blocks.STONE.getDefaultState(), RockFamily.SEDIMENTARY, 64, 64,
 					BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y, 1.0D, true, weights));
 		}
 		return rocks.toArray(new RockEntry[rocks.size()]);
@@ -760,8 +757,6 @@ public final class GeomeConfig {
 				0, 96, 6.0D, 17, "cluster", 0, 96, 12.0D);
 		upgraded |= upgradeOreRule(root, "minecraft:iron_ore", "minecraft:overworld",
 				-64, 256, 20.0D, 9, "vein", -64, 256, 34.0D);
-		upgraded |= upgradeOreRule(root, "minecraft:copper_ore", "minecraft:overworld",
-				-16, 112, 16.0D, 10, "cloud", -16, 112, 13.0D);
 		upgraded |= upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
 				-64, 16, 4.0D, 8, "cluster", -64, 16, 2.6D);
 		upgraded |= upgradeOreRule(root, "minecraft:diamond_ore", "minecraft:overworld",
@@ -772,16 +767,10 @@ public final class GeomeConfig {
 				-16, 319, 8.0D, 3, "cluster", -16, 128, 0.55D);
 		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
 				-16, 128, 3.0D, 3, "cluster", -16, 128, 0.55D);
-		upgraded |= upgradeOreRule(root, "minecraft:nether_gold_ore", "minecraft:the_nether",
-				0, 127, 10.0D, 10, "cluster", 0, 127, 6.0D);
-		upgraded |= upgradeOreRule(root, "minecraft:ancient_debris", "minecraft:the_nether",
-				8, 120, 2.0D, 3, "cluster", 8, 120, 1.0D);
 		upgraded |= upgradeOreRule(root, "minecraft:coal_ore", "minecraft:overworld",
 				0, 96, 12.0D, 17, "cluster", 0, 96, 6.25D);
 		upgraded |= upgradeOreRule(root, "minecraft:iron_ore", "minecraft:overworld",
 				-64, 256, 34.0D, 9, "vein", -64, 256, 26.0D);
-		upgraded |= upgradeOreRule(root, "minecraft:copper_ore", "minecraft:overworld",
-				-16, 112, 13.0D, 10, "cloud", -16, 112, 13.0D);
 		upgraded |= upgradeOreRule(root, "minecraft:gold_ore", "minecraft:overworld",
 				-64, 32, 4.5D, 9, "vein", -64, 32, 2.85D);
 		upgraded |= upgradeOreRule(root, "minecraft:redstone_ore", "minecraft:overworld",
@@ -792,21 +781,14 @@ public final class GeomeConfig {
 				-64, 64, 3.4D, 7, "cloud", -64, 64, 3.25D);
 		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
 				-16, 128, 0.55D, 3, "cluster", -16, 128, 0.35D);
-		upgraded |= upgradeOreRule(root, "minecraft:nether_gold_ore", "minecraft:the_nether",
-				0, 127, 6.0D, 10, "cluster", 0, 127, 5.2D);
 		upgraded |= upgradeOreRule(root, "minecraft:nether_quartz_ore", "minecraft:the_nether",
 				0, 127, 16.0D, 14, "vein", 0, 127, 11.2D);
-		upgraded |= upgradeOreRule(root, "minecraft:ancient_debris", "minecraft:the_nether",
-				8, 120, 1.0D, 3, "cluster", 8, 120, 1.25D);
 		upgraded |= upgradeOreFidelityRule(root, "minecraft:coal_ore", "minecraft:overworld",
 				0, 96, 6.25D, 17, "cluster", OreHeightDistribution.TRIANGLE, 0.0D,
 				6.27D, OreHeightDistribution.TRIANGLE, 0.87D);
 		upgraded |= upgradeOreFidelityRule(root, "minecraft:iron_ore", "minecraft:overworld",
 				-64, 256, 26.0D, 9, "vein", OreHeightDistribution.TRIANGLE, 0.0D,
 				25.5D, OreHeightDistribution.TRIANGLE, 0.80D);
-		upgraded |= upgradeOreFidelityRule(root, "minecraft:copper_ore", "minecraft:overworld",
-				-16, 112, 13.0D, 10, "cloud", OreHeightDistribution.TRIANGLE, 0.0D,
-				12.65D, OreHeightDistribution.TRIANGLE, 0.27D);
 		upgraded |= upgradeOreFidelityRule(root, "minecraft:gold_ore", "minecraft:overworld",
 				-64, 32, 2.85D, 9, "vein", OreHeightDistribution.TRIANGLE, 0.0D,
 				2.95D, OreHeightDistribution.TRIANGLE, 0.94D);
@@ -831,9 +813,6 @@ public final class GeomeConfig {
 		upgraded |= upgradeOreForTarget(root, "minecraft:iron_ore", -64, 256, 25.5D, 9,
 				"vein", OreHeightDistribution.TRIANGLE, 0.80D,
 				0, 63, 20.0D, 9, "vein", OreHeightDistribution.UNIFORM, 0.0D);
-		upgraded |= upgradeOreForTarget(root, "minecraft:copper_ore", -16, 112, 12.65D, 10,
-				"normal_cloud", OreHeightDistribution.TRIANGLE, 0.27D,
-				0, 96, 6.0D, 10, "vein", OreHeightDistribution.TRIANGLE, 0.0D);
 		upgraded |= upgradeOreForTarget(root, "minecraft:gold_ore", -64, 32, 2.95D, 9,
 				"vein", OreHeightDistribution.TRIANGLE, 0.94D,
 				0, 31, 2.0D, 9, "vein", OreHeightDistribution.UNIFORM, 0.0D);
@@ -1079,7 +1058,7 @@ public final class GeomeConfig {
 
 	private static Map<ResourceLocation, ResourceLocation> readWorldgenAliases(JsonObject root) {
 		Map<ResourceLocation, ResourceLocation> aliases = new LinkedHashMap<>();
-		JsonObject aliasRoot = JSONUtils.getAsJsonObject(root, "worldgen_aliases",
+		JsonObject aliasRoot = getObject(root, "worldgen_aliases",
 				defaultConfig().getAsJsonObject("worldgen_aliases"));
 		for (Entry<String, JsonElement> entry : aliasRoot.entrySet()) {
 			ResourceLocation sourceId;
@@ -1116,8 +1095,8 @@ public final class GeomeConfig {
 			ResourceLocation biomeId = ForgeRegistries.BIOMES.getKey(biome);
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
-				RegistryKey<Biome> biomeKey = RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
-				for (BiomeDictionary.Type type : BiomeDictionary.getTypes(biomeKey)) {
+				for (BiomeDictionary.Type type : biome == null
+						? Collections.<BiomeDictionary.Type>emptySet() : BiomeDictionary.getTypes(biome)) {
 					merge(weights, dictionaryRules.get(type.getName()));
 				}
 			}
@@ -1148,7 +1127,7 @@ public final class GeomeConfig {
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, Biome biome) {
 		applyBiomeHeuristic(weights, geomeIndexes, biomeId,
-				biome.getBaseTemperature(), biome.getDownfall());
+				biome.getDefaultTemperature(), biome.getDownfall());
 	}
 
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
@@ -1511,9 +1490,7 @@ public final class GeomeConfig {
 				"glacial_highland", 2.0D, "stable_craton", 0.15D, "sedimentary_basin", 0.05D,
 				"coastal_shelf", 0.05D, "arid_basin", 0.15D, "wetland_basin", 0.05D,
 				"volcanic_arc", 0.35D);
-		addVanillaNetherOre(ores, "nether_gold_ore", 0, 127, 5.2D, 10, OrePattern.CLUSTER, 8, 5, 5);
 		addVanillaNetherOre(ores, "nether_quartz_ore", 0, 127, 11.2D, 14, OrePattern.VEIN, 8, 4, 4);
-		addVanillaNetherOre(ores, "ancient_debris", 8, 120, 1.25D, 3, OrePattern.CLUSTER, 12, 8, 3);
 		return ores;
 	}
 
@@ -1920,8 +1897,6 @@ public final class GeomeConfig {
 	private static void addDefaultRocks(JsonObject rocks) {
 		addRock(rocks, "minecraft:andesite", RockFamily.IGNEOUS_VOLCANIC, 68, 42, 1.0D,
 				"volcanic_arc", 3.0D, "mountain_belt", 1.2D);
-		addRock(rocks, "minecraft:basalt", RockFamily.IGNEOUS_VOLCANIC, 72, 36, 1.2D,
-				"volcanic_arc", 4.0D, "coastal_shelf", 0.7D);
 		addRock(rocks, "orespawn:rhyolite", RockFamily.IGNEOUS_VOLCANIC, 70, 36, 1.0D,
 				"volcanic_arc", 3.5D, "mountain_belt", 0.8D);
 		addRock(rocks, "orespawn:basaltic_glass", RockFamily.IGNEOUS_VOLCANIC, 78, 24, 0.75D,

@@ -7,15 +7,13 @@ import java.util.Locale;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.ResourceLocation;
 
-final class GeomeBiomeScreen extends Screen {
+final class GeomeBiomeScreen extends OreSpawnScreen {
 	private enum Tab { GEOMES, BIOMES, DICTIONARY }
 	private final Screen parent;
 	private final GeologyEditorSession session;

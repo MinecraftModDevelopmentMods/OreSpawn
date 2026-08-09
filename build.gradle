@@ -1,10 +1,10 @@
 buildscript {
     repositories {
-        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://maven.minecraftforge.net/' }
         mavenCentral()
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
     }
 }
 
@@ -14,239 +14,156 @@ apply plugin: 'maven-publish'
 
 version = mod_version
 group = mod_group_id
-
 archivesBaseName = "OreSpawn-${minecraft_version}"
 
-// Minecraft 1.16.5 and Forge 36 target Java 8.
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(8)
-    withSourcesJar()
-    withJavadocJar()
-}
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
 minecraft {
-    // The mappings can be changed at any time and must be in the following format.
-    // Channel:   Version:
-    // official   MCVersion             Official field/method names from Mojang mapping files
-    // parchment  YYYY.MM.DD-MCVersion  Open community-sourced parameter names and javadocs layered on top of official
-    //
-    // You must be aware of the Mojang license when using the 'official' or 'parchment' mappings.
-    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
-    //
-    // Parchment is an unofficial project maintained by ParchmentMC, separate from MinecraftForge
-    // Additional setup is needed to use their mappings: https://github.com/ParchmentMC/Parchment/wiki/Getting-Started
-    //
-    // Use non-default mappings at your own risk. They may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
-    mappings channel: mapping_channel, version: mapping_version
-
-    // When true, this property will have all Eclipse/IntelliJ IDEA run configurations run the "prepareX" task for the given run configuration before launching the game.
-    // In most cases, it is not necessary to enable.
-    // enableEclipsePrepareRuns = true
-    // enableIdeaPrepareRuns = true
-
-    // When true, this property will add the folder name of all declared run configurations to generated IDE run configurations.
-    // The folder name can be set on a run configuration using the "folderName" property.
-    // By default, the folder name of a run configuration is the name of the Gradle project containing it.
-    // generateRunFolders = true
-
-    // This property enables access transformers for use in development.
-    // They will be applied to the Minecraft artifact.
-    // The access transformer file can be anywhere in the project.
-    // However, it must be at "META-INF/accesstransformer.cfg" in the final mod jar to be loaded by Forge.
-    // This default location is a best practice to automatically put the file in the right place in the final jar.
-    // See https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/ for more information.
+    mappings channel: project.mapping_channel, version: project.mapping_version
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
     runs {
-        // applies to all the run configs below
-        configureEach {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            // Recommended logging level for the console
-            // You can set various levels here.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            property 'forge.logging.console.level', 'debug'
-
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            property 'forge.enabledGameTestNamespaces', mod_id
-
-            mods {
-                orespawn {
-                    source sourceSets.main
-                }
-            }
-        }
-
         client {
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            property 'forge.enabledGameTestNamespaces', mod_id
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                orespawn { source sourceSets.main }
+            }
         }
 
         server {
-            property 'forge.enabledGameTestNamespaces', mod_id
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
             args '--nogui'
-            if (providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
-                property 'orespawn.worldgenBenchmarkMode', providers.gradleProperty('orespawnBenchmarkMode').get()
-                property 'orespawn.worldgenBenchmarkRadius',
-                        providers.gradleProperty('orespawnBenchmarkRadius').getOrElse('8')
-                property 'orespawn.worldgenBenchmarkRepetitions',
-                        providers.gradleProperty('orespawnBenchmarkRepetitions').getOrElse('5')
-                property 'orespawn.worldgenBenchmarkVanillaOres',
-                        providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
-                property 'orespawn.worldgenBenchmarkOreAudit',
-                        providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
-                if (providers.gradleProperty('orespawnBenchmarkBlockAudit').isPresent()) {
-                    property 'orespawn.worldgenBenchmarkBlockAudit',
-                            providers.gradleProperty('orespawnBenchmarkBlockAudit').get()
-                }
-                property 'orespawn.worldgenBenchmarkCenterX',
-                        providers.gradleProperty('orespawnBenchmarkCenterX').getOrElse('1024')
-                property 'orespawn.worldgenBenchmarkCenterZ',
-                        providers.gradleProperty('orespawnBenchmarkCenterZ').getOrElse('1024')
-                property 'orespawn.worldgenBenchmarkCenterStep',
-                        providers.gradleProperty('orespawnBenchmarkCenterStep').getOrElse('64')
-                property 'orespawn.worldgenBenchmarkDimension',
-                        providers.gradleProperty('orespawnBenchmarkDimension').getOrElse('overworld')
-                if (providers.gradleProperty('orespawnBenchmarkBiomeType').isPresent()) {
-                    property 'orespawn.worldgenBenchmarkBiomeType',
-                            providers.gradleProperty('orespawnBenchmarkBiomeType').get()
-                }
-                property 'orespawn.worldgenBenchmarkStopServer', 'true'
-                if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
-                    jvmArg "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
-                }
-            }
-        }
-
-        // This run config launches GameTestServer and runs all registered gametests, then exits.
-        // By default, the server will crash when no gametests are provided.
-        // The gametest system is also enabled by default for other run configs under the /test command.
-        gameTestServer {
-            property 'forge.enabledGameTestNamespaces', mod_id
-            if (providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
-                property 'orespawn.worldgenBenchmarkMode', providers.gradleProperty('orespawnBenchmarkMode').get()
-                property 'orespawn.worldgenBenchmarkRadius',
-                        providers.gradleProperty('orespawnBenchmarkRadius').getOrElse('4')
-                property 'orespawn.worldgenBenchmarkRepetitions',
-                        providers.gradleProperty('orespawnBenchmarkRepetitions').getOrElse('3')
-                property 'orespawn.worldgenBenchmarkVanillaOres',
-                        providers.gradleProperty('orespawnBenchmarkVanillaOres').getOrElse('false')
-                property 'orespawn.worldgenBenchmarkOreAudit',
-                        providers.gradleProperty('orespawnBenchmarkOreAudit').getOrElse('false')
-                if (providers.gradleProperty('orespawnBenchmarkBlockAudit').isPresent()) {
-                    property 'orespawn.worldgenBenchmarkBlockAudit',
-                            providers.gradleProperty('orespawnBenchmarkBlockAudit').get()
-                }
-                property 'orespawn.worldgenBenchmarkCenterX',
-                        providers.gradleProperty('orespawnBenchmarkCenterX').getOrElse('256')
-                property 'orespawn.worldgenBenchmarkCenterZ',
-                        providers.gradleProperty('orespawnBenchmarkCenterZ').getOrElse('256')
-                property 'orespawn.worldgenBenchmarkCenterStep',
-                        providers.gradleProperty('orespawnBenchmarkCenterStep').getOrElse('64')
-                property 'orespawn.worldgenBenchmarkDimension',
-                        providers.gradleProperty('orespawnBenchmarkDimension').getOrElse('overworld')
-                if (providers.gradleProperty('orespawnBenchmarkBiomeType').isPresent()) {
-                    property 'orespawn.worldgenBenchmarkBiomeType',
-                            providers.gradleProperty('orespawnBenchmarkBiomeType').get()
-                }
-                property 'orespawn.worldgenBenchmarkStopServer', 'true'
-                if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
-                    jvmArg "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
-                }
+            mods {
+                orespawn { source sourceSets.main }
             }
         }
 
         data {
-            // example of overriding the workingDirectory set in configureEach above
             workingDirectory project.file('run-data')
-
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            mods {
+                orespawn { source sourceSets.main }
+            }
         }
 
-		['Fresh', 'Reload'].each { String phase ->
-			create("surfaceIntegration${phase}") {
-				parent runs.server
-				workingDirectory layout.buildDirectory.dir('surface-integration-run').get().asFile
-				jvmArgs '-Xmx1536m'
-				property 'forge.logging.console.level', 'info'
-				property 'surfaceprobe.integrationPhase', phase.toLowerCase(Locale.ROOT)
-				args '--nogui'
-			}
-		}
+        surfaceIntegrationFresh {
+            workingDirectory project.file("${buildDir}/surface-integration-run")
+            property 'forge.logging.console.level', 'info'
+            property 'surfaceprobe.integrationPhase', 'fresh'
+            args '--nogui'
+            mods {
+                orespawn { source sourceSets.main }
+            }
+        }
+
+        surfaceIntegrationReload {
+            workingDirectory project.file("${buildDir}/surface-integration-run")
+            property 'forge.logging.console.level', 'info'
+            property 'surfaceprobe.integrationPhase', 'reload'
+            args '--nogui'
+            mods {
+                orespawn { source sourceSets.main }
+            }
+        }
     }
 }
 
-// Include resources generated by data generators.
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-repositories {
-    // Put repositories for dependencies here
-    // ForgeGradle automatically adds the Forge maven and Maven Central for you
+def configureForge31Run = { JavaExec runTask, String launchTarget ->
+    runTask.main = 'net.minecraftforge.userdev.LaunchTesting'
+    runTask.environment 'target', launchTarget
+    runTask.environment 'MCP_MAPPINGS', "${mapping_channel}_${mapping_version}"
+    runTask.environment 'MCP_VERSION', mcp_version
+    runTask.environment 'FORGE_VERSION', forge_version
+    runTask.environment 'FORGE_GROUP', 'net.minecraftforge'
+    runTask.environment 'MC_VERSION', minecraft_version
+    runTask.environment 'MOD_CLASSES', "${mod_id}%%${sourceSets.main.output.classesDirs.singleFile};" +
+            "${mod_id}%%${sourceSets.main.output.resourcesDir}"
+}
 
-    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
-    // flatDir {
-    //     dir 'libs'
-    // }
+tasks.withType(JavaExec).all { JavaExec runTask ->
+    Map<String, String> targets = [
+            runClient: 'fmluserdevclient',
+            runServer: 'fmluserdevserver',
+            runData: 'fmluserdevdata',
+            runSurfaceIntegrationFresh: 'fmluserdevserver',
+            runSurfaceIntegrationReload: 'fmluserdevserver'
+    ]
+    String launchTarget = targets.get(runTask.name)
+    if (launchTarget != null) {
+        configureForge31Run(runTask, launchTarget)
+    }
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
-    // Specify the version of Minecraft to use.
-    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
-    // The "userdev" classifier will be requested and setup by ForgeGradle.
-    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
-    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    testImplementation platform('org.junit:junit-bom:5.10.2')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-
-    // Real mod deobf dependency examples - these get remapped to your current mappings
-    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
-    // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}") // Adds the full JEI mod as a runtime dependency
-    // implementation fg.deobf("com.tterrag.registrate:Registrate:MC${mc_version}-${registrate_version}") // Adds registrate as a dependency
-
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testCompile 'org.junit.jupiter:junit-jupiter-params:5.10.2'
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testRuntime 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
 
-// Example for how to get properties into the manifest for reading at runtime.
-tasks.named('jar', Jar).configure {
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+jar {
     manifest {
         attributes([
-                'Specification-Title'     : 'OreSpawn',
-                'Specification-Vendor'    : 'SkyBlade1978',
-                'Specification-Version'   : '1', // We are version 1 of ourselves
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : 'SkyBlade1978',
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'OreSpawn-API-Version'  : '1'
+                'Specification-Title'       : 'OreSpawn',
+                'Specification-Vendor'      : 'SkyBlade1978',
+                'Specification-Version'     : '1',
+                'Implementation-Title'      : project.name,
+                'Implementation-Version'    : version,
+                'Implementation-Vendor'     : 'SkyBlade1978',
+                'Implementation-Timestamp'  : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'OreSpawn-API-Version'       : '1'
         ])
     }
-
-    // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'
 }
 
-tasks.named('processResources', ProcessResources).configure {
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', minecraft_version
+    inputs.property 'forge_version_range', forge_version_range
+    inputs.property 'loader_version_range', loader_version_range
+    inputs.property 'minecraft_version_range', minecraft_version_range
+
+    filesMatching('META-INF/mods.toml') {
+        expand([
+                version: project.version,
+                minecraft_version: minecraft_version,
+                forge_version_range: forge_version_range,
+                loader_version_range: loader_version_range,
+                minecraft_version_range: minecraft_version_range
+        ])
+    }
     from('docs/AGENTS.md') {
         into ''
         rename { 'AGENTS.md' }
@@ -256,496 +173,182 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
-// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
-// tasks.named('publish').configure {
-//     dependsOn 'reobfJar'
-// }
-
 publishing {
     publications {
-        register('mavenJava', MavenPublication) {
+        mavenJava(MavenPublication) {
             artifact jar
             artifact sourcesJar
             artifact javadocJar
         }
     }
     repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
-        }
+        maven { url "file:///${project.projectDir}/mcmodsrepo" }
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+tasks.withType(JavaCompile) {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xmaxerrs', '1000']
 }
 
-// ForgeGradle 5 resolves the access-transformed mapped Forge dependency into
-// build/fg_cache during configuration. Deleting that cache afterward makes a
-// single-invocation `clean build` lose its compile classpath, because the
-// dependency has already been considered resolved. It is a dependency cache,
-// not a produced mod artifact, so retain it while cleaning every other build
-// output.
-tasks.named('clean', Delete).configure {
-    setDelete(fileTree(layout.buildDirectory) {
-        exclude 'fg_cache/**'
-    })
-}
-
-tasks.named('javadoc', Javadoc).configure {
+javadoc {
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
 }
 
-tasks.named('test', Test).configure {
+test {
     useJUnitPlatform()
 }
 
-def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
-def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegrationTestMod', JavaCompile) {
-	dependsOn tasks.named('classes')
-	source fileTree('src/biomeIntegrationTest/java')
-	classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
-	destinationDirectory.set(surfaceIntegrationClasses)
-	javaCompiler.set(javaToolchains.compilerFor {
-				languageVersion = JavaLanguageVersion.of(8)
-	})
-	options.encoding = 'UTF-8'
+def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
+task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDir = surfaceIntegrationClasses
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
 }
 
-def surfaceIntegrationTestModJar = tasks.register('surfaceIntegrationTestModJar', Jar) {
-	dependsOn compileSurfaceIntegrationTestMod
-	archiveFileName = 'surfaceprobe.jar'
-	destinationDirectory = layout.buildDirectory.dir('surface-integration-fixture')
-	from surfaceIntegrationClasses
-	from 'src/biomeIntegrationTest/resources'
+task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
+    archiveName = 'surfaceprobe.jar'
+    destinationDir = file("${buildDir}/surface-integration-fixture")
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
 }
 
-def surfaceIntegrationRunDirectory = layout.buildDirectory.dir('surface-integration-run')
-def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTest') {
-	dependsOn surfaceIntegrationTestModJar
-	doLast {
-		File runDirectory = surfaceIntegrationRunDirectory.get().asFile
-		delete runDirectory
-		runDirectory.mkdirs()
-		copy {
-			from surfaceIntegrationTestModJar.flatMap { it.archiveFile }
-			into surfaceIntegrationRunDirectory.map { it.dir('mods') }
-		}
-		new File(runDirectory, 'server.properties').setText('''\
+def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
+task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        surfaceIntegrationRunDirectory.mkdirs()
+        copy {
+            from surfaceIntegrationTestModJar.archivePath
+            into new File(surfaceIntegrationRunDirectory, 'mods')
+        }
+        new File(surfaceIntegrationRunDirectory, 'server.properties').setText('''\
 level-name=surface-integration-world
-# Minecraft 1.16.5 treats numeric zero as "choose a random seed". This
-# non-numeric token has Java String.hashCode() == 0, so the actual seed is 0.
 level-seed=zsjpxah
-level-type=minecraft:normal
+level-type=default
 online-mode=false
 allow-nether=true
 generate-structures=false
 spawn-protection=0
 max-tick-time=-1
 ''', 'UTF-8')
-		new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
-	}
+        new File(surfaceIntegrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
 }
 
-tasks.configureEach {
-	if (name == 'runSurfaceIntegrationFresh') {
-		dependsOn prepareSurfaceIntegrationTest
-	}
+tasks.matching { it.name == 'runSurfaceIntegrationFresh' }.all {
+    dependsOn prepareSurfaceIntegrationTest
 }
 
-def surfaceIntegrationProcess = { String phase, dependency ->
-	tasks.register("surfaceIntegration${phase}Process", Exec) {
-		group = 'verification'
-		description = "Runs the ${phase.toLowerCase(Locale.ROOT)} surface-probe server behind a process boundary."
-		dependsOn dependency, "prepareRunSurfaceIntegration${phase}"
-		doFirst {
-			JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
-			File classpathJar = layout.buildDirectory.file(
-					"surface-integration-fixture/${phase.toLowerCase(Locale.ROOT)}-classpath.jar").get().asFile
-			classpathJar.parentFile.mkdirs()
-			java.util.jar.Manifest manifest = new java.util.jar.Manifest()
-			manifest.mainAttributes.put(java.util.jar.Attributes.Name.MANIFEST_VERSION, '1.0')
-			manifest.mainAttributes.put(java.util.jar.Attributes.Name.CLASS_PATH,
-					runTask.classpath.files.collect { File entry -> entry.toURI().toASCIIString() }.join(' '))
-			classpathJar.withOutputStream { output ->
-				new java.util.jar.JarOutputStream(output, manifest).close()
-			}
-			List<String> arguments = []
-			arguments.addAll(runTask.allJvmArgs)
-			arguments.add('-cp')
-			arguments.add(classpathJar.absolutePath)
-			arguments.add(runTask.main)
-			arguments.addAll(runTask.args)
-
-			workingDir runTask.workingDir
-			environment runTask.environment
-			File javaExecutable = runTask.javaLauncher.get().executablePath.asFile
-			if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('windows')) {
-				// Forge 36's direct JavaExec server shutdown can also terminate Gradle's
-				// single-use daemon. cmd/call keeps the server as a grandchild so Gradle
-				// receives the real exit code and can continue to the reload assertion.
-				String command = 'call "' + javaExecutable.absolutePath + '" ' +
-						arguments.collect { String value -> '"' + value.replace('"', '""') + '"' }.join(' ')
-				commandLine 'cmd.exe', '/d', '/s', '/c', command
-			} else {
-				commandLine javaExecutable.absolutePath, arguments
-			}
-		}
-	}
+def createSurfaceProcess = { String phase, Object dependency ->
+    task("surfaceIntegration${phase}Process", type: Exec, dependsOn: [dependency, "prepareRunSurfaceIntegration${phase}"]) {
+        group = 'verification'
+        doFirst {
+            JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
+            File classpathJar = file("${buildDir}/surface-integration-fixture/${phase.toLowerCase()}-classpath.jar")
+            classpathJar.parentFile.mkdirs()
+            java.util.jar.Manifest manifest = new java.util.jar.Manifest()
+            manifest.mainAttributes.put(java.util.jar.Attributes.Name.MANIFEST_VERSION, '1.0')
+            manifest.mainAttributes.put(java.util.jar.Attributes.Name.CLASS_PATH,
+                    runTask.classpath.files.collect { it.toURI().toASCIIString() }.join(' '))
+            classpathJar.withOutputStream { output ->
+                new java.util.jar.JarOutputStream(output, manifest).close()
+            }
+            List<String> arguments = []
+            arguments.addAll(runTask.allJvmArgs)
+            int classpathFlag = arguments.lastIndexOf('-cp')
+            if (classpathFlag < 0) {
+                classpathFlag = arguments.lastIndexOf('-classpath')
+            }
+            if (classpathFlag >= 0 && classpathFlag + 1 < arguments.size()) {
+                arguments.remove(classpathFlag + 1)
+                arguments.remove(classpathFlag)
+            }
+            arguments.add('-cp')
+            arguments.add(classpathJar.absolutePath)
+            arguments.add(runTask.main ?: 'net.minecraftforge.userdev.LaunchTesting')
+            arguments.addAll(runTask.args)
+            workingDir runTask.workingDir
+            environment runTask.environment
+            File javaExecutable = new File(System.getProperty('java.home'), 'bin/java.exe')
+            String command = 'call "' + javaExecutable.absolutePath + '" ' +
+                    arguments.collect { '"' + it.toString().replace('"', '""') + '"' }.join(' ')
+            commandLine 'cmd.exe', '/d', '/s', '/c', command
+        }
+    }
 }
 
-def surfaceIntegrationFreshProcess = surfaceIntegrationProcess('Fresh', prepareSurfaceIntegrationTest)
-surfaceIntegrationFreshProcess.configure {
-	doLast {
-		File marker = surfaceIntegrationRunDirectory.get().file(
-				'surface-integration-world/surfaceprobe-integration.properties').asFile
-		if (!marker.isFile()) {
-			throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
-		}
-	}
+def surfaceIntegrationFreshProcess = createSurfaceProcess('Fresh', prepareSurfaceIntegrationTest)
+surfaceIntegrationFreshProcess.doLast {
+    File marker = new File(surfaceIntegrationRunDirectory,
+            'surface-integration-world/surfaceprobe-integration.properties')
+    if (!marker.isFile()) {
+        throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
+    }
 }
-def surfaceIntegrationReloadProcess = surfaceIntegrationProcess('Reload', surfaceIntegrationFreshProcess)
+def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
 
-def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
-	group = 'verification'
-	description = 'Verifies provider surfaces and dynamic-biome geology across fresh and reloaded normal terrain.'
-	dependsOn surfaceIntegrationReloadProcess
-	doLast {
-		File marker = surfaceIntegrationRunDirectory.get().file(
-				'surface-integration-world/surfaceprobe-integration.properties').asFile
-		if (!marker.isFile()) {
-			throw new GradleException("Surface integration completion marker is missing: ${marker}")
-		}
-		Properties result = new Properties()
-		marker.withInputStream { result.load(it) }
-		if (result.getProperty('reload_verified') != 'true') {
-			throw new GradleException("Surface integration reload was not verified: ${marker}")
-		}
-		logger.lifecycle('Provider surfaces and dynamic-biome geology verified: {} dimensions, {} columns each, fresh + reload',
-				result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
-	}
-}
-
-tasks.named('check') {
-	dependsOn surfaceIntegrationTest
-}
-
-// Keep every Eclipse launch input on Buildship's physical Gradle cache. Command-line
-// verification may deliberately use a separate cache, which must not leak into Eclipse.
-def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
-    group = 'IDE'
-    description = 'Aligns Eclipse project, Buildship, and Forge run classpaths with Eclipse\'s Gradle home.'
-
+task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
+    group = 'verification'
     doLast {
-        File classpathDir = layout.buildDirectory.dir('classpath').get().asFile
-        Set<File> classpathFiles = fileTree(classpathDir) {
-            include '*_minecraftClasspath.txt'
-        }.files
-        boolean hasForgeGradle5Launches = ['runClient.launch', 'runServer.launch',
-                'runData.launch'].every { file(it).isFile() }
-        if (classpathFiles.isEmpty() && !hasForgeGradle5Launches) {
-            throw new GradleException('Missing Forge run metadata. Run genEclipseRuns before launching from Eclipse.')
+        File marker = new File(surfaceIntegrationRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
-
-        File buildshipPreferences = file('.settings/org.eclipse.buildship.core.prefs')
-        Properties buildship = new Properties()
-        if (buildshipPreferences.isFile()) {
-            buildshipPreferences.withInputStream { buildship.load(it) }
-        }
-        String configuredGradleHome = buildship.getProperty('connection.gradle.user.home', '').trim()
-        File eclipseProjectClasspath = file('.classpath')
-        String eclipseGradleHomeOverride = (findProperty('eclipseGradleUserHome')
-                ?: System.getenv('ECLIPSE_GRADLE_USER_HOME') ?: '').toString().trim()
-        File eclipseGradleHome = eclipseGradleHomeOverride
-                ? file(eclipseGradleHomeOverride).canonicalFile
-                : new File(System.getProperty('user.home'), '.gradle').canonicalFile
-        if (!configuredGradleHome || file(configuredGradleHome).canonicalFile != eclipseGradleHome) {
-            buildship.setProperty('eclipse.preferences.version', '1')
-            buildship.setProperty('connection.gradle.user.home', eclipseGradleHome.absolutePath)
-            buildshipPreferences.parentFile.mkdirs()
-            buildshipPreferences.withOutputStream {
-                buildship.store(it,
-                        'Generated by syncEclipseRunClasspaths; keep Eclipse launch inputs on the Buildship cache.')
-            }
-        }
-        File eclipseCache = new File(eclipseGradleHome, 'caches').canonicalFile
-        File eclipseClasspathDir = file('.settings/orespawn-run-classpaths')
-        eclipseClasspathDir.mkdirs()
-
-        Closure<String> mapCacheReferences = { String value ->
-            value.replaceAll(/(?i)[A-Z]:[\\\/]\S*?[\\\/]caches(?=[\\\/])/) { String cacheRoot ->
-                cacheRoot.contains('/')
-                        ? eclipseCache.absolutePath.replace('\\', '/')
-                        : eclipseCache.absolutePath
-            }
-        }
-
-        Map<File, File> stableClasspaths = [:]
-        classpathFiles.each { File classpathFile ->
-            List<String> original = classpathFile.readLines('UTF-8')
-            List<String> synced = original.collect { String entry ->
-                String mapped = mapCacheReferences(entry)
-                String portable = mapped.replace('\\', '/')
-                int marker = portable.indexOf('/caches/')
-                if (marker < 0) {
-                    return mapped
-                }
-
-                File target = file(mapped).canonicalFile
-                if (!target.isFile()) {
-                    throw new GradleException("Missing Eclipse run dependency in configured Gradle cache: ${target}")
-                }
-                return target.absolutePath
-            }
-
-            File stableClasspath = new File(eclipseClasspathDir, classpathFile.name)
-            stableClasspath.setText(synced.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
-            stableClasspaths.put(classpathFile.canonicalFile, stableClasspath.canonicalFile)
-        }
-
-        int changedProjectClasspath = 0
-        int changedResourceExclusions = 0
-        if (eclipseProjectClasspath.isFile()) {
-            String original = eclipseProjectClasspath.getText('UTF-8')
-            def parsedClasspath = new XmlParser(false, false).parseText(original)
-            parsedClasspath.classpathentry.each { entry ->
-                ['path', 'sourcepath'].each { String attribute ->
-                    String value = entry.attribute(attribute)
-                    if (!value) {
-                        return
-                    }
-                    String mapped = mapCacheReferences(value)
-                    if (mapped == value) {
-                        return
-                    }
-                    File mappedTarget = file(mapped).canonicalFile
-                    if (mappedTarget.exists()) {
-                        entry.attributes().put(attribute, mappedTarget.absolutePath)
-                        changedProjectClasspath = 1
-                    } else {
-                        // Test-only libraries may have been resolved by command-line Gradle
-                        // but not yet by Buildship. They are not part of the Forge launch
-                        // module path, so retaining the existing valid path is safe.
-                        File existingTarget = file(value).canonicalFile
-                        if (!existingTarget.exists()) {
-                            throw new GradleException("Missing Eclipse project dependency in both Gradle caches: ${mappedTarget}")
-                        }
-                    }
-                }
-            }
-            parsedClasspath.classpathentry.findAll { entry ->
-                entry.attribute('kind') == 'src' && entry.attribute('path') == 'src/main/resources'
-            }.each { entry ->
-                List<String> exclusions = (entry.attribute('excluding') ?: '')
-                        .split(/\|/)
-                        .findAll { !it.isEmpty() }
-                ['META-INF/mods.toml', 'pack.mcmeta'].each { String metadataFile ->
-                    if (exclusions.remove(metadataFile)) {
-                        changedResourceExclusions = 1
-                    }
-                }
-                if (exclusions.isEmpty()) {
-                    entry.attributes().remove('excluding')
-                } else {
-                    entry.attributes().put('excluding', exclusions.join('|'))
-                }
-            }
-            if (changedProjectClasspath || changedResourceExclusions) {
-                eclipseProjectClasspath.setText(groovy.xml.XmlUtil.serialize(parsedClasspath), 'UTF-8')
-            }
-
-            parsedClasspath.classpathentry.each { entry ->
-                ['path', 'sourcepath'].each { String attribute ->
-                    String value = entry.attribute(attribute)
-                    if (value && value.replace('\\', '/').contains('/caches/')) {
-                        File target = file(value).canonicalFile
-                        if (!target.exists()) {
-                            throw new GradleException("Missing Eclipse project dependency in configured Gradle cache: ${target}")
-                        }
-                    }
-                }
-            }
-        }
-
-        File eclipseLaunchDir = file('.eclipse/configurations')
-        int changedPrepareLaunches = 0
-        if (eclipseLaunchDir.isDirectory()) {
-            boolean windows = System.getProperty('os.name', '').toLowerCase().contains('windows')
-            File gradleWrapper = file(windows ? 'gradlew.bat' : 'gradlew').canonicalFile
-            String launcher = windows
-                    ? (System.getenv('ComSpec') ?: new File(System.getenv('SystemRoot') ?: 'C:\\Windows',
-                            'System32\\cmd.exe').absolutePath)
-                    : '/bin/sh'
-            String arguments = windows
-                    ? "/d /s /c \"\\\"${gradleWrapper.absolutePath}\\\" copyEclipseResources --console plain\""
-                    : "-c \"'${gradleWrapper.absolutePath.replace("'", "'\\''")}' copyEclipseResources --console plain\""
-
-            fileTree(eclipseLaunchDir) {
-                include '*prepareRun*.launch'
-            }.files.each { File launchFile ->
-                StringWriter output = new StringWriter()
-                def xml = new groovy.xml.MarkupBuilder(output)
-                xml.mkp.xmlDeclaration(version: '1.0', encoding: 'UTF-8', standalone: 'no')
-                xml.launchConfiguration(type: 'org.eclipse.ui.externaltools.ProgramLaunchConfigurationType') {
-                    booleanAttribute(key: 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', value: 'true')
-                    booleanAttribute(key: 'org.eclipse.ui.externaltools.ATTR_CAPTURE_OUTPUT', value: 'true')
-                    stringAttribute(key: 'org.eclipse.ui.externaltools.ATTR_LOCATION', value: launcher)
-                    booleanAttribute(key: 'org.eclipse.ui.externaltools.ATTR_SHOW_CONSOLE', value: 'true')
-                    stringAttribute(key: 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS', value: arguments)
-                    stringAttribute(key: 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',
-                            value: projectDir.canonicalPath)
-                    mapAttribute(key: 'org.eclipse.debug.core.environmentVariables') {
-                        mapEntry(key: 'GRADLE_USER_HOME', value: eclipseGradleHome.absolutePath)
-                        mapEntry(key: 'JAVA_HOME', value: System.getProperty('java.home'))
-                    }
-                }
-                String replacement = output.toString() + System.lineSeparator()
-                if (launchFile.getText('UTF-8') != replacement) {
-                    launchFile.setText(replacement, 'UTF-8')
-                    changedPrepareLaunches++
-                }
-            }
-        }
-
-        int changedLaunches = 0
-		int changedTestExclusions = 0
-        File eclipseClasses = file('bin/main').canonicalFile
-        String eclipseModEntry = "${mod_id}%%${eclipseClasses.absolutePath}"
-        // Forge 36's exploded-directory locator treats the first entry as the
-        // resource root and scans only the remaining entries for @Mod classes.
-        // Eclipse merges classes and resources in bin/main, so repeat the path
-        // deliberately instead of collapsing it to a single entry.
-        String forge36ModClasses = "${eclipseModEntry};${eclipseModEntry}"
-        if (eclipseLaunchDir.isDirectory()) {
-            fileTree(eclipseLaunchDir) {
-                include '*Slim.launch'
-            }.files.each { File launchFile ->
-                String original = launchFile.getText('UTF-8')
-                String synced = mapCacheReferences(original)
-                stableClasspaths.each { File generated, File stable ->
-                    synced = synced
-                            .replace(generated.absolutePath, stable.absolutePath)
-                            .replace(generated.absolutePath.replace('\\', '/'), stable.absolutePath.replace('\\', '/'))
-                }
-                synced = synced.replaceFirst(
-                        /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
-                    "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
-                }
-				String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
-				String excludeTestAttribute =
-						"<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
-				String beforeTestExclusion = synced
-				if (synced.contains("key=\"${excludeTestKey}\"")) {
-					synced = synced.replaceFirst(
-							/<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
-							excludeTestAttribute)
-				} else {
-					int launchHeaderEnd = synced.indexOf('\n', synced.indexOf('<launchConfiguration'))
-					if (launchHeaderEnd < 0) {
-						throw new GradleException("Malformed Eclipse Java launch configuration: ${launchFile}")
-					}
-					String lineSeparator = synced.contains('\r\n') ? '\r\n' : '\n'
-					synced = "${synced.substring(0, launchHeaderEnd + 1)}" +
-							"  ${excludeTestAttribute}${lineSeparator}" +
-							synced.substring(launchHeaderEnd + 1)
-				}
-				if (beforeTestExclusion != synced) {
-					changedTestExclusions++
-				}
-                if (original != synced) {
-                    launchFile.setText(synced, 'UTF-8')
-                    changedLaunches++
-                }
-            }
-        }
-
-        // ForgeGradle's launch group lets Java start even if its Buildship
-        // preparation step changed caches or failed. Publish the synchronized
-        // Java launch directly; Eclipse already copies resources into bin/main.
-        int changedLaunchGroups = 0
-        fileTree(projectDir) {
-            include 'run*.launch'
-        }.files.each { File launchFile ->
-            String runName = launchFile.name.substring(0, launchFile.name.length() - '.launch'.length())
-            File slimLaunch = new File(eclipseLaunchDir, "${project.name} - ${runName}Slim.launch")
-            if (!slimLaunch.isFile()) {
-                return
-            }
-            String replacement = slimLaunch.getText('UTF-8')
-            if (launchFile.getText('UTF-8') != replacement) {
-                launchFile.setText(replacement, 'UTF-8')
-                changedLaunchGroups++
-            }
-        }
-
-        // ForgeGradle 5 writes its Java launches directly at the project root,
-        // rather than producing the later *Slim.launch files above. Keep the
-        // ordinary player/developer launches on main output only; the isolated
-        // surface-probe launches remain available as their own explicit runs.
-        int changedDirectLaunches = 0
-        ['runClient.launch', 'runServer.launch', 'runGameTestServer.launch',
-                'runData.launch'].each { String launchName ->
-            File launchFile = file(launchName)
-            if (!launchFile.isFile()) {
-                return
-            }
-            String original = launchFile.getText('UTF-8')
-            String synced = mapCacheReferences(original)
-            stableClasspaths.each { File generated, File stable ->
-                synced = synced
-                        .replace(generated.absolutePath, stable.absolutePath)
-                        .replace(generated.absolutePath.replace('\\', '/'),
-                                stable.absolutePath.replace('\\', '/'))
-            }
-            synced = synced.replaceFirst(
-                    /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
-                "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
-            }
-            String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
-            String excludeTestAttribute =
-                    "<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
-            if (synced.contains("key=\"${excludeTestKey}\"")) {
-                synced = synced.replaceFirst(
-                        /<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
-                        excludeTestAttribute)
-            } else {
-                int launchHeaderEnd = synced.indexOf('\n', synced.indexOf('<launchConfiguration'))
-                if (launchHeaderEnd < 0) {
-                    throw new GradleException("Malformed Eclipse Java launch configuration: ${launchFile}")
-                }
-                String lineSeparator = synced.contains('\r\n') ? '\r\n' : '\n'
-                synced = "${synced.substring(0, launchHeaderEnd + 1)}" +
-                        "  ${excludeTestAttribute}${lineSeparator}" +
-                        synced.substring(launchHeaderEnd + 1)
-            }
-            if (original != synced) {
-                launchFile.setText(synced, 'UTF-8')
-                changedDirectLaunches++
-            }
-        }
-
-        ['runClient.launch', 'runServer.launch', 'runGameTestServer.launch',
-                'runData.launch'].each { String launchName ->
-            File launchFile = file(launchName)
-            if (!launchFile.isFile()) {
-                throw new GradleException("Missing ForgeGradle 5 Eclipse launch: ${launchFile}")
-            }
-            String launchText = launchFile.getText('UTF-8')
-            String expectedEntry =
-                    "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
-            if (!launchText.contains(expectedEntry)) {
-                throw new GradleException(
-                        "Forge 36 Eclipse launch must repeat bin/main for resource and @Mod class scanning: ${launchFile}")
-            }
-        }
-        logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} slim test exclusions, ${changedLaunchGroups} launch groups, ${changedDirectLaunches} ForgeGradle 5 launches updated)")
+        logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
     }
 }
 
-tasks.configureEach {
-    if (name in ['copyEclipseResources', 'genEclipseRuns', 'eclipse',
-            'prepareRunClient', 'prepareRunServer', 'prepareRunData', 'prepareRunGameTestServer']) {
-        finalizedBy syncEclipseRunClasspaths
+check.dependsOn surfaceIntegrationTest
+
+task syncForge31EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+    group = 'ide'
+    doLast {
+        String mainClass = 'net.minecraftforge.userdev.LaunchTesting'
+        String mainOutput = new File(projectDir, 'bin/main').absolutePath
+        String fixtureOutput = surfaceIntegrationClasses.absolutePath
+        String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
+        String fixtureModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput};" +
+                "surfaceprobe%%${fixtureOutput};surfaceprobe%%${fixtureResources}"
+        String environmentEntries =
+                "    <mapEntry key=\"MCP_MAPPINGS\" value=\"${mapping_channel}_${mapping_version}\"/>\r\n" +
+                "    <mapEntry key=\"MCP_VERSION\" value=\"${mcp_version}\"/>\r\n" +
+                "    <mapEntry key=\"FORGE_VERSION\" value=\"${forge_version}\"/>\r\n" +
+                "    <mapEntry key=\"FORGE_GROUP\" value=\"net.minecraftforge\"/>\r\n" +
+                "    <mapEntry key=\"target\" value=\"fmluserdevserver\"/>\r\n" +
+                "    <mapEntry key=\"MC_VERSION\" value=\"${minecraft_version}\"/>\r\n"
+        ['Fresh', 'Reload'].each { String phase ->
+            File launch = file("runSurfaceIntegration${phase}.launch")
+            if (!launch.isFile()) {
+                throw new GradleException("Missing generated Eclipse launch: ${launch}")
+            }
+            String text = launch.getText('UTF-8')
+            text = text.replace(
+                    '<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
+                    "<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
+            text = text.replaceFirst(
+                    /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
+                    java.util.regex.Matcher.quoteReplacement(
+                            "<mapEntry key=\"MOD_CLASSES\" value=\"${fixtureModClasses}\"/>"))
+            if (!text.contains('key="target"')) {
+                text = text.replace('    <mapEntry key="MOD_CLASSES"',
+                        environmentEntries + '    <mapEntry key="MOD_CLASSES"')
+            }
+            launch.setText(text, 'UTF-8')
+        }
     }
+}
+
+tasks.matching { it.name == 'genEclipseRuns' }.all {
+    finalizedBy syncForge31EclipseLaunches
 }

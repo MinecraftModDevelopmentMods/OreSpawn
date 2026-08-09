@@ -18,7 +18,7 @@ import net.minecraft.util.registry.Bootstrap;
 class GeologyEditorSessionTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.bootStrap();
+		Bootstrap.register();
 	}
 
 	@Test

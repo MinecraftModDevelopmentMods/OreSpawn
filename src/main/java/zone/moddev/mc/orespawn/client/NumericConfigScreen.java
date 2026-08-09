@@ -7,15 +7,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-final class NumericConfigScreen extends Screen {
+final class NumericConfigScreen extends OreSpawnScreen {
 	static final Field[] FORMATION_FIELDS = {
 			new Field("stratum_wavelength", 16, 8192, false),
 			new Field("family_region_wavelength", 16, 8192, false),

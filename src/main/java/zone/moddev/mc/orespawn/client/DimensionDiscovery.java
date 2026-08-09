@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 import net.minecraft.client.gui.screen.CreateWorldScreen;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.dimension.DimensionType;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.locating.IModFile;
 
@@ -30,11 +31,9 @@ final class DimensionDiscovery {
 		result.add(NETHER);
 		result.add(END);
 
-		try {
-			screen.worldGenSettingsComponent.makeSettings(screen.hardCore).dimensions().keySet()
-					.forEach(id -> result.add(id.toString()));
-		} catch (RuntimeException ignored) {
-			// The vanilla dimensions above keep the picker usable if a custom preset is incomplete.
+		for (DimensionType type : DimensionType.getAll()) {
+			ResourceLocation id = DimensionType.getKey(type);
+			if (id != null) result.add(id.toString());
 		}
 
 		ModList modList = ModList.get();

@@ -24,7 +24,7 @@ public final class WorldMaterialWeather {
 	public static void onChunkLoad(ChunkEvent.Load event) {
 		if (!(event.getWorld() instanceof ServerWorld)) return;
 		ServerWorld level = (ServerWorld) event.getWorld();
-		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
+		BakedBiomeWorldgen config = BiomeWorldgenManager.get(WorldIds.dimension(level));
 		if (config == null || config.materials == null) return;
 		convertChunk(event.getChunk(), config.materials);
 	}
@@ -33,14 +33,14 @@ public final class WorldMaterialWeather {
 		if (event.phase != TickEvent.Phase.END || !(event.world instanceof ServerWorld)
 				|| event.world.getGameTime() % 20L != 0L) return;
 		ServerWorld level = (ServerWorld) event.world;
-		BakedBiomeWorldgen config = BiomeWorldgenManager.get(level.dimension());
+		BakedBiomeWorldgen config = BiomeWorldgenManager.get(WorldIds.dimension(level));
 		if (config == null || config.materials == null) return;
 		DimensionMaterials materials = config.materials;
 		if (materials.snow == null && materials.ice == null) return;
 
-		for (ServerPlayerEntity player : level.players()) {
-			ChunkPos pos = new ChunkPos(player.blockPosition());
-			if (level.hasChunk(pos.x, pos.z)) {
+		for (ServerPlayerEntity player : level.getPlayers()) {
+			ChunkPos pos = new ChunkPos(player.getPosition());
+			if (level.getChunkProvider().chunkExists(pos.x, pos.z)) {
 				convertChunk(level.getChunk(pos.x, pos.z), materials);
 			}
 		}
@@ -49,17 +49,17 @@ public final class WorldMaterialWeather {
 	private static void convertChunk(IChunk chunk, DimensionMaterials materials) {
 		if (materials.snow == null && materials.ice == null) return;
 		BlockPos.Mutable cursor = new BlockPos.Mutable();
-		int minX = chunk.getPos().getMinBlockX();
-		int minZ = chunk.getPos().getMinBlockZ();
+		int minX = chunk.getPos().getXStart();
+		int minZ = chunk.getPos().getZStart();
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
-				int top = chunk.getHeight(Heightmap.Type.MOTION_BLOCKING, localX, localZ);
+				int top = chunk.getTopBlockY(Heightmap.Type.MOTION_BLOCKING, localX, localZ);
 				for (int offset = 0; offset <= 2; offset++) {
-					cursor.set(minX + localX, top - offset, minZ + localZ);
+					cursor.setPos(minX + localX, top - offset, minZ + localZ);
 					BlockState state = chunk.getBlockState(cursor);
-					if (materials.snow != null && state.is(Blocks.SNOW)) {
+					if (materials.snow != null && state.getBlock() == Blocks.SNOW) {
 						chunk.setBlockState(cursor, materials.snow, false);
-					} else if (materials.ice != null && state.is(Blocks.ICE)) {
+					} else if (materials.ice != null && state.getBlock() == Blocks.ICE) {
 						chunk.setBlockState(cursor, materials.ice, false);
 					}
 				}

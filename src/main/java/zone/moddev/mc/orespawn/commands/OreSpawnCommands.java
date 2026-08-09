@@ -18,7 +18,7 @@ import net.minecraft.command.Commands;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -27,17 +27,17 @@ public final class OreSpawnCommands {
 	private OreSpawnCommands() {
 	}
 
-	public static void register(RegisterCommandsEvent event) {
-		event.getDispatcher().register(Commands.literal("orespawn")
+	public static void register(FMLServerStartingEvent event) {
+		event.getServer().getCommandManager().getDispatcher().register(Commands.literal("orespawn")
 				.then(Commands.literal("status").executes(context -> status(context.getSource())))
-				.then(Commands.literal("reload").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("reload").requires(source -> source.hasPermissionLevel(2))
 						.executes(context -> reload(context.getSource())))
-				.then(Commands.literal("retrogen").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("retrogen").requires(source -> source.hasPermissionLevel(2))
 						.executes(context -> retrogen(context.getSource(), 0))
 						.then(Commands.argument("radius", IntegerArgumentType.integer(0, 32))
 								.executes(context -> retrogen(context.getSource(),
 										IntegerArgumentType.getInteger(context, "radius")))))
-				.then(Commands.literal("dump-biomes").requires(source -> source.hasPermission(2))
+				.then(Commands.literal("dump-biomes").requires(source -> source.hasPermissionLevel(2))
 						.executes(context -> dumpBiomes(context.getSource()))));
 	}
 
@@ -45,25 +45,25 @@ public final class OreSpawnCommands {
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		String providers = String.join(", ", WorldgenIntegrationManager.activeProviderIds());
 		if (providers.isEmpty()) providers = "none";
-		source.sendSuccess(new StringTextComponent("OreSpawn 4: mode=" + profile.geologyMode().name().toLowerCase()
+		source.sendFeedback(new StringTextComponent("OreSpawn 4: mode=" + profile.geologyMode().name().toLowerCase()
 				+ ", providers=" + providers + ", queued_retrogen=" + OreRetrogenManager.queuedCount()), false);
 		return 1;
 	}
 
 	private static int reload(net.minecraft.command.CommandSource source) {
 		if (WorldGeologyProfileManager.reloadActiveProfile()) {
-			source.sendSuccess(new StringTextComponent("Reloaded this world's OreSpawn profile."), true);
+			source.sendFeedback(new StringTextComponent("Reloaded this world's OreSpawn profile."), true);
 			return 1;
 		}
-		source.sendFailure(new StringTextComponent("No active OreSpawn world profile could be reloaded."));
+		source.sendErrorMessage(new StringTextComponent("No active OreSpawn world profile could be reloaded."));
 		return 0;
 	}
 
 	private static int retrogen(net.minecraft.command.CommandSource source, int radius) {
-		ChunkPos center = new ChunkPos((int) Math.floor(source.getPosition().x) >> 4,
-				(int) Math.floor(source.getPosition().z) >> 4);
-		int queued = OreRetrogenManager.queueLoadedArea(source.getLevel(), center, radius);
-		source.sendSuccess(new StringTextComponent("Queued " + queued
+		ChunkPos center = new ChunkPos((int) Math.floor(source.getPos().x) >> 4,
+				(int) Math.floor(source.getPos().z) >> 4);
+		int queued = OreRetrogenManager.queueLoadedArea(source.getWorld(), center, radius);
+		source.sendFeedback(new StringTextComponent("Queued " + queued
 				+ " loaded chunk(s) for OreSpawn retrogen."), true);
 		return queued;
 	}
@@ -75,10 +75,10 @@ public final class OreSpawnCommands {
 		Path target = FMLPaths.CONFIGDIR.get().resolve("orespawn-biomes.txt");
 		try {
 			Files.write(target, ids, StandardCharsets.UTF_8);
-			source.sendSuccess(new StringTextComponent("Wrote " + ids.size() + " biome IDs to " + target), false);
+			source.sendFeedback(new StringTextComponent("Wrote " + ids.size() + " biome IDs to " + target), false);
 			return ids.size();
 		} catch (IOException e) {
-			source.sendFailure(new StringTextComponent("Could not write " + target + ": " + e.getMessage()));
+			source.sendErrorMessage(new StringTextComponent("Could not write " + target + ": " + e.getMessage()));
 			return 0;
 		}
 	}

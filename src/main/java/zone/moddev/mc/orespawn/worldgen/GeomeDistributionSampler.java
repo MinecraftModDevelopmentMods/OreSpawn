@@ -16,7 +16,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.block.Block;
@@ -170,7 +169,7 @@ public final class GeomeDistributionSampler {
 						selectionSignature ^= rockId.hashCode();
 						selectionSignature *= 0x100000001B3L;
 						add(rockCounts, rockId);
-						RockFamily family = config.familyOf(block.defaultBlockState());
+						RockFamily family = config.familyOf(block.getDefaultState());
 						if (family != null) {
 							familyCounts[family.ordinal()]++;
 						}
@@ -205,10 +204,9 @@ public final class GeomeDistributionSampler {
 		if (biomeId == null || "minecraft:the_void".equals(biomeId.toString())) {
 			return false;
 		}
-		RegistryKey<Biome> biomeKey = RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
-		return !BiomeDictionary.hasType(biomeKey, Type.NETHER)
-				&& !BiomeDictionary.hasType(biomeKey, Type.END)
-				&& !BiomeDictionary.hasType(biomeKey, Type.VOID);
+		return biome != null && !BiomeDictionary.hasType(biome, Type.NETHER)
+				&& !BiomeDictionary.hasType(biome, Type.END)
+				&& !BiomeDictionary.hasType(biome, Type.VOID);
 	}
 
 	private static void appendBiomeAudit(StringBuilder report, GeomeGeology geology,
@@ -234,7 +232,7 @@ public final class GeomeDistributionSampler {
 				add(geomeCounts, geology.getGeomeName(entry.getValue(), x, z));
 				for (int y = -32; y <= 96; y += 8) {
 					Block block = geology.getStoneAt(entry.getValue(), x, y, z, 96);
-					RockFamily family = config.familyOf(block.defaultBlockState());
+					RockFamily family = config.familyOf(block.getDefaultState());
 					if (family != null) {
 						familyCounts[family.ordinal()]++;
 						total++;
@@ -243,7 +241,7 @@ public final class GeomeDistributionSampler {
 			}
 			report.append("  ").append(entry.getKey())
 					.append(" types=").append(biomeTypes(biomeId))
-					.append(" temperature=").append(format(entry.getValue().getBaseTemperature()))
+					.append(" temperature=").append(format(entry.getValue().getDefaultTemperature()))
 					.append(" downfall=").append(format(entry.getValue().getDownfall()))
 					.append(" dominant=").append(config.dominantBiomeWeight(entry.getValue()))
 					.append(" weights=").append(config.describeBiomeWeights(entry.getValue()))
@@ -265,9 +263,9 @@ public final class GeomeDistributionSampler {
 	}
 
 	private static String biomeTypes(ResourceLocation biomeId) {
-		RegistryKey<Biome> biomeKey = RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
 		List<String> names = new ArrayList<>();
-		for (Type type : BiomeDictionary.getTypes(biomeKey)) {
+		Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
+		for (Type type : biome == null ? Collections.<Type>emptySet() : BiomeDictionary.getTypes(biome)) {
 			names.add(type.getName());
 		}
 		Collections.sort(names);
@@ -355,11 +353,11 @@ public final class GeomeDistributionSampler {
 			if (origin == at64) {
 				exact64++;
 			}
-			RockFamily originFamily = config.familyOf(origin.defaultBlockState());
-			if (originFamily != null && originFamily == config.familyOf(at16.defaultBlockState())) {
+			RockFamily originFamily = config.familyOf(origin.getDefaultState());
+			if (originFamily != null && originFamily == config.familyOf(at16.getDefaultState())) {
 				family16++;
 			}
-			if (originFamily != null && originFamily == config.familyOf(at64.defaultBlockState())) {
+			if (originFamily != null && originFamily == config.familyOf(at64.getDefaultState())) {
 				family64++;
 			}
 		}

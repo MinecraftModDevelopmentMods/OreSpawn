@@ -6,18 +6,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.WorldGenRegistries;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.World;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.GenerationStage;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
@@ -25,7 +21,6 @@ import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
 import net.minecraft.world.gen.placement.Placement;
 import net.minecraft.world.gen.placement.NoPlacementConfig;
-import net.minecraftforge.event.world.BiomeLoadingEvent;
 
 public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 	public static final StoneReplacer FEATURE = new StoneReplacer();
@@ -37,49 +32,32 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 	private static ConfiguredFeature<?, ?> configuredFeature;
 
 	private final Lock geologyLock = new ReentrantLock();
-	private final Map<net.minecraft.util.RegistryKey<World>, CachedGeology> geologyByDimension =
+	private final Map<ResourceLocation, CachedGeology> geologyByDimension =
 			new ConcurrentHashMap<>();
 
 	private StoneReplacer() {
-		super(NoFeatureConfig.CODEC);
+		super(NoFeatureConfig::deserialize);
 		setRegistryName(OreSpawn.MODID, "stone_replacer");
 	}
 
 	public static void registerConfiguredFeature() {
-		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "stone_replacer");
-		configuredFeature = Registry.register(WorldGenRegistries.CONFIGURED_FEATURE, id,
-				FEATURE.configured(NoFeatureConfig.INSTANCE)
-						.decorated(Placement.NOPE.configured(NoPlacementConfig.INSTANCE)));
-	}
-
-	public static void onBiomeLoading(BiomeLoadingEvent event) {
-		if (WorldgenBenchmark.isVanillaBaseline()) {
-			return;
-		}
-
-		if (TerrainFeaturePolicy.shouldRemoveVanillaMatchingStoneFeatures(event.getCategory(),
-				OreSpawnConfig.placeOreSpawnRock(), GeomeConfig.hasTerrainReplacement(World.OVERWORLD))) {
-			removeVanillaMatchingStoneFeatures(event);
-		}
-		if (configuredFeature != null) {
-			event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
-					.add(() -> configuredFeature);
-		}
+		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
+				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
 	}
 
 	static ConfiguredFeature<?, ?> configuredFeature() {
 		return configuredFeature;
 	}
 
-	static boolean removeVanillaMatchingStoneFeatures(List<Supplier<ConfiguredFeature<?, ?>>> features) {
+	static boolean removeVanillaMatchingStoneFeatures(List<ConfiguredFeature<?, ?>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
 	@Override
 	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
-		ISeedReader world = context.level();
+		IWorld world = context.level();
 		BlockPos pos = context.origin();
-		net.minecraft.util.RegistryKey<World> dimension = world.getLevel().dimension();
+		ResourceLocation dimension = WorldIds.dimension(world);
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(dimension);
 		BakedGeomeConfig config = GeomeConfig.baked(dimension);
 		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null) {
@@ -96,22 +74,13 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 		return true;
 	}
 
-	private static void removeVanillaMatchingStoneFeatures(BiomeLoadingEvent event) {
-		event.getGeneration().getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
-				.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
+	private static boolean isVanillaMatchingStoneFeature(ConfiguredFeature<?, ?> feature) {
+		return ConfiguredFeatureInspector.outputsAny(feature,
+				net.minecraft.block.Blocks.GRANITE, net.minecraft.block.Blocks.DIORITE,
+				net.minecraft.block.Blocks.ANDESITE);
 	}
 
-	private static boolean isVanillaMatchingStoneFeature(Supplier<ConfiguredFeature<?, ?>> feature) {
-		ResourceLocation featureId = WorldGenRegistries.CONFIGURED_FEATURE.getKey(feature.get());
-		for (ResourceLocation id : VANILLA_MATCHING_STONE_FEATURES) {
-			if (id.equals(featureId)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private CachedGeology geology(net.minecraft.util.RegistryKey<World> dimension, long seed,
+	private CachedGeology geology(ResourceLocation dimension, long seed,
 			BakedGeomeConfig config) {
 		CachedGeology current = geologyByDimension.get(dimension);
 		GeologyMode mode = WorldGeologyProfileManager.geologyMode();

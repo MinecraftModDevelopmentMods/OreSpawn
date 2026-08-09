@@ -673,7 +673,7 @@ public final class WorldgenIntegrationManager {
 	private static void validateFluidDeposit(String id, JsonObject deposit) {
 		String blockId = string(deposit, "block", "");
 		Block output = block(blockId);
-		if (output == null || output == Blocks.AIR || output.defaultBlockState().getFluidState().isEmpty()) {
+		if (output == null || output == Blocks.AIR || output.getDefaultState().getFluidState().isEmpty()) {
 			throw new JsonSyntaxException("fluid deposit output is not a fluid block: " + blockId);
 		}
 		JsonObject dimensions = requiredObject(deposit, "dimensions");
@@ -804,7 +804,7 @@ public final class WorldgenIntegrationManager {
 		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
 			if (!materials.has(key)) continue;
 			Block value = block(materials.get(key).getAsString());
-			if (value == null || value == Blocks.AIR || value.defaultBlockState().getFluidState().isEmpty()) {
+			if (value == null || value == Blocks.AIR || value.getDefaultState().getFluidState().isEmpty()) {
 				throw new JsonSyntaxException("dimension material is not a fluid block for " + id + ": "
 						+ materials.get(key).getAsString());
 			}

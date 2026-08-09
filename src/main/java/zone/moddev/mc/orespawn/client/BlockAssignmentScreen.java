@@ -3,14 +3,13 @@ package zone.moddev.mc.orespawn.client;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-final class BlockAssignmentScreen extends Screen {
+final class BlockAssignmentScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String blockId;

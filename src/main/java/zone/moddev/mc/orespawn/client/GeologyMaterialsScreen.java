@@ -6,15 +6,13 @@ import java.util.List;
 import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-final class GeologyMaterialsScreen extends Screen {
+final class GeologyMaterialsScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private MaterialTab tab = MaterialTab.SEDIMENTARY;
@@ -86,7 +84,7 @@ final class GeologyMaterialsScreen extends Screen {
 			int entryWidth = tab == MaterialTab.UNASSIGNED
 					? contentWidth : contentWidth - removeWidth - rowGap;
 			ITextComponent rowMessage = new StringTextComponent(rowLabel(id));
-			ITextComponent fittedRow = OreSpawnScreenLayout.fit(font, rowMessage, entryWidth - 8);
+			String fittedRow = OreSpawnScreenLayout.fit(font, rowMessage, entryWidth - 8);
 			List<ITextComponent> details = rowDetails(id);
 			addButton(new Button(contentLeft, y, entryWidth, 20,
 					fittedRow, button -> openEntry(id),
@@ -141,8 +139,8 @@ final class GeologyMaterialsScreen extends Screen {
 		String block = session.materialBlockId(tab, id);
 		details.add(new StringTextComponent(block));
 		if (!block.equals(id)) {
-			details.add(new TranslationTextComponent("option.orespawn.registry_id").append(": ")
-					.append(new StringTextComponent(id)));
+			details.add(new TranslationTextComponent("option.orespawn.registry_id").appendText(": ")
+					.appendSibling(new StringTextComponent(id)));
 		}
 		if (tab == MaterialTab.ORES) {
 			String source = GeologyEditorSession.string(session.ore(id), "source_provider",

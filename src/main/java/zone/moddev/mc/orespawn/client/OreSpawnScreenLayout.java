@@ -5,12 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
@@ -57,24 +54,24 @@ final class OreSpawnScreenLayout {
 		return height - 28;
 	}
 
-	static ITextComponent fit(FontRenderer font, ITextComponent message, int width) {
-		if (font.width(message) <= width) {
-			return message;
+	static String fit(FontRenderer font, ITextComponent message, int width) {
+		String text = message.getFormattedText();
+		if (font.getStringWidth(text) <= width) {
+			return text;
 		}
 		String suffix = "...";
-		int available = Math.max(0, width - font.width(suffix));
-		return new StringTextComponent(font.plainSubstrByWidth(message.getString(), available) + suffix);
+		int available = Math.max(0, width - font.getStringWidth(suffix));
+		return font.trimStringToWidth(text, available) + suffix;
 	}
 
 	static Button button(Screen screen, FontRenderer font, int x, int y, int width, int height,
 			ITextComponent message, Button.IPressable onPress) {
-		ITextComponent fitted = fit(font, message, Math.max(0, width - 8));
-		if (fitted == message) {
-			return new Button(x, y, width, height, message, onPress);
+		String fitted = fit(font, message, Math.max(0, width - 8));
+		Button button = new Button(x, y, width, height, fitted, onPress);
+		if (!fitted.equals(message.getFormattedText())) {
+			explainText(screen, button, message.getFormattedText());
 		}
-		return new Button(x, y, width, height, fitted, onPress,
-				(button, poseStack, mouseX, mouseY) -> screen.renderTooltip(poseStack,
-						font.split(message, Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY));
+		return button;
 	}
 
 	static Button explainedButton(Screen screen, FontRenderer font, int x, int y, int width, int height,
@@ -88,34 +85,47 @@ final class OreSpawnScreenLayout {
 
 	static <T extends Widget> T explain(Screen screen, T widget, String translationKey) {
 		EXPLANATIONS.computeIfAbsent(screen, ignored -> new ArrayList<>())
-				.add(new ExplainedWidget(widget, translationKey));
+				.add(new ExplainedWidget(widget, translationKey, true));
 		return widget;
 	}
 
-	static void renderExplanations(Screen screen, MatrixStack poseStack, int mouseX, int mouseY) {
+	private static void explainText(Screen screen, Widget widget, String text) {
+		EXPLANATIONS.computeIfAbsent(screen, ignored -> new ArrayList<>())
+				.add(new ExplainedWidget(widget, text, false));
+	}
+
+	static void renderExplanations(Screen screen, int mouseX, int mouseY) {
 		List<ExplainedWidget> explanations = EXPLANATIONS.get(screen);
 		if (explanations == null) {
 			return;
 		}
 		for (ExplainedWidget explanation : explanations) {
 			if (explanation.widget.visible && explanation.widget.isMouseOver(mouseX, mouseY)) {
-				FontRenderer font = Minecraft.getInstance().font;
-				screen.renderTooltip(poseStack,
-						font.split(new TranslationTextComponent(explanation.translationKey),
-								Math.max(180, Math.min(310, screen.width - 20))),
-						mouseX, mouseY);
+				FontRenderer font = Minecraft.getInstance().fontRenderer;
+				String text = explanation.translation
+						? new TranslationTextComponent(explanation.text).getFormattedText()
+						: explanation.text;
+				screen.renderTooltip(font.listFormattedStringToWidth(text,
+						Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY);
 				return;
 			}
 		}
 	}
 
+	static void renderExplanations(Screen screen,
+			com.mojang.blaze3d.matrix.MatrixStack ignored, int mouseX, int mouseY) {
+		renderExplanations(screen, mouseX, mouseY);
+	}
+
 	private static final class ExplainedWidget {
 		final Widget widget;
-		final String translationKey;
+		final String text;
+		final boolean translation;
 
-		ExplainedWidget(Widget widget, String translationKey) {
+		ExplainedWidget(Widget widget, String text, boolean translation) {
 			this.widget = widget;
-			this.translationKey = translationKey;
+			this.text = text;
+			this.translation = translation;
 		}
 	}
 }

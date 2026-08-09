@@ -1,12 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
@@ -16,12 +11,6 @@ import net.minecraft.world.biome.provider.BiomeProvider;
 
 /** Delegates biome choice first, then applies pre-baked provider palettes. */
 final class BiomeOverlaySource extends BiomeProvider {
-	static final Codec<BiomeOverlaySource> CODEC = RecordCodecBuilder.create(instance ->
-			instance.group(BiomeProvider.CODEC.fieldOf("delegate")
-					.forGetter(BiomeOverlaySource::delegate))
-					.apply(instance, delegate ->
-							new BiomeOverlaySource(delegate, java.util.Collections.emptyList(), 0L)));
-
 	private final BiomeProvider delegate;
 	private final Palette[] palettes;
 	private final long seed;
@@ -37,23 +26,12 @@ final class BiomeOverlaySource extends BiomeProvider {
 		return delegate;
 	}
 
-	private static Stream<Supplier<Biome>> possible(BiomeProvider delegate, List<Palette> palettes) {
-		List<Biome> values = new ArrayList<>(delegate.possibleBiomes());
+	private static java.util.Set<Biome> possible(BiomeProvider delegate, List<Palette> palettes) {
+		java.util.Set<Biome> values = new LinkedHashSet<>(delegate.biomes);
 		for (Palette palette : palettes) {
 			for (Entry entry : palette.entries) values.add(entry.biome);
 		}
-		return values.stream().map(biome -> () -> biome);
-	}
-
-	@Override
-	protected Codec<? extends BiomeProvider> codec() {
-		return CODEC;
-	}
-
-	@Override
-	public BiomeProvider withSeed(long value) {
-		return new BiomeOverlaySource(delegate.withSeed(value),
-				java.util.Arrays.asList(palettes), value);
+		return values;
 	}
 
 	@Override

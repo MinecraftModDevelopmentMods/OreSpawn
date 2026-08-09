@@ -11,8 +11,6 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
@@ -20,7 +18,7 @@ import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.ResourceLocation;
 
-final class OreEntryScreen extends Screen {
+final class OreEntryScreen extends OreSpawnScreen {
 	private static final String BROAD_SELECTOR =
 			OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString();
 	private final Screen parent;

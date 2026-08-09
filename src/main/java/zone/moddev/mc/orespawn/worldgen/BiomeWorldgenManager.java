@@ -17,12 +17,9 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.provider.BiomeProvider;
 import net.minecraft.block.Block;
@@ -38,41 +35,36 @@ import org.apache.logging.log4j.Logger;
 /** Bakes and installs optional biome and dimension-material integration. */
 final class BiomeWorldgenManager {
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static volatile Map<RegistryKey<World>, BakedBiomeWorldgen> baked =
+	private static volatile Map<ResourceLocation, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
 	private static final Map<NoiseChunkGenerator, BlockState> ORIGINAL_DEFAULT_FLUIDS =
 			new IdentityHashMap<>();
-	private static final Set<RegistryKey<World>> WARNED_DEEP_FLUID_DIMENSIONS =
+	private static final Set<ResourceLocation> WARNED_DEEP_FLUID_DIMENSIONS =
 			new LinkedHashSet<>();
 
 	private BiomeWorldgenManager() {
 	}
 
 	static void registerBiomeSourceCodec() {
-		ResourceLocation id = new ResourceLocation("orespawn", "profile_overlay");
-		// Forge 36's official-mapping development runtime does not expose the
-		// compile-time Registry.containsKey(ResourceLocation) bridge. Registry#get
-		// is present in both environments and this codec registry has no default.
-		if (Registry.BIOME_SOURCE.get(id) == null) {
-			Registry.register(Registry.BIOME_SOURCE, id, BiomeOverlaySource.CODEC);
-		}
+		// Minecraft 1.15 biome providers are not codec-serialized.
 	}
 
 	static synchronized void apply(MinecraftServer server, WorldGeologyProfile profile) {
 		BiomeFeatureInstaller.restoreAll();
 		if (WorldgenBenchmark.isVanillaBaseline()) {
-			for (ServerWorld level : server.getAllLevels()) {
+			for (ServerWorld level : server.getWorlds()) {
 				installBiomeSource(level, null);
 				installAquiferMaterials(level, null);
 			}
 			baked = Collections.emptyMap();
 			return;
 		}
-		Map<RegistryKey<World>, BakedBiomeWorldgen> next = new LinkedHashMap<>();
-		for (ServerWorld level : server.getAllLevels()) {
+		Map<ResourceLocation, BakedBiomeWorldgen> next = new LinkedHashMap<>();
+		for (ServerWorld level : server.getWorlds()) {
 			BakedBiomeWorldgen dimension = bake(level, profile.rootCopy());
-			if (dimension != null) next.put(level.dimension(), dimension);
-			BiomeFeatureInstaller.install(dimension, level.dimension());
+			ResourceLocation dimensionId = WorldIds.dimension(level);
+			if (dimension != null) next.put(dimensionId, dimension);
+			BiomeFeatureInstaller.install(dimension, dimensionId);
 			installBiomeSource(level, dimension);
 			installAquiferMaterials(level, dimension == null ? null : dimension.materials);
 		}
@@ -85,11 +77,12 @@ final class BiomeWorldgenManager {
 			installAquiferMaterials(level, null);
 			return;
 		}
-		Map<RegistryKey<World>, BakedBiomeWorldgen> next = new LinkedHashMap<>(baked);
+		Map<ResourceLocation, BakedBiomeWorldgen> next = new LinkedHashMap<>(baked);
 		BakedBiomeWorldgen dimension = bake(level, profile.rootCopy());
-		if (dimension == null) next.remove(level.dimension());
-		else next.put(level.dimension(), dimension);
-		BiomeFeatureInstaller.install(dimension, level.dimension());
+		ResourceLocation dimensionId = WorldIds.dimension(level);
+		if (dimension == null) next.remove(dimensionId);
+		else next.put(dimensionId, dimension);
+		BiomeFeatureInstaller.install(dimension, dimensionId);
 		installBiomeSource(level, dimension);
 		installAquiferMaterials(level, dimension == null ? null : dimension.materials);
 		baked = Collections.unmodifiableMap(next);
@@ -105,15 +98,14 @@ final class BiomeWorldgenManager {
 		baked = Collections.emptyMap();
 	}
 
-	static BakedBiomeWorldgen get(RegistryKey<World> dimension) {
+	static BakedBiomeWorldgen get(ResourceLocation dimension) {
 		return baked.get(dimension);
 	}
 
 	private static BakedBiomeWorldgen bake(ServerWorld level, JsonObject root) {
-		Registry<Biome> biomes = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
-		ResourceLocation dimensionId = level.dimension().location();
+		ResourceLocation dimensionId = WorldIds.dimension(level);
 		Map<Biome, Surface> surfaces = new IdentityHashMap<>();
-		List<Palette> palettes = bakePalettes(root, biomes, dimensionId, surfaces);
+		List<Palette> palettes = bakePalettes(root, dimensionId, surfaces);
 		DimensionMaterials materials = bakeMaterials(root, dimensionId);
 		if (palettes.isEmpty() && surfaces.isEmpty() && materials == null) return null;
 		LOGGER.info("Baked OreSpawn biome integration for '{}' with {} palettes, {} surfaces, and {} material overrides",
@@ -121,7 +113,7 @@ final class BiomeWorldgenManager {
 		return new BakedBiomeWorldgen(palettes, surfaces, materials);
 	}
 
-	private static List<Palette> bakePalettes(JsonObject root, Registry<Biome> registry,
+	private static List<Palette> bakePalettes(JsonObject root,
 			ResourceLocation dimension, Map<Biome, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
@@ -137,7 +129,7 @@ final class BiomeWorldgenManager {
 				ResourceLocation biomeId;
 				try { biomeId = new ResourceLocation(biomeEntry.getKey()); }
 				catch (RuntimeException e) { continue; }
-				Biome biome = registry.get(biomeId);
+				Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
 				if (biome == null) {
 					LOGGER.warn("Skipping missing optional OreSpawn biome '{}'", biomeId);
 					continue;
@@ -148,7 +140,7 @@ final class BiomeWorldgenManager {
 				Set<ResourceLocation> required = ids(placement.get("required_similar_biomes"));
 				boolean missingRequired = false;
 				for (ResourceLocation id : required) {
-					if (registry.get(id) == null) {
+					if (ForgeRegistries.BIOMES.getValue(id) == null) {
 						missingRequired = true;
 						LOGGER.warn("Skipping OreSpawn biome '{}' because required similar biome '{}' is missing",
 								biomeId, id);
@@ -180,12 +172,12 @@ final class BiomeWorldgenManager {
 					decimal(json, "fallback_weight", 1.0D),
 					Collections.unmodifiableSet(strings(json.get("include_namespaces"))),
 					Collections.unmodifiableSet(strings(json.get("exclude_namespaces"))),
-					bakedEntries, bakeChoices(registry, json, bakedEntries)));
+					bakedEntries, bakeChoices(json, bakedEntries)));
 		}
 		return result;
 	}
 
-	private static Map<Biome, Choice> bakeChoices(Registry<Biome> registry,
+	private static Map<Biome, Choice> bakeChoices(
 			JsonObject palette, BakedBiomeWorldgen.Entry[] entries) {
 		boolean replace = "replace".equals(string(palette, "mode", "augment"));
 		int scope = scope(string(palette, "scope", "minecraft_only"));
@@ -194,11 +186,11 @@ final class BiomeWorldgenManager {
 		double fallbackWeight = replace ? 0.0D
 				: Math.max(0.0D, decimal(palette, "fallback_weight", 1.0D));
 		Map<Biome, Choice> result = new IdentityHashMap<>();
-		for (Entry<RegistryKey<Biome>, Biome> source : registry.entrySet()) {
-			ResourceLocation sourceId = source.getKey().location();
+		for (Entry<ResourceLocation, Biome> source : ForgeRegistries.BIOMES.getEntries()) {
+			ResourceLocation sourceId = source.getKey();
 			if (!scopeMatches(scope, included, excluded, sourceId)) continue;
 			Biome biome = source.getValue();
-			float temperature = biome.getBaseTemperature();
+			float temperature = biome.getDefaultTemperature();
 			float downfall = biome.getDownfall();
 			int count = 0;
 			for (BakedBiomeWorldgen.Entry candidate : entries) {
@@ -266,24 +258,22 @@ final class BiomeWorldgenManager {
 	}
 
 	private static void installBiomeSource(ServerWorld level, BakedBiomeWorldgen config) {
-		ChunkGenerator generator = level.getChunkSource().getGenerator();
-		BiomeProvider original = generator.runtimeBiomeSource;
+		ChunkGenerator generator = level.getChunkProvider().getChunkGenerator();
+		BiomeProvider original = generator.biomeProvider;
 		while (original instanceof BiomeOverlaySource) {
 			original = ((BiomeOverlaySource) original).delegate();
 		}
 		if (config == null || !config.hasBiomeOverlay()) {
-			generator.biomeSource = original;
-			generator.runtimeBiomeSource = original;
+			generator.biomeProvider = original;
 			return;
 		}
 		BiomeOverlaySource overlay =
 				new BiomeOverlaySource(original, config.palettes, level.getSeed());
-		generator.biomeSource = overlay;
-		generator.runtimeBiomeSource = overlay;
+		generator.biomeProvider = overlay;
 	}
 
 	private static void installAquiferMaterials(ServerWorld level, DimensionMaterials materials) {
-		ChunkGenerator raw = level.getChunkSource().getGenerator();
+		ChunkGenerator raw = level.getChunkProvider().getChunkGenerator();
 		if (!(raw instanceof NoiseChunkGenerator)) return;
 		NoiseChunkGenerator generator = (NoiseChunkGenerator) raw;
 		BlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
@@ -293,9 +283,9 @@ final class BiomeWorldgenManager {
 		if (materials != null && materials.deepFluid != null
 				&& !materials.deepFluid.equals(generator.defaultFluid)
 				&& materials.deepFluidMaxY >= 0
-				&& WARNED_DEEP_FLUID_DIMENSIONS.add(level.dimension())) {
-			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.16.5 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
-					level.dimension().location(), materials.deepFluidMaxY);
+				&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
+			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.15.2 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
+					WorldIds.dimension(level), materials.deepFluidMaxY);
 		}
 	}
 
@@ -315,8 +305,8 @@ final class BiomeWorldgenManager {
 			Block block = ForgeRegistries.BLOCKS.getValue(
 					new ResourceLocation(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
-					|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return null;
-			return block.defaultBlockState();
+					|| (fluid && block.getDefaultState().getFluidState().isEmpty())) return null;
+			return block.getDefaultState();
 		} catch (RuntimeException e) {
 			return null;
 		}

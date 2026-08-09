@@ -1,21 +1,23 @@
 Version 4.0.6
 
-* Port OreSpawn 4.0.6 to Minecraft 1.16.5 and Forge 36.2.34 using Java 8
+* Port OreSpawn 4.0.6 to Minecraft 1.15.2 and Forge 31.2.57 using Java 8.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
-* Preserve exact datapack-biome rules and stagger close Stable Layers geome boundaries.
-* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.16.5.
-* Support the single 1.16.5 dimension fluid while retaining later deep-aquifer profile fields as inactive data.
-* Adapt configured-feature and biome-source registration to Forge 36 without changing public contracts.
+* Preserve exact custom-biome rules and stagger close Stable Layers geome boundaries.
+* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.15.2.
+* Remove later-version basalt, Nether-gold, ancient-debris, and biome defaults from fresh 1.15.2 profiles.
+* Support the single 1.15.2 dimension fluid while retaining later deep-aquifer profile fields as inactive data.
+* Adapt static biome features and set-based biome providers to Forge 31 without changing public contracts.
+* Restore reliable 1.15.2 editor backgrounds and tooltip clearing.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
 
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
-* Verify both public biome-registration helpers on Forge 36
-* Confirm Minecraft 1.16.5 ResourceLocation documentation and ForgeGradle 5 workflow
+* Verify both public biome-registration helpers on Forge 31
+* Confirm Minecraft 1.15.2 ResourceLocation documentation and ForgeGradle 3 workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1

@@ -6,7 +6,6 @@ import java.util.List;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
@@ -16,7 +15,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
-final class FluidDepositListScreen extends Screen {
+final class FluidDepositListScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private int page;
@@ -74,7 +73,7 @@ final class FluidDepositListScreen extends Screen {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return new TranslationTextComponent(block.getDescriptionId());
+			if (block != null) return new TranslationTextComponent(block.getTranslationKey());
 		} catch (RuntimeException ignored) { }
 		return new StringTextComponent(id);
 	}

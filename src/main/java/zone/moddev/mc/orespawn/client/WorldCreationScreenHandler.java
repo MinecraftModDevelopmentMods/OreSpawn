@@ -4,7 +4,6 @@ import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.CreateWorldScreen;
 import net.minecraft.client.gui.screen.WorldSelectionScreen;
@@ -32,7 +31,7 @@ public final class WorldCreationScreenHandler {
 		int x = Math.max(4, screen.width - width - 4);
 		event.addWidget(new Button(x, 6, width, 20,
 				new TranslationTextComponent("button.orespawn.world_settings"), button ->
-						Minecraft.getInstance().setScreen(new OreSpawnWorldSettingsScreen(
+						Minecraft.getInstance().displayGuiScreen(new OreSpawnWorldSettingsScreen(
 								screen, WorldGeologyProfileManager.pendingNewWorldProfile(),
 								DimensionDiscovery.availableDimensionIds((CreateWorldScreen) screen)))));
 	}

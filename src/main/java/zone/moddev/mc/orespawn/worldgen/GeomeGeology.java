@@ -6,7 +6,6 @@ import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
 
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.IWorld;
@@ -86,8 +85,8 @@ public final class GeomeGeology {
 
 	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
-		int xOffset = chunkPos.getMinBlockX();
-		int zOffset = chunkPos.getMinBlockZ();
+		int xOffset = chunkPos.getXStart();
+		int zOffset = chunkPos.getZStart();
 		BlockPos.Mutable cursor = new BlockPos.Mutable();
 		double[] regionalValues = new double[config.geomeCount()];
 		boolean changed = false;
@@ -96,11 +95,10 @@ public final class GeomeGeology {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int surfaceY = chunk.getHeight(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
-				cursor.set(x, surfaceY, z);
+				int surfaceY = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
+				cursor.setPos(x, surfaceY, z);
 				Biome biome = world.getBiome(cursor);
-				ResourceLocation biomeId = world.registryAccess()
-						.registryOrThrow(Registry.BIOME_REGISTRY).getKey(biome);
+				ResourceLocation biomeId = WorldIds.biome(biome);
 				if (!terrain.acceptsBiome(biomeId)) {
 					continue;
 				}
@@ -115,10 +113,13 @@ public final class GeomeGeology {
 							formationRegion, x, z, surfaceY, terrain);
 				} else {
 					for (int y = surfaceY; y >= 0; y--) {
-						cursor.set(x, y, z);
-						if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-							chunk.setBlockState(cursor,
-									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z), false);
+						cursor.setPos(x, y, z);
+						BlockState current = chunk.getBlockState(cursor);
+						if (terrain.isReplaceable(current)) {
+							BlockState replacement = pickReplacement(
+									geomeIndex, baseRockValue, formationRegion, x, y, z);
+							if (!changes(current, replacement)) continue;
+							chunk.setBlockState(cursor, replacement, false);
 							changed = true;
 						}
 					}
@@ -127,7 +128,7 @@ public final class GeomeGeology {
 		}
 
 		if (changed) {
-			chunk.setUnsaved(true);
+			chunk.setModified(true);
 		}
 	}
 
@@ -141,7 +142,7 @@ public final class GeomeGeology {
 				layerIndex, geomeTransitionPhase);
 		BlockState replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 		boolean changed = false;
-		cursor.set(x, surfaceY, z);
+		cursor.setPos(x, surfaceY, z);
 
 		for (int y = surfaceY; y >= 0; y--) {
 			int stratum = baseRockValue + y;
@@ -153,12 +154,17 @@ public final class GeomeGeology {
 				replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 			}
 			cursor.setY(y);
-			if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
+			BlockState current = chunk.getBlockState(cursor);
+			if (terrain.isReplaceable(current) && changes(current, replacement)) {
 				chunk.setBlockState(cursor, replacement, false);
 				changed = true;
 			}
 		}
 		return changed;
+	}
+
+	static boolean changes(BlockState current, BlockState replacement) {
+		return current != replacement && !current.equals(replacement);
 	}
 
 	public Block getStoneAt(Biome biome, int x, int y, int z, int surfaceY) {

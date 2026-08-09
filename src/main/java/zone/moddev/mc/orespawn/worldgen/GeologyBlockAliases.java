@@ -53,7 +53,7 @@ public final class GeologyBlockAliases {
 		if (target == null || target == Blocks.AIR) {
 			return original;
 		}
-		return target.defaultBlockState();
+		return target.getDefaultState();
 	}
 
 	private static Map<ResourceLocation, ResourceLocation> createDefaultAliases() {

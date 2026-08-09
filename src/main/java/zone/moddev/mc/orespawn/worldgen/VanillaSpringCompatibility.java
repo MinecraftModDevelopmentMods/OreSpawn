@@ -7,8 +7,8 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
-import net.minecraft.world.gen.feature.Features;
 import net.minecraft.block.Block;
+import net.minecraft.world.biome.DefaultBiomeFeatures;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.LiquidsConfig;
 
@@ -28,20 +28,20 @@ final class VanillaSpringCompatibility {
 	}
 
 	static synchronized void refreshBlocks(Iterable<Block> rocks) {
-		update(vanillaSpring(Features.SPRING_LAVA), rocks);
-		update(vanillaSpring(Features.SPRING_WATER), rocks);
+		update(DefaultBiomeFeatures.LAVA_SPRING_CONFIG, rocks);
+		update(DefaultBiomeFeatures.WATER_SPRING_CONFIG, rocks);
 	}
 
 	static LiquidsConfig vanillaSpring(ConfiguredFeature<?, ?> root) {
-		return root.getFeatures().map(ConfiguredFeature::config)
-				.filter(LiquidsConfig.class::isInstance)
-				.map(LiquidsConfig.class::cast).findFirst()
-				.orElseThrow(() -> new IllegalStateException("Vanilla spring configuration is missing"));
+		if (!(root.config instanceof LiquidsConfig)) {
+			throw new IllegalStateException("Vanilla spring configuration is missing");
+		}
+		return (LiquidsConfig) root.config;
 	}
 
 	private static void update(LiquidsConfig spring, Iterable<Block> rocks) {
-		Set<Block> original = ORIGINAL_HOSTS.computeIfAbsent(spring, ignored -> spring.validBlocks);
-		spring.validBlocks = merge(original, rocks);
+		Set<Block> original = ORIGINAL_HOSTS.computeIfAbsent(spring, ignored -> spring.acceptedBlocks);
+		spring.acceptedBlocks = merge(original, rocks);
 	}
 
 	static Set<Block> merge(Set<Block> original, Iterable<Block> additionalBlocks) {
@@ -53,7 +53,7 @@ final class VanillaSpringCompatibility {
 		for (Block block : additionalBlocks) {
 			if (seen.add(block)) merged.add(block);
 		}
-		// LiquidsConfig.CODEC casts this field to ImmutableSet in 1.16.5.
+		// LiquidsConfig.CODEC casts this field to ImmutableSet in 1.15.2.
 		return merged.build();
 	}
 }

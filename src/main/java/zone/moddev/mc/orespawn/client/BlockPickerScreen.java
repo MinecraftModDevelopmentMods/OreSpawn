@@ -6,8 +6,6 @@ import zone.moddev.mc.orespawn.client.GeologyEditorSession.MaterialTab;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
@@ -15,7 +13,7 @@ import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
 /** Registry-backed picker; text narrows installed blocks but never creates an ID. */
-final class BlockPickerScreen extends Screen {
+final class BlockPickerScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final MaterialTab target;

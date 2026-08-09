@@ -6,15 +6,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
-final class BiomePlacementScreen extends Screen {
+final class BiomePlacementScreen extends OreSpawnScreen {
 	private enum Tab { PLACEMENT, CLIMATE, SURFACE }
 
 	private final Screen parent;
@@ -146,7 +144,7 @@ final class BiomePlacementScreen extends Screen {
 	}
 
 	private TextFieldWidget field(int x, int y, int width, double value) {
-		TextFieldWidget result = addButton(new TextFieldWidget(font, x, y, width, 20, StringTextComponent.EMPTY));
+		TextFieldWidget result = addButton(new TextFieldWidget(font, x, y, width, 20, ""));
 		result.setValue(Double.toString(value));
 		return result;
 	}
