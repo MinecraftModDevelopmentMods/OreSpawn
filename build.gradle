@@ -610,9 +610,14 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
 
         int changedLaunches = 0
 		int changedTestExclusions = 0
+        File eclipseClasses = file('bin/main').canonicalFile
+        String eclipseModEntry = "${mod_id}%%${eclipseClasses.absolutePath}"
+        // Forge 36's exploded-directory locator treats the first entry as the
+        // resource root and scans only the remaining entries for @Mod classes.
+        // Eclipse merges classes and resources in bin/main, so repeat the path
+        // deliberately instead of collapsing it to a single entry.
+        String forge36ModClasses = "${eclipseModEntry};${eclipseModEntry}"
         if (eclipseLaunchDir.isDirectory()) {
-            File eclipseClasses = file('bin/main').canonicalFile
-            String modClasses = "${mod_id}%%${eclipseClasses.absolutePath}"
             fileTree(eclipseLaunchDir) {
                 include '*Slim.launch'
             }.files.each { File launchFile ->
@@ -625,7 +630,7 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                 }
                 synced = synced.replaceFirst(
                         /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
-                    "<mapEntry key=\"MOD_CLASSES\" value=\"${modClasses}\"/>"
+                    "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
                 }
 				String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
 				String excludeTestAttribute =
@@ -693,10 +698,9 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
                         .replace(generated.absolutePath.replace('\\', '/'),
                                 stable.absolutePath.replace('\\', '/'))
             }
-            String modClasses = "${mod_id}%%${file('bin/main').canonicalPath}"
             synced = synced.replaceFirst(
                     /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/) {
-                "<mapEntry key=\"MOD_CLASSES\" value=\"${modClasses}\"/>"
+                "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
             }
             String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
             String excludeTestAttribute =
@@ -718,6 +722,21 @@ def syncEclipseRunClasspaths = tasks.register('syncEclipseRunClasspaths') {
             if (original != synced) {
                 launchFile.setText(synced, 'UTF-8')
                 changedDirectLaunches++
+            }
+        }
+
+        ['runClient.launch', 'runServer.launch', 'runGameTestServer.launch',
+                'runData.launch'].each { String launchName ->
+            File launchFile = file(launchName)
+            if (!launchFile.isFile()) {
+                throw new GradleException("Missing ForgeGradle 5 Eclipse launch: ${launchFile}")
+            }
+            String launchText = launchFile.getText('UTF-8')
+            String expectedEntry =
+                    "<mapEntry key=\"MOD_CLASSES\" value=\"${forge36ModClasses}\"/>"
+            if (!launchText.contains(expectedEntry)) {
+                throw new GradleException(
+                        "Forge 36 Eclipse launch must repeat bin/main for resource and @Mod class scanning: ${launchFile}")
             }
         }
         logger.lifecycle("Eclipse runtime paths aligned with ${eclipseCache} (${stableClasspaths.size()} Forge classpaths, ${changedProjectClasspath} project classpath, ${changedResourceExclusions} metadata exclusion, ${changedPrepareLaunches} prepare launches, ${changedLaunches} slim launches, ${changedTestExclusions} slim test exclusions, ${changedLaunchGroups} launch groups, ${changedDirectLaunches} ForgeGradle 5 launches updated)")
