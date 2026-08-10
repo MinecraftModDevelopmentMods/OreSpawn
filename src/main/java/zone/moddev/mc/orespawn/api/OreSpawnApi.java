@@ -9,7 +9,7 @@ import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.WorldIds;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.InterModComms;
 
 /** Entry point for OreSpawn API version 1. */
@@ -28,8 +28,7 @@ public final class OreSpawnApi {
 		if (provider == null) {
 			throw new IllegalArgumentException("provider cannot be null");
 		}
-		return InterModComms.sendTo(provider.modId(), OreSpawn.MODID,
-				IMC_WORLDGEN_PROVIDER, () -> provider);
+		return InterModComms.sendTo(OreSpawn.MODID, IMC_WORLDGEN_PROVIDER, () -> provider);
 	}
 
 	public static ProviderStatus getProviderStatus(String providerModId) {
@@ -47,7 +46,7 @@ public final class OreSpawnApi {
 		return Optional.of(new GeologyProfileView(WorldGeologyProfileManager.activeProfile().toJson()));
 	}
 
-	public static Optional<GeologySampler> createSampler(ServerWorld level) {
+	public static Optional<GeologySampler> createSampler(WorldServer level) {
 		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()
 				|| GeomeConfig.baked(WorldIds.dimension(level)) == null) {
 			return Optional.empty();

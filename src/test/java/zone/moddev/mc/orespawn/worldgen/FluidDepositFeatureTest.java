@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.block.Blocks;
+import net.minecraft.init.Blocks;
 
 class FluidDepositFeatureTest {
 	@Test

@@ -8,7 +8,7 @@ import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 
 /** Immutable runtime data used by biome, surface, aquifer, and weather hooks. */
 final class BakedBiomeWorldgen {
@@ -95,14 +95,14 @@ final class BakedBiomeWorldgen {
 	}
 
 	static final class Surface {
-		final BlockState top;
-		final BlockState filler;
-		final BlockState underwater;
-		final BlockState ceiling;
+		final IBlockState top;
+		final IBlockState filler;
+		final IBlockState underwater;
+		final IBlockState ceiling;
 		final int fillerDepth;
 
-		Surface(BlockState top, BlockState filler, BlockState underwater,
-				BlockState ceiling, int fillerDepth) {
+		Surface(IBlockState top, IBlockState filler, IBlockState underwater,
+				IBlockState ceiling, int fillerDepth) {
 			this.top = top;
 			this.filler = filler;
 			this.underwater = underwater;
@@ -112,14 +112,14 @@ final class BakedBiomeWorldgen {
 	}
 
 	static final class DimensionMaterials {
-		final BlockState defaultFluid;
-		final BlockState deepFluid;
+		final IBlockState defaultFluid;
+		final IBlockState deepFluid;
 		final int deepFluidMaxY;
-		final BlockState snow;
-		final BlockState ice;
+		final IBlockState snow;
+		final IBlockState ice;
 
-		DimensionMaterials(BlockState defaultFluid, BlockState deepFluid, int deepFluidMaxY,
-				BlockState snow, BlockState ice) {
+		DimensionMaterials(IBlockState defaultFluid, IBlockState deepFluid, int deepFluidMaxY,
+				IBlockState snow, IBlockState ice) {
 			this.defaultFluid = defaultFluid;
 			this.deepFluid = deepFluid;
 			this.deepFluidMaxY = deepFluidMaxY;

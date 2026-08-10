@@ -7,8 +7,8 @@ import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public final class GeologyBlockAliases {
@@ -29,12 +29,12 @@ public final class GeologyBlockAliases {
 		return new LinkedHashMap<ResourceLocation, ResourceLocation>(DEFAULT_ALIASES);
 	}
 
-	public static BlockState aliasState(BlockState original) {
+	public static IBlockState aliasState(IBlockState original) {
 		ResourceLocation id = ForgeRegistries.BLOCKS.getKey(original.getBlock());
 		return aliasState(id, original, null);
 	}
 
-	public static BlockState aliasState(ResourceLocation sourceId, BlockState original,
+	public static IBlockState aliasState(ResourceLocation sourceId, IBlockState original,
 			Map<ResourceLocation, ResourceLocation> configuredAliases) {
 		if (sourceId == null) {
 			return original;

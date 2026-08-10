@@ -5,10 +5,10 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 
 final class NumericConfigScreen extends OreSpawnScreen {
 	static final Field[] FORMATION_FIELDS = {
@@ -29,7 +29,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 	};
 
 	private static final int PAGE_SIZE = 6;
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private final String path;
 	private final Field[] fields;
@@ -37,8 +37,8 @@ final class NumericConfigScreen extends OreSpawnScreen {
 	private int page;
 	private ITextComponent error;
 
-	NumericConfigScreen(Screen parent, GeologyEditorSession session, String path, Field[] fields) {
-		super(new TranslationTextComponent("screen.orespawn.numeric_settings"));
+	NumericConfigScreen(GuiScreen parent, GeologyEditorSession session, String path, Field[] fields) {
+		super(new TextComponentTranslation("screen.orespawn.numeric_settings"));
 		this.parent = parent;
 		this.session = session;
 		this.path = path;
@@ -56,7 +56,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 		for (int i = start; i < end; i++) {
 			Field field = fields[i];
 			TextFieldWidget editor = new TextFieldWidget(font, left, 44 + ((i - start) * 25), 145, 20,
-					new StringTextComponent(field.key));
+					new TextComponentString(field.key));
 			editor.setMaxLength(32);
 			JsonElement value = section.get(field.key);
 			editor.setValue(value == null ? "0" : value.getAsString());
@@ -70,11 +70,11 @@ final class NumericConfigScreen extends OreSpawnScreen {
 		addButton(new Button(width / 2 + 55, bottom, 100, 20, DialogTexts.GUI_CANCEL,
 				button -> onClose()));
 		Button previous = addButton(new Button(width / 2 - 50, bottom, 45, 20,
-				new StringTextComponent("<"), button -> changePage(-1)));
+				new TextComponentString("<"), button -> changePage(-1)));
 		Button next = addButton(new Button(width / 2 + 5, bottom, 45, 20,
-				new StringTextComponent(">"), button -> changePage(1)));
-		previous.active = page > 0;
-		next.active = (page + 1) * PAGE_SIZE < fields.length;
+				new TextComponentString(">"), button -> changePage(1)));
+		previous.enabled = page > 0;
+		next.enabled = (page + 1) * PAGE_SIZE < fields.length;
 	}
 
 	private void changePage(int offset) {
@@ -108,7 +108,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 				if (field.integer) section.addProperty(field.key, (int) value);
 				else section.addProperty(field.key, value);
 			} catch (NumberFormatException e) {
-				error = new StringTextComponent("Invalid value for " + field.key);
+				error = new TextComponentString("Invalid value for " + field.key);
 				return false;
 			}
 		}
@@ -152,7 +152,7 @@ final class NumericConfigScreen extends OreSpawnScreen {
 	}
 
 	private ITextComponent label(String key) {
-		return new TranslationTextComponent("option.orespawn." + key);
+		return new TextComponentTranslation("option.orespawn." + key);
 	}
 
 	static final class Field {

@@ -19,7 +19,6 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.math.ChunkPos;
@@ -27,16 +26,16 @@ import net.minecraft.world.IWorld;
 import net.minecraft.world.biome.Biome;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.GenerationStage;
 import net.minecraft.world.gen.Heightmap;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.WorldGenRegion;
+import net.minecraft.world.gen.feature.CompositeFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.placement.Placement;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.IPlacementConfig;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -51,7 +50,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	private static final Map<ResourceLocation, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static ConfiguredFeature<?> configuredFeature;
+	private static CompositeFeature<?, ?> configuredFeature;
 	private static volatile Map<ResourceLocation, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
 	private static volatile Map<ResourceLocation, GeomeGeology> classifiers = Collections.emptyMap();
@@ -60,13 +59,13 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 			ThreadLocal.withInitial(GenerationScratch::new);
 
 	private FluidDepositFeature() {
-		super(NoFeatureConfig::deserialize);
-		setRegistryName(OreSpawn.MODID, "fluid_deposits");
+		super();
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
-				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
+		configuredFeature = net.minecraft.world.biome.Biome.createCompositeFeature(
+				FEATURE, new NoFeatureConfig(), net.minecraft.world.biome.Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
 		refreshWorldConfig();
 	}
 
@@ -87,7 +86,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		GENERATION_SCRATCH.remove();
 	}
 
-	static ConfiguredFeature<?> configuredFeature() {
+	static CompositeFeature<?, ?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -103,7 +102,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		BakedDeposit[] deposits = depositsByDimension.getOrDefault(dimension, NO_DEPOSITS);
 		if (deposits.length == 0) return false;
 
-		IChunk chunk = world.getChunk(context.origin());
+		IChunk chunk = context.decorationChunk();
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		ChunkPos chunkPos = chunk.getPos();
 		int centerX = chunkPos.getXStart() + 8;
@@ -131,7 +130,9 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 				changed |= placeDeposit(world, chunk, random, deposit, geome, config, scratch.cursor);
 			}
 		}
-		if (changed) chunk.setModified(true);
+		if (changed && chunk instanceof net.minecraft.world.chunk.Chunk) {
+			((net.minecraft.world.chunk.Chunk) chunk).markDirty();
+		}
 		return changed;
 	}
 
@@ -208,7 +209,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 						continue;
 					}
 					cursor.setPos(x, y, z);
-					BlockState existing = chunk.getBlockState(cursor);
+					IBlockState existing = chunk.getBlockState(cursor);
 					if (deposit.accepts(existing, geome, config)) {
 						cursor.setPos(x, y, z);
 						// Output was validated while baking; keep a final runtime guard for registry oddities.
@@ -275,10 +276,18 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 				radius, verticalRadius, x + stepX, y + stepY, z + stepZ,
 				inverseRadiusSquared, inverseVerticalRadiusSquared)) return true;
 		for (int offset = 1; offset <= thickness; offset++) {
-			cursor.setPos(x + (stepX * offset), y + (stepY * offset), z + (stepZ * offset));
+			int boundaryX = x + (stepX * offset);
+			int boundaryZ = z + (stepZ * offset);
+			if (!availableForRead(world, boundaryX, boundaryZ)) return false;
+			cursor.setPos(boundaryX, y + (stepY * offset), boundaryZ);
 			if (!isSealingState(world.getBlockState(cursor), deposit.output)) return false;
 		}
 		return true;
+	}
+
+	private static boolean availableForRead(IWorld world, int x, int z) {
+		return !(world instanceof WorldGenRegion)
+				|| ((WorldGenRegion) world).isChunkInBounds(x >> 4, z >> 4);
 	}
 
 	private static boolean insideLobe(IChunk chunk, BakedDeposit deposit,
@@ -300,7 +309,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		return y <= surface - 1 - deposit.minSolidCover;
 	}
 
-	static boolean isSealingState(BlockState state, BlockState output) {
+	static boolean isSealingState(IBlockState state, IBlockState output) {
 		return state.getBlock() == output.getBlock()
 				|| (state.getMaterial().blocksMovement() && state.getFluidState().isEmpty());
 	}
@@ -351,7 +360,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		return Collections.unmodifiableMap(result);
 	}
 
-	private static BakedDeposit bakeDeposit(BlockState output, JsonObject rule, BakedGeomeConfig config,
+	private static BakedDeposit bakeDeposit(IBlockState output, JsonObject rule, BakedGeomeConfig config,
 			Map<ResourceLocation, Set<Block>> resolvedTags) {
 		int minY = integer(rule, "min_y", -48);
 		int maxY = integer(rule, "max_y", 48);
@@ -513,7 +522,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static final class BakedDeposit {
-		final BlockState output;
+		final IBlockState output;
 		final int minY;
 		final int maxY;
 		final double frequency;
@@ -531,7 +540,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		final Set<ResourceLocation> includedBiomes;
 		final Set<ResourceLocation> excludedBiomes;
 
-		BakedDeposit(BlockState output, int minY, int maxY, double frequency,
+		BakedDeposit(IBlockState output, int minY, int maxY, double frequency,
 				int minRadius, int maxRadius, int minVerticalRadius, int maxVerticalRadius,
 				int maxLobes, int minSolidCover, int minSolidShell,
 				Set<Block> hostBlocks, int familyMask,
@@ -556,7 +565,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 			this.excludedBiomes = excludedBiomes;
 		}
 
-		boolean accepts(BlockState state, int geome, BakedGeomeConfig config) {
+		boolean accepts(IBlockState state, int geome, BakedGeomeConfig config) {
 			if (hostBlocks.contains(state.getBlock())) return true;
 			if (config == null || familyMask == 0) return false;
 			RockFamily family = config.familyOf(state);

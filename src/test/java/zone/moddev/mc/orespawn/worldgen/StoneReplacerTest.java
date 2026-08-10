@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.init.Blocks;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 import net.minecraft.world.biome.Biome.Category;
 
 class StoneReplacerTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Bootstrap.register();
+		Forge25TestBootstrap.registerVanilla();
 	}
 
 	@Test

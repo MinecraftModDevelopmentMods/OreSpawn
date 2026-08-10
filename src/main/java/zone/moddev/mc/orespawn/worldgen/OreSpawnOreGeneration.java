@@ -23,26 +23,24 @@ import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.biome.Biome;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.GenerationStage;
 import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.CompositeFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.placement.Placement;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.IPlacementConfig;
 import net.minecraft.fluid.Fluid;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -57,7 +55,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	private static final Map<ResourceLocation, BakedOre[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static ConfiguredFeature<?> configuredFeature;
+	private static CompositeFeature<?, ?> configuredFeature;
 	private static volatile Map<ResourceLocation, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
 	private static volatile BakedOre[] selectorOres = NO_ORES;
@@ -69,13 +67,13 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			ThreadLocal.withInitial(GenerationScratch::new);
 
 	private OreSpawnOreGeneration() {
-		super(NoFeatureConfig::deserialize);
-		setRegistryName(OreSpawn.MODID, "managed_ores");
+		super();
 	}
 
 	public static void registerConfiguredFeatures() {
-		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
-				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
+		configuredFeature = net.minecraft.world.biome.Biome.createCompositeFeature(
+				FEATURE, new NoFeatureConfig(), net.minecraft.world.biome.Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
 		VanillaOreFeatureGate.register();
 		refreshWorldConfig();
 	}
@@ -120,7 +118,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			return false;
 		}
 
-		IChunk chunk = world.getChunk(context.origin());
+		IChunk chunk = context.decorationChunk();
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
 		Biome biome = world.getBiome(scratch.cursor);
@@ -131,7 +129,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		return changed;
 	}
 
-	static boolean retrogen(ServerWorld level, Chunk chunk) {
+	static boolean retrogen(WorldServer level, Chunk chunk) {
 		ResourceLocation dimension = WorldIds.dimension(level);
 		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) return false;
@@ -179,7 +177,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			}
 		}
 		if (changed) {
-			chunk.setModified(true);
+			if (chunk instanceof Chunk) ((Chunk) chunk).markDirty();
 		}
 		return changed;
 	}
@@ -267,7 +265,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				reportBakeProblem("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
 				continue;
 			}
-			BlockState deepOutput = blockState(oreJson, "deep_output", output.getDefaultState());
+			IBlockState deepOutput = blockState(oreJson, "deep_output", output.getDefaultState());
 			if (deepOutput == null) {
 				reportBakeProblem("Ignoring OreSpawn-managed ore '{}' because its deep output is invalid",
 						oreEntry.getKey());
@@ -370,7 +368,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		}
 	}
 
-	static ConfiguredFeature<?> configuredFeature() {
+	static CompositeFeature<?, ?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -378,7 +376,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key) : new JsonObject();
 	}
 
-	private static BakedOre bakeOre(BlockState output, BlockState deepOutput, int deepOutputMaxY,
+	private static BakedOre bakeOre(IBlockState output, IBlockState deepOutput, int deepOutputMaxY,
 			BakedOutput[] outputs,
 			JsonObject json, BakedGeomeConfig config, Map<ResourceLocation, Set<Block>> resolvedTags,
 			boolean retrogen) {
@@ -450,7 +448,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				includedDictionaryBiomes, excludedDictionaryBiomes, retrogen);
 	}
 
-	private static BakedOutput[] bakeOutputs(JsonObject ore, BlockState fallback) {
+	private static BakedOutput[] bakeOutputs(JsonObject ore, IBlockState fallback) {
 		if (!ore.has("outputs") || !ore.get("outputs").isJsonArray()) {
 			return new BakedOutput[] { new BakedOutput(fallback, 1.0D, Integer.MIN_VALUE, Integer.MAX_VALUE) };
 		}
@@ -604,7 +602,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		return Math.max(min, Math.min(max, integer(json, key, fallback)));
 	}
 
-	private static BlockState blockState(JsonObject json, String key, BlockState fallback) {
+	private static IBlockState blockState(JsonObject json, String key, IBlockState fallback) {
 		if (!json.has(key)) {
 			return fallback;
 		}
@@ -614,8 +612,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class BakedOre {
-		final BlockState output;
-		final BlockState deepOutput;
+		final IBlockState output;
+		final IBlockState deepOutput;
 		final int deepOutputMaxY;
 		final BakedOutput[] outputs;
 		final int minY;
@@ -638,7 +636,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		final Set<Biome> excludedDictionaryBiomes;
 		final boolean retrogen;
 
-		BakedOre(BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
+		BakedOre(IBlockState output, IBlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
 				int minY, int maxY, double frequency, int minQuantity, int maxQuantity,
 				CompiledOrePattern pattern, OreHeightDistribution heightDistribution,
 				double discardChanceOnAirExposure,
@@ -672,7 +670,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			this.retrogen = retrogen;
 		}
 
-		BlockState outputAt(int y, Random random) {
+		IBlockState outputAt(int y, Random random) {
 			if (y <= deepOutputMaxY) return deepOutput;
 			double total = 0.0D;
 			for (BakedOutput candidate : outputs) if (candidate.acceptsY(y)) total += candidate.weight;
@@ -686,7 +684,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			return output;
 		}
 
-		boolean accepts(BlockState state, Random random, BakedGeomeConfig config) {
+		boolean accepts(IBlockState state, Random random, BakedGeomeConfig config) {
 			Double chance = hostBlocks.get(state.getBlock());
 			if (chance != null) {
 				return chance >= 1.0D || random.nextDouble() < chance;
@@ -719,12 +717,12 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class BakedOutput {
-		final BlockState state;
+		final IBlockState state;
 		final double weight;
 		final int minY;
 		final int maxY;
 
-		BakedOutput(BlockState state, double weight, int minY, int maxY) {
+		BakedOutput(IBlockState state, double weight, int minY, int maxY) {
 			this.state = state;
 			this.weight = weight;
 			this.minY = minY;
@@ -820,7 +818,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			if (world == null) return insideChunk(chunk, x, y, z);
 			cursor.setPos(x, y, z);
 			return world instanceof WorldGenRegion
-					? ((WorldGenRegion) world).chunkExists(x >> 4, z >> 4)
+					? ((WorldGenRegion) world).isChunkInBounds(x >> 4, z >> 4)
 					: insideChunk(chunk, x, y, z);
 		}
 
@@ -828,7 +826,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		public boolean isFluid(int x, int y, int z, Fluid fluid) {
 			if (!inside(x, y, z)) return false;
 			cursor.setPos(x, y, z);
-			BlockState state = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
+			IBlockState state = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
 			return state.getFluidState().getFluid() == fluid;
 		}
 
@@ -836,14 +834,14 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		public boolean tryPlace(int x, int y, int z) {
 			if (!inside(x, y, z)) return false;
 			cursor.setPos(x, y, z);
-			BlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
+			IBlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
 			if (!ore.accepts(existing, random, geomeConfig)) return false;
 			if (ore.discardChanceOnAirExposure > 0.0D
 					&& random.nextDouble() < ore.discardChanceOnAirExposure
 					&& isAdjacentToAir(x, y, z)) {
 				return false;
 			}
-			BlockState output = ore.outputAt(y, random);
+			IBlockState output = ore.outputAt(y, random);
 			if (world == null) chunk.setBlockState(cursor, output, false);
 			else world.setBlockState(cursor, output, 2);
 			return true;

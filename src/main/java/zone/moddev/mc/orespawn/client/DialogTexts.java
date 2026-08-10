@@ -1,11 +1,11 @@
 package zone.moddev.mc.orespawn.client;
 
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
 
-/** Shared translated labels for Minecraft 1.14 screens. */
+/** Shared translated labels for Minecraft 1.13 screens. */
 final class DialogTexts {
-	static final TranslationTextComponent GUI_DONE = new TranslationTextComponent("gui.done");
-	static final TranslationTextComponent GUI_CANCEL = new TranslationTextComponent("gui.cancel");
+	static final TextComponentTranslation GUI_DONE = new TextComponentTranslation("gui.done");
+	static final TextComponentTranslation GUI_CANCEL = new TextComponentTranslation("gui.cancel");
 
 	private DialogTexts() {
 	}

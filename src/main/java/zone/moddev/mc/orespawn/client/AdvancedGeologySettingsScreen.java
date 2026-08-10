@@ -1,15 +1,15 @@
 package zone.moddev.mc.orespawn.client;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.text.TextComponentTranslation;
 
 /** Less commonly changed numeric controls, kept off the world settings overview. */
 final class AdvancedGeologySettingsScreen extends OreSpawnScreen {
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 
-	AdvancedGeologySettingsScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslationTextComponent("screen.orespawn.advanced"));
+	AdvancedGeologySettingsScreen(GuiScreen parent, GeologyEditorSession session) {
+		super(new TextComponentTranslation("screen.orespawn.advanced"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -23,19 +23,19 @@ final class AdvancedGeologySettingsScreen extends OreSpawnScreen {
 		if (session.hasTerrainRules()) {
 			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row++ * 28), 310, 20,
-					new TranslationTextComponent("button.orespawn.formation_details"),
+					new TextComponentTranslation("button.orespawn.formation_details"),
 					button -> openNumeric("formations.custom", NumericConfigScreen.FORMATION_FIELDS),
 					"tooltip.orespawn.advanced.formations"));
 			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row++ * 28), 310, 20,
-					new TranslationTextComponent("button.orespawn.cyano_details"),
+					new TextComponentTranslation("button.orespawn.cyano_details"),
 					button -> openNumeric("cyano", NumericConfigScreen.CYANO_FIELDS),
 					"tooltip.orespawn.advanced.cyano"));
 		}
 		if (!session.fluidDepositIds().isEmpty()) {
 			addButton(OreSpawnScreenLayout.explainedButton(this, font,
 					left, top + (row * 28), 310, 20,
-					new TranslationTextComponent("button.orespawn.fluid_deposit_details"),
+					new TextComponentTranslation("button.orespawn.fluid_deposit_details"),
 					button -> minecraft.displayGuiScreen(new FluidDepositListScreen(this, session)),
 					"tooltip.orespawn.advanced.fluid_deposits"));
 		}

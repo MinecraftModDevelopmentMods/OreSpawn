@@ -11,11 +11,12 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import net.minecraft.client.gui.screen.CreateWorldScreen;
+import net.minecraft.client.gui.GuiCreateWorld;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.util.registry.IRegistry;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.forgespi.locating.IModFile;
+import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 
 final class DimensionDiscovery {
 	private static final String OVERWORLD = "minecraft:overworld";
@@ -25,16 +26,13 @@ final class DimensionDiscovery {
 	private DimensionDiscovery() {
 	}
 
-	static List<String> availableDimensionIds(CreateWorldScreen screen) {
+	static List<String> availableDimensionIds(GuiCreateWorld screen) {
 		Set<String> result = new TreeSet<>();
 		result.add(OVERWORLD);
 		result.add(NETHER);
 		result.add(END);
 
-		for (DimensionType type : DimensionType.getAll()) {
-			ResourceLocation id = DimensionType.getKey(type);
-			if (id != null) result.add(id.toString());
-		}
+		for (ResourceLocation id : IRegistry.field_212622_k.getKeys()) result.add(id.toString());
 
 		ModList modList = ModList.get();
 		if (modList != null) {
@@ -55,7 +53,7 @@ final class DimensionDiscovery {
 		return result;
 	}
 
-	private static void collectModDimensions(IModFile modFile, Set<String> result) {
+	private static void collectModDimensions(ModFile modFile, Set<String> result) {
 		try {
 			Path dataRoot = modFile.findResource("data");
 			if (!Files.isDirectory(dataRoot)) return;

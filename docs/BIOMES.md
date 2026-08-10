@@ -1,8 +1,8 @@
 # Biomes And World Materials
 
-Minecraft 1.14.4 uses Forge 28's static biome registry and set-based
+Minecraft 1.13.2 uses Forge 25's static biome registry and set-based
 `BiomeProvider` contract. OreSpawn adapts those target APIs internally while
-keeping the API-major-1 provider JSON and biome-helper contracts unchanged.
+keeping the API-major-1 provider JSON, profile, and save contracts unchanged.
 
 OreSpawn can place provider biomes and replace their visible world materials
 without requiring TerraBlender. It does not register biomes for a child mod:
@@ -96,11 +96,16 @@ default states contain real fluids.
 
 ## Registration Helper
 
-`OreSpawnBiomes.copyAndRegister` copies a known biome's complete builder before
-applying small changes. This is useful for a simple content mod:
+Forge 25 predates `DeferredRegister`. Declare one OreSpawn registrar during mod
+construction, then use `copyAndRegister` to copy a known biome before applying
+small changes:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
+private static final OreSpawnBiomes.BiomeRegistrar BIOMES =
+    OreSpawnBiomes.registrar("examplemod");
+
+private static final OreSpawnBiomes.BiomeReference CANDY_PLAINS =
+    OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
     () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
@@ -108,8 +113,9 @@ RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
 
 `blankAndRegister` starts from an empty builder and is intended for advanced
 providers that deliberately supply every required climate, effects, spawn, and
-generation field. Both helpers only register content; placement belongs in the
-provider declaration.
+generation field. Both helpers return a supplier-compatible handle, reject
+duplicate or late declarations, and only register content; placement belongs
+in the provider declaration.
 
 ## Surfaces And Materials
 
@@ -132,7 +138,7 @@ not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.
 
 Dimension materials support the ordinary aquifer fluid and replacements for
-vanilla snow and ice. Minecraft 1.14.4 has one exposed generator-fluid field,
+vanilla snow and ice. Minecraft 1.13.2 has one exposed generator-fluid field,
 so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and
 `deep_aquifer_max_y` values remain readable and are preserved in saved profiles,
 but this branch disables their editor controls, warns when a distinct deep

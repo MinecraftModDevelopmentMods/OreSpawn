@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponentString;
 
 final class WeightMapScreen extends OreSpawnScreen {
 	private static final int PAGE_SIZE = 7;
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final JsonObject weights;
 	private final List<String> keys;
 	private final double defaultWeight;
@@ -20,16 +20,16 @@ final class WeightMapScreen extends OreSpawnScreen {
 	private int page;
 	private ITextComponent error;
 
-	WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight) {
+	WeightMapScreen(GuiScreen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight) {
 		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.entry_weight", null);
 	}
 
-	WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight,
+	WeightMapScreen(GuiScreen parent, ITextComponent title, JsonObject weights, List<String> keys, double defaultWeight,
 			Runnable removeAction) {
 		this(parent, title, weights, keys, defaultWeight, "tooltip.orespawn.geome.biome_weight", removeAction);
 	}
 
-	private WeightMapScreen(Screen parent, ITextComponent title, JsonObject weights, List<String> keys,
+	private WeightMapScreen(GuiScreen parent, ITextComponent title, JsonObject weights, List<String> keys,
 			double defaultWeight, String tooltipKey, Runnable removeAction) {
 		super(title);
 		this.parent = parent;
@@ -49,7 +49,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 		for (int i = start; i < end; i++) {
 			String key = keys.get(i);
 			TextFieldWidget box = new TextFieldWidget(font, width / 2 + 5, 38 + ((i - start) * 24), 110, 20,
-					new StringTextComponent(key));
+					new TextComponentString(key));
 			box.setMaxLength(24);
 			box.setValue(weights.has(key) ? weights.get(key).getAsString() : Double.toString(defaultWeight));
 			editors.add(OreSpawnScreenLayout.explain(this, addButton(box), tooltipKey));
@@ -60,14 +60,14 @@ final class WeightMapScreen extends OreSpawnScreen {
 		addButton(new Button(width / 2 + 55, bottom, 100, 20, DialogTexts.GUI_CANCEL,
 				button -> onClose()));
 		Button previous = addButton(new Button(width / 2 - 50, bottom, 45, 20,
-				new StringTextComponent("<"), button -> changePage(-1)));
+				new TextComponentString("<"), button -> changePage(-1)));
 		Button next = addButton(new Button(width / 2 + 5, bottom, 45, 20,
-				new StringTextComponent(">"), button -> changePage(1)));
-		previous.active = page > 0;
-		next.active = (page + 1) * PAGE_SIZE < keys.size();
+				new TextComponentString(">"), button -> changePage(1)));
+		previous.enabled = page > 0;
+		next.enabled = (page + 1) * PAGE_SIZE < keys.size();
 		if (removeAction != null) {
 			addButton(new Button(width - 105, 8, 95, 20,
-					new StringTextComponent("Remove rule"), button -> {
+					new TextComponentString("Remove rule"), button -> {
 						removeAction.run(); minecraft.displayGuiScreen(parent);
 					}));
 		}
@@ -99,7 +99,7 @@ final class WeightMapScreen extends OreSpawnScreen {
 				}
 				weights.addProperty(keys.get(start + i), value);
 			} catch (NumberFormatException e) {
-				error = new StringTextComponent("Weights must be between 0 and 1000.");
+				error = new TextComponentString("Weights must be between 0 and 1000.");
 				return false;
 			}
 		}

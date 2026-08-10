@@ -1,9 +1,10 @@
 # Java API
 
-This branch targets Minecraft 1.14.4 and Forge 28. Public examples therefore
-use the public `ResourceLocation(String, String)` constructor. Registry-backed
-helpers retain their API-major-1 signatures; Forge 28's static registry and
-`DeferredRegister` constructor details remain internal implementation choices.
+This branch targets Minecraft 1.13.2 and Forge 25. Public examples therefore
+use the public `ResourceLocation(String, String)` constructor. Forge 25 has no
+`DeferredRegister`, so provider mods use OreSpawn's API-major-1
+`BiomeRegistrar` while provider JSON, profiles, schemas, and biome meanings
+remain identical to later ports.
 
 Only `zone.moddev.mc.orespawn.api` is supported API. Every other package is an
 implementation detail. API major version is available as
@@ -82,16 +83,25 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
-Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
-provides a small optional convenience for cloning a known biome without adding
-TerraBlender:
+Create one `BiomeRegistrar` during normal mod construction. It attaches to the
+calling mod's event bus and defers biome factories until Forge's biome registry
+event. `OreSpawnBiomes.copyAndRegister` clones a known biome without adding a
+biome-framework dependency:
 
 ```java
-RegistryObject<Biome> candyPlains = OreSpawnBiomes.copyAndRegister(
+private static final OreSpawnBiomes.BiomeRegistrar BIOMES =
+    OreSpawnBiomes.registrar("examplemod");
+
+private static final OreSpawnBiomes.BiomeReference CANDY_PLAINS =
+    OreSpawnBiomes.copyAndRegister(
     BIOMES, "candy_plains",
     () -> ForgeRegistries.BIOMES.getValue(new ResourceLocation("minecraft", "plains")),
     builder -> builder.temperature(0.8F).downfall(0.4F));
 ```
+
+The returned handle implements `Supplier<Biome>`, so `.get()` remains the
+consumer pattern across OreSpawn versions. Call it only after registries have
+completed; `getId()` is available as soon as the declaration is made.
 
 Then declare placement and materials through the same provider:
 
@@ -136,12 +146,14 @@ Y query. Sampling is read-only and is intended for gameplay decisions,
 diagnostics, and compatible generation outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
-Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
-`OreSpawnPatternRegistry.REGISTRY_NAME`. An `OrePatternType` contains a codec
-and a compiler from decoded settings to `CompiledOrePattern`. Reference it from
-an ore dimension with `pattern(patternId, settingsJson)`. OreSpawn decodes and
-compiles once while baking the profile; only the compiled placement function
-runs during generation.
+Forge 25 custom-pattern mods attach a generic
+`RegistryEvent.Register<OrePatternType>` listener to their mod event bus and
+register named values into `OreSpawnPatternRegistry.REGISTRY_NAME`. An
+`OrePatternType` contains a codec and a compiler from decoded settings to
+`CompiledOrePattern`. Reference it from an ore dimension with
+`pattern(patternId, settingsJson)`. OreSpawn decodes and compiles once while
+baking the profile; only the compiled placement function runs during
+generation.
 
 `OreSpawnOreIntegration` remains as a deprecated facade for early ore-provider
 integrations. New code should use `OreSpawnApi`.

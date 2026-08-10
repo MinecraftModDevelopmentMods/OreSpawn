@@ -5,31 +5,30 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IWorld;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.CompositeFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.placement.Placement;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.IPlacementConfig;
 
 /** Applies provider surfaces after base surfaces and lakes, before late features. */
 public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	public static final BiomeSurfaceFeature FEATURE = new BiomeSurfaceFeature();
-	private static ConfiguredFeature<?> configuredFeature;
+	private static CompositeFeature<?, ?> configuredFeature;
 
 	private BiomeSurfaceFeature() {
-		super(NoFeatureConfig::deserialize);
-		setRegistryName(OreSpawn.MODID, "biome_surfaces");
+		super();
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
-				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
+		configuredFeature = net.minecraft.world.biome.Biome.createCompositeFeature(
+				FEATURE, new NoFeatureConfig(), net.minecraft.world.biome.Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
 	}
 
-	static ConfiguredFeature<?> configuredFeature() {
+	static CompositeFeature<?, ?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -38,7 +37,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		IWorld world = context.level();
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(WorldIds.dimension(world));
 		if (config == null || !config.hasSurfaces()) return false;
-		IChunk chunk = world.getChunk(context.origin());
+		IChunk chunk = context.decorationChunk();
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		int minX = chunk.getPos().getXStart();
@@ -93,13 +92,13 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
 			int x, int z, int y, int minY) {
 		cursor.setPos(x, y, z);
-		BlockState source = chunk.getBlockState(cursor);
+		IBlockState source = chunk.getBlockState(cursor);
 		if (!replaceable(source)) return false;
 		Surface surface = config.surfaces.get(world.getBiome(cursor));
 		if (surface == null) return false;
 		cursor.setPos(x, y + 1, z);
 		boolean underwater = !chunk.getBlockState(cursor).getFluidState().isEmpty();
-		BlockState top = underwater && surface.underwater != null
+		IBlockState top = underwater && surface.underwater != null
 				? surface.underwater : surface.top;
 		boolean changed = false;
 		cursor.setPos(x, y, z);
@@ -122,7 +121,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
 			int x, int z, int ceilingY) {
 		cursor.setPos(x, ceilingY, z);
-		BlockState source = chunk.getBlockState(cursor);
+		IBlockState source = chunk.getBlockState(cursor);
 		if (!replaceable(source)) return false;
 		Surface surface = config.surfaces.get(world.getBiome(cursor));
 		if (surface == null || surface.ceiling == null) return false;
@@ -130,7 +129,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		return true;
 	}
 
-	private static boolean open(BlockState state) {
+	private static boolean open(IBlockState state) {
 		return state.isAir() || !state.getFluidState().isEmpty();
 	}
 
@@ -138,7 +137,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		return ((long) high << 32) | (low & 0xFFFFFFFFL);
 	}
 
-	private static boolean replaceable(BlockState state) {
+	private static boolean replaceable(IBlockState state) {
 		return !state.isAir() && state.getFluidState().isEmpty() && !state.hasTileEntity();
 	}
 }

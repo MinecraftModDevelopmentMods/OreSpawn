@@ -34,6 +34,8 @@ Other mods may register `OrePatternType` values in the Forge registry named by
 and compiles decoded settings into a `CompiledOrePattern`. Compilation occurs
 during profile baking. The generation loop invokes only the compiled object.
 Third-party codec settings are preserved and shown read-only in OreSpawn's UI.
+On Forge 25, attach a generic `RegistryEvent.Register<OrePatternType>` listener
+to the mod event bus and register the named type through the event registry.
 
 Height selection supports `uniform`, centre-peaked `triangle`, deep-biased
 `bottom_triangle`, and a half-uniform `uniform_bottom_triangle`. `frequency`

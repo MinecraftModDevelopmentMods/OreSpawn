@@ -11,11 +11,11 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.World;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
@@ -71,7 +71,7 @@ public final class WorldgenBenchmark {
 	private static void onServerStarted(FMLServerStartedEvent event) {
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
-		ServerWorld level = event.getServer().getWorld(benchmarkDimension(dimensionName));
+		WorldServer level = event.getServer().getWorld(benchmarkDimension(dimensionName));
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
@@ -116,7 +116,7 @@ public final class WorldgenBenchmark {
 				format(sorted[0]), format(sorted[sorted.length - 1]));
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
 			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
-			event.getServer().initiateShutdown(false);
+			event.getServer().initiateShutdown();
 		}
 	}
 
@@ -126,7 +126,7 @@ public final class WorldgenBenchmark {
 			return DimensionType.OVERWORLD;
 		}
 		if ("nether".equals(dimensionName)) {
-			return DimensionType.THE_NETHER;
+			return DimensionType.NETHER;
 		}
 		if ("end".equals(dimensionName)) {
 			return DimensionType.THE_END;
@@ -142,10 +142,10 @@ public final class WorldgenBenchmark {
 		return type;
 	}
 
-	private static void generateSquare(ServerWorld level, int centerX, int centerZ, int radius) {
+	private static void generateSquare(WorldServer level, int centerX, int centerZ, int radius) {
 		for (int z = centerZ - radius; z <= centerZ + radius; z++) {
 			for (int x = centerX - radius; x <= centerX + radius; x++) {
-				level.getChunk(x, z, ChunkStatus.FULL, true);
+				level.getChunk(x, z);
 			}
 		}
 	}
@@ -155,7 +155,7 @@ public final class WorldgenBenchmark {
 		return diameter * diameter;
 	}
 
-	private static int[] locateBiomeType(ServerWorld level, int centerX, int centerZ) {
+	private static int[] locateBiomeType(WorldServer level, int centerX, int centerZ) {
 		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeType", "").trim();
 		if (configured.isEmpty()) {
 			return new int[] { centerX, centerZ };
@@ -184,7 +184,7 @@ public final class WorldgenBenchmark {
 		return new int[] { locatedX, locatedZ };
 	}
 
-	private static void auditOres(ServerWorld level, int centerX, int centerZ, int radius,
+	private static void auditOres(WorldServer level, int centerX, int centerZ, int radius,
 			int repetition) {
 		Map<String, OreAudit> audits = new LinkedHashMap<>();
 		if (WorldIds.NETHER.equals(WorldIds.dimension(level))) {
@@ -212,7 +212,7 @@ public final class WorldgenBenchmark {
 						cursor.setPos(minX + localX, 0, minZ + localZ);
 						for (int y = 0; y < 256; y++) {
 							cursor.setY(y);
-							BlockState state = chunk.getBlockState(cursor);
+							IBlockState state = chunk.getBlockState(cursor);
 							for (OreAudit audit : audits.values()) {
 								if (audit.accepts(state.getBlock())) {
 									audit.record(localX, localZ, y,
@@ -272,7 +272,7 @@ public final class WorldgenBenchmark {
 		}
 	}
 
-	private static boolean isAdjacentToAir(ServerWorld level, int x, int y, int z,
+	private static boolean isAdjacentToAir(WorldServer level, int x, int y, int z,
 			BlockPos.MutableBlockPos cursor) {
 		return level.isAirBlock(cursor.setPos(x + 1, y, z))
 				|| level.isAirBlock(cursor.setPos(x - 1, y, z))

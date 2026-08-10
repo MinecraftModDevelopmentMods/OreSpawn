@@ -17,20 +17,20 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.WorldServer;
 
 final class OreSpawnGeologySampler implements GeologySampler {
 	private static final ResourceLocation CYANO_GEOME = new ResourceLocation("orespawn", "cyano");
 
-	private final ServerWorld level;
+	private final WorldServer level;
 	private final ResourceLocation dimension;
 	private final BakedGeomeConfig config;
 	private final GeologyMode mode;
 	private final GeomeGeology sky;
 	private final Geology cyano;
 
-	private OreSpawnGeologySampler(ServerWorld level) {
+	private OreSpawnGeologySampler(WorldServer level) {
 		this.level = level;
 		dimension = WorldIds.dimension(level);
 		config = GeomeConfig.baked(dimension);
@@ -46,7 +46,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 	}
 
-	static GeologySampler create(ServerWorld level) {
+	static GeologySampler create(WorldServer level) {
 		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()) {
 			throw new IllegalStateException("The level is not part of OreSpawn's active server");
 		}
@@ -95,7 +95,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 
 		@Override public ResourceLocation geome() { return geomeId(sample.geomeName()); }
-		@Override public BlockState rockAt(int y) { return sample.rockAt(y); }
+		@Override public IBlockState rockAt(int y) { return sample.rockAt(y); }
 		@Override public Optional<GeologyFamily> familyAt(int y) { return family(sample.familyAt(y)); }
 	}
 
@@ -105,11 +105,11 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 
 		@Override public ResourceLocation geome() { return CYANO_GEOME; }
-		@Override public BlockState rockAt(int y) { return cyano.getStoneAt(blockX(), y, blockZ()).getDefaultState(); }
+		@Override public IBlockState rockAt(int y) { return cyano.getStoneAt(blockX(), y, blockZ()).getDefaultState(); }
 		@Override public Optional<GeologyFamily> familyAt(int y) {
 			Block block = rockAt(y).getBlock();
 			for (RockFamily candidate : RockFamily.values()) {
-				for (BlockState state : config.statesForFamily(candidate)) {
+				for (IBlockState state : config.statesForFamily(candidate)) {
 					if (state.getBlock() == block) {
 						return family(candidate);
 					}

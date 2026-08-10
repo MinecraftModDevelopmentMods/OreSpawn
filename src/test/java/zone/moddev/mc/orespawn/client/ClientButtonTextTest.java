@@ -20,7 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponentString;
 
 class ClientButtonTextTest {
 	private static final Path CLIENT_SOURCE = Paths.get(
@@ -28,16 +28,16 @@ class ClientButtonTextTest {
 	private static final Path ENGLISH = Paths.get(
 			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.json");
 	private static final Pattern LITERAL_TRANSLATION = Pattern.compile(
-			"new\\s+TranslationTextComponent\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
+			"new\\s+TextComponentTranslation\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
 	private static final Set<String> MINECRAFT_1_14_KEYS = new HashSet<>(Arrays.asList(
 			"gui.cancel", "gui.done", "options.off", "options.on"));
 
 	@Test
 	void cycleButtonsUseTheMinecraft114LabelConvention() {
-		CycleButton<String> button = CycleButton.builder(StringTextComponent::new)
+		CycleButton<String> button = CycleButton.builder(TextComponentString::new)
 				.withValues(Arrays.asList("Value"))
 				.withInitialValue("Value")
-				.create(0, 0, 100, 20, new StringTextComponent("Label"),
+				.create(0, 0, 100, 20, new TextComponentString("Label"),
 						(ignored, value) -> { });
 
 		assertEquals("Label: Value", button.getMessage());
@@ -63,6 +63,6 @@ class ClientButtonTextTest {
 		}
 
 		assertTrue(missing.isEmpty(),
-				"Client labels must exist in OreSpawn or Minecraft 1.14: " + missing);
+				"Client labels must exist in OreSpawn or Minecraft 1.13: " + missing);
 	}
 }

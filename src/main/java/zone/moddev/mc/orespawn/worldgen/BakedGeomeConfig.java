@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -21,7 +21,7 @@ public final class BakedGeomeConfig {
 	private static final int LEGACY_MAX_Y = 255;
 	private static final int FORMATION_BUCKETS = 256;
 	private static final int PICKER_SCALE = 1000;
-	private static final BlockState FALLBACK = Blocks.STONE.getDefaultState();
+	private static final IBlockState FALLBACK = Blocks.STONE.getDefaultState();
 
 	final GeomeDefinition[] geomes;
 	final double geomeScale;
@@ -35,7 +35,7 @@ public final class BakedGeomeConfig {
 	private final Map<Biome, double[]> biomeWeights;
 	private final Map<ResourceLocation, double[]> biomeWeightsById;
 	private final double[] fallbackWeights;
-	private final BlockState[] rockStates;
+	private final IBlockState[] rockStates;
 	private final Set<Block> sedimentaryBlocks;
 	private final Set<Block> oreReplaceableBlocks;
 	private final Map<Block, RockFamily> rockFamilies;
@@ -72,7 +72,7 @@ public final class BakedGeomeConfig {
 			noiseOffsetZ[i] = -((i + 1) * 6151);
 		}
 
-		rockStates = new BlockState[rocks.length];
+		rockStates = new IBlockState[rocks.length];
 		for (int i = 0; i < rocks.length; i++) {
 			rockStates[i] = rocks[i].state;
 		}
@@ -152,7 +152,7 @@ public final class BakedGeomeConfig {
 		return RockFamily.SEDIMENTARY;
 	}
 
-	public BlockState pickRock(int geomeIndex, RockFamily family, int y, int formationValue) {
+	public IBlockState pickRock(int geomeIndex, RockFamily family, int y, int formationValue) {
 		if (formations.usesStableLayers()) {
 			int index = stableRockIndex(geomeIndex, family.ordinal(), clampStableY(y), formationValue & 0xFF);
 			int rockIndex = stableRockChoices[index];
@@ -165,33 +165,33 @@ public final class BakedGeomeConfig {
 		return geomes[geomeIndex].name;
 	}
 
-	public boolean isSedimentaryRock(BlockState state) {
+	public boolean isSedimentaryRock(IBlockState state) {
 		return sedimentaryBlocks.contains(state.getBlock());
 	}
 
-	public boolean isOreReplaceable(BlockState state) {
+	public boolean isOreReplaceable(IBlockState state) {
 		return oreReplaceableBlocks.contains(state.getBlock());
 	}
 
-	RockFamily familyOf(BlockState state) {
+	RockFamily familyOf(IBlockState state) {
 		return rockFamilies.get(state.getBlock());
 	}
 
-	public BlockState[] statesForFamily(RockFamily... families) {
+	public IBlockState[] statesForFamily(RockFamily... families) {
 		int mask = 0;
 		for (RockFamily family : families) {
 			mask |= 1 << family.ordinal();
 		}
 		int count = 0;
-		for (BlockState state : rockStates) {
+		for (IBlockState state : rockStates) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				count++;
 			}
 		}
-		BlockState[] result = new BlockState[count];
+		IBlockState[] result = new IBlockState[count];
 		int index = 0;
-		for (BlockState state : rockStates) {
+		for (IBlockState state : rockStates) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				result[index++] = state;
@@ -201,7 +201,7 @@ public final class BakedGeomeConfig {
 	}
 
 	void addRockBlocks(Set<Block> target) {
-		for (BlockState state : rockStates) {
+		for (IBlockState state : rockStates) {
 			target.add(state.getBlock());
 		}
 	}
@@ -550,7 +550,7 @@ public final class BakedGeomeConfig {
 	}
 
 	private WeightedBlockPicker buildLegacyRockPicker(RockEntry[] rocks, int geome, RockFamily family, int y) {
-		BlockState[] states = new BlockState[rocks.length];
+		IBlockState[] states = new IBlockState[rocks.length];
 		int[] thresholds = new int[rocks.length];
 		int total = 0;
 		int index = 0;
@@ -652,7 +652,7 @@ public final class BakedGeomeConfig {
 	}
 
 	static final class RockEntry {
-		final BlockState state;
+		final IBlockState state;
 		final RockFamily family;
 		final int depthPeak;
 		final int depthSpread;
@@ -662,7 +662,7 @@ public final class BakedGeomeConfig {
 		final boolean oreReplaceable;
 		final double[] geomeWeights;
 
-		RockEntry(BlockState state, RockFamily family, int depthPeak, int depthSpread, int minY, int maxY,
+		RockEntry(IBlockState state, RockFamily family, int depthPeak, int depthSpread, int minY, int maxY,
 				double weight, boolean oreReplaceable, double[] geomeWeights) {
 			this.state = state;
 			this.family = family;
@@ -677,11 +677,11 @@ public final class BakedGeomeConfig {
 	}
 
 	private static final class WeightedBlockPicker {
-		private final BlockState[] states;
+		private final IBlockState[] states;
 		private final int[] thresholds;
 		private final int total;
 
-		WeightedBlockPicker(BlockState[] states, int[] thresholds, int total) {
+		WeightedBlockPicker(IBlockState[] states, int[] thresholds, int total) {
 			this.states = states;
 			this.thresholds = thresholds;
 			this.total = total;
@@ -691,7 +691,7 @@ public final class BakedGeomeConfig {
 			return total <= 0 || states.length == 0;
 		}
 
-		BlockState pick(int hash) {
+		IBlockState pick(int hash) {
 			if (isEmpty()) {
 				return FALLBACK;
 			}

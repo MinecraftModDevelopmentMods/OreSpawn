@@ -5,21 +5,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 
 /** Registry-backed biome chooser. */
 final class BiomePickerScreen extends OreSpawnScreen {
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private final Consumer<String> select;
 	private String searchText = "";
 	private int page;
 	private TextFieldWidget search;
 
-	BiomePickerScreen(Screen parent, GeologyEditorSession session, Consumer<String> select) {
-		super(new TranslationTextComponent("screen.orespawn.choose_biome"));
+	BiomePickerScreen(GuiScreen parent, GeologyEditorSession session, Consumer<String> select) {
+		super(new TextComponentTranslation("screen.orespawn.choose_biome"));
 		this.parent = parent;
 		this.session = session;
 		this.select = select;
@@ -30,10 +30,10 @@ final class BiomePickerScreen extends OreSpawnScreen {
 		int contentWidth = Math.min(390, Math.max(280, width - 24));
 		int left = (width - contentWidth) / 2;
 		search = addButton(new TextFieldWidget(font, left, 36, contentWidth - 75, 20,
-				new TranslationTextComponent("option.orespawn.search")));
+				new TextComponentTranslation("option.orespawn.search")));
 		search.setValue(searchText);
 		addButton(new Button(left + contentWidth - 70, 36, 70, 20,
-				new TranslationTextComponent("button.orespawn.search"), button -> {
+				new TextComponentTranslation("button.orespawn.search"), button -> {
 					searchText = search.getValue();
 					page = 0;
 					rebuildWidgets();
@@ -48,15 +48,15 @@ final class BiomePickerScreen extends OreSpawnScreen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addButton(OreSpawnScreenLayout.button(this, font, left,
-					listTop + i * 24, contentWidth, 20, new StringTextComponent(id),
+					listTop + i * 24, contentWidth, 20, new TextComponentString(id),
 					button -> select.accept(id)));
 		}
 		Button previous = addButton(new Button(left, controlsY, 45, 20,
-				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+				new TextComponentString("<"), button -> { page--; rebuildWidgets(); }));
 		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
-				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
-		previous.active = page > 0;
-		next.active = page + 1 < pageCount;
+				new TextComponentString(">"), button -> { page++; rebuildWidgets(); }));
+		previous.enabled = page > 0;
+		next.enabled = page + 1 < pageCount;
 		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
 				DialogTexts.GUI_CANCEL, button -> onClose()));
 	}

@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
 
 /** Java 8 equivalent of the vanilla cycle button introduced after this target. */
 final class CycleButton<T> extends Button {
@@ -37,7 +37,7 @@ final class CycleButton<T> extends Button {
 	}
 
 	static Builder<Boolean> onOffBuilder(boolean initialValue) {
-		return CycleButton.<Boolean>builder(value -> new TranslationTextComponent(
+		return CycleButton.<Boolean>builder(value -> new TextComponentTranslation(
 				value ? "options.on" : "options.off"))
 				.withValues(Arrays.asList(Boolean.FALSE, Boolean.TRUE))
 				.withInitialValue(initialValue);

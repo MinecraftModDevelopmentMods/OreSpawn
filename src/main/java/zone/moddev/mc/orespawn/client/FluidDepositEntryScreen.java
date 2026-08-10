@@ -8,24 +8,24 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 final class FluidDepositEntryScreen extends OreSpawnScreen {
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private final String depositId;
 	private boolean enabled;
 	private String outputBlock;
 	private int page;
 
-	FluidDepositEntryScreen(Screen parent, GeologyEditorSession session, String depositId) {
-		super(new TranslationTextComponent("screen.orespawn.fluid_deposit"));
+	FluidDepositEntryScreen(GuiScreen parent, GeologyEditorSession session, String depositId) {
+		super(new TextComponentTranslation("screen.orespawn.fluid_deposit"));
 		this.parent = parent;
 		this.session = session;
 		this.depositId = depositId;
@@ -49,21 +49,21 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		Collections.sort(ids);
 		OreSpawnScreenLayout.explain(this,
 				addButton(CycleButton.onOffBuilder(enabled).create(left, 46, column, 20,
-						new TranslationTextComponent("option.orespawn.enabled"),
+						new TextComponentTranslation("option.orespawn.enabled"),
 						(button, value) -> {
 							enabled = value;
 							session.fluidDeposit(depositId).addProperty("enabled", value);
 						})),
 				"tooltip.orespawn.enabled");
 		addButton(OreSpawnScreenLayout.button(this, font, left + column + 5, 46, column, 20,
-				new TranslationTextComponent("button.orespawn.reset"), button -> reset()));
+				new TextComponentTranslation("button.orespawn.reset"), button -> reset()));
 
 		Button output = addButton(OreSpawnScreenLayout.button(this, font,
 				left, 70, contentWidth, 20, fluidName(outputBlock), button -> {
 					if (!ids.isEmpty()) minecraft.displayGuiScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, ids.get(0)));
 				}));
-		output.active = !ids.isEmpty();
+		output.enabled = !ids.isEmpty();
 		OreSpawnScreenLayout.explain(this, output, "tooltip.orespawn.fluid.dimension_settings");
 
 		int listTop = 98;
@@ -76,28 +76,28 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
 			String id = ids.get(start + i);
 			addButton(OreSpawnScreenLayout.button(this, font, left, listTop + (i * 24),
-					contentWidth, 20, new StringTextComponent(id), button -> minecraft.displayGuiScreen(
+					contentWidth, 20, new TextComponentString(id), button -> minecraft.displayGuiScreen(
 							new FluidDepositDimensionScreen(this, session, depositId, id))));
 		}
 		Button previous = addButton(new Button(left, controlsY, 45, 20,
-				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+				new TextComponentString("<"), button -> { page--; rebuildWidgets(); }));
 		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
-				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
-		previous.active = page > 0;
-		next.active = page + 1 < pageCount;
+				new TextComponentString(">"), button -> { page++; rebuildWidgets(); }));
+		previous.enabled = page > 0;
+		next.enabled = page + 1 < pageCount;
 		List<String> available = session.availableDimensionIds();
 		String selected = available.stream().filter(id -> !dimensions.has(id)).findFirst()
 				.orElse(available.get(0));
 		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::dimensionName)
 				.withValues(available).withInitialValue(selected)
 				.create(left, pickerY, contentWidth, 20,
-						new TranslationTextComponent("option.orespawn.available_dimension"),
+						new TextComponentTranslation("option.orespawn.available_dimension"),
 						(button, value) -> addDimension(value))),
 				"tooltip.orespawn.fluid.available_dimension");
 		addButton(new Button(width / 2 - 155, height - 28, 100, 20,
 				DialogTexts.GUI_DONE, button -> onClose()));
 		addButton(OreSpawnScreenLayout.button(this, font, width / 2 + 55, height - 28, 100, 20,
-				new TranslationTextComponent("button.orespawn.remove"), button -> {
+				new TextComponentTranslation("button.orespawn.remove"), button -> {
 					session.removeFluidDeposit(depositId); minecraft.displayGuiScreen(parent);
 				}));
 	}
@@ -154,14 +154,14 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 	private ITextComponent fluidName(String id) {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-			return block == null ? new StringTextComponent(id) : new TranslationTextComponent(block.getTranslationKey());
-		} catch (RuntimeException ignored) { return new StringTextComponent(id); }
+			return block == null ? new TextComponentString(id) : new TextComponentTranslation(block.getTranslationKey());
+		} catch (RuntimeException ignored) { return new TextComponentString(id); }
 	}
 
 	private ITextComponent dimensionName(String id) {
 		String path = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : "";
-		return path.isEmpty() ? new StringTextComponent(id)
-				: new TranslationTextComponent("value.orespawn.dimension." + path);
+		return path.isEmpty() ? new TextComponentString(id)
+				: new TextComponentTranslation("value.orespawn.dimension." + path);
 	}
 
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
@@ -172,7 +172,7 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		renderBackground();
 		drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
 		drawCenteredString(font, OreSpawnScreenLayout.fit(font,
-				new StringTextComponent(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
+				new TextComponentString(depositId), Math.min(390, width - 24)), width / 2, 26, 0xAAAAAA);
 		super.render(mouseX, mouseY, partialTick);
 		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}

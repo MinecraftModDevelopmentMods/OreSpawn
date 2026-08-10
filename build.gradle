@@ -78,7 +78,7 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-def configureForge28Run = { JavaExec runTask, String launchTarget ->
+def configureForge25Run = { JavaExec runTask, String launchTarget ->
     runTask.main = 'net.minecraftforge.userdev.LaunchTesting'
     runTask.environment 'target', launchTarget
     runTask.environment 'MCP_MAPPINGS', "${mapping_channel}_${mapping_version}"
@@ -100,7 +100,7 @@ tasks.withType(JavaExec).all { JavaExec runTask ->
     ]
     String launchTarget = targets.get(runTask.name)
     if (launchTarget != null) {
-        configureForge28Run(runTask, launchTarget)
+        configureForge25Run(runTask, launchTarget)
     }
 }
 
@@ -311,7 +311,7 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 
 check.dependsOn surfaceIntegrationTest
 
-task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+task syncForge25EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
     group = 'ide'
     doLast {
         String mainClass = 'net.minecraftforge.userdev.LaunchTesting'
@@ -321,13 +321,14 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
         String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
         String fixtureModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput};" +
                 "surfaceprobe%%${fixtureOutput};surfaceprobe%%${fixtureResources}"
-        String environmentEntries =
+        def environmentEntries = { String launchTarget ->
                 "    <mapEntry key=\"MCP_MAPPINGS\" value=\"${mapping_channel}_${mapping_version}\"/>\r\n" +
                 "    <mapEntry key=\"MCP_VERSION\" value=\"${mcp_version}\"/>\r\n" +
                 "    <mapEntry key=\"FORGE_VERSION\" value=\"${forge_version}\"/>\r\n" +
                 "    <mapEntry key=\"FORGE_GROUP\" value=\"net.minecraftforge\"/>\r\n" +
-                "    <mapEntry key=\"target\" value=\"fmluserdevserver\"/>\r\n" +
+                "    <mapEntry key=\"target\" value=\"${launchTarget}\"/>\r\n" +
                 "    <mapEntry key=\"MC_VERSION\" value=\"${minecraft_version}\"/>\r\n"
+		}
 		['Client', 'Server', 'Data'].each { String runName ->
 			File launch = file("run${runName}.launch")
 			if (!launch.isFile()) {
@@ -341,6 +342,12 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 					/<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
 					java.util.regex.Matcher.quoteReplacement(
 							"<mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>"))
+			if (!text.contains('key="target"')) {
+				String launchTarget = [Client: 'fmluserdevclient', Server: 'fmluserdevserver',
+						Data: 'fmluserdevdata'][runName]
+				text = text.replace('    <mapEntry key="MOD_CLASSES"',
+						environmentEntries(launchTarget) + '    <mapEntry key="MOD_CLASSES"')
+			}
 			launch.setText(text, 'UTF-8')
 		}
         ['Fresh', 'Reload'].each { String phase ->
@@ -358,7 +365,7 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
                             "<mapEntry key=\"MOD_CLASSES\" value=\"${fixtureModClasses}\"/>"))
             if (!text.contains('key="target"')) {
                 text = text.replace('    <mapEntry key="MOD_CLASSES"',
-                        environmentEntries + '    <mapEntry key="MOD_CLASSES"')
+                        environmentEntries('fmluserdevserver') + '    <mapEntry key="MOD_CLASSES"')
             }
             launch.setText(text, 'UTF-8')
         }
@@ -366,5 +373,5 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 }
 
 tasks.matching { it.name == 'genEclipseRuns' }.all {
-    finalizedBy syncForge28EclipseLaunches
+    finalizedBy syncForge25EclipseLaunches
 }

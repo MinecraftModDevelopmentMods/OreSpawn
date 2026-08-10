@@ -14,23 +14,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.init.Blocks;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
+import net.minecraft.init.Fluids;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
-import net.minecraft.world.gen.feature.DecoratedFeatureConfig;
+import net.minecraft.world.gen.feature.CompositeFeature;
 import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraft.world.gen.feature.LiquidsConfig;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.feature.SingleRandomFeature;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
-import net.minecraft.world.gen.placement.Placement;
+import net.minecraft.world.gen.feature.RandomFeatureWithConfigConfig;
+import net.minecraft.world.gen.placement.IPlacementConfig;
 
 class VanillaSpringCompatibilityTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.register();
+		Forge25TestBootstrap.registerVanilla();
 	}
 
 	@AfterEach
@@ -49,43 +48,44 @@ class VanillaSpringCompatibilityTest {
 	}
 
 	@Test
-	void rewritesOnlyTheSpringLeafAndPreservesFluidAndDecorator() {
-		ConfiguredFeature<?> original = Biome.createDecoratedFeature(Feature.SPRING_FEATURE,
-				new LiquidsConfig(Fluids.WATER.getDefaultState()), Placement.NOPE,
-				new NoPlacementConfig());
-		List<ConfiguredFeature<?>> features = new ArrayList<>();
+	void rewritesOnlyTheSpringLeafAndPreservesFluidAndPlacement() {
+		CompositeFeature<?, ?> original = Biome.createCompositeFeature(Feature.LIQUIDS,
+				new LiquidsConfig(Fluids.WATER), Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
+		List<CompositeFeature<?, ?>> features = new ArrayList<>();
 		features.add(original);
 
 		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
-		ConfiguredFeature<?> rewritten = features.get(0);
+		CompositeFeature<?, ?> rewritten = features.get(0);
 		assertNotSame(original, rewritten);
-		DecoratedFeatureConfig before = (DecoratedFeatureConfig) original.config;
-		DecoratedFeatureConfig after = (DecoratedFeatureConfig) rewritten.config;
-		assertSame(before.decorator, after.decorator);
-		assertSame(VanillaSpringCompatibility.FEATURE, after.feature.feature);
-		assertSame(((LiquidsConfig) before.feature.config).state,
-				((LiquidsConfig) after.feature.config).state);
+		assertSame(VanillaSpringCompatibility.FEATURE, rewritten.getFeature());
+		assertSame(Fluids.WATER,
+				((LiquidsConfig) ConfiguredFeatureInspector.featureConfig(rewritten)).field_202459_a);
+		assertSame(ConfiguredFeatureInspector.basePlacement(original),
+				ConfiguredFeatureInspector.basePlacement(rewritten));
+		assertSame(ConfiguredFeatureInspector.placementConfig(original),
+				ConfiguredFeatureInspector.placementConfig(rewritten));
 		assertFalse(VanillaSpringCompatibility.rewriteFeatureList(features),
 				"already rewritten leaves remain stable");
 	}
 
 	@Test
 	void traversesNestedRandomFeatureGraphsWithoutChangingOtherLeaves() {
-		ConfiguredFeature<?> spring = Biome.createDecoratedFeature(Feature.SPRING_FEATURE,
-				new LiquidsConfig(Fluids.LAVA.getDefaultState()), Placement.NOPE,
-				new NoPlacementConfig());
-		ConfiguredFeature<?> untouched = new ConfiguredFeature<>(Feature.FREEZE_TOP_LAYER,
-				new NoFeatureConfig());
-		ConfiguredFeature<?> random = new ConfiguredFeature<>(Feature.SIMPLE_RANDOM_SELECTOR,
-				new SingleRandomFeature(java.util.Arrays.asList(spring, untouched)));
-		List<ConfiguredFeature<?>> features = new ArrayList<>();
-		features.add(random);
+		RandomFeatureWithConfigConfig random = new RandomFeatureWithConfigConfig(
+				new Feature<?>[] { Feature.LIQUIDS, Feature.ICE_AND_SNOW },
+				new IFeatureConfig[] { new LiquidsConfig(Fluids.LAVA), new NoFeatureConfig() });
+		CompositeFeature<?, ?> root = Biome.createCompositeFeature(
+				Feature.RANDOM_FEATURE_WITH_CONFIG, random, Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
+		List<CompositeFeature<?, ?>> features = new ArrayList<>();
+		features.add(root);
 
 		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
-		SingleRandomFeature rewritten = (SingleRandomFeature) features.get(0).config;
-		DecoratedFeatureConfig decorated = (DecoratedFeatureConfig) rewritten.features.get(0).config;
-		assertSame(VanillaSpringCompatibility.FEATURE, decorated.feature.feature);
-		assertSame(untouched, rewritten.features.get(1));
-		assertEquals(2, rewritten.features.size());
+		RandomFeatureWithConfigConfig rewritten = (RandomFeatureWithConfigConfig)
+				ConfiguredFeatureInspector.featureConfig(features.get(0));
+		assertSame(VanillaSpringCompatibility.FEATURE, rewritten.features[0]);
+		assertSame(Feature.ICE_AND_SNOW, rewritten.features[1]);
+		assertSame(Fluids.LAVA, ((LiquidsConfig) rewritten.configs[0]).field_202459_a);
+		assertEquals(2, rewritten.features.length);
 	}
 }

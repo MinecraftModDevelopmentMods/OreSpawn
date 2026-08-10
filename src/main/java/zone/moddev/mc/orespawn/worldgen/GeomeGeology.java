@@ -12,7 +12,7 @@ import net.minecraft.world.IWorld;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 
 public final class GeomeGeology {
 	private static final double GEOME_TRANSITION_SCORE_WIDTH = 0.125D;
@@ -114,9 +114,9 @@ public final class GeomeGeology {
 				} else {
 					for (int y = surfaceY; y >= 0; y--) {
 						cursor.setPos(x, y, z);
-						BlockState current = chunk.getBlockState(cursor);
+						IBlockState current = chunk.getBlockState(cursor);
 						if (terrain.isReplaceable(current)) {
-							BlockState replacement = pickReplacement(
+							IBlockState replacement = pickReplacement(
 									geomeIndex, baseRockValue, formationRegion, x, y, z);
 							if (!changes(current, replacement)) continue;
 							chunk.setBlockState(cursor, replacement, false);
@@ -128,7 +128,9 @@ public final class GeomeGeology {
 		}
 
 		if (changed) {
-			chunk.setModified(true);
+			if (chunk instanceof net.minecraft.world.chunk.Chunk) {
+				((net.minecraft.world.chunk.Chunk) chunk).markDirty();
+			}
 		}
 	}
 
@@ -140,7 +142,7 @@ public final class GeomeGeology {
 		int layerStart = layerIndex * layerThickness;
 		int layerGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
 				layerIndex, geomeTransitionPhase);
-		BlockState replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
+		IBlockState replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 		boolean changed = false;
 		cursor.setPos(x, surfaceY, z);
 
@@ -154,7 +156,7 @@ public final class GeomeGeology {
 				replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 			}
 			cursor.setY(y);
-			BlockState current = chunk.getBlockState(cursor);
+			IBlockState current = chunk.getBlockState(cursor);
 			if (terrain.isReplaceable(current) && changes(current, replacement)) {
 				chunk.setBlockState(cursor, replacement, false);
 				changed = true;
@@ -163,7 +165,7 @@ public final class GeomeGeology {
 		return changed;
 	}
 
-	static boolean changes(BlockState current, BlockState replacement) {
+	static boolean changes(IBlockState current, IBlockState replacement) {
 		return current != replacement && !current.equals(replacement);
 	}
 
@@ -224,7 +226,7 @@ public final class GeomeGeology {
 			return config.geomeName(geomeIndex);
 		}
 
-		public BlockState rockAt(int y) {
+		public IBlockState rockAt(int y) {
 			int selectedGeome = geomeIndex;
 			if (stableLayers) {
 				int layerIndex = Math.floorDiv(stratumOffset + y, layerThickness);
@@ -248,7 +250,7 @@ public final class GeomeGeology {
 		return config.scoreGeomes(biome, biomeId, regionalValues, boundary);
 	}
 
-	private net.minecraft.block.BlockState pickReplacement(int geomeIndex, int baseRockValue,
+	private net.minecraft.block.state.IBlockState pickReplacement(int geomeIndex, int baseRockValue,
 			long formationRegion, int x, int y, int z) {
 		int stratum = baseRockValue + y;
 		int layerIndex = Math.floorDiv(stratum, layerThickness);
@@ -263,7 +265,7 @@ public final class GeomeGeology {
 		return config.pickRock(geomeIndex, family, layerY, rockHash);
 	}
 
-	private BlockState pickStableReplacement(int geomeIndex, long formationRegion, int layerIndex) {
+	private IBlockState pickStableReplacement(int geomeIndex, long formationRegion, int layerIndex) {
 		// A dipping or uplifted layer keeps the depth identity it had in stratum space.
 		int formationY = (layerIndex * layerThickness) + (layerThickness / 2);
 		int layerBucket = layerIndex & 0xFF;

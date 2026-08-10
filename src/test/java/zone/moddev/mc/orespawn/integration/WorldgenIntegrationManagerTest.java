@@ -15,12 +15,12 @@ import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.util.registry.Bootstrap;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 
 class WorldgenIntegrationManagerTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.register();
+		Forge25TestBootstrap.registerVanilla();
 	}
 
 	@Test

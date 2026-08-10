@@ -37,12 +37,12 @@ import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
+import net.minecraft.init.Blocks;
 import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.forgespi.language.IModInfo;
-import net.minecraftforge.forgespi.locating.IModFile;
+import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -112,21 +112,23 @@ public final class WorldgenIntegrationManager {
 	public static synchronized void processImcMessages() {
 		InterModComms.getMessages(OreSpawn.MODID,
 				OreSpawnApi.IMC_WORLDGEN_PROVIDER::equals).forEach(message -> {
+			String providerId = "<unknown>";
 			try {
 				Object value = message.getMessageSupplier().get();
 				if (!(value instanceof WorldgenProvider)) {
 					throw new IllegalArgumentException("message is not a WorldgenProvider");
 				}
 				WorldgenProvider provider = (WorldgenProvider) value;
-				if (!provider.modId().equals(message.getSenderModId())) {
-					throw new IllegalArgumentException("sender does not own provider ID " + provider.modId());
+				providerId = provider.modId();
+				if (!net.minecraftforge.fml.ModList.get().isLoaded(providerId)) {
+					throw new IllegalArgumentException("provider mod is not loaded: " + providerId);
 				}
 				if (API_PROVIDERS.putIfAbsent(provider.modId(), provider) != null) {
 					throw new IllegalArgumentException("provider was submitted more than once");
 				}
 			} catch (RuntimeException e) {
-				INVALID_PROVIDERS.add(message.getSenderModId());
-				LOGGER.error("Rejected OreSpawn API provider from '{}'", message.getSenderModId(), e);
+				INVALID_PROVIDERS.add(providerId);
+				LOGGER.error("Rejected OreSpawn API provider '{}'", providerId, e);
 			}
 		});
 		rebuildActiveProviders();
@@ -377,7 +379,7 @@ public final class WorldgenIntegrationManager {
 		mods.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
 	}
 
-	private static void scanPackagedProvider(IModFile file) {
+	private static void scanPackagedProvider(ModFile file) {
 		for (IModInfo info : file.getModInfos()) {
 			String providerId = info.getModId();
 			Path path = file.findResource("data/" + providerId + "/orespawn/provider.json");

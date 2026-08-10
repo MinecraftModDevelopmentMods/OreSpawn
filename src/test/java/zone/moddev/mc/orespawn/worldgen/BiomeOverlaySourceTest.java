@@ -14,13 +14,14 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Bootstrap;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.provider.BiomeProvider;
 import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.surfacebuilders.SurfaceBuilder;
+import net.minecraft.world.gen.surfacebuilders.CompositeSurfaceBuilder;
+import net.minecraft.world.gen.surfacebuilders.SurfaceBuilderConfig;
 
 class BiomeOverlaySourceTest {
 	private static Biome source;
@@ -28,9 +29,9 @@ class BiomeOverlaySourceTest {
 
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.register();
-		source = biome(0.7F, 0.8F, SurfaceBuilder.GRASS_DIRT_GRAVEL_CONFIG);
-		output = biome(1.35F, 0.15F, SurfaceBuilder.STONE_STONE_GRAVEL_CONFIG);
+		Forge25TestBootstrap.registerVanilla();
+		source = biome(0.7F, 0.8F, Biome.GRASS_DIRT_GRAVEL_SURFACE);
+		output = biome(1.35F, 0.15F, Biome.STONE_STONE_GRAVEL_SURFACE);
 	}
 
 	@Test
@@ -39,9 +40,9 @@ class BiomeOverlaySourceTest {
 		boolean observedReplacement = false;
 		for (int blockX = -65; blockX <= 65; blockX++) {
 			for (int blockZ = -9; blockZ <= 9; blockZ++) {
-				Biome expected = overlay.func_222366_b(
-						Math.floorDiv(blockX, 4), Math.floorDiv(blockZ, 4));
-				Biome actual = overlay.getBiome(blockX, blockZ);
+				Biome expected = overlay.getBiomes(
+						Math.floorDiv(blockX, 4), Math.floorDiv(blockZ, 4), 1, 1)[0];
+				Biome actual = overlay.getBiome(new BlockPos(blockX, 0, blockZ), source);
 				assertEquals(expected, actual, "block-to-quart conversion at " + blockX + "," + blockZ);
 				observedReplacement |= actual == output;
 			}
@@ -55,8 +56,8 @@ class BiomeOverlaySourceTest {
 		Biome[] values = overlay.getBiomes(-9, -7, 11, 9, false);
 		for (int z = 0; z < 9; z++) {
 			for (int x = 0; x < 11; x++) {
-				assertEquals(overlay.func_222366_b(Math.floorDiv(-9 + x, 4),
-						Math.floorDiv(-7 + z, 4)), values[x + z * 11]);
+				assertEquals(overlay.getBiomes(Math.floorDiv(-9 + x, 4),
+						Math.floorDiv(-7 + z, 4), 1, 1)[0], values[x + z * 11]);
 			}
 		}
 	}
@@ -90,17 +91,16 @@ class BiomeOverlaySourceTest {
 				Collections.singletonList(palette), 0L);
 	}
 
-	private static Biome biome(float temperature, float downfall,
-			net.minecraft.world.gen.surfacebuilders.SurfaceBuilderConfig surface) {
-		return new TestBiome(new Biome.Builder()
+	private static Biome biome(float temperature, float downfall, SurfaceBuilderConfig surface) {
+		return new TestBiome(new Biome.BiomeBuilder()
 				.precipitation(Biome.RainType.RAIN).category(Biome.Category.NONE)
 				.depth(0.1F).scale(0.2F).temperature(temperature).downfall(downfall)
 				.waterColor(0x3f76e4).waterFogColor(0x050533)
-				.surfaceBuilder(SurfaceBuilder.DEFAULT, surface));
+				.surfaceBuilder(new CompositeSurfaceBuilder<>(Biome.DEFAULT_SURFACE_BUILDER, surface)));
 	}
 
 	private static final class TestBiome extends Biome {
-		TestBiome(Biome.Builder builder) { super(builder); }
+		TestBiome(Biome.BiomeBuilder builder) { super(builder); }
 	}
 
 	private static final class ConstantBiomeProvider extends BiomeProvider {
@@ -108,7 +108,14 @@ class BiomeOverlaySourceTest {
 
 		ConstantBiomeProvider(Biome biome) { this.biome = biome; }
 
-		@Override public Biome getBiome(int x, int z) { return biome; }
+		@Override public Biome getBiome(BlockPos pos, Biome fallback) { return biome; }
+
+		@Override
+		public Biome[] getBiomes(int x, int z, int width, int length) {
+			Biome[] result = new Biome[width * length];
+			java.util.Arrays.fill(result, biome);
+			return result;
+		}
 
 		@Override
 		public Biome[] getBiomes(int x, int z, int width, int length, boolean cacheFlag) {
@@ -124,7 +131,7 @@ class BiomeOverlaySourceTest {
 		@Override public BlockPos findBiomePosition(int x, int z, int range,
 				List<Biome> biomes, Random random) { return null; }
 		@Override public boolean hasStructure(Structure<?> structure) { return false; }
-		@Override public Set<BlockState> getSurfaceBlocks() {
+		@Override public Set<IBlockState> getSurfaceBlocks() {
 			return Collections.singleton(biome.getSurfaceBuilderConfig().getTop());
 		}
 	}

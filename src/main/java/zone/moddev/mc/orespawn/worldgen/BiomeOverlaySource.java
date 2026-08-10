@@ -11,7 +11,7 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.provider.BiomeProvider;
@@ -44,14 +44,21 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public Biome getBiome(int blockX, int blockZ) {
-		return selectAll(delegate.getBiome(blockX, blockZ),
-				Math.floorDiv(blockX, 4), Math.floorDiv(blockZ, 4));
+	public Biome getBiome(BlockPos pos, @Nullable Biome defaultBiome) {
+		return selectAll(delegate.getBiome(pos, defaultBiome),
+				Math.floorDiv(pos.getX(), 4), Math.floorDiv(pos.getZ(), 4));
 	}
 
 	@Override
-	public Biome func_222366_b(int quartX, int quartZ) {
-		return selectAll(delegate.func_222366_b(quartX, quartZ), quartX, quartZ);
+	public Biome[] getBiomes(int quartX, int quartZ, int width, int length) {
+		Biome[] selected = delegate.getBiomes(quartX, quartZ, width, length);
+		for (int z = 0; z < length; z++) {
+			for (int x = 0; x < width; x++) {
+				int index = x + z * width;
+				selected[index] = selectAll(selected[index], quartX + x, quartZ + z);
+			}
+		}
+		return selected;
 	}
 
 	@Override
@@ -77,7 +84,8 @@ final class BiomeOverlaySource extends BiomeProvider {
 		Set<Biome> result = new HashSet<>();
 		for (int quartZ = minQuartZ; quartZ <= maxQuartZ; quartZ++) {
 			for (int quartX = minQuartX; quartX <= maxQuartX; quartX++) {
-				result.add(func_222366_b(quartX, quartZ));
+				BlockPos pos = new BlockPos(quartX << 2, 0, quartZ << 2);
+				result.add(getBiome(pos, null));
 			}
 		}
 		return result;
@@ -95,7 +103,7 @@ final class BiomeOverlaySource extends BiomeProvider {
 		int matches = 0;
 		for (int quartZ = minQuartZ; quartZ <= maxQuartZ; quartZ++) {
 			for (int quartX = minQuartX; quartX <= maxQuartX; quartX++) {
-				if (!biomes.contains(func_222366_b(quartX, quartZ))) continue;
+				if (!biomes.contains(getBiome(new BlockPos(quartX << 2, 0, quartZ << 2), null))) continue;
 				if (selected == null || random.nextInt(matches + 1) == 0) {
 					selected = new BlockPos(quartX << 2, 0, quartZ << 2);
 				}
@@ -115,8 +123,8 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public Set<BlockState> getSurfaceBlocks() {
-		Set<BlockState> result = new HashSet<>(delegate.getSurfaceBlocks());
+	public Set<IBlockState> getSurfaceBlocks() {
+		Set<IBlockState> result = new HashSet<>(delegate.getSurfaceBlocks());
 		for (Biome biome : possibleBiomes) {
 			result.add(biome.getSurfaceBuilderConfig().getTop());
 		}
@@ -129,8 +137,13 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public float func_222365_c(int x, int z) {
-		return delegate.func_222365_c(x, z);
+	public float getHeightValue(int x, int z, int width, int length) {
+		return delegate.getHeightValue(x, z, width, length);
+	}
+
+	@Override
+	public void tick() {
+		delegate.tick();
 	}
 
 	private Biome selectAll(Biome selected, int quartX, int quartZ) {

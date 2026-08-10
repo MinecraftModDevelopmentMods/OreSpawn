@@ -40,11 +40,9 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Algorithm;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.JSONUtils;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -539,7 +537,7 @@ public final class GeomeConfig {
 			Map<ResourceLocation, ResourceLocation> worldgenAliases, ResourceLocation dimension) {
 		JsonObject rockRoot = getObject(root, "rocks", defaultConfig().getAsJsonObject("rocks"));
 		List<RockEntry> rocks = new ArrayList<>();
-		Map<BlockState, ResourceLocation> configuredStates = new HashMap<BlockState, ResourceLocation>();
+		Map<IBlockState, ResourceLocation> configuredStates = new HashMap<IBlockState, ResourceLocation>();
 		for (Entry<String, JsonElement> entry : rockRoot.entrySet()) {
 			if (!entry.getValue().isJsonObject()) {
 				LOGGER.warn("Ignoring OreSpawn geome rock '{}' because it is not an object", entry.getKey());
@@ -594,7 +592,7 @@ public final class GeomeConfig {
 
 			JsonObject geomeWeightsJson = getObject(json, "geomes", new JsonObject());
 			double[] geomeWeights = readGeomeWeights(geomeWeightsJson, geomeIndexes, 1.0D);
-			BlockState state = GeologyBlockAliases.aliasState(id, block.getDefaultState(), worldgenAliases);
+			IBlockState state = GeologyBlockAliases.aliasState(id, block.getDefaultState(), worldgenAliases);
 			ResourceLocation previousId = configuredStates.putIfAbsent(state, ruleId);
 			if (previousId != null) {
 				LOGGER.warn("Ignoring duplicate OreSpawn geome rock rule '{}' because block '{}' resolves to the same state as '{}'",
@@ -1763,9 +1761,6 @@ public final class GeomeConfig {
 		addWeights(biomes, "minecraft:jungle_edge", "stable_craton", 1.5D, "wetland_basin", 1.0D);
 		addWeights(biomes, "minecraft:modified_jungle", "wetland_basin", 1.8D, "stable_craton", 1.2D);
 		addWeights(biomes, "minecraft:modified_jungle_edge", "stable_craton", 1.5D, "wetland_basin", 1.0D);
-		addWeights(biomes, "minecraft:bamboo_jungle", "wetland_basin", 2.0D, "stable_craton", 1.2D);
-		addWeights(biomes, "minecraft:bamboo_jungle_hills", "wetland_basin", 2.0D,
-				"stable_craton", 1.2D, "mountain_belt", 0.8D);
 		addWeights(biomes, "minecraft:mushroom_fields", "coastal_shelf", 2.0D, "volcanic_arc", 1.5D,
 				"stable_craton", 1.0D);
 		addWeights(biomes, "minecraft:mushroom_field_shore", "coastal_shelf", 3.0D,

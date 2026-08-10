@@ -5,12 +5,12 @@ import java.util.Random;
 import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.IWorld;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
@@ -19,9 +19,9 @@ public class Geology {
 	private final PerlinNoise2D geomeNoiseLayer;
 	private final PerlinNoise2D rockNoiseLayer;
 	private final short[] whiteNoiseArray;
-	private final BlockState[] igneousStones;
-	private final BlockState[] metamorphicStones;
-	private final BlockState[] sedimentaryStones;
+	private final IBlockState[] igneousStones;
+	private final IBlockState[] metamorphicStones;
+	private final IBlockState[] sedimentaryStones;
 	private final int layerThickness;
 
 	public Geology(long seed, double geomeSize, double rockLayerSize, int layerThickness,
@@ -81,9 +81,9 @@ public class Geology {
 
 				for (; y >= 0; y--) {
 					cursor.setPos(x, y, z);
-					BlockState current = chunk.getBlockState(cursor);
+					IBlockState current = chunk.getBlockState(cursor);
 					if (terrain.isReplaceable(current)) {
-						BlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
+						IBlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
 						if (!GeomeGeology.changes(current, replacement)) continue;
 						chunk.setBlockState(cursor, replacement, false);
 						changed = true;
@@ -93,11 +93,13 @@ public class Geology {
 		}
 
 		if (changed) {
-			chunk.setModified(true);
+			if (chunk instanceof net.minecraft.world.chunk.Chunk) {
+				((net.minecraft.world.chunk.Chunk) chunk).markDirty();
+			}
 		}
 	}
 
-	private BlockState pickReplacement(int baseRockVal, int geomeBase, int y) {
+	private IBlockState pickReplacement(int baseRockVal, int geomeBase, int y) {
 		int geome = geomeBase + y;
 		if (geome < -32) {
 			return pickStateFromList(baseRockVal + y, igneousStones);
@@ -125,7 +127,7 @@ public class Geology {
 		return column;
 	}
 
-	private BlockState pickStateFromList(int value, BlockState[] list) {
+	private IBlockState pickStateFromList(int value, IBlockState[] list) {
 		if (list.length == 0) {
 			return Blocks.STONE.getDefaultState();
 		}

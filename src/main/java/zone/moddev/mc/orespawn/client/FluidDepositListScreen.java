@@ -4,21 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 final class FluidDepositListScreen extends OreSpawnScreen {
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private int page;
 
-	FluidDepositListScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslationTextComponent("screen.orespawn.fluid_deposits"));
+	FluidDepositListScreen(GuiScreen parent, GeologyEditorSession session) {
+		super(new TextComponentTranslation("screen.orespawn.fluid_deposits"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -43,21 +43,21 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 					button -> minecraft.displayGuiScreen(new FluidDepositEntryScreen(this, session, id)),
 					(button, mouseX, mouseY) -> renderComponentTooltip(details(id), mouseX, mouseY)));
 			addButton(OreSpawnScreenLayout.button(this, font, left + contentWidth - 78, y, 78, 20,
-					new TranslationTextComponent("button.orespawn.remove"), button -> {
+					new TextComponentTranslation("button.orespawn.remove"), button -> {
 						session.removeFluidDeposit(id);
 						rebuildWidgets();
 					}));
 		}
 		Button previous = addButton(new Button(left, controlsY, 45, 20,
-				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+				new TextComponentString("<"), button -> { page--; rebuildWidgets(); }));
 		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
-				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
-		previous.active = page > 0;
-		next.active = page + 1 < pageCount;
+				new TextComponentString(">"), button -> { page++; rebuildWidgets(); }));
+		previous.enabled = page > 0;
+		next.enabled = page + 1 < pageCount;
 		int addWidth = Math.min(150, contentWidth - 105);
 		OreSpawnScreenLayout.explain(this, addButton(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - addWidth, controlsY, addWidth, 20,
-				new TranslationTextComponent("button.orespawn.add"), button ->
+				new TextComponentTranslation("button.orespawn.add"), button ->
 						minecraft.displayGuiScreen(new FluidBlockPickerScreen(this, session)))),
 				"tooltip.orespawn.fluid.add_deposit");
 		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
@@ -69,18 +69,18 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return new TranslationTextComponent(block.getTranslationKey());
+			if (block != null) return new TextComponentTranslation(block.getTranslationKey());
 		} catch (RuntimeException ignored) { }
-		return new StringTextComponent(id);
+		return new TextComponentString(id);
 	}
 
 	private List<ITextComponent> details(String id) {
 		List<ITextComponent> result = new ArrayList<>();
-		result.add(new StringTextComponent(id));
+		result.add(new TextComponentString(id));
 		JsonObject deposit = session.fluidDeposit(id);
-		result.add(new StringTextComponent(GeologyEditorSession.string(deposit, "block", "")));
+		result.add(new TextComponentString(GeologyEditorSession.string(deposit, "block", "")));
 		String provider = GeologyEditorSession.string(deposit, "source_provider", "");
-		if (!provider.isEmpty()) result.add(new StringTextComponent(provider));
+		if (!provider.isEmpty()) result.add(new TextComponentString(provider));
 		return result;
 	}
 

@@ -25,7 +25,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -173,10 +173,10 @@ public final class WorldGeologyProfileManager {
 	}
 
 	public static void onWorldLoad(WorldEvent.Load event) {
-		if (!(event.getWorld() instanceof ServerWorld)) return;
+		if (!(event.getWorld() instanceof WorldServer)) return;
 		WorldGeologyProfile profile = activeProfile;
 		if (profile != null) {
-			BiomeWorldgenManager.apply((ServerWorld) event.getWorld(), profile);
+			BiomeWorldgenManager.apply((WorldServer) event.getWorld(), profile);
 		}
 	}
 

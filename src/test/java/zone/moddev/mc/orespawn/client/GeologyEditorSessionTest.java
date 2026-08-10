@@ -13,12 +13,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import net.minecraft.util.registry.Bootstrap;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 
 class GeologyEditorSessionTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Bootstrap.register();
+		Forge25TestBootstrap.registerVanilla();
 	}
 
 	@Test

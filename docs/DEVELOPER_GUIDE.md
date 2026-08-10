@@ -172,7 +172,7 @@ registry IDs, tags, dimensions, geomes, aliases, and block states while baking.
 The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
-Biome filters retain their exact registry IDs. Minecraft 1.14.4 uses a static
+Biome filters retain their exact registry IDs. Minecraft 1.13.2 uses a static
 Forge-backed biome registry, so generation carries those stable IDs alongside
 the selected biome instances. Fluid deposits perform one keyed surface-biome
 lookup per chunk invocation and no registry lookup in the placement loop.
@@ -203,9 +203,10 @@ integration test. A separate test provider creates independently marked
 Grass/Dirt, underwater, filler, and roof columns in open and ceiling
 normal-noise dimensions. The gate verifies biome and chunk edges, late tree,
 vegetation, structure and chest sentinels, the roof underside, and exact save
-and reload behavior. On Forge 28 it also exercises the registered spring
+and reload behavior. On Forge 25 it also exercises the registered spring
 wrapper with a non-Forge-stone provider rock and registers an external ore
-pattern beside every built-in type.
+pattern beside every built-in type. It also verifies OreSpawn's Forge 25 biome
+registrar rejects duplicate and late declarations.
 Run `gradlew check` (or `gradlew build`, which includes it)
 before publishing any change to biome registration, palettes, surfaces,
 feature ordering, height handling, or profile persistence.

@@ -11,7 +11,7 @@ class WorldgenBenchmarkTest {
 	@Test
 	void resolvesVanillaAliasesThroughTheStaticDimensionRegistry() {
 		assertEquals(DimensionType.OVERWORLD, WorldgenBenchmark.benchmarkDimension("overworld"));
-		assertEquals(DimensionType.THE_NETHER, WorldgenBenchmark.benchmarkDimension("NETHER"));
+		assertEquals(DimensionType.NETHER, WorldgenBenchmark.benchmarkDimension("NETHER"));
 		assertEquals(DimensionType.THE_END, WorldgenBenchmark.benchmarkDimension(" end "));
 	}
 

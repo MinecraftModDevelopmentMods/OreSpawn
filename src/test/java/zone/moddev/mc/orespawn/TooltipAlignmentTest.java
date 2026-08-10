@@ -177,10 +177,10 @@ class TooltipAlignmentTest {
 	@Test
 	void customScreensDoNotUseUnrenderedNativeCycleTooltipsOnMinecraft116() throws Exception {
 		try (java.util.stream.Stream<Path> files = Files.list(CLIENT_DIR)) {
-			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("Screen.java"))::iterator) {
+			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("GuiScreen.java"))::iterator) {
 				String source = read(sourceFile);
 				assertFalse(source.contains(".withTooltip("), sourceFile.getFileName()
-						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.14.4");
+						+ " must use OreSpawnScreenLayout.explain because GuiScreen does not render CycleButton tooltips in 1.13.2");
 			}
 		}
 	}

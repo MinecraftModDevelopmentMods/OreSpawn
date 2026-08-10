@@ -27,11 +27,10 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.EmptyBlockReader;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.FlowingFluidBlock;
-import net.minecraft.item.Items;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockFlowingFluid;
+import net.minecraft.init.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /** Mutable client-side copy used until the Create World settings are accepted. */
@@ -1047,7 +1046,7 @@ final class GeologyEditorSession {
 	}
 
 	private static boolean isSelectable(Block block, boolean showAll) {
-		if (block == Blocks.AIR || block.asItem() == Items.AIR || block instanceof FlowingFluidBlock) {
+		if (block == Blocks.AIR || block.asItem() == Items.AIR || block instanceof BlockFlowingFluid) {
 			return false;
 		}
 		if (showAll) {
@@ -1055,7 +1054,7 @@ final class GeologyEditorSession {
 		}
 		return !block.getDefaultState().hasTileEntity()
 				&& block.getDefaultState().getMaterial().blocksMovement()
-				&& block.getDefaultState().isOpaqueCube(EmptyBlockReader.INSTANCE, BlockPos.ZERO);
+				&& block.getDefaultState().isFullCube();
 	}
 
 	String canonicalBlockId(String id) {

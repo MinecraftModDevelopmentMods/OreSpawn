@@ -55,7 +55,7 @@ safely instead of breaking world creation.
   opts them in.
 
 **World Materials** applies across an entire dimension. **Aquifer Fluid**
-changes the normal below-sea-level fluid. Minecraft 1.14.4 exposes only that
+changes the normal below-sea-level fluid. Minecraft 1.13.2 exposes only that
 single generator fluid, so the later-format **Deep Aquifer** values remain
 stored but their controls are disabled on this branch. Snow and ordinary ice
 can also be replaced. Use **Fluid Deposits**, not World Materials, for

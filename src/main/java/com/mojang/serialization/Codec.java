@@ -6,8 +6,8 @@ import java.util.function.Function;
 import com.google.gson.JsonElement;
 
 /**
- * Small 1.14 compatibility surface for OreSpawn's codec-backed public pattern
- * contract. Minecraft 1.14 predates Mojang's serialization package, so this
+ * Small 1.13 compatibility surface for OreSpawn's codec-backed public pattern
+ * contract. Minecraft 1.13 predates Mojang's serialization package, so this
  * target supplies only the JSON decode operation used by OreSpawn profiles.
  */
 public abstract class Codec<A> {

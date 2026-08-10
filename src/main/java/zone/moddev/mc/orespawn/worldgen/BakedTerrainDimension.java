@@ -6,7 +6,7 @@ import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.state.IBlockState;
 
 /** Immutable setup-time resolution of one terrain replacement dimension. */
 final class BakedTerrainDimension {
@@ -35,7 +35,7 @@ final class BakedTerrainDimension {
 		return !biomeIds.isEmpty() || !biomeNamespaces.isEmpty();
 	}
 
-	boolean isReplaceable(BlockState state) {
+	boolean isReplaceable(IBlockState state) {
 		if (smallHostSet != null) {
 			Block block = state.getBlock();
 			for (Block host : smallHostSet) {

@@ -11,16 +11,14 @@ import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.CompositeFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.placement.Placement;
-import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.IPlacementConfig;
 
 public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 	public static final StoneReplacer FEATURE = new StoneReplacer();
@@ -29,34 +27,33 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 			new ResourceLocation("minecraft", "ore_diorite"),
 			new ResourceLocation("minecraft", "ore_andesite")
 	};
-	private static ConfiguredFeature<?> configuredFeature;
+	private static CompositeFeature<?, ?> configuredFeature;
 
 	private final Lock geologyLock = new ReentrantLock();
 	private final Map<ResourceLocation, CachedGeology> geologyByDimension =
 			new ConcurrentHashMap<>();
 
 	private StoneReplacer() {
-		super(NoFeatureConfig::deserialize);
-		setRegistryName(OreSpawn.MODID, "stone_replacer");
+		super();
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
-				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
+		configuredFeature = net.minecraft.world.biome.Biome.createCompositeFeature(
+				FEATURE, new NoFeatureConfig(), net.minecraft.world.biome.Biome.PASSTHROUGH,
+				IPlacementConfig.NO_PLACEMENT_CONFIG);
 	}
 
-	static ConfiguredFeature<?> configuredFeature() {
+	static CompositeFeature<?, ?> configuredFeature() {
 		return configuredFeature;
 	}
 
-	static boolean removeVanillaMatchingStoneFeatures(List<ConfiguredFeature<?>> features) {
+	static boolean removeVanillaMatchingStoneFeatures(List<CompositeFeature<?, ?>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
 	@Override
 	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
 		IWorld world = context.level();
-		BlockPos pos = context.origin();
 		ResourceLocation dimension = WorldIds.dimension(world);
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(dimension);
 		BakedGeomeConfig config = GeomeConfig.baked(dimension);
@@ -64,7 +61,7 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 			return false;
 		}
 
-		IChunk chunk = world.getChunk(pos);
+		IChunk chunk = context.decorationChunk();
 		CachedGeology geology = geology(dimension, world.getSeed(), config);
 		if (geology.legacy != null) {
 			geology.legacy.replaceStoneInChunk(world, chunk, terrain);
@@ -74,10 +71,10 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 		return true;
 	}
 
-	private static boolean isVanillaMatchingStoneFeature(ConfiguredFeature<?> feature) {
+	private static boolean isVanillaMatchingStoneFeature(CompositeFeature<?, ?> feature) {
 		return ConfiguredFeatureInspector.outputsAny(feature,
-				net.minecraft.block.Blocks.GRANITE, net.minecraft.block.Blocks.DIORITE,
-				net.minecraft.block.Blocks.ANDESITE);
+				net.minecraft.init.Blocks.GRANITE, net.minecraft.init.Blocks.DIORITE,
+				net.minecraft.init.Blocks.ANDESITE);
 	}
 
 	private CachedGeology geology(ResourceLocation dimension, long seed,

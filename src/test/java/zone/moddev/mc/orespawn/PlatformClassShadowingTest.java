@@ -49,7 +49,7 @@ class PlatformClassShadowingTest {
 				"com/mojang/serialization/DataResult.java",
 				"com/mojang/serialization/JsonOps.java");
 		assertEquals(expected, actual,
-				"Forge 1.14 has no Mojang Codec API, so only the API-1 codec adapters are allowed here");
+				"Forge 1.13 has no Mojang Codec API, so only the API-1 codec adapters are allowed here");
 	}
 
 	@Test
@@ -58,7 +58,7 @@ class PlatformClassShadowingTest {
 				"com/mojang/blaze3d/matrix/MatrixStack.class")).stream()
 				.map(URL::toExternalForm).collect(Collectors.toList());
 		assertTrue(locations.isEmpty(),
-				"Forge 28 uses matrix-free screen rendering and OreSpawn must not supply MatrixStack: "
+				"Forge 25 uses matrix-free screen rendering and OreSpawn must not supply MatrixStack: "
 						+ locations);
 	}
 
@@ -77,9 +77,9 @@ class PlatformClassShadowingTest {
 		assertTrue(!source.contains("LegacyMinecraft"),
 				"Do not wrap target-native Minecraft client methods in later-version facades");
 		assertTrue(!source.contains("minecraft.setScreen("),
-				"Minecraft 1.14 screens must use displayGuiScreen directly");
+				"Minecraft 1.13 screens must use displayGuiScreen directly");
 		assertTrue(source.contains("minecraft.displayGuiScreen("),
-				"Screen navigation must use Minecraft 1.14's native displayGuiScreen method");
+				"GuiScreen navigation must use Minecraft 1.13's native displayGuiScreen method");
 	}
 
 	private static List<Path> platformNamespaceSources() throws Exception {

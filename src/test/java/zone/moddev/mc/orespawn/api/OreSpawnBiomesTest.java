@@ -1,20 +1,17 @@
 package zone.moddev.mc.orespawn.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.function.Supplier;
 
-import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.init.Biomes;
+import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Bootstrap;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biomes;
 import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.surfacebuilders.SurfaceBuilder;
-import net.minecraftforge.fml.RegistryObject;
-import net.minecraftforge.registries.DeferredRegister;
+import net.minecraft.world.gen.surfacebuilders.CompositeSurfaceBuilder;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -23,19 +20,20 @@ import org.junit.jupiter.api.Test;
 class OreSpawnBiomesTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Bootstrap.register();
+		Forge25TestBootstrap.registerVanilla();
 	}
 
 	@Test
 	void copiesEverySourceBiomeComponentBeforeApplyingEdits() throws Exception {
 		Biome source = Biomes.PLAINS;
-		DeferredRegister<Biome> biomes = new DeferredRegister<>(ForgeRegistries.BIOMES, "test");
-		RegistryObject<Biome> registered = OreSpawnBiomes.copyAndRegister(
+		OreSpawnBiomes.BiomeRegistrar biomes = OreSpawnBiomes.registrarForTesting("test_copy");
+		OreSpawnBiomes.BiomeReference registered = OreSpawnBiomes.copyAndRegister(
 				biomes, "copied", () -> source,
 				builder -> builder.temperature(1.35F).downfall(0.15F));
 
-		Biome copy = registeredValue(biomes, registered);
-		assertEquals(new ResourceLocation("test", "copied"), registered.getId());
+		biomes.registerForTesting(ForgeRegistries.BIOMES);
+		Biome copy = registered.get();
+		assertEquals(new ResourceLocation("test_copy", "copied"), registered.getId());
 		assertEquals(source.getPrecipitation(), copy.getPrecipitation());
 		assertEquals(source.getCategory(), copy.getCategory());
 		assertEquals(source.getDepth(), copy.getDepth());
@@ -52,16 +50,16 @@ class OreSpawnBiomesTest {
 		for (GenerationStage.Carving stage : GenerationStage.Carving.values()) {
 			assertEquals(source.getCarvers(stage), copy.getCarvers(stage));
 		}
-		for (EntityClassification classification : EntityClassification.values()) {
+		for (EnumCreatureType classification : EnumCreatureType.values()) {
 			assertEquals(source.getSpawns(classification), copy.getSpawns(classification));
 		}
 		assertEquals(field(source, "structures"), field(copy, "structures"));
 	}
 
 	@Test
-	void buildsBlankBiomeWhenProviderSuppliesEveryRequiredField() throws Exception {
-		DeferredRegister<Biome> biomes = new DeferredRegister<>(ForgeRegistries.BIOMES, "test");
-		RegistryObject<Biome> registered = OreSpawnBiomes.blankAndRegister(
+	void buildsBlankBiomeWhenProviderSuppliesEveryRequiredField() {
+		OreSpawnBiomes.BiomeRegistrar biomes = OreSpawnBiomes.registrarForTesting("test_blank");
+		OreSpawnBiomes.BiomeReference registered = OreSpawnBiomes.blankAndRegister(
 				biomes, "blank", builder -> builder
 						.precipitation(Biome.RainType.NONE)
 						.category(Biome.Category.NONE)
@@ -71,11 +69,12 @@ class OreSpawnBiomesTest {
 						.downfall(0.15F)
 						.waterColor(0x654321)
 						.waterFogColor(0x050533)
-						.surfaceBuilder(SurfaceBuilder.DEFAULT,
-								SurfaceBuilder.GRASS_DIRT_GRAVEL_CONFIG));
+						.surfaceBuilder(new CompositeSurfaceBuilder<>(
+								Biome.DEFAULT_SURFACE_BUILDER, Biome.GRASS_DIRT_GRAVEL_SURFACE)));
 
-		Biome biome = registeredValue(biomes, registered);
-		assertEquals(new ResourceLocation("test", "blank"), registered.getId());
+		biomes.registerForTesting(ForgeRegistries.BIOMES);
+		Biome biome = registered.get();
+		assertEquals(new ResourceLocation("test_blank", "blank"), registered.getId());
 		assertEquals(Biome.RainType.NONE, biome.getPrecipitation());
 		assertEquals(Biome.Category.NONE, biome.getCategory());
 		assertEquals(1.35F, biome.getDefaultTemperature());
@@ -83,14 +82,35 @@ class OreSpawnBiomesTest {
 		assertEquals(0x654321, biome.getWaterColor());
 	}
 
-	@SuppressWarnings("unchecked")
-	private static Biome registeredValue(DeferredRegister<Biome> register,
-			RegistryObject<Biome> object) throws ReflectiveOperationException {
-		Field entriesField = DeferredRegister.class.getDeclaredField("entries");
-		entriesField.setAccessible(true);
-		Map<RegistryObject<Biome>, Supplier<? extends Biome>> entries =
-				(Map<RegistryObject<Biome>, Supplier<? extends Biome>>) entriesField.get(register);
-		return entries.get(object).get();
+	@Test
+	void duplicateNamesAreRejectedBeforeRegistryMutation() {
+		OreSpawnBiomes.BiomeRegistrar biomes = OreSpawnBiomes.registrarForTesting("test_duplicate");
+		OreSpawnBiomes.blankAndRegister(biomes, "same", OreSpawnBiomesTest::configureBlank);
+		assertThrows(IllegalArgumentException.class,
+				() -> OreSpawnBiomes.blankAndRegister(biomes, "same", OreSpawnBiomesTest::configureBlank));
+	}
+
+	@Test
+	void handlesRejectEarlyGetAndRegistrarRejectsLateDeclarations() {
+		OreSpawnBiomes.BiomeRegistrar biomes = OreSpawnBiomes.registrarForTesting("test_lifecycle");
+		OreSpawnBiomes.BiomeReference reference = OreSpawnBiomes.blankAndRegister(
+				biomes, "lifecycle", OreSpawnBiomesTest::configureBlank);
+		assertThrows(IllegalStateException.class, reference::get);
+		biomes.registerForTesting(ForgeRegistries.BIOMES);
+		assertEquals(reference.getId(), ForgeRegistries.BIOMES.getKey(reference.get()));
+		assertThrows(IllegalStateException.class,
+				() -> OreSpawnBiomes.blankAndRegister(biomes, "late", OreSpawnBiomesTest::configureBlank));
+		assertThrows(IllegalStateException.class,
+				() -> biomes.registerForTesting(ForgeRegistries.BIOMES));
+	}
+
+	private static void configureBlank(Biome.BiomeBuilder builder) {
+		builder.precipitation(Biome.RainType.NONE)
+				.category(Biome.Category.NONE)
+				.depth(0.1F).scale(0.2F).temperature(0.7F).downfall(0.8F)
+				.waterColor(0x3f76e4).waterFogColor(0x050533)
+				.surfaceBuilder(new CompositeSurfaceBuilder<>(
+						Biome.DEFAULT_SURFACE_BUILDER, Biome.GRASS_DIRT_GRAVEL_SURFACE));
 	}
 
 	private static Object field(Object owner, String name) throws ReflectiveOperationException {

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.JsonObject;
 
 class BiomeDefaultsTest {
-	private static final String MINECRAFT_115_OVERWORLD =
+	private static final String MINECRAFT_113_OVERWORLD =
 			"ocean plains desert mountains forest taiga swamp river frozen_ocean frozen_river "
 			+ "snowy_tundra snowy_mountains mushroom_fields mushroom_field_shore beach desert_hills "
 			+ "wooded_hills taiga_hills mountain_edge jungle jungle_hills jungle_edge deep_ocean "
@@ -26,8 +26,7 @@ class BiomeDefaultsTest {
 			+ "tall_birch_forest tall_birch_hills dark_forest_hills snowy_taiga_mountains "
 			+ "giant_spruce_taiga giant_spruce_taiga_hills modified_gravelly_mountains "
 			+ "shattered_savanna shattered_savanna_plateau eroded_badlands "
-			+ "modified_wooded_badlands_plateau modified_badlands_plateau bamboo_jungle "
-			+ "bamboo_jungle_hills";
+			+ "modified_wooded_badlands_plateau modified_badlands_plateau";
 	private static final String BOP_OVERWORLD =
 			"bamboo_grove bayou bog boreal_forest cherry_blossom_grove clover_patch cold_desert "
 			+ "coniferous_forest crag dead_forest dryland dune_beach field fir_clearing floodplain "
@@ -64,12 +63,12 @@ class BiomeDefaultsTest {
 	@Test
 	void doesNotMapKnownNetherOrEndBiomes() {
 		JsonObject defaults = GeomeConfig.defaultBiomeRules();
-		Set<String> expectedMinecraft = Arrays.stream(MINECRAFT_115_OVERWORLD.split(" "))
+		Set<String> expectedMinecraft = Arrays.stream(MINECRAFT_113_OVERWORLD.split(" "))
 				.map(path -> "minecraft:" + path).collect(Collectors.toSet());
 		Set<String> actualMinecraft = defaults.entrySet().stream().map(java.util.Map.Entry::getKey)
 				.filter(id -> id.startsWith("minecraft:")).collect(Collectors.toSet());
 		assertEquals(expectedMinecraft, actualMinecraft,
-				"vanilla defaults must use exactly the Forge 28 / Minecraft 1.14.4 biome IDs");
+				"vanilla defaults must use exactly the Forge 25 / Minecraft 1.13.2 biome IDs");
 		for (String id : new String[] { "biomesoplenty:crystalline_chasm", "biomesoplenty:erupting_inferno",
 				"biomesoplenty:spider_nest", "biomesoplenty:undergrowth", "biomesoplenty:visceral_heap",
 				"biomesoplenty:withered_abyss", "byg:brimstone_caverns", "byg:magma_wastes",

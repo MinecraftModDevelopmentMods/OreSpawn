@@ -4,13 +4,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 
 /** Bounded, marker-based ore and flat-bedrock retrogen with no reflected internals. */
@@ -35,24 +35,23 @@ public final class OreRetrogenManager {
 	public static void onChunkLoad(ChunkDataEvent.Load event) {
 		Settings current = settings;
 		if ((!current.oreEnabled && !current.bedrockEnabled)
-				|| event.getStatus() != ChunkStatus.Type.LEVELCHUNK
-				|| !(event.getWorld() instanceof ServerWorld)
+				|| !(event.getWorld() instanceof WorldServer)
 				|| !(event.getChunk() instanceof Chunk)) return;
-		ServerWorld level = (ServerWorld) event.getWorld();
+		WorldServer level = (WorldServer) event.getWorld();
 		Chunk chunk = (Chunk) event.getChunk();
-		CompoundNBT marker = event.getData().getCompound(ROOT_TAG);
+		NBTTagCompound marker = event.getData().getCompound(ROOT_TAG);
 		if (!current.force && marker.getInt(REVISION_TAG) == current.revision) return;
 		enqueue(level, chunk);
 	}
 
 	public static void onChunkSave(ChunkDataEvent.Save event) {
-		if (!(event.getWorld() instanceof ServerWorld)) return;
-		ServerWorld level = (ServerWorld) event.getWorld();
+		if (!(event.getWorld() instanceof WorldServer)) return;
+		WorldServer level = (WorldServer) event.getWorld();
 		ChunkKey key = new ChunkKey(WorldIds.dimension(level), event.getChunk().getPos().asLong());
 		if (!COMPLETE.contains(key)) return;
-		CompoundNBT marker = event.getData().getCompound(ROOT_TAG);
-		marker.putInt(REVISION_TAG, settings.revision);
-		event.getData().put(ROOT_TAG, marker);
+		NBTTagCompound marker = event.getData().getCompound(ROOT_TAG);
+		marker.setInt(REVISION_TAG, settings.revision);
+		event.getData().setTag(ROOT_TAG, marker);
 	}
 
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
@@ -61,8 +60,10 @@ public final class OreRetrogenManager {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;
 			QUEUED.remove(queued.key);
-			if (queued.level.getChunkProvider().getChunk(queued.chunk.getPos().x,
-					queued.chunk.getPos().z, ChunkStatus.FULL, false) != queued.chunk) continue;
+			if (!queued.level.getChunkProvider().chunkExists(queued.chunk.getPos().x,
+					queued.chunk.getPos().z)
+					|| queued.level.getChunkProvider().provideChunk(queued.chunk.getPos().x,
+							queued.chunk.getPos().z, false, false) != queued.chunk) continue;
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
@@ -75,12 +76,12 @@ public final class OreRetrogenManager {
 		COMPLETE.add(new ChunkKey(dimension, chunk.asLong()));
 	}
 
-	public static int queueLoadedArea(ServerWorld level, ChunkPos center, int radius) {
+	public static int queueLoadedArea(WorldServer level, ChunkPos center, int radius) {
 		int count = 0;
 		for (int x = center.x - radius; x <= center.x + radius; x++) {
 			for (int z = center.z - radius; z <= center.z + radius; z++) {
-				net.minecraft.world.chunk.IChunk loaded = level.getChunkProvider()
-						.getChunk(x, z, ChunkStatus.FULL, false);
+				net.minecraft.world.chunk.IChunk loaded = level.getChunkProvider().chunkExists(x, z)
+						? level.getChunkProvider().provideChunk(x, z, false, false) : null;
 				if (loaded instanceof Chunk && enqueue(level, (Chunk) loaded)) count++;
 			}
 		}
@@ -98,7 +99,7 @@ public final class OreRetrogenManager {
 		settings = Settings.DISABLED;
 	}
 
-	private static boolean enqueue(ServerWorld level, Chunk chunk) {
+	private static boolean enqueue(WorldServer level, Chunk chunk) {
 		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunk.getPos().asLong());
 		if (!QUEUED.add(key)) return false;
 		QUEUE.add(new QueuedChunk(level, chunk, key));
@@ -123,10 +124,10 @@ public final class OreRetrogenManager {
 	}
 
 	private static final class QueuedChunk {
-		final ServerWorld level;
+		final WorldServer level;
 		final Chunk chunk;
 		final ChunkKey key;
-		QueuedChunk(ServerWorld level, Chunk chunk, ChunkKey key) {
+		QueuedChunk(WorldServer level, Chunk chunk, ChunkKey key) {
 			this.level = level;
 			this.chunk = chunk;
 			this.key = key;

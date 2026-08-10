@@ -3,10 +3,10 @@ package zone.moddev.mc.orespawn.client;
 import java.util.Arrays;
 import java.util.List;
 
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 
 /** A short, player-facing guide available while a world is being configured. */
 final class OreSpawnGuideScreen extends OreSpawnScreen {
@@ -22,11 +22,11 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 			page("mods", 3),
 			page("server", 3));
 
-	private final Screen parent;
+	private final GuiScreen parent;
 	private int page;
 
-	OreSpawnGuideScreen(Screen parent) {
-		super(new TranslationTextComponent("screen.orespawn.guide"));
+	OreSpawnGuideScreen(GuiScreen parent) {
+		super(new TextComponentTranslation("screen.orespawn.guide"));
 		this.parent = parent;
 	}
 
@@ -35,13 +35,13 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 		int left = width / 2 - 155;
 		int bottom = OreSpawnScreenLayout.footerY(height);
 		Button previous = addButton(new Button(left, bottom, 80, 20,
-				new TranslationTextComponent("button.orespawn.previous"), button -> changePage(-1)));
+				new TextComponentTranslation("button.orespawn.previous"), button -> changePage(-1)));
 		addButton(new Button(width / 2 - 70, bottom, 140, 20,
 				DialogTexts.GUI_DONE, button -> onClose()));
 		Button next = addButton(new Button(left + 230, bottom, 80, 20,
-				new TranslationTextComponent("button.orespawn.next"), button -> changePage(1)));
-		previous.active = page > 0;
-		next.active = page + 1 < PAGES.size();
+				new TextComponentTranslation("button.orespawn.next"), button -> changePage(1)));
+		previous.enabled = page > 0;
+		next.enabled = page + 1 < PAGES.size();
 	}
 
 	private void changePage(int amount) {
@@ -62,7 +62,7 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 		drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
 		drawCenteredString(font, current.title, width / 2, 28, 0xFFFF55);
 		drawCenteredString(font,
-				new StringTextComponent((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
+				new TextComponentString((page + 1) + " / " + PAGES.size()), width / 2, 42, 0xAAAAAA);
 
 		int textWidth = Math.min(330, width - 32);
 		int x = (width - textWidth) / 2;
@@ -80,9 +80,9 @@ final class OreSpawnGuideScreen extends OreSpawnScreen {
 	private static GuidePage page(String id, int paragraphCount) {
 		ITextComponent[] paragraphs = new ITextComponent[paragraphCount];
 		for (int i = 0; i < paragraphCount; i++) {
-			paragraphs[i] = new TranslationTextComponent("guide.orespawn." + id + "." + (i + 1));
+			paragraphs[i] = new TextComponentTranslation("guide.orespawn." + id + "." + (i + 1));
 		}
-		return new GuidePage(new TranslationTextComponent("guide.orespawn." + id + ".title"), paragraphs);
+		return new GuidePage(new TextComponentTranslation("guide.orespawn." + id + ".title"), paragraphs);
 	}
 
 	private static final class GuidePage {

@@ -2,23 +2,23 @@ package zone.moddev.mc.orespawn.client;
 
 import java.util.List;
 
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 final class FluidBlockPickerScreen extends OreSpawnScreen {
-	private final Screen parent;
+	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private TextFieldWidget search;
 	private String searchText = "";
 	private int page;
 
-	FluidBlockPickerScreen(Screen parent, GeologyEditorSession session) {
-		super(new TranslationTextComponent("screen.orespawn.choose_block"));
+	FluidBlockPickerScreen(GuiScreen parent, GeologyEditorSession session) {
+		super(new TextComponentTranslation("screen.orespawn.choose_block"));
 		this.parent = parent;
 		this.session = session;
 	}
@@ -30,11 +30,11 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 		int searchButtonWidth = 70;
 		search = addButton(new TextFieldWidget(font, left, 40,
 				contentWidth - searchButtonWidth - 5, 20,
-				new TranslationTextComponent("option.orespawn.search")));
+				new TextComponentTranslation("option.orespawn.search")));
 		search.setValue(searchText);
 		addButton(OreSpawnScreenLayout.button(this, font,
 				left + contentWidth - searchButtonWidth, 40, searchButtonWidth, 20,
-				new TranslationTextComponent("button.orespawn.search"), button -> {
+				new TextComponentTranslation("button.orespawn.search"), button -> {
 					searchText = search.getValue();
 					page = 0;
 					rebuildWidgets();
@@ -53,16 +53,16 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 					OreSpawnScreenLayout.fit(font, fluidName(id), contentWidth - 8),
 					button -> choose(id),
 					(button, mouseX, mouseY) -> renderComponentTooltip(
-							java.util.Collections.singletonList(new StringTextComponent(id)),
+							java.util.Collections.singletonList(new TextComponentString(id)),
 							mouseX, mouseY)));
 		}
 
 		Button previous = addButton(new Button(left, controlsY, 45, 20,
-				new StringTextComponent("<"), button -> { page--; rebuildWidgets(); }));
+				new TextComponentString("<"), button -> { page--; rebuildWidgets(); }));
 		Button next = addButton(new Button(left + 50, controlsY, 45, 20,
-				new StringTextComponent(">"), button -> { page++; rebuildWidgets(); }));
-		previous.active = page > 0;
-		next.active = page + 1 < pageCount;
+				new TextComponentString(">"), button -> { page++; rebuildWidgets(); }));
+		previous.enabled = page > 0;
+		next.enabled = page + 1 < pageCount;
 		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
 				DialogTexts.GUI_CANCEL, button -> onClose()));
 	}
@@ -77,9 +77,9 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 	private ITextComponent fluidName(String id) {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-			return block == null ? new StringTextComponent(id) : new TranslationTextComponent(block.getTranslationKey());
+			return block == null ? new TextComponentString(id) : new TextComponentTranslation(block.getTranslationKey());
 		} catch (RuntimeException ignored) {
-			return new StringTextComponent(id);
+			return new TextComponentString(id);
 		}
 	}
 
