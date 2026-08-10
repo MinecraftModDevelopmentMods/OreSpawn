@@ -12,7 +12,7 @@ import net.minecraft.world.gen.GenerationSettings;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 
-/** Preserves the later context-shaped feature implementation on Forge 31. */
+/** Preserves the later context-shaped feature implementation on Forge 28. */
 abstract class ContextFeature<FC extends IFeatureConfig> extends Feature<FC> {
 	ContextFeature(Function<Dynamic<?>, ? extends FC> decoder) {
 		super(decoder);

@@ -29,7 +29,7 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 			new ResourceLocation("minecraft", "ore_diorite"),
 			new ResourceLocation("minecraft", "ore_andesite")
 	};
-	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static ConfiguredFeature<?> configuredFeature;
 
 	private final Lock geologyLock = new ReentrantLock();
 	private final Map<ResourceLocation, CachedGeology> geologyByDimension =
@@ -41,15 +41,15 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
+				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
 	}
 
-	static ConfiguredFeature<?, ?> configuredFeature() {
+	static ConfiguredFeature<?> configuredFeature() {
 		return configuredFeature;
 	}
 
-	static boolean removeVanillaMatchingStoneFeatures(List<ConfiguredFeature<?, ?>> features) {
+	static boolean removeVanillaMatchingStoneFeatures(List<ConfiguredFeature<?>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
@@ -74,7 +74,7 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 		return true;
 	}
 
-	private static boolean isVanillaMatchingStoneFeature(ConfiguredFeature<?, ?> feature) {
+	private static boolean isVanillaMatchingStoneFeature(ConfiguredFeature<?> feature) {
 		return ConfiguredFeatureInspector.outputsAny(feature,
 				net.minecraft.block.Blocks.GRANITE, net.minecraft.block.Blocks.DIORITE,
 				net.minecraft.block.Blocks.ANDESITE);

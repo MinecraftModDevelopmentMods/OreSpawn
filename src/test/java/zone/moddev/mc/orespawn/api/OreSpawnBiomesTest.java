@@ -29,7 +29,7 @@ class OreSpawnBiomesTest {
 	@Test
 	void copiesEverySourceBiomeComponentBeforeApplyingEdits() throws Exception {
 		Biome source = Biomes.PLAINS;
-		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
+		DeferredRegister<Biome> biomes = new DeferredRegister<>(ForgeRegistries.BIOMES, "test");
 		RegistryObject<Biome> registered = OreSpawnBiomes.copyAndRegister(
 				biomes, "copied", () -> source,
 				builder -> builder.temperature(1.35F).downfall(0.15F));
@@ -60,7 +60,7 @@ class OreSpawnBiomesTest {
 
 	@Test
 	void buildsBlankBiomeWhenProviderSuppliesEveryRequiredField() throws Exception {
-		DeferredRegister<Biome> biomes = DeferredRegister.create(ForgeRegistries.BIOMES, "test");
+		DeferredRegister<Biome> biomes = new DeferredRegister<>(ForgeRegistries.BIOMES, "test");
 		RegistryObject<Biome> registered = OreSpawnBiomes.blankAndRegister(
 				biomes, "blank", builder -> builder
 						.precipitation(Biome.RainType.NONE)

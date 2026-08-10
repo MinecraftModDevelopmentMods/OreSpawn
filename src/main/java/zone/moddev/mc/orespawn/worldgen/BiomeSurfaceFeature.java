@@ -17,7 +17,7 @@ import net.minecraft.world.gen.placement.NoPlacementConfig;
 /** Applies provider surfaces after base surfaces and lakes, before late features. */
 public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	public static final BiomeSurfaceFeature FEATURE = new BiomeSurfaceFeature();
-	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static ConfiguredFeature<?> configuredFeature;
 
 	private BiomeSurfaceFeature() {
 		super(NoFeatureConfig::deserialize);
@@ -25,11 +25,11 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
+				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
 	}
 
-	static ConfiguredFeature<?, ?> configuredFeature() {
+	static ConfiguredFeature<?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -39,7 +39,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		BakedBiomeWorldgen config = BiomeWorldgenManager.get(WorldIds.dimension(world));
 		if (config == null || !config.hasSurfaces()) return false;
 		IChunk chunk = world.getChunk(context.origin());
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		int minX = chunk.getPos().getXStart();
 		int minZ = chunk.getPos().getZStart();
@@ -71,7 +71,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		return changed;
 	}
 
-	private static int findOpenGround(IChunk chunk, BlockPos.Mutable cursor,
+	private static int findOpenGround(IChunk chunk, BlockPos.MutableBlockPos cursor,
 			int x, int z, int localX, int localZ, int minY) {
 		int y = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, localX, localZ);
 		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
@@ -79,7 +79,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static long findCeilingAndGround(IChunk chunk,
-			BlockPos.Mutable cursor, int x, int z, int maxY, int minY) {
+			BlockPos.MutableBlockPos cursor, int x, int z, int maxY, int minY) {
 		int y = maxY - 1;
 		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		if (y < minY) return pack(Integer.MIN_VALUE, Integer.MIN_VALUE);
@@ -90,7 +90,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static boolean applyGround(IChunk chunk, IWorld world,
-			BakedBiomeWorldgen config, BlockPos.Mutable cursor,
+			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
 			int x, int z, int y, int minY) {
 		cursor.setPos(x, y, z);
 		BlockState source = chunk.getBlockState(cursor);
@@ -119,7 +119,7 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static boolean applyCeiling(IChunk chunk, IWorld world,
-			BakedBiomeWorldgen config, BlockPos.Mutable cursor,
+			BakedBiomeWorldgen config, BlockPos.MutableBlockPos cursor,
 			int x, int z, int ceilingY) {
 		cursor.setPos(x, ceilingY, z);
 		BlockState source = chunk.getBlockState(cursor);

@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.util.text.ITextComponent;
 
 /**
- * Shared Minecraft 1.15 screen helpers. Concrete screens implement the native
+ * Shared Minecraft 1.14 screen helpers. Concrete screens implement the native
  * matrix-free {@link Screen#render(int, int, float)} contract directly.
  */
 abstract class OreSpawnScreen extends Screen {

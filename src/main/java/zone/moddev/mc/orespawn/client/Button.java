@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import net.minecraft.util.text.ITextComponent;
 
-/** 1.15 string-widget bridge used by the target-local editor screens. */
+/** 1.14 string-widget bridge used by the target-local editor screens. */
 class Button extends net.minecraft.client.gui.widget.button.Button {
 	private final Tooltip tooltip;
 

@@ -87,7 +87,7 @@ public final class GeomeGeology {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getXStart();
 		int zOffset = chunkPos.getZStart();
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		double[] regionalValues = new double[config.geomeCount()];
 		boolean changed = false;
 
@@ -132,7 +132,7 @@ public final class GeomeGeology {
 		}
 	}
 
-	private boolean replaceStableColumn(IChunk chunk, BlockPos.Mutable cursor, int geomeIndex,
+	private boolean replaceStableColumn(IChunk chunk, BlockPos.MutableBlockPos cursor, int geomeIndex,
 			int secondGeome, double[] geomeScores, int baseRockValue,
 			long formationRegion, int x, int z, int surfaceY,
 			BakedTerrainDimension terrain) {

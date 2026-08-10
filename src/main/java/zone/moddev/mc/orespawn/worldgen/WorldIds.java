@@ -7,7 +7,7 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.registries.ForgeRegistries;
 
-/** Static-registry identity bridge for the pre-RegistryKey 1.15 runtime. */
+/** Static-registry identity bridge for the pre-RegistryKey 1.14 runtime. */
 public final class WorldIds {
 	static final ResourceLocation OVERWORLD = id("overworld");
 	static final ResourceLocation NETHER = id("the_nether");

@@ -46,7 +46,7 @@ final class BiomeWorldgenManager {
 	}
 
 	static void registerBiomeSourceCodec() {
-		// Minecraft 1.15 biome providers are not codec-serialized.
+		// Minecraft 1.14 biome providers are not codec-serialized.
 	}
 
 	static synchronized void apply(MinecraftServer server, WorldGeologyProfile profile) {
@@ -284,7 +284,7 @@ final class BiomeWorldgenManager {
 				&& !materials.deepFluid.equals(generator.defaultFluid)
 				&& materials.deepFluidMaxY >= 0
 				&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
-			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.15.2 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
+			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.14.4 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
 					WorldIds.dimension(level), materials.deepFluidMaxY);
 		}
 	}

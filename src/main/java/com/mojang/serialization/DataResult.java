@@ -2,7 +2,7 @@ package com.mojang.serialization;
 
 import java.util.Optional;
 
-/** Minimal result type paired with the 1.15 OreSpawn codec adapter. */
+/** Minimal result type paired with the 1.14 OreSpawn codec adapter. */
 public final class DataResult<A> {
 	private final A value;
 	private final PartialResult<A> error;

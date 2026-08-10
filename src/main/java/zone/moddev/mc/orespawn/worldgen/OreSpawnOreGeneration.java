@@ -57,7 +57,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	private static final Map<ResourceLocation, BakedOre[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static ConfiguredFeature<?> configuredFeature;
 	private static volatile Map<ResourceLocation, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
 	private static volatile BakedOre[] selectorOres = NO_ORES;
@@ -74,8 +74,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	public static void registerConfiguredFeatures() {
-		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
+				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
 		VanillaOreFeatureGate.register();
 		refreshWorldConfig();
 	}
@@ -145,7 +145,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				new Random(seed), ores, true, scratch);
 	}
 
-	private static void setCenter(BlockPos.Mutable cursor, IChunk chunk) {
+	private static void setCenter(BlockPos.MutableBlockPos cursor, IChunk chunk) {
 		ChunkPos chunkPos = chunk.getPos();
 		cursor.setPos(chunkPos.getXStart() + 8, 0, chunkPos.getZStart() + 8);
 	}
@@ -370,7 +370,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		}
 	}
 
-	static ConfiguredFeature<?, ?> configuredFeature() {
+	static ConfiguredFeature<?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -756,7 +756,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class GenerationScratch {
-		final BlockPos.Mutable cursor = new BlockPos.Mutable();
+		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		final PatternContext patternContext = new PatternContext(cursor);
 		private double[] geomeValues = new double[0];
 
@@ -769,8 +769,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class PatternContext implements OrePlacementContext {
-		private final BlockPos.Mutable cursor;
-		private final BlockPos.Mutable airCursor = new BlockPos.Mutable();
+		private final BlockPos.MutableBlockPos cursor;
+		private final BlockPos.MutableBlockPos airCursor = new BlockPos.MutableBlockPos();
 		private IWorld world;
 		private IChunk chunk;
 		private Random random;
@@ -783,7 +783,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		private int maxY;
 		private int quantity;
 
-		PatternContext(BlockPos.Mutable cursor) {
+		PatternContext(BlockPos.MutableBlockPos cursor) {
 			this.cursor = cursor;
 		}
 

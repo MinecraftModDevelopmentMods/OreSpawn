@@ -180,7 +180,7 @@ class TooltipAlignmentTest {
 			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("Screen.java"))::iterator) {
 				String source = read(sourceFile);
 				assertFalse(source.contains(".withTooltip("), sourceFile.getFileName()
-						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.15.2");
+						+ " must use OreSpawnScreenLayout.explain because Screen does not render CycleButton tooltips in 1.14.4");
 			}
 		}
 	}

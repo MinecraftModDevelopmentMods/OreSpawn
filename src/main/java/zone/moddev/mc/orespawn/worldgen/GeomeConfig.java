@@ -262,13 +262,13 @@ public final class GeomeConfig {
 				usableTerrain.put(entry.getKey(), entry.getValue());
 			}
 		}
-		VanillaSpringCompatibility.refresh(configs.get(WorldIds.OVERWORLD));
 		bakedConfigs = Collections.unmodifiableMap(configs);
 		terrainDimensions = Collections.unmodifiableMap(usableTerrain);
 		bakedConfig = configs.get(WorldIds.OVERWORLD);
 		if (bakedConfig == null) {
 			bakedConfig = bake(root, WorldIds.OVERWORLD);
 		}
+		VanillaSpringCompatibility.refresh(bakedConfig);
 	}
 
 	private static BakedGeomeConfig bake(JsonObject root, ResourceLocation dimension) {

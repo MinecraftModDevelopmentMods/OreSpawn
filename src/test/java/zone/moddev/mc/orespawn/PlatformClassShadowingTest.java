@@ -1,7 +1,6 @@
 package zone.moddev.mc.orespawn;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
@@ -50,21 +49,17 @@ class PlatformClassShadowingTest {
 				"com/mojang/serialization/DataResult.java",
 				"com/mojang/serialization/JsonOps.java");
 		assertEquals(expected, actual,
-				"Forge 1.15 has no Mojang Codec API, so only the API-1 codec adapters are allowed here");
+				"Forge 1.14 has no Mojang Codec API, so only the API-1 codec adapters are allowed here");
 	}
 
 	@Test
-	void matrixStackIsSuppliedOnlyByTheForgeRuntime() throws Exception {
+	void matrixStackIsAbsentFromTheMatrixFreeForge28Runtime() throws Exception {
 		List<String> locations = Collections.list(getClass().getClassLoader().getResources(
 				"com/mojang/blaze3d/matrix/MatrixStack.class")).stream()
 				.map(URL::toExternalForm).collect(Collectors.toList());
-		assertEquals(1, locations.size(), "MatrixStack must have exactly one runtime definition");
-		assertTrue(locations.get(0).contains("forge-1.15.2-31.2.57"),
-				"MatrixStack must come from the mapped Forge/Minecraft artifact: " + locations);
-		Class<?> matrixStack = Class.forName("com.mojang.blaze3d.matrix.MatrixStack");
-		Object stack = matrixStack.getConstructor().newInstance();
-		assertNotNull(matrixStack.getMethod("getLast").invoke(stack),
-				"The Forge 31 MatrixStack ABI used by GameRenderer must be callable");
+		assertTrue(locations.isEmpty(),
+				"Forge 28 uses matrix-free screen rendering and OreSpawn must not supply MatrixStack: "
+						+ locations);
 	}
 
 	@Test
@@ -82,9 +77,9 @@ class PlatformClassShadowingTest {
 		assertTrue(!source.contains("LegacyMinecraft"),
 				"Do not wrap target-native Minecraft client methods in later-version facades");
 		assertTrue(!source.contains("minecraft.setScreen("),
-				"Minecraft 1.15 screens must use displayGuiScreen directly");
+				"Minecraft 1.14 screens must use displayGuiScreen directly");
 		assertTrue(source.contains("minecraft.displayGuiScreen("),
-				"Screen navigation must use Minecraft 1.15's native displayGuiScreen method");
+				"Screen navigation must use Minecraft 1.14's native displayGuiScreen method");
 	}
 
 	private static List<Path> platformNamespaceSources() throws Exception {

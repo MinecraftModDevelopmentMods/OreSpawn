@@ -51,7 +51,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	private static final Map<ResourceLocation, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
 
-	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static ConfiguredFeature<?> configuredFeature;
 	private static volatile Map<ResourceLocation, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
 	private static volatile Map<ResourceLocation, GeomeGeology> classifiers = Collections.emptyMap();
@@ -65,8 +65,8 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	public static void registerConfiguredFeature() {
-		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
+				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
 		refreshWorldConfig();
 	}
 
@@ -87,7 +87,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 		GENERATION_SCRATCH.remove();
 	}
 
-	static ConfiguredFeature<?, ?> configuredFeature() {
+	static ConfiguredFeature<?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -137,7 +137,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 
 	private static boolean placeDeposit(IWorld world, IChunk chunk, Random random,
 			BakedDeposit deposit,
-			int geome, BakedGeomeConfig config, BlockPos.Mutable cursor) {
+			int geome, BakedGeomeConfig config, BlockPos.MutableBlockPos cursor) {
 		// Keep this random-call order aligned with the original Mineralogy crude-oil feature.
 		int radius = randomBetween(random, deposit.minRadius, deposit.maxRadius);
 		int verticalRadius = randomBetween(random, deposit.minVerticalRadius, deposit.maxVerticalRadius);
@@ -174,7 +174,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static boolean placeLobe(IWorld world, IChunk chunk, BakedDeposit deposit, int geome,
-			BakedGeomeConfig config, BlockPos.Mutable cursor,
+			BakedGeomeConfig config, BlockPos.MutableBlockPos cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius) {
 		int chunkMinX = chunk.getPos().getXStart();
 		int chunkMinZ = chunk.getPos().getZStart();
@@ -224,7 +224,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static boolean hasSolidEnvelope(IWorld world, IChunk chunk,
-			BakedDeposit deposit, BlockPos.Mutable cursor,
+			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int minX, int maxX, int minY, int maxY, int minZ, int maxZ,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
@@ -267,7 +267,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static boolean sealedBoundary(IWorld world, IChunk chunk,
-			BakedDeposit deposit, BlockPos.Mutable cursor,
+			BakedDeposit deposit, BlockPos.MutableBlockPos cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, int stepX, int stepY, int stepZ, int thickness,
 			double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
@@ -571,7 +571,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	private static final class GenerationScratch {
-		final BlockPos.Mutable cursor = new BlockPos.Mutable();
+		final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		private double[] geomeValues = new double[0];
 		double[] geomeValues(int count) {
 			if (geomeValues.length != count) geomeValues = new double[count];

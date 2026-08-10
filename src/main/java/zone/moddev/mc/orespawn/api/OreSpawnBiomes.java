@@ -62,7 +62,7 @@ public final class OreSpawnBiomes {
 		});
 	}
 
-	/** Concrete 1.15 biome used behind the unchanged public helper contract. */
+	/** Concrete 1.14 biome used behind the unchanged public helper contract. */
 	private static final class ProviderBiome extends Biome {
 		ProviderBiome(Biome.Builder builder) {
 			super(builder);
@@ -70,7 +70,7 @@ public final class OreSpawnBiomes {
 
 		void copyContents(Biome source) {
 			for (GenerationStage.Decoration stage : GenerationStage.Decoration.values()) {
-				for (net.minecraft.world.gen.feature.ConfiguredFeature<?, ?> feature : source.getFeatures(stage)) {
+				for (net.minecraft.world.gen.feature.ConfiguredFeature<?> feature : source.getFeatures(stage)) {
 					addFeature(stage, feature);
 				}
 			}

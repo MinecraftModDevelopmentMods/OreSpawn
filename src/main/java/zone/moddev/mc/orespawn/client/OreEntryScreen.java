@@ -80,7 +80,7 @@ final class OreEntryScreen extends OreSpawnScreen {
 		String selectedDimension = selectedDimension(availableDimensions, dimensions, selectors);
 		if (dimensionText.isEmpty()) dimensionText = selectedDimension;
 		dimensionId.setValue(dimensionText);
-		dimensionId.setResponder(value -> dimensionText = value);
+		dimensionId.func_212954_a(value -> dimensionText = value);
 		OreSpawnScreenLayout.explain(this, dimensionId, "tooltip.orespawn.available_dimension");
 		OreSpawnScreenLayout.explain(this, addButton(CycleButton.builder(this::dimensionName)
 				.withValues(availableDimensions)

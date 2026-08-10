@@ -14,7 +14,7 @@ import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraftforge.registries.IForgeRegistry;
 
-/** Runtime wrapper for Forge 31's inline vanilla ore features. */
+/** Runtime wrapper for Forge 28's inline vanilla ore features. */
 public final class VanillaOreFeatureGate {
 	private static final GateFeature GATE = new GateFeature();
 
@@ -26,18 +26,18 @@ public final class VanillaOreFeatureGate {
 	}
 
 	static void register() {
-		// Configured features are inline objects in 1.15 and are wrapped when the
+		// Configured features are inline objects in 1.14 and are wrapped when the
 		// registered biome stage lists are installed.
 	}
 
-	static boolean wrapFeatureList(List<ConfiguredFeature<?, ?>> features) {
+	static boolean wrapFeatureList(List<ConfiguredFeature<?>> features) {
 		boolean changed = false;
 		for (int index = 0; index < features.size(); index++) {
-			ConfiguredFeature<?, ?> original = features.get(index);
+			ConfiguredFeature<?> original = features.get(index);
 			if (original.feature == GATE) continue;
 			Block output = ConfiguredFeatureInspector.firstOreOutput(original);
 			if (output == null) continue;
-			features.set(index, GATE.withConfiguration(new GateConfig(original, output)));
+			features.set(index, new ConfiguredFeature<>(GATE, new GateConfig(original, output)));
 			changed = true;
 		}
 		return changed;
@@ -60,16 +60,16 @@ public final class VanillaOreFeatureGate {
 	}
 
 	private static final class GateConfig implements IFeatureConfig {
-		final ConfiguredFeature<?, ?> delegate;
+		final ConfiguredFeature<?> delegate;
 		final Block output;
 
-		GateConfig(ConfiguredFeature<?, ?> delegate, Block output) {
+		GateConfig(ConfiguredFeature<?> delegate, Block output) {
 			this.delegate = delegate;
 			this.output = output;
 		}
 
 		static GateConfig deserialize(Dynamic<?> ignored) {
-			throw new IllegalStateException("OreSpawn 1.15 ore gates are runtime-only configured features");
+			throw new IllegalStateException("OreSpawn 1.14 ore gates are runtime-only configured features");
 		}
 
 		@Override

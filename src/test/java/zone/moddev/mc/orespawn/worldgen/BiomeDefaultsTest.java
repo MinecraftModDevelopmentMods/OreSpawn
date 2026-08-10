@@ -69,7 +69,7 @@ class BiomeDefaultsTest {
 		Set<String> actualMinecraft = defaults.entrySet().stream().map(java.util.Map.Entry::getKey)
 				.filter(id -> id.startsWith("minecraft:")).collect(Collectors.toSet());
 		assertEquals(expectedMinecraft, actualMinecraft,
-				"vanilla defaults must use exactly the Forge 31 / Minecraft 1.15.2 biome IDs");
+				"vanilla defaults must use exactly the Forge 28 / Minecraft 1.14.4 biome IDs");
 		for (String id : new String[] { "biomesoplenty:crystalline_chasm", "biomesoplenty:erupting_inferno",
 				"biomesoplenty:spider_nest", "biomesoplenty:undergrowth", "biomesoplenty:visceral_heap",
 				"biomesoplenty:withered_abyss", "byg:brimstone_caverns", "byg:magma_wastes",

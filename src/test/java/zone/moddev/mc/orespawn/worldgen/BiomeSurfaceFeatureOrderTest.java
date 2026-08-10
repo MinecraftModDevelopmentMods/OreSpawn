@@ -41,8 +41,8 @@ class BiomeSurfaceFeatureOrderTest {
 				.contains(OreSpawnOreGeneration.configuredFeature()));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 				.contains(FluidDepositFeature.configuredFeature()));
-		ConfiguredFeature<?, ?> surfaces = BiomeSurfaceFeature.configuredFeature();
-		ConfiguredFeature<?, ?> bedrock = FlatBedrockFeature.configuredFeature();
+		ConfiguredFeature<?> surfaces = BiomeSurfaceFeature.configuredFeature();
+		ConfiguredFeature<?> bedrock = FlatBedrockFeature.configuredFeature();
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS).contains(surfaces));
 		assertFalse(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(surfaces));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(bedrock));
@@ -68,8 +68,8 @@ class BiomeSurfaceFeatureOrderTest {
 			throws ReflectiveOperationException {
 		java.lang.reflect.Field field = owner.getDeclaredField("configuredFeature");
 		field.setAccessible(true);
-		field.set(null, feature.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig())));
+		field.set(null, Biome.createDecoratedFeature(feature, new NoFeatureConfig(),
+				Placement.NOPE, new NoPlacementConfig()));
 	}
 
 	private static final class TestBiome extends Biome {

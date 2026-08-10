@@ -60,7 +60,7 @@ public class Geology {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getXStart();
 		int zOffset = chunkPos.getZStart();
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 
 		for (int dx = 0; dx < 16; dx++) {

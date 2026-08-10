@@ -1,21 +1,31 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
-import com.google.common.collect.ImmutableSet;
-
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.world.biome.DefaultBiomeFeatures;
-import net.minecraft.util.registry.Bootstrap;
-import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
+import net.minecraft.world.gen.feature.DecoratedFeatureConfig;
+import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.LiquidsConfig;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.feature.SingleRandomFeature;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
+import net.minecraft.world.gen.placement.Placement;
 
 class VanillaSpringCompatibilityTest {
 	@BeforeAll
@@ -23,55 +33,59 @@ class VanillaSpringCompatibilityTest {
 		Bootstrap.register();
 	}
 
-	@Test
-	void configuredRocksExtendVanillaSpringHostsWithoutDuplicates() {
-		java.util.Set<Block> original = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-		original.add(Blocks.STONE);
-		original.add(Blocks.DIRT);
-
-		java.util.Set<Block> expanded = VanillaSpringCompatibility.merge(original,
-				Arrays.asList(Blocks.STONE, Blocks.DIAMOND_BLOCK));
-
-		assertTrue(expanded instanceof ImmutableSet,
-				"Minecraft 1.15.2 spring hosts remain immutable");
-		assertEquals(3, expanded.size());
-		assertTrue(expanded.contains(Blocks.STONE));
-		assertTrue(expanded.contains(Blocks.DIRT));
-		assertTrue(expanded.contains(Blocks.DIAMOND_BLOCK));
+	@AfterEach
+	void resetProviderRocks() {
+		VanillaSpringCompatibility.refreshBlocks(Collections.emptyList());
 	}
 
 	@Test
-	void emptyTerrainProfileRestoresVanillaSpringHosts() {
-		java.util.Set<Block> original = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-		original.add(Blocks.STONE);
-		original.add(Blocks.DIRT);
+	void configuredProviderRocksExtendForgeNativeRockRecognition() {
+		VanillaSpringCompatibility.refreshBlocks(Collections.singleton(Blocks.DIAMOND_BLOCK));
 
-		java.util.Set<Block> restored = VanillaSpringCompatibility.merge(original, Collections.emptyList());
-
-		assertTrue(restored instanceof ImmutableSet,
-				"Minecraft 1.15.2 spring hosts remain immutable");
-		assertEquals(2, restored.size());
-		assertTrue(restored.contains(Blocks.STONE));
-		assertTrue(restored.contains(Blocks.DIRT));
+		assertTrue(VanillaSpringCompatibility.isHost(Blocks.DIAMOND_BLOCK));
+		assertFalse(VanillaSpringCompatibility.isHost(Blocks.DIRT));
+		VanillaSpringCompatibility.refreshBlocks(Collections.emptyList());
+		assertFalse(VanillaSpringCompatibility.isHost(Blocks.DIAMOND_BLOCK));
 	}
 
 	@Test
-	void refreshUpdatesOrdinaryOverworldSpringsAndRestoresThem() {
-		LiquidsConfig lava = DefaultBiomeFeatures.LAVA_SPRING_CONFIG;
-		LiquidsConfig water = DefaultBiomeFeatures.WATER_SPRING_CONFIG;
+	void rewritesOnlyTheSpringLeafAndPreservesFluidAndDecorator() {
+		ConfiguredFeature<?> original = Biome.createDecoratedFeature(Feature.SPRING_FEATURE,
+				new LiquidsConfig(Fluids.WATER.getDefaultState()), Placement.NOPE,
+				new NoPlacementConfig());
+		List<ConfiguredFeature<?>> features = new ArrayList<>();
+		features.add(original);
 
-		try {
-			VanillaSpringCompatibility.refreshBlocks(Collections.singleton(Blocks.DIAMOND_BLOCK));
+		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
+		ConfiguredFeature<?> rewritten = features.get(0);
+		assertNotSame(original, rewritten);
+		DecoratedFeatureConfig before = (DecoratedFeatureConfig) original.config;
+		DecoratedFeatureConfig after = (DecoratedFeatureConfig) rewritten.config;
+		assertSame(before.decorator, after.decorator);
+		assertSame(VanillaSpringCompatibility.FEATURE, after.feature.feature);
+		assertSame(((LiquidsConfig) before.feature.config).state,
+				((LiquidsConfig) after.feature.config).state);
+		assertFalse(VanillaSpringCompatibility.rewriteFeatureList(features),
+				"already rewritten leaves remain stable");
+	}
 
-			assertTrue(lava.acceptedBlocks instanceof ImmutableSet);
-			assertTrue(water.acceptedBlocks instanceof ImmutableSet);
-			assertTrue(lava.acceptedBlocks.contains(Blocks.DIAMOND_BLOCK));
-			assertTrue(water.acceptedBlocks.contains(Blocks.DIAMOND_BLOCK));
-		} finally {
-			VanillaSpringCompatibility.refreshBlocks(Collections.emptyList());
-		}
+	@Test
+	void traversesNestedRandomFeatureGraphsWithoutChangingOtherLeaves() {
+		ConfiguredFeature<?> spring = Biome.createDecoratedFeature(Feature.SPRING_FEATURE,
+				new LiquidsConfig(Fluids.LAVA.getDefaultState()), Placement.NOPE,
+				new NoPlacementConfig());
+		ConfiguredFeature<?> untouched = new ConfiguredFeature<>(Feature.FREEZE_TOP_LAYER,
+				new NoFeatureConfig());
+		ConfiguredFeature<?> random = new ConfiguredFeature<>(Feature.SIMPLE_RANDOM_SELECTOR,
+				new SingleRandomFeature(java.util.Arrays.asList(spring, untouched)));
+		List<ConfiguredFeature<?>> features = new ArrayList<>();
+		features.add(random);
 
-		assertTrue(lava.acceptedBlocks.contains(Blocks.STONE));
-		assertTrue(water.acceptedBlocks.contains(Blocks.STONE));
+		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
+		SingleRandomFeature rewritten = (SingleRandomFeature) features.get(0).config;
+		DecoratedFeatureConfig decorated = (DecoratedFeatureConfig) rewritten.features.get(0).config;
+		assertSame(VanillaSpringCompatibility.FEATURE, decorated.feature.feature);
+		assertSame(untouched, rewritten.features.get(1));
+		assertEquals(2, rewritten.features.size());
 	}
 }

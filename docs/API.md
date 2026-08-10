@@ -1,5 +1,10 @@
 # Java API
 
+This branch targets Minecraft 1.14.4 and Forge 28. Public examples therefore
+use the public `ResourceLocation(String, String)` constructor. Registry-backed
+helpers retain their API-major-1 signatures; Forge 28's static registry and
+`DeferredRegister` constructor details remain internal implementation choices.
+
 Only `zone.moddev.mc.orespawn.api` is supported API. Every other package is an
 implementation detail. API major version is available as
 `OreSpawnApi.API_VERSION` and in the jar manifest as

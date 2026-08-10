@@ -61,8 +61,8 @@ public final class OreRetrogenManager {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;
 			QUEUED.remove(queued.key);
-			if (queued.level.getChunkProvider().getChunkWithoutLoading(
-					queued.chunk.getPos().x, queued.chunk.getPos().z) != queued.chunk) continue;
+			if (queued.level.getChunkProvider().getChunk(queued.chunk.getPos().x,
+					queued.chunk.getPos().z, ChunkStatus.FULL, false) != queued.chunk) continue;
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
@@ -79,8 +79,9 @@ public final class OreRetrogenManager {
 		int count = 0;
 		for (int x = center.x - radius; x <= center.x + radius; x++) {
 			for (int z = center.z - radius; z <= center.z + radius; z++) {
-				Chunk chunk = level.getChunkProvider().getChunkWithoutLoading(x, z);
-				if (chunk != null && enqueue(level, chunk)) count++;
+				net.minecraft.world.chunk.IChunk loaded = level.getChunkProvider()
+						.getChunk(x, z, ChunkStatus.FULL, false);
+				if (loaded instanceof Chunk && enqueue(level, (Chunk) loaded)) count++;
 			}
 		}
 		return count;

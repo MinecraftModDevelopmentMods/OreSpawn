@@ -167,7 +167,7 @@ public final class WorldgenBenchmark {
 		for (Biome biome : net.minecraftforge.registries.ForgeRegistries.BIOMES.getValues()) {
 			if (!BiomeDictionary.hasType(biome, type)) continue;
 			BlockPos candidate = level.getChunkProvider().getChunkGenerator().getBiomeProvider()
-					.func_225531_a_(origin.getX(), origin.getY(), origin.getZ(), 16384,
+					.findBiomePosition(origin.getX(), origin.getZ(), 16384,
 							java.util.Collections.singletonList(biome), level.getRandom());
 			if (candidate != null && candidate.distanceSq(origin) < bestDistance) {
 				located = candidate;
@@ -200,8 +200,8 @@ public final class WorldgenBenchmark {
 		}
 		addConfiguredAudits(audits);
 
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
-		BlockPos.Mutable neighbor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
 				Chunk chunk = level.getChunk(chunkX, chunkZ);
@@ -273,7 +273,7 @@ public final class WorldgenBenchmark {
 	}
 
 	private static boolean isAdjacentToAir(ServerWorld level, int x, int y, int z,
-			BlockPos.Mutable cursor) {
+			BlockPos.MutableBlockPos cursor) {
 		return level.isAirBlock(cursor.setPos(x + 1, y, z))
 				|| level.isAirBlock(cursor.setPos(x - 1, y, z))
 				|| level.isAirBlock(cursor.setPos(x, y + 1, z))

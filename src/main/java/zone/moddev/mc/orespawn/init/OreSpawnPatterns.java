@@ -25,11 +25,15 @@ import net.minecraftforge.fml.RegistryObject;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {
+	private static final IForgeRegistry<OrePatternType> REGISTRY =
+			new RegistryBuilder<OrePatternType>()
+					.setName(OreSpawnPatternRegistry.REGISTRY_NAME)
+					.setType(OrePatternType.class)
+					.disableSaving()
+					.disableSync()
+					.create();
 	private static final DeferredRegister<OrePatternType> TYPES =
-			DeferredRegister.create(OrePatternType.class, OreSpawn.MODID);
-	private static final Supplier<IForgeRegistry<OrePatternType>> REGISTRY = TYPES.makeRegistry(
-			"ore_pattern_types", () -> new RegistryBuilder<OrePatternType>()
-					.setName(OreSpawnPatternRegistry.REGISTRY_NAME).disableSaving().disableSync());
+			new DeferredRegister<>(REGISTRY, OreSpawn.MODID);
 
 	public static final RegistryObject<OrePatternType> DEFAULT = register("default", OreSpawnPatterns::compact);
 	public static final RegistryObject<OrePatternType> VEIN = register("vein", OreSpawnPatterns::vein);
@@ -50,11 +54,11 @@ public final class OreSpawnPatterns {
 	}
 
 	public static IForgeRegistry<OrePatternType> registry() {
-		return REGISTRY.get();
+		return REGISTRY;
 	}
 
 	public static Supplier<IForgeRegistry<OrePatternType>> registrySupplier() {
-		return REGISTRY;
+		return () -> REGISTRY;
 	}
 
 	public static CompiledOrePattern decode(JsonObject rule) {

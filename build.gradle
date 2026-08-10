@@ -78,7 +78,7 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-def configureForge31Run = { JavaExec runTask, String launchTarget ->
+def configureForge28Run = { JavaExec runTask, String launchTarget ->
     runTask.main = 'net.minecraftforge.userdev.LaunchTesting'
     runTask.environment 'target', launchTarget
     runTask.environment 'MCP_MAPPINGS', "${mapping_channel}_${mapping_version}"
@@ -100,7 +100,7 @@ tasks.withType(JavaExec).all { JavaExec runTask ->
     ]
     String launchTarget = targets.get(runTask.name)
     if (launchTarget != null) {
-        configureForge31Run(runTask, launchTarget)
+        configureForge28Run(runTask, launchTarget)
     }
 }
 
@@ -311,11 +311,12 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 
 check.dependsOn surfaceIntegrationTest
 
-task syncForge31EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
     group = 'ide'
     doLast {
         String mainClass = 'net.minecraftforge.userdev.LaunchTesting'
         String mainOutput = new File(projectDir, 'bin/main').absolutePath
+		String ordinaryModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput}"
         String fixtureOutput = surfaceIntegrationClasses.absolutePath
         String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
         String fixtureModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput};" +
@@ -327,6 +328,21 @@ task syncForge31EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
                 "    <mapEntry key=\"FORGE_GROUP\" value=\"net.minecraftforge\"/>\r\n" +
                 "    <mapEntry key=\"target\" value=\"fmluserdevserver\"/>\r\n" +
                 "    <mapEntry key=\"MC_VERSION\" value=\"${minecraft_version}\"/>\r\n"
+		['Client', 'Server', 'Data'].each { String runName ->
+			File launch = file("run${runName}.launch")
+			if (!launch.isFile()) {
+				throw new GradleException("Missing generated Eclipse launch: ${launch}")
+			}
+			String text = launch.getText('UTF-8')
+			text = text.replace(
+					'<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
+					"<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
+			text = text.replaceFirst(
+					/<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
+					java.util.regex.Matcher.quoteReplacement(
+							"<mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>"))
+			launch.setText(text, 'UTF-8')
+		}
         ['Fresh', 'Reload'].each { String phase ->
             File launch = file("runSurfaceIntegration${phase}.launch")
             if (!launch.isFile()) {
@@ -350,5 +366,5 @@ task syncForge31EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 }
 
 tasks.matching { it.name == 'genEclipseRuns' }.all {
-    finalizedBy syncForge31EclipseLaunches
+    finalizedBy syncForge28EclipseLaunches
 }

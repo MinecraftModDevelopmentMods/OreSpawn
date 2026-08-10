@@ -12,12 +12,12 @@ import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
- * Reversibly mutates Forge 31's static biome feature lists. Later versions
- * rebuild immutable generation settings; Minecraft 1.15 exposes the stage
+ * Reversibly mutates Forge 28's static biome feature lists. Later versions
+ * rebuild immutable generation settings; Minecraft 1.14 exposes the stage
  * lists directly instead.
  */
 final class BiomeFeatureInstaller {
-	private static final Map<Biome, List<List<ConfiguredFeature<?, ?>>>> ORIGINALS =
+	private static final Map<Biome, List<List<ConfiguredFeature<?>>>> ORIGINALS =
 			new IdentityHashMap<>();
 
 	private BiomeFeatureInstaller() {
@@ -40,11 +40,11 @@ final class BiomeFeatureInstaller {
 	}
 
 	static void restoreAll() {
-		for (Map.Entry<Biome, List<List<ConfiguredFeature<?, ?>>>> saved : ORIGINALS.entrySet()) {
+		for (Map.Entry<Biome, List<List<ConfiguredFeature<?>>>> saved : ORIGINALS.entrySet()) {
 			Biome biome = saved.getKey();
 			GenerationStage.Decoration[] stages = GenerationStage.Decoration.values();
 			for (int index = 0; index < stages.length; index++) {
-				List<ConfiguredFeature<?, ?>> live = biome.getFeatures(stages[index]);
+				List<ConfiguredFeature<?>> live = biome.getFeatures(stages[index]);
 				live.clear();
 				live.addAll(saved.getValue().get(index));
 			}
@@ -56,8 +56,13 @@ final class BiomeFeatureInstaller {
 			boolean managedOres, boolean fluidDeposits, boolean vanillaOreGate,
 			boolean surfaces, boolean flatBedrock) {
 		ORIGINALS.computeIfAbsent(biome, BiomeFeatureInstaller::snapshot);
+		if (terrain) {
+			for (GenerationStage.Decoration stage : GenerationStage.Decoration.values()) {
+				VanillaSpringCompatibility.rewriteFeatureList(biome.getFeatures(stage));
+			}
+		}
 
-		List<ConfiguredFeature<?, ?>> underground =
+		List<ConfiguredFeature<?>> underground =
 				biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES);
 		if (vanillaOreGate) VanillaOreFeatureGate.wrapFeatureList(underground);
 		if (terrain) {
@@ -84,16 +89,16 @@ final class BiomeFeatureInstaller {
 		return changed;
 	}
 
-	private static List<List<ConfiguredFeature<?, ?>>> snapshot(Biome biome) {
-		List<List<ConfiguredFeature<?, ?>>> result = new ArrayList<>();
+	private static List<List<ConfiguredFeature<?>>> snapshot(Biome biome) {
+		List<List<ConfiguredFeature<?>>> result = new ArrayList<>();
 		for (GenerationStage.Decoration stage : GenerationStage.Decoration.values()) {
 			result.add(new ArrayList<>(biome.getFeatures(stage)));
 		}
 		return result;
 	}
 
-	private static boolean addUnique(List<ConfiguredFeature<?, ?>> features,
-			ConfiguredFeature<?, ?> feature) {
+	private static boolean addUnique(List<ConfiguredFeature<?>> features,
+			ConfiguredFeature<?> feature) {
 		if (feature == null || features.contains(feature)) return false;
 		features.add(feature);
 		return true;

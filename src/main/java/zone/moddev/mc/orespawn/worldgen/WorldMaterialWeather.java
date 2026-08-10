@@ -48,7 +48,7 @@ public final class WorldMaterialWeather {
 
 	private static void convertChunk(IChunk chunk, DimensionMaterials materials) {
 		if (materials.snow == null && materials.ice == null) return;
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		int minX = chunk.getPos().getXStart();
 		int minZ = chunk.getPos().getZStart();
 		for (int localX = 0; localX < 16; localX++) {

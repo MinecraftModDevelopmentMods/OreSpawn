@@ -14,23 +14,23 @@ import net.minecraft.world.gen.feature.OreFeatureConfig;
 import net.minecraft.world.gen.feature.SingleRandomFeature;
 import net.minecraft.world.gen.feature.TwoFeatureChoiceConfig;
 
-/** Traverses the inline configured-feature graphs used by Minecraft 1.15. */
+/** Traverses the inline configured-feature graphs used by Minecraft 1.14. */
 final class ConfiguredFeatureInspector {
 	private ConfiguredFeatureInspector() {
 	}
 
-	static boolean outputsAny(ConfiguredFeature<?, ?> feature, Block... blocks) {
-		Set<ConfiguredFeature<?, ?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+	static boolean outputsAny(ConfiguredFeature<?> feature, Block... blocks) {
+		Set<ConfiguredFeature<?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
 		return outputsAny(feature, visited, blocks);
 	}
 
-	static Block firstOreOutput(ConfiguredFeature<?, ?> feature) {
-		Set<ConfiguredFeature<?, ?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+	static Block firstOreOutput(ConfiguredFeature<?> feature) {
+		Set<ConfiguredFeature<?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
 		return firstOreOutput(feature, visited);
 	}
 
-	private static Block firstOreOutput(ConfiguredFeature<?, ?> feature,
-			Set<ConfiguredFeature<?, ?>> visited) {
+	private static Block firstOreOutput(ConfiguredFeature<?> feature,
+			Set<ConfiguredFeature<?>> visited) {
 		if (feature == null || !visited.add(feature)) return null;
 		Object config = feature.config;
 		if (config instanceof OreFeatureConfig) return ((OreFeatureConfig) config).state.getBlock();
@@ -42,33 +42,33 @@ final class ConfiguredFeatureInspector {
 			Block output = firstOreOutput(choices.defaultFeature, visited);
 			if (output != null) return output;
 			for (ConfiguredRandomFeatureList<?> choice : choices.features) {
-				output = firstOreOutput(choice.feature, visited);
+				output = firstOreOutput(configured(choice), visited);
 				if (output != null) return output;
 			}
 		}
 		if (config instanceof MultipleWithChanceRandomFeatureConfig) {
-			for (ConfiguredFeature<?, ?> choice :
+			for (ConfiguredFeature<?> choice :
 					((MultipleWithChanceRandomFeatureConfig) config).features) {
 				Block output = firstOreOutput(choice, visited);
 				if (output != null) return output;
 			}
 		}
 		if (config instanceof SingleRandomFeature) {
-			for (ConfiguredFeature<?, ?> choice : ((SingleRandomFeature) config).features) {
+			for (ConfiguredFeature<?> choice : ((SingleRandomFeature) config).features) {
 				Block output = firstOreOutput(choice, visited);
 				if (output != null) return output;
 			}
 		}
 		if (config instanceof TwoFeatureChoiceConfig) {
 			TwoFeatureChoiceConfig choice = (TwoFeatureChoiceConfig) config;
-			Block output = firstOreOutput(choice.field_227285_a_, visited);
-			return output != null ? output : firstOreOutput(choice.field_227286_b_, visited);
+			Block output = firstOreOutput(choice.trueFeature, visited);
+			return output != null ? output : firstOreOutput(choice.falseFeature, visited);
 		}
 		return null;
 	}
 
-	private static boolean outputsAny(ConfiguredFeature<?, ?> feature,
-			Set<ConfiguredFeature<?, ?>> visited, Block[] blocks) {
+	private static boolean outputsAny(ConfiguredFeature<?> feature,
+			Set<ConfiguredFeature<?>> visited, Block[] blocks) {
 		if (feature == null || !visited.add(feature)) return false;
 		Object config = feature.config;
 		if (config instanceof OreFeatureConfig) {
@@ -82,25 +82,30 @@ final class ConfiguredFeatureInspector {
 			MultipleRandomFeatureConfig choices = (MultipleRandomFeatureConfig) config;
 			if (outputsAny(choices.defaultFeature, visited, blocks)) return true;
 			for (ConfiguredRandomFeatureList<?> choice : choices.features) {
-				if (outputsAny(choice.feature, visited, blocks)) return true;
+				if (outputsAny(configured(choice), visited, blocks)) return true;
 			}
 		}
 		if (config instanceof MultipleWithChanceRandomFeatureConfig) {
-			for (ConfiguredFeature<?, ?> choice :
+			for (ConfiguredFeature<?> choice :
 					((MultipleWithChanceRandomFeatureConfig) config).features) {
 				if (outputsAny(choice, visited, blocks)) return true;
 			}
 		}
 		if (config instanceof SingleRandomFeature) {
-			for (ConfiguredFeature<?, ?> choice : ((SingleRandomFeature) config).features) {
+			for (ConfiguredFeature<?> choice : ((SingleRandomFeature) config).features) {
 				if (outputsAny(choice, visited, blocks)) return true;
 			}
 		}
 		if (config instanceof TwoFeatureChoiceConfig) {
 			TwoFeatureChoiceConfig choice = (TwoFeatureChoiceConfig) config;
-			return outputsAny(choice.field_227285_a_, visited, blocks)
-					|| outputsAny(choice.field_227286_b_, visited, blocks);
+			return outputsAny(choice.trueFeature, visited, blocks)
+					|| outputsAny(choice.falseFeature, visited, blocks);
 		}
 		return false;
+	}
+
+	private static <FC extends net.minecraft.world.gen.feature.IFeatureConfig>
+			ConfiguredFeature<FC> configured(ConfiguredRandomFeatureList<FC> choice) {
+		return new ConfiguredFeature<>(choice.feature, choice.config);
 	}
 }

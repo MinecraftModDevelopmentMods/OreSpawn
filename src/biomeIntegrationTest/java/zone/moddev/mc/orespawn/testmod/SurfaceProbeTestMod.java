@@ -27,10 +27,14 @@ import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes;
+import zone.moddev.mc.orespawn.api.OrePatternType;
+import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.ProviderStatus;
+import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
+import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
@@ -58,6 +62,7 @@ import net.minecraft.world.gen.surfacebuilders.SurfaceBuilder;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
+import net.minecraft.world.gen.feature.LiquidsConfig;
 import net.minecraft.world.gen.placement.NoPlacementConfig;
 import net.minecraft.world.gen.placement.Placement;
 import net.minecraft.world.dimension.DimensionType;
@@ -84,9 +89,14 @@ public final class SurfaceProbeTestMod {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static final DeferredRegister<Feature<?>> FEATURES =
-			DeferredRegister.create(ForgeRegistries.FEATURES, MODID);
+			new DeferredRegister<>(ForgeRegistries.FEATURES, MODID);
 	private static final DeferredRegister<Biome> BIOMES =
-			DeferredRegister.create(ForgeRegistries.BIOMES, MODID);
+			new DeferredRegister<>(ForgeRegistries.BIOMES, MODID);
+	private static final DeferredRegister<OrePatternType> PATTERNS =
+			new DeferredRegister<>(OreSpawnPatternRegistry.registry(), MODID);
+	private static final RegistryObject<OrePatternType> EXTERNAL_PATTERN = PATTERNS.register(
+			"external_probe", () -> OrePatternType.create(StandardPatternSettings.CODEC,
+					settings -> context -> true));
 	private static final RegistryObject<ProbeFeature> TERRAIN_FEATURE =
 			FEATURES.register("terrain_setup", () -> new ProbeFeature(ProbeStage.TERRAIN));
 	private static final RegistryObject<ProbeFeature> STRUCTURE_FEATURE =
@@ -97,9 +107,9 @@ public final class SurfaceProbeTestMod {
 			BIOMES, "surface_a", builder -> configureBiome(builder, 1.35F, 0.15F));
 	private static final RegistryObject<Biome> SURFACE_B = OreSpawnBiomes.blankAndRegister(
 			BIOMES, "surface_b", builder -> configureBiome(builder, 0.7F, 0.8F));
-	private static ConfiguredFeature<?, ?> terrainConfigured;
-	private static ConfiguredFeature<?, ?> structureConfigured;
-	private static ConfiguredFeature<?, ?> vegetationConfigured;
+	private static ConfiguredFeature<?> terrainConfigured;
+	private static ConfiguredFeature<?> structureConfigured;
+	private static ConfiguredFeature<?> vegetationConfigured;
 	private static final DimensionType OPEN = DimensionType.THE_END;
 	private static final DimensionType ROOFED = DimensionType.THE_NETHER;
 	private static final ResourceLocation OPEN_ID = new ResourceLocation("minecraft:the_end");
@@ -107,6 +117,8 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
+	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID + ":rock/spring_host");
+	private static final BlockPos SPRING_POS = new BlockPos(1128, 32, 1128);
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn:stable_craton"), new ResourceLocation("orespawn:mountain_belt"),
 			new ResourceLocation("orespawn:volcanic_arc"), new ResourceLocation("orespawn:sedimentary_basin"),
@@ -136,6 +148,7 @@ public final class SurfaceProbeTestMod {
 		IEventBus modBus = context.getModEventBus();
 		FEATURES.register(modBus);
 		BIOMES.register(modBus);
+		PATTERNS.register(modBus);
 		modBus.addListener(this::setup);
 		modBus.addListener(this::enqueueProvider);
 		MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::enableGeologyProbe);
@@ -156,9 +169,9 @@ public final class SurfaceProbeTestMod {
 				.surfaceBuilder(SurfaceBuilder.DEFAULT, SurfaceBuilder.GRASS_DIRT_GRAVEL_CONFIG);
 	}
 
-	private static ConfiguredFeature<?, ?> configured(Feature<NoFeatureConfig> feature) {
-		return feature.withConfiguration(NoFeatureConfig.NO_FEATURE_CONFIG)
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+	private static ConfiguredFeature<?> configured(Feature<NoFeatureConfig> feature) {
+		return Biome.createDecoratedFeature(feature, NoFeatureConfig.NO_FEATURE_CONFIG,
+				Placement.NOPE, new NoPlacementConfig());
 	}
 
 	private static void addFixtureFeatures() {
@@ -171,8 +184,8 @@ public final class SurfaceProbeTestMod {
 		}
 	}
 
-	private static void addUnique(java.util.List<ConfiguredFeature<?, ?>> features,
-			ConfiguredFeature<?, ?> feature) {
+	private static void addUnique(java.util.List<ConfiguredFeature<?>> features,
+			ConfiguredFeature<?> feature) {
 		if (!features.contains(feature)) features.add(feature);
 	}
 
@@ -202,6 +215,12 @@ public final class SurfaceProbeTestMod {
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 0.0D);
+					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
+				});
+		provider.rock(SPRING_ROCK, blockId(Blocks.DIAMOND_BLOCK),
+				GeologyFamily.IGNEOUS_INTRUSIVE, rock -> {
+					rock.dimensions(java.util.Collections.singleton(
+							new ResourceLocation("minecraft", "overworld")));
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
 				});
 		provider.biome(BIOME_A, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
@@ -295,6 +314,7 @@ public final class SurfaceProbeTestMod {
 		if (OreSpawnApi.getProviderStatus(MODID) != ProviderStatus.ACTIVE) {
 			throw new IllegalStateException("Surface probe provider is not active");
 		}
+		verifyOrePatternRegistry();
 		ServerWorld overworld = event.getServer().getWorld(DimensionType.OVERWORLD);
 		if (overworld == null || overworld.getSeed() != 0L) {
 			throw new IllegalStateException("Surface probe expected actual world seed 0 but found "
@@ -310,7 +330,8 @@ public final class SurfaceProbeTestMod {
 		Map<String, AuditResult> results = new LinkedHashMap<>();
 		results.put("open", auditDimension(requireLevel(event, OPEN), false));
 		results.put("roofed", auditDimension(requireLevel(event, ROOFED), true));
-		Properties current = properties(overworld.getSeed(), results);
+		SpringResult spring = auditProviderRockSpring(overworld, phase);
+		Properties current = properties(overworld.getSeed(), results, spring);
 		if (previous == null) {
 			writeMarker(marker, current);
 		} else {
@@ -329,6 +350,50 @@ public final class SurfaceProbeTestMod {
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
 		event.getServer().initiateShutdown(false);
+	}
+
+	private static void verifyOrePatternRegistry() {
+		for (String name : Arrays.asList("default", "vein", "normal_cloud", "precision",
+				"clusters", "underfluids")) {
+			if (OreSpawnPatternRegistry.registry().getValue(
+					new ResourceLocation("orespawn", name)) == null) {
+				throw new IllegalStateException("Built-in ore pattern is missing: " + name);
+			}
+		}
+		if (OreSpawnPatternRegistry.registry().getValue(
+				new ResourceLocation(MODID, "external_probe")) != EXTERNAL_PATTERN.get()) {
+			throw new IllegalStateException("Fixture-owned external ore pattern did not register");
+		}
+	}
+
+	private static SpringResult auditProviderRockSpring(ServerWorld level, String phase) {
+		LiquidsConfig spring = SurfaceProbeSpringBridge.findRewrittenSpring(
+				ForgeRegistries.BIOMES.getValues());
+		if (spring == null) {
+			throw new IllegalStateException("No rewritten Forge 28 vanilla spring leaf was found");
+		}
+		if (!SurfaceProbeSpringBridge.recognizesProviderRock(Blocks.DIAMOND_BLOCK)) {
+			throw new IllegalStateException("Baked provider rock was not accepted by the spring wrapper");
+		}
+		level.getChunk(SPRING_POS.getX() >> 4, SPRING_POS.getZ() >> 4, ChunkStatus.FULL, true);
+		if ("fresh".equals(phase)) {
+			for (BlockPos rock : Arrays.asList(SPRING_POS.up(), SPRING_POS.down(),
+					SPRING_POS.west(), SPRING_POS.east(), SPRING_POS.north())) {
+				level.setBlockState(rock, Blocks.DIAMOND_BLOCK.getDefaultState(), 2);
+			}
+			level.setBlockState(SPRING_POS, Blocks.AIR.getDefaultState(), 2);
+			level.setBlockState(SPRING_POS.south(), Blocks.AIR.getDefaultState(), 2);
+			if (!SurfaceProbeSpringBridge.place(level, SPRING_POS, spring)) {
+				throw new IllegalStateException("Rewritten spring did not place in provider rock cavity");
+			}
+		}
+		Block expected = spring.state.getBlockState().getBlock();
+		Block actual = level.getBlockState(SPRING_POS).getBlock();
+		if (actual != expected) {
+			throw new IllegalStateException("Provider-rock spring changed across " + phase
+					+ ": expected " + expected + " but found " + actual);
+		}
+		return new SpringResult(ForgeRegistries.BLOCKS.getKey(actual));
 	}
 
 	private static Path worldRoot(MinecraftServer server) {
@@ -356,7 +421,7 @@ public final class SurfaceProbeTestMod {
 		int biomeB = 0;
 		int edgeChanges = 0;
 		int sentinels = 0;
-		BlockPos.Mutable pos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
 			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
@@ -443,7 +508,7 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static long auditDefaultFluid(ServerWorld level) {
-		BlockPos.Mutable pos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		long water = 0L;
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
 			for (int chunkX = FLUID_PROBE_MIN_CHUNK_X; chunkX <= FLUID_PROBE_MAX_CHUNK_X; chunkX++) {
@@ -465,7 +530,7 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static int auditSentinels(ServerWorld level, Chunk chunk,
-			BlockPos.Mutable pos, int minX, int minZ) {
+			BlockPos.MutableBlockPos pos, int minX, int minZ) {
 		int groundTree = findMarkedGround(chunk, pos, minX + 4, minZ + 4,
 				0, 256);
 		assertBlock(chunk, pos, minX + 4, groundTree + 1, minZ + 4,
@@ -502,7 +567,7 @@ public final class SurfaceProbeTestMod {
 		return 4;
 	}
 
-	private static int findMarkedGround(IChunk chunk, BlockPos.Mutable pos,
+	private static int findMarkedGround(IChunk chunk, BlockPos.MutableBlockPos pos,
 			int x, int z, int minY, int maxY) {
 		for (int y = maxY - 1; y >= minY; y--) {
 			if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() == concreteBlock(DyeColor.BLACK)) return y + 5;
@@ -510,7 +575,7 @@ public final class SurfaceProbeTestMod {
 		throw new IllegalStateException("Independent surface marker missing at " + x + "," + z);
 	}
 
-	private static void assertBlock(IChunk chunk, BlockPos.Mutable pos,
+	private static void assertBlock(IChunk chunk, BlockPos.MutableBlockPos pos,
 			int x, int y, int z, BlockState expected, String purpose) {
 		BlockState actual = chunk.getBlockState(pos.setPos(x, y, z));
 		if (actual.getBlock() != expected.getBlock()) {
@@ -558,11 +623,17 @@ public final class SurfaceProbeTestMod {
 		return ForgeRegistries.BIOMES.getKey(biome);
 	}
 
-	private static Properties properties(long seed, Map<String, AuditResult> results) {
+	private static Properties properties(long seed, Map<String, AuditResult> results,
+			SpringResult spring) {
 		Properties values = new Properties();
 		values.setProperty("seed", Long.toString(seed));
 		values.setProperty("dimensions", Integer.toString(results.size()));
 		values.setProperty("columns_per_dimension", Integer.toString(EXPECTED_COLUMNS));
+		values.setProperty("spring.x", Integer.toString(SPRING_POS.getX()));
+		values.setProperty("spring.y", Integer.toString(SPRING_POS.getY()));
+		values.setProperty("spring.z", Integer.toString(SPRING_POS.getZ()));
+		values.setProperty("spring.block", spring.block().toString());
+		values.setProperty("external_pattern", new ResourceLocation(MODID, "external_probe").toString());
 		for (Map.Entry<String, AuditResult> entry : results.entrySet()) {
 			String prefix = entry.getKey() + ".";
 			AuditResult result = entry.getValue();
@@ -627,8 +698,8 @@ public final class SurfaceProbeTestMod {
 		if (roofed && chunk.getPos().x >= FLUID_PROBE_MIN_CHUNK_X
 				&& chunk.getPos().x <= FLUID_PROBE_MAX_CHUNK_X
 				&& chunk.getPos().z >= MINIMUM_CHUNK && chunk.getPos().z <= MAXIMUM_CHUNK) return false;
-		BlockPos.Mutable pos = new BlockPos.Mutable();
-		Heightmap surfaceHeight = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE_WG);
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		Heightmap surfaceHeight = chunk.func_217303_b(Heightmap.Type.WORLD_SURFACE_WG);
 		int minX = chunk.getPos().getXStart();
 		int minZ = chunk.getPos().getZStart();
 		for (int localX = 0; localX < 16; localX++) {
@@ -679,7 +750,7 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static boolean placeStructureSentinels(IWorld world, IChunk chunk) {
-		BlockPos.Mutable pos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = chunk.getPos().getXStart();
 		int minZ = chunk.getPos().getZStart();
 		int structureY = markedGroundOrMissing(chunk, pos, minX + 8, minZ + 8, world);
@@ -699,7 +770,7 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static boolean placeVegetationSentinels(IWorld world, IChunk chunk) {
-		BlockPos.Mutable pos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = chunk.getPos().getXStart();
 		int minZ = chunk.getPos().getZStart();
 		int treeY = markedGroundOrMissing(chunk, pos, minX + 4, minZ + 4, world);
@@ -714,12 +785,12 @@ public final class SurfaceProbeTestMod {
 		return true;
 	}
 
-	private static int markedGround(IChunk chunk, BlockPos.Mutable pos,
+	private static int markedGround(IChunk chunk, BlockPos.MutableBlockPos pos,
 			int x, int z, IWorld world) {
 		return findMarkedGround(chunk, pos, x, z, 0, 256);
 	}
 
-	private static int markedGroundOrMissing(IChunk chunk, BlockPos.Mutable pos,
+	private static int markedGroundOrMissing(IChunk chunk, BlockPos.MutableBlockPos pos,
 			int x, int z, IWorld world) {
 		for (int y = 255; y >= 0; y--) {
 			if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() == concreteBlock(DyeColor.BLACK)) return y + 5;
@@ -744,6 +815,16 @@ public final class SurfaceProbeTestMod {
 		BlockState filler() { return filler; }
 		BlockState underwater() { return underwater; }
 		BlockState ceiling() { return ceiling; }
+	}
+
+	private static final class SpringResult {
+		private final ResourceLocation block;
+
+		SpringResult(ResourceLocation block) {
+			this.block = block;
+		}
+
+		ResourceLocation block() { return block; }
 	}
 
 	private static final class AuditResult {

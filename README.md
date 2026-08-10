@@ -1,6 +1,6 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.15.2.
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.14.4.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
@@ -87,12 +87,14 @@ Use Java 8 from the repository root (the local validation JDK is 1.8.0_221):
 that lifecycle packages a test-only provider mod and verifies exposed,
 underwater, filler, and ceiling surfaces in open and ceiling normal-noise
 dimensions. It also proves later vegetation, structures, and block entities
-survive, then reopens and checks the exact saved world. The fixture is not
-included in OreSpawn's published jars.
+survive, validates provider-rock vanilla springs and an external ore-pattern
+registration, then reopens and checks the exact saved world. The fixture is
+not included in OreSpawn's published jars.
 
 Run both `genEclipseRuns` and `eclipse` after importing or refreshing this
-ForgeGradle 3 project in Eclipse. This branch uses the Gradle 4.10.3 wrapper,
-Forge 31.2.57, and the `snapshot_20200514-1.15.1` MCP mappings.
+ForgeGradle 3 project in Eclipse. This branch uses the Gradle 4.9 wrapper,
+Forge 28.2.26, the `snapshot_20190719-1.14.3` MCP mappings, and resource/data
+pack format 4. Published jars are SRG-reobfuscated for the Forge 28 runtime.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

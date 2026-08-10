@@ -29,11 +29,11 @@ class ClientButtonTextTest {
 			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.json");
 	private static final Pattern LITERAL_TRANSLATION = Pattern.compile(
 			"new\\s+TranslationTextComponent\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
-	private static final Set<String> MINECRAFT_1_15_KEYS = new HashSet<>(Arrays.asList(
+	private static final Set<String> MINECRAFT_1_14_KEYS = new HashSet<>(Arrays.asList(
 			"gui.cancel", "gui.done", "options.off", "options.on"));
 
 	@Test
-	void cycleButtonsUseTheMinecraft115LabelConvention() {
+	void cycleButtonsUseTheMinecraft114LabelConvention() {
 		CycleButton<String> button = CycleButton.builder(StringTextComponent::new)
 				.withValues(Arrays.asList("Value"))
 				.withInitialValue("Value")
@@ -55,7 +55,7 @@ class ClientButtonTextTest {
 				Matcher matcher = LITERAL_TRANSLATION.matcher(text);
 				while (matcher.find()) {
 					String key = matcher.group(1);
-					if (!english.has(key) && !MINECRAFT_1_15_KEYS.contains(key)) {
+					if (!english.has(key) && !MINECRAFT_1_14_KEYS.contains(key)) {
 						missing.add(source.getFileName() + ": " + key);
 					}
 				}
@@ -63,6 +63,6 @@ class ClientButtonTextTest {
 		}
 
 		assertTrue(missing.isEmpty(),
-				"Client labels must exist in OreSpawn or Minecraft 1.15: " + missing);
+				"Client labels must exist in OreSpawn or Minecraft 1.14: " + missing);
 	}
 }

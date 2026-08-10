@@ -30,7 +30,7 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 	public static final FlatBedrockFeature FEATURE = new FlatBedrockFeature();
 	private static final int BEDROCK_NOISE_DEPTH = 5;
 
-	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static ConfiguredFeature<?> configuredFeature;
 	private static volatile Settings settings = Settings.DISABLED;
 
 	private FlatBedrockFeature() {
@@ -40,12 +40,12 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 
 	public static void registerConfiguredFeature() {
 		ResourceLocation id = new ResourceLocation(OreSpawn.MODID, "flat_bedrock");
-		configuredFeature = FEATURE.withConfiguration(new NoFeatureConfig())
-				.withPlacement(Placement.NOPE.configure(new NoPlacementConfig()));
+		configuredFeature = net.minecraft.world.biome.Biome.createDecoratedFeature(
+				FEATURE, new NoFeatureConfig(), Placement.NOPE, new NoPlacementConfig());
 		refreshWorldConfig();
 	}
 
-	static ConfiguredFeature<?, ?> configuredFeature() {
+	static ConfiguredFeature<?> configuredFeature() {
 		return configuredFeature;
 	}
 
@@ -86,7 +86,7 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 
 	private static boolean flattenBottom(IChunk chunk, int layers, BlockState replacement) {
 		int minY = 0;
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
@@ -108,7 +108,7 @@ public final class FlatBedrockFeature extends ContextFeature<NoFeatureConfig> {
 
 	private static boolean flattenTop(IChunk chunk, int layers, BlockState replacement) {
 		int maxY = 256 - 1;
-		BlockPos.Mutable cursor = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {

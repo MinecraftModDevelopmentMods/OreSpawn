@@ -73,7 +73,7 @@ IDs into OreSpawn's canonical IDs, preserving edited rules and removing
 duplicate placement. Revision 9 recognizes the later-port deep-biased defaults
 so a profile copied from a newer OreSpawn branch can still be migrated safely.
 
-On Minecraft 1.15.2, revision 10 converts only untouched managed-ore signatures
+On Minecraft 1.14.4, revision 10 converts only untouched managed-ore signatures
 to the target's native height range, frequency, quantity, pattern, and exposure
 behavior. It also restores the separate Badlands gold rule. Hand-edited rules
 and explicitly stored Custom values are preserved.
