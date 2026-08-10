@@ -56,8 +56,7 @@ final class CycleButton<T> extends Button {
 
 	private static <T> String message(ITextComponent label,
 			Function<T, ITextComponent> valueLabel, T value) {
-		return new TranslationTextComponent("options.generic_value", label, valueLabel.apply(value))
-				.getFormattedText();
+		return label.getFormattedText() + ": " + valueLabel.apply(value).getFormattedText();
 	}
 
 	interface OnValueChange<T> {
