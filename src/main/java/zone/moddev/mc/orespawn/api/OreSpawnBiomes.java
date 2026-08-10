@@ -9,30 +9,22 @@ import java.util.function.Supplier;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.carver.WorldCarverWrapper;
-import net.minecraft.world.gen.feature.CompositeFeature;
+import net.minecraft.world.biome.BiomeDecorator;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 
 /**
- * Small registration helpers for provider mods which want to define biomes
- * without taking a compile-time dependency on a separate biome framework.
- *
- * <p>Forge 25 predates {@code DeferredRegister}. Provider mods declare one
- * {@link BiomeRegistrar} during mod construction and use the same deferred
- * declaration pattern exposed by later OreSpawn ports.</p>
+ * Forge 1.12 biome registration helpers for provider mods. The registrar keeps
+ * the same deferred declaration semantics as later OreSpawn ports while using
+ * Forge 14 registry events and {@link Biome.BiomeProperties}.
  */
 public final class OreSpawnBiomes {
 	private OreSpawnBiomes() {
 	}
 
-	/**
-	 * Creates a registrar for a provider mod and attaches it to that mod's event
-	 * bus. This method must be called during normal mod construction.
-	 */
 	public static BiomeRegistrar registrar(String modId) {
 		return new BiomeRegistrar(modId, true);
 	}
@@ -41,54 +33,48 @@ public final class OreSpawnBiomes {
 		return new BiomeRegistrar(modId, false);
 	}
 
-	/**
-	 * Registers a biome copied from an existing biome, then applies provider
-	 * changes to the copied builder.
-	 */
 	public static BiomeReference copyAndRegister(BiomeRegistrar registrar,
-			String name, Supplier<? extends Biome> source, Consumer<Biome.BiomeBuilder> edit) {
+			String name, Supplier<? extends Biome> source,
+			Consumer<Biome.BiomeProperties> edit) {
 		Objects.requireNonNull(registrar, "registrar");
 		Objects.requireNonNull(source, "source");
 		Objects.requireNonNull(edit, "edit");
 		return registrar.register(name, () -> {
 			Biome sourceBiome = Objects.requireNonNull(source.get(), "source biome");
-			Biome.BiomeBuilder builder = new Biome.BiomeBuilder()
-					.precipitation(sourceBiome.getPrecipitation())
-					.category(sourceBiome.getCategory())
-					.depth(sourceBiome.getDepth())
-					.scale(sourceBiome.getScale())
-					.temperature(sourceBiome.getDefaultTemperature())
-					.downfall(sourceBiome.getDownfall())
-					.waterColor(sourceBiome.getWaterColor())
-					.waterFogColor(sourceBiome.getWaterFogColor())
-					.surfaceBuilder(sourceBiome.getSurfaceBuilder())
-					.parent(sourceBiome.getParent());
-			edit.accept(builder);
-			ProviderBiome result = new ProviderBiome(builder);
+			Biome.BiomeProperties properties = copiedProperties(name, sourceBiome);
+			edit.accept(properties);
+			ProviderBiome result = new ProviderBiome(properties);
 			result.copyContents(sourceBiome);
 			return result;
 		});
 	}
 
-	/**
-	 * Registers a biome from a fresh builder. The provider must set all required
-	 * climate and surface fields before the builder is built.
-	 */
 	public static BiomeReference blankAndRegister(BiomeRegistrar registrar,
-			String name, Consumer<Biome.BiomeBuilder> configure) {
+			String name, Consumer<Biome.BiomeProperties> configure) {
 		Objects.requireNonNull(registrar, "registrar");
 		Objects.requireNonNull(configure, "configure");
 		return registrar.register(name, () -> {
-			Biome.BiomeBuilder builder = new Biome.BiomeBuilder();
-			configure.accept(builder);
-			return new ProviderBiome(builder);
+			Biome.BiomeProperties properties = new Biome.BiomeProperties(name);
+			configure.accept(properties);
+			return new ProviderBiome(properties);
 		});
 	}
 
-	/**
-	 * Deferred biome registrar for Forge 25. Registration order follows declaration
-	 * order and declarations are rejected after the registry event begins.
-	 */
+	private static Biome.BiomeProperties copiedProperties(String name, Biome source) {
+		Biome.BiomeProperties properties = new Biome.BiomeProperties(name)
+				.setBaseHeight(source.getBaseHeight())
+				.setHeightVariation(source.getHeightVariation())
+				.setTemperature(source.getDefaultTemperature())
+				.setRainfall(source.getRainfall())
+				.setWaterColor(source.getWaterColor());
+		if (!source.canRain()) properties.setRainDisabled();
+		if (source.getEnableSnow()) properties.setSnowEnabled();
+		if (source.getRegistryName() != null) {
+			properties.setBaseBiome(source.getRegistryName().toString());
+		}
+		return properties;
+	}
+
 	public static final class BiomeRegistrar {
 		private final String modId;
 		private final Map<ResourceLocation, Supplier<? extends Biome>> entries = new LinkedHashMap<>();
@@ -96,28 +82,27 @@ public final class OreSpawnBiomes {
 
 		private BiomeRegistrar(String modId, boolean attach) {
 			this.modId = Objects.requireNonNull(modId, "modId");
-			// Validate the namespace immediately and attach exactly once.
 			new ResourceLocation(modId, "registrar_probe");
-			if (attach) {
-				FMLJavaModLoadingContext.get().getModEventBus()
-						.addGenericListener(Biome.class, this::registerBiomes);
-			}
+			if (attach) MinecraftForge.EVENT_BUS.register(this);
 		}
 
-		private synchronized BiomeReference register(String name, Supplier<? extends Biome> factory) {
+		private synchronized BiomeReference register(String name,
+				Supplier<? extends Biome> factory) {
 			Objects.requireNonNull(name, "name");
 			Objects.requireNonNull(factory, "factory");
 			if (registering) {
 				throw new IllegalStateException("Biome declarations are closed for " + modId);
 			}
 			ResourceLocation id = new ResourceLocation(modId, name);
-			if (entries.putIfAbsent(id, factory) != null) {
+			if (entries.containsKey(id)) {
 				throw new IllegalArgumentException("Duplicate biome declaration: " + id);
 			}
+			entries.put(id, factory);
 			return new BiomeReference(id);
 		}
 
-		private synchronized void registerBiomes(RegistryEvent.Register<Biome> event) {
+		@SubscribeEvent
+		public synchronized void registerBiomes(RegistryEvent.Register<Biome> event) {
 			registerRegistry(event.getRegistry());
 		}
 
@@ -133,7 +118,8 @@ public final class OreSpawnBiomes {
 			for (Map.Entry<ResourceLocation, Supplier<? extends Biome>> entry : entries.entrySet()) {
 				Biome biome = Objects.requireNonNull(entry.getValue().get(),
 						"Biome factory returned null for " + entry.getKey());
-				if (biome.getRegistryName() != null && !entry.getKey().equals(biome.getRegistryName())) {
+				if (biome.getRegistryName() != null
+						&& !entry.getKey().equals(biome.getRegistryName())) {
 					throw new IllegalStateException("Biome factory returned an already named biome: "
 							+ biome.getRegistryName());
 				}
@@ -142,7 +128,6 @@ public final class OreSpawnBiomes {
 		}
 	}
 
-	/** Supplier-compatible biome handle shared with later OreSpawn APIs. */
 	public static final class BiomeReference implements Supplier<Biome> {
 		private final ResourceLocation id;
 
@@ -150,7 +135,6 @@ public final class OreSpawnBiomes {
 			this.id = id;
 		}
 
-		/** Returns the stable registry identifier declared by this handle. */
 		public ResourceLocation getId() {
 			return id;
 		}
@@ -162,41 +146,49 @@ public final class OreSpawnBiomes {
 
 		Biome get(IForgeRegistry<Biome> registry) {
 			Biome biome = registry.getValue(id);
-			if (biome == null) {
-				throw new IllegalStateException("Biome is not registered yet: " + id);
-			}
+			if (biome == null) throw new IllegalStateException("Biome is not registered yet: " + id);
 			return biome;
 		}
 	}
 
-	/** Concrete Forge 25 biome used behind the public helper contract. */
 	private static final class ProviderBiome extends Biome {
-		ProviderBiome(Biome.BiomeBuilder builder) {
-			super(builder);
+		ProviderBiome(Biome.BiomeProperties properties) {
+			super(properties);
 		}
 
 		void copyContents(Biome source) {
-			for (GenerationStage.Decoration stage : GenerationStage.Decoration.values()) {
-				for (CompositeFeature<?, ?> feature : source.getFeatures(stage)) {
-					addFeature(stage, feature);
-				}
-			}
-			for (GenerationStage.Carving stage : GenerationStage.Carving.values()) {
-				for (WorldCarverWrapper<?> carver : source.getCarvers(stage)) {
-					addCarverUnchecked(stage, carver);
-				}
-			}
-			structures.putAll(source.structures);
-			for (EnumCreatureType classification : EnumCreatureType.values()) {
-				for (Biome.SpawnListEntry spawn : source.getSpawns(classification)) {
-					addSpawn(classification, spawn);
-				}
+			topBlock = source.topBlock;
+			fillerBlock = source.fillerBlock;
+			decorator = copyDecorator(source.decorator);
+			for (EnumCreatureType type : EnumCreatureType.values()) {
+				getSpawnableList(type).clear();
+				getSpawnableList(type).addAll(source.getSpawnableList(type));
 			}
 		}
 
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private void addCarverUnchecked(GenerationStage.Carving stage, WorldCarverWrapper<?> carver) {
-			addCarver(stage, (WorldCarverWrapper) carver);
+		private static BiomeDecorator copyDecorator(BiomeDecorator source) {
+			BiomeDecorator copy = new BiomeDecorator();
+			copy.clayGen = source.clayGen; copy.sandGen = source.sandGen;
+			copy.gravelGen = source.gravelGen; copy.dirtGen = source.dirtGen;
+			copy.gravelOreGen = source.gravelOreGen; copy.graniteGen = source.graniteGen;
+			copy.dioriteGen = source.dioriteGen; copy.andesiteGen = source.andesiteGen;
+			copy.coalGen = source.coalGen; copy.ironGen = source.ironGen;
+			copy.goldGen = source.goldGen; copy.redstoneGen = source.redstoneGen;
+			copy.diamondGen = source.diamondGen; copy.lapisGen = source.lapisGen;
+			copy.flowerGen = source.flowerGen; copy.mushroomBrownGen = source.mushroomBrownGen;
+			copy.mushroomRedGen = source.mushroomRedGen; copy.bigMushroomGen = source.bigMushroomGen;
+			copy.reedGen = source.reedGen; copy.cactusGen = source.cactusGen;
+			copy.waterlilyGen = source.waterlilyGen;
+			copy.waterlilyPerChunk = source.waterlilyPerChunk;
+			copy.treesPerChunk = source.treesPerChunk; copy.extraTreeChance = source.extraTreeChance;
+			copy.flowersPerChunk = source.flowersPerChunk; copy.grassPerChunk = source.grassPerChunk;
+			copy.deadBushPerChunk = source.deadBushPerChunk; copy.mushroomsPerChunk = source.mushroomsPerChunk;
+			copy.reedsPerChunk = source.reedsPerChunk; copy.cactiPerChunk = source.cactiPerChunk;
+			copy.gravelPatchesPerChunk = source.gravelPatchesPerChunk;
+			copy.sandPatchesPerChunk = source.sandPatchesPerChunk;
+			copy.clayPerChunk = source.clayPerChunk; copy.bigMushroomsPerChunk = source.bigMushroomsPerChunk;
+			copy.generateFalls = source.generateFalls;
+			return copy;
 		}
 	}
 }

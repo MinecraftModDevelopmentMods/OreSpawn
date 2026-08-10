@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.api;
 
 import java.util.Random;
 
-import net.minecraft.fluid.Fluid;
+import net.minecraftforge.fluids.Fluid;
 
 /** Allocation-free view supplied to a compiled ore pattern for one attempt. */
 public interface OrePlacementContext {

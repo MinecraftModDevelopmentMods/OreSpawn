@@ -1,170 +1,90 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import java.util.Collections;
+import java.util.Collection;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Set;
 
-import zone.moddev.mc.orespawn.OreSpawn;
+import com.google.common.base.Predicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.gen.feature.CompositeFeature;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.IFeatureConfig;
-import net.minecraft.world.gen.feature.LiquidsConfig;
-import net.minecraft.world.gen.feature.RandomDefaultFeatureListConfig;
-import net.minecraft.world.gen.feature.RandomFeatureListConfig;
-import net.minecraft.world.gen.feature.RandomFeatureWithConfigConfig;
-import net.minecraft.world.gen.feature.TwoFeatureChoiceConfig;
+import net.minecraft.world.World;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
 
-/** Rewrites only vanilla spring leaves to accept baked provider rocks. */
-public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConfig> {
-	public static final VanillaSpringCompatibility FEATURE = new VanillaSpringCompatibility();
+/** Extends Forge 1.12's native ore-host predicate with baked provider rocks. */
+public final class VanillaSpringCompatibility {
 	private static volatile Set<Block> providerRocks = Collections.emptySet();
 
 	private VanillaSpringCompatibility() {
-		super();
 	}
 
 	static void refresh(BakedGeomeConfig config) {
-		Set<Block> rocks = Collections.newSetFromMap(new IdentityHashMap<>());
+		Set<Block> rocks = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
 		if (config != null) config.addRockBlocks(rocks);
-		refreshBlocks(rocks);
+		providerRocks = Collections.unmodifiableSet(rocks);
 	}
 
-	static void refreshBlocks(Iterable<Block> rocks) {
-		Set<Block> refreshed = Collections.newSetFromMap(new IdentityHashMap<>());
-		for (Block rock : rocks) refreshed.add(rock);
-		providerRocks = Collections.unmodifiableSet(refreshed);
+	static void refreshBlocks(Collection<Block> blocks) {
+		Set<Block> rocks = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
+		rocks.addAll(blocks);
+		providerRocks = Collections.unmodifiableSet(rocks);
 	}
 
-	static boolean isHost(Block block) {
-		return Block.isRock(block) || providerRocks.contains(block);
+	static boolean isProviderRock(Block block) {
+		return providerRocks.contains(block);
 	}
 
-	static boolean rewriteFeatureList(List<CompositeFeature<?, ?>> features) {
-		boolean changed = false;
-		for (int index = 0; index < features.size(); index++) {
-			CompositeFeature<?, ?> original = features.get(index);
-			FeatureConfig rewritten = rewrite(original.getFeature(),
-					ConfiguredFeatureInspector.featureConfig(original));
-			if (rewritten.changed) {
-				features.set(index, ConfiguredFeatureInspector.replaceRoot(
-						original, rewritten.feature, rewritten.config));
-				changed = true;
-			}
-		}
-		return changed;
+	static boolean accepts(World world, BlockPos pos, IBlockState state) {
+		Predicate<IBlockState> nativeStone = candidate -> candidate.getBlock() == Blocks.STONE
+				|| candidate.getBlock() == Blocks.NETHERRACK;
+		return state.getBlock().isReplaceableOreGen(state, world, pos, nativeStone)
+				|| providerRocks.contains(state.getBlock());
 	}
 
-	private static FeatureConfig rewrite(Feature<?> feature, IFeatureConfig config) {
-		if (feature == Feature.LIQUIDS && config instanceof LiquidsConfig) {
-			return new FeatureConfig(FEATURE, config, true);
+	static void replaceVanillaSpringPass(DecorateBiomeEvent.Decorate event) {
+		if (providerRocks.isEmpty() || event.getResult() == Event.Result.DENY) return;
+		Block fluid;
+		int attempts;
+		if (event.getType() == DecorateBiomeEvent.Decorate.EventType.LAKE_WATER) {
+			fluid = Blocks.FLOWING_WATER; attempts = 50;
+		} else if (event.getType() == DecorateBiomeEvent.Decorate.EventType.LAKE_LAVA) {
+			fluid = Blocks.FLOWING_LAVA; attempts = 20;
+		} else {
+			return;
 		}
-		if (config instanceof RandomDefaultFeatureListConfig) {
-			RandomDefaultFeatureListConfig original = (RandomDefaultFeatureListConfig) config;
-			Feature<?>[] features = original.field_202449_a.clone();
-			IFeatureConfig[] configs = original.field_202450_b.clone();
-			boolean changed = false;
-			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
-				features[index] = child.feature;
-				configs[index] = child.config;
-				changed |= child.changed;
-			}
-			FeatureConfig fallback = rewrite(original.field_202452_d, original.field_202453_f);
-			changed |= fallback.changed;
-			return changed ? new FeatureConfig(feature,
-					randomDefault(features, configs, original.field_202451_c.clone(), fallback), true)
-					: new FeatureConfig(feature, config, false);
+		World world = event.getWorld(); java.util.Random random = event.getRand();
+		BlockPos origin = event.getPos();
+		for (int attempt = 0; attempt < attempts; attempt++) {
+			int x = random.nextInt(16) + 8;
+			int z = random.nextInt(16) + 8;
+			int y = fluid == Blocks.FLOWING_WATER
+					? random.nextInt(random.nextInt(248) + 8)
+					: random.nextInt(random.nextInt(random.nextInt(240) + 8) + 8);
+			generate(fluid, world, random, origin.add(x, y, z));
 		}
-		if (config instanceof RandomFeatureListConfig) {
-			RandomFeatureListConfig original = (RandomFeatureListConfig) config;
-			Feature<?>[] features = original.field_202454_a.clone();
-			IFeatureConfig[] configs = original.field_202455_b.clone();
-			boolean changed = false;
-			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
-				features[index] = child.feature;
-				configs[index] = child.config;
-				changed |= child.changed;
-			}
-			return changed ? new FeatureConfig(feature,
-					new RandomFeatureListConfig(features, configs, original.field_202456_c), true)
-					: new FeatureConfig(feature, config, false);
-		}
-		if (config instanceof RandomFeatureWithConfigConfig) {
-			RandomFeatureWithConfigConfig original = (RandomFeatureWithConfigConfig) config;
-			Feature<?>[] features = original.features.clone();
-			IFeatureConfig[] configs = original.configs.clone();
-			boolean changed = false;
-			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
-				features[index] = child.feature;
-				configs[index] = child.config;
-				changed |= child.changed;
-			}
-			return changed ? new FeatureConfig(feature,
-					new RandomFeatureWithConfigConfig(features, configs), true)
-					: new FeatureConfig(feature, config, false);
-		}
-		if (config instanceof TwoFeatureChoiceConfig) {
-			TwoFeatureChoiceConfig original = (TwoFeatureChoiceConfig) config;
-			FeatureConfig first = rewrite(original.field_202445_a, original.field_202446_b);
-			FeatureConfig second = rewrite(original.field_202447_c, original.field_202448_d);
-			return first.changed || second.changed ? new FeatureConfig(feature,
-					new TwoFeatureChoiceConfig(first.feature, first.config,
-							second.feature, second.config), true)
-					: new FeatureConfig(feature, config, false);
-		}
-		return new FeatureConfig(feature, config, false);
+		event.setResult(Event.Result.DENY);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static RandomDefaultFeatureListConfig randomDefault(Feature<?>[] features,
-			IFeatureConfig[] configs, float[] chances, FeatureConfig fallback) {
-		return new RandomDefaultFeatureListConfig(features, configs, chances,
-				(Feature) fallback.feature, fallback.config);
-	}
-
-	@Override
-	boolean place(FeaturePlaceContext<LiquidsConfig> context) {
-		BlockPos pos = context.origin();
-		if (!isHost(context.level().getBlockState(pos.up()).getBlock())
-				|| !isHost(context.level().getBlockState(pos.down()).getBlock())) return false;
-
-		IBlockState state = context.level().getBlockState(pos);
-		if (!state.isAir(context.level(), pos) && !isHost(state.getBlock())) return false;
-
-		int rockSides = 0;
-		int airSides = 0;
-		for (net.minecraft.util.EnumFacing direction : new net.minecraft.util.EnumFacing[] {
-				net.minecraft.util.EnumFacing.WEST, net.minecraft.util.EnumFacing.EAST,
-				net.minecraft.util.EnumFacing.NORTH, net.minecraft.util.EnumFacing.SOUTH }) {
-			BlockPos side = pos.offset(direction);
-			if (isHost(context.level().getBlockState(side).getBlock())) rockSides++;
-			if (context.level().isAirBlock(side)) airSides++;
+	static boolean generate(Block fluid, World world, java.util.Random random, BlockPos pos) {
+		if (!accepts(world, pos.up(), world.getBlockState(pos.up()))
+				|| !accepts(world, pos.down(), world.getBlockState(pos.down()))) return false;
+		IBlockState current = world.getBlockState(pos);
+		if (!current.getBlock().isAir(current, world, pos) && !accepts(world, pos, current)) return false;
+		int solid = 0; int air = 0;
+		for (BlockPos neighbour : new BlockPos[] { pos.west(), pos.east(), pos.north(), pos.south() }) {
+			IBlockState state = world.getBlockState(neighbour);
+			if (accepts(world, neighbour, state)) solid++;
+			if (state.getBlock().isAir(state, world, neighbour)) air++;
 		}
-		if (rockSides != 3 || airSides != 1) return false;
-
-		context.level().setBlockState(pos,
-				context.config().field_202459_a.getDefaultState().getBlockState(), 2);
-		context.level().getPendingFluidTicks().scheduleTick(
-				pos, context.config().field_202459_a, 0);
+		if (solid == 3 && air == 1) {
+			IBlockState state = fluid.getDefaultState();
+			world.setBlockState(pos, state, 2);
+			world.immediateBlockTick(pos, state, random);
+		}
 		return true;
-	}
-
-	private static final class FeatureConfig {
-		final Feature<?> feature;
-		final IFeatureConfig config;
-		final boolean changed;
-
-		FeatureConfig(Feature<?> feature, IFeatureConfig config, boolean changed) {
-			this.feature = feature;
-			this.config = config;
-			this.changed = changed;
-		}
 	}
 }

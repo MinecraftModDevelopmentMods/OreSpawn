@@ -6,7 +6,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.util.text.ITextComponent;
 
-/** GuiButton-compatible host for Forge 25's native {@link GuiTextField}. */
+/** GuiButton-compatible host for Forge 14's native {@link GuiTextField}. */
 class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	private final GuiTextField field;
 
@@ -20,30 +20,20 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	}
 
 	@Override
-	public void render(int mouseX, int mouseY, float partialTicks) {
+	public void drawButton(net.minecraft.client.Minecraft minecraft, int mouseX, int mouseY,
+			float partialTicks) {
 		field.setVisible(visible);
 		field.setEnabled(enabled);
-		if (visible) field.drawTextField(mouseX, mouseY, partialTicks);
+		if (visible) field.drawTextBox();
 	}
 
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		return visible && enabled && field.mouseClicked(mouseX, mouseY, button);
+	public boolean mousePressed(net.minecraft.client.Minecraft minecraft, int mouseX, int mouseY) {
+		return visible && enabled && field.mouseClicked(mouseX, mouseY, 0);
 	}
 
-	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		return visible && enabled && field.keyPressed(keyCode, scanCode, modifiers);
-	}
-
-	@Override
-	public boolean charTyped(char character, int modifiers) {
-		return visible && enabled && field.charTyped(character, modifiers);
-	}
-
-	@Override
-	public void focusChanged(boolean focused) {
-		field.setFocused(focused);
+	boolean keyTyped(char character, int keyCode) {
+		return visible && enabled && field.textboxKeyTyped(character, keyCode);
 	}
 
 	void setValue(String value) {
@@ -59,6 +49,10 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	}
 
 	void func_212954_a(Consumer<String> responder) {
-		field.setTextAcceptHandler((id, value) -> responder.accept(value));
+		field.setGuiResponder(new net.minecraft.client.gui.GuiPageButtonList.GuiResponder() {
+			@Override public void setEntryValue(int id, boolean value) { }
+			@Override public void setEntryValue(int id, float value) { }
+			@Override public void setEntryValue(int id, String value) { responder.accept(value); }
+		});
 	}
 }

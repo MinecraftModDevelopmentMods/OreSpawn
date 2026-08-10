@@ -1,7 +1,7 @@
 # Worldgen Providers
 
 Provider mods may contribute through Forge IMC, a packaged resource at
-`data/<provider-modid>/orespawn/provider.json`, or a pack override at
+`assets/<provider-modid>/orespawn/provider.json`, or a pack override at
 `config/<provider-modid>-orespawn.json`. A valid override is authoritative. A
 present malformed override leaves that provider inactive instead of silently
 falling back.
@@ -107,8 +107,8 @@ rules remain in the self-contained snapshot.
 
 Biome providers can add Forge biomes normally, then declare where those biomes
 belong through `biome_palettes`. The overlay wraps the dimension's existing
-biome source, so it composes after vanilla, TerraBlender, Biomes O' Plenty, or
-another source instead of taking a compile-time dependency on them. Use
+biome source, so it composes after vanilla or another Forge 1.12 biome provider
+instead of taking a compile-time dependency on it. Use
 `minecraft_only` scope when the provider should leave other mods' biomes alone.
 Use `required_similar_biomes` only when an output truly cannot work without a
 referenced biome; ordinary compatibility hints belong in `similar_biomes`.

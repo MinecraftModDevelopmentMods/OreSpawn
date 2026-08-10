@@ -342,11 +342,11 @@ class WorldGeologyProfileTest {
 		rule.addProperty("quantity", 14);
 		rule.addProperty("pattern", "vein");
 		JsonObject quartz = objectWith("dimensions", objectWith("minecraft:the_nether", rule));
-		JsonObject original = objectWith("ores", objectWith("minecraft:nether_quartz_ore", quartz));
+		JsonObject original = objectWith("ores", objectWith("minecraft:quartz_ore", quartz));
 
 		JsonObject refreshed = GeomeConfig.refreshOreDefaults(original, original);
 		assertEquals(11.2D, refreshed.getAsJsonObject("ores")
-				.getAsJsonObject("minecraft:nether_quartz_ore")
+				.getAsJsonObject("minecraft:quartz_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:the_nether")
 				.get("frequency").getAsDouble());
 	}

@@ -20,7 +20,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.block.Block;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.BiomeDictionary.Type;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public final class GeomeDistributionSampler {
 	private static final int TERRAIN_SAMPLE_MAGIC = 0x4D54524E;
@@ -241,7 +241,7 @@ public final class GeomeDistributionSampler {
 			report.append("  ").append(entry.getKey())
 					.append(" types=").append(biomeTypes(biomeId))
 					.append(" temperature=").append(format(entry.getValue().getDefaultTemperature()))
-					.append(" downfall=").append(format(entry.getValue().getDownfall()))
+					.append(" downfall=").append(format(entry.getValue().getRainfall()))
 					.append(" dominant=").append(config.dominantBiomeWeight(entry.getValue()))
 					.append(" weights=").append(config.describeBiomeWeights(entry.getValue()))
 					.append(" geomes=").append(geomeCounts);

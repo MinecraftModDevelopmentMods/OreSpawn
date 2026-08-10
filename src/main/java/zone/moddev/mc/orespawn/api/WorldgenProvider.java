@@ -204,7 +204,9 @@ public final class WorldgenProvider {
 			requireOwned(ores.keySet(), "ore");
 			requireOwned(fluidDeposits.keySet(), "fluid deposit");
 			requireOwned(geomes.keySet(), "geome");
-			requireOwned(terrainDimensions.keySet(), "terrain dimension");
+			// Terrain-dimension keys identify Minecraft dimensions. Unlike provider-owned
+			// rocks, ores, palettes and templates, they are intentionally not namespaced
+			// to the provider (for example minecraft:overworld or minecraft:the_end).
 			requireOwned(biomePalettes.keySet(), "biome palette");
 			requireOwned(dimensionMaterials.keySet(), "dimension materials");
 			requireOwned(templates.keySet(), "template");

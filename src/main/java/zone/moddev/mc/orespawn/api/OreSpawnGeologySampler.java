@@ -47,7 +47,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	}
 
 	static GeologySampler create(WorldServer level) {
-		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()) {
+		if (level == null || WorldGeologyProfileManager.activeServer() != level.getMinecraftServer()) {
 			throw new IllegalStateException("The level is not part of OreSpawn's active server");
 		}
 		return new OreSpawnGeologySampler(level);

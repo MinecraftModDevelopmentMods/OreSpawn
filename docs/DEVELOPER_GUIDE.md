@@ -24,7 +24,7 @@ blocks or tags.
 Put a schema-4 file in your mod jar at:
 
 ```text
-src/main/resources/data/examplemod/orespawn/provider.json
+src/main/resources/assets/examplemod/orespawn/provider.json
 ```
 
 The rule IDs must use your mod namespace, but output and host blocks may belong
@@ -65,18 +65,14 @@ a custom dimension, a biome palette, world materials, and a selectable template.
 
 ## Java API Quick Start
 
-Declare OreSpawn as a mandatory dependency in `mods.toml`:
+Declare OreSpawn as a mandatory dependency on the Forge 1.12 mod annotation:
 
-```toml
-[[dependencies.examplemod]]
-modId="orespawn"
-mandatory=true
-versionRange="[4.0.0,5.0.0)"
-ordering="AFTER"
-side="BOTH"
+```java
+@Mod(modid = "examplemod", name = "Example Mod", version = "1.0.0",
+    dependencies = "required-after:orespawn@[4.0.6,5.0.0)")
 ```
 
-Submit immutable definitions during `InterModEnqueueEvent`:
+Submit immutable definitions during Forge's initialization event:
 
 ```java
 import zone.moddev.mc.orespawn.api.GeologyFamily;
@@ -86,9 +82,11 @@ import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
-private void enqueueWorldgen(InterModEnqueueEvent event) {
+@Mod.EventHandler
+public void init(FMLInitializationEvent event) {
     ResourceLocation tin = new ResourceLocation("examplemod", "tin_ore");
     WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
         .ore(tin, ore -> ore
@@ -172,7 +170,7 @@ registry IDs, tags, dimensions, geomes, aliases, and block states while baking.
 The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
-Biome filters retain their exact registry IDs. Minecraft 1.13.2 uses a static
+Biome filters retain their exact registry IDs. Minecraft 1.12.2 uses a static
 Forge-backed biome registry, so generation carries those stable IDs alongside
 the selected biome instances. Fluid deposits perform one keyed surface-biome
 lookup per chunk invocation and no registry lookup in the placement loop.
@@ -203,9 +201,9 @@ integration test. A separate test provider creates independently marked
 Grass/Dirt, underwater, filler, and roof columns in open and ceiling
 normal-noise dimensions. The gate verifies biome and chunk edges, late tree,
 vegetation, structure and chest sentinels, the roof underside, and exact save
-and reload behavior. On Forge 25 it also exercises the registered spring
+and reload behavior. On Forge 14 it also exercises the registered spring
 wrapper with a non-Forge-stone provider rock and registers an external ore
-pattern beside every built-in type. It also verifies OreSpawn's Forge 25 biome
+pattern beside every built-in type. It also verifies OreSpawn's Forge 14 biome
 registrar rejects duplicate and late declarations.
 Run `gradlew check` (or `gradlew build`, which includes it)
 before publishing any change to biome registration, palettes, surfaces,

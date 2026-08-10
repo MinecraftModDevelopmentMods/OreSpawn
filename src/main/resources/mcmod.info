@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "orespawn",
+    "name": "MMD OreSpawn",
+    "description": "Configurable, provider-driven terrain, ore, and deposit generation.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/MinecraftModDevelopmentMods/OreSpawn",
+    "updateUrl": "",
+    "authorList": ["SkyBlade1978", "dshadowwolf", "the MMD Team"],
+    "credits": "cyano and the Minecraft Mod Development community",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": ["required-after:forge@[14.23.5.2859,)"]
+  }
+]

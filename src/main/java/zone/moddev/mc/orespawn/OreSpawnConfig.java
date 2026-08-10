@@ -1,41 +1,45 @@
 package zone.moddev.mc.orespawn;
 
-import org.apache.commons.lang3.tuple.Pair;
+import java.io.File;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.common.config.Configuration;
 
 /** Small bootstrap fallback; the JSON profile is the authoritative worldgen configuration. */
 public final class OreSpawnConfig {
-	private static final Common COMMON;
-	private static final ForgeConfigSpec SPEC;
-
 	private static volatile boolean placeTerrain = true;
 	private static volatile GeologyMode geologyMode = GeologyMode.GEOME;
 	private static volatile int geomeSize = 256;
 	private static volatile double rockLayerNoise = 32.0D;
 	private static volatile int layerThickness = 8;
 
-	static {
-		Pair<Common, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Common::new);
-		COMMON = pair.getLeft();
-		SPEC = pair.getRight();
-	}
-
 	private OreSpawnConfig() {
 	}
 
-	public static void register() {
-		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
-	}
-
-	public static void bake() {
-		placeTerrain = COMMON.placeTerrain.get();
-		geologyMode = COMMON.geologyMode.get();
-		geomeSize = COMMON.geomeSize.get();
-		rockLayerNoise = COMMON.rockLayerNoise.get();
-		layerThickness = COMMON.layerThickness.get();
+	/** Loads the small global fallback file. Per-world JSON remains authoritative. */
+	public static synchronized void load(File file) {
+		Configuration config = new Configuration(file);
+		try {
+			config.load();
+			String category = "worldgen";
+			placeTerrain = config.getBoolean("place_terrain", category, true,
+					"Master switch for configured terrain replacement.");
+			String mode = config.getString("fallback_geology_mode", category,
+					GeologyMode.GEOME.name(), "Fallback geology mode.",
+					new String[] { GeologyMode.GEOME.name(), GeologyMode.LEGACY.name() });
+			try {
+				geologyMode = GeologyMode.valueOf(mode.toUpperCase(java.util.Locale.ROOT));
+			} catch (IllegalArgumentException ignored) {
+				geologyMode = GeologyMode.GEOME;
+			}
+			geomeSize = config.getInt("cyano_region_size", category, 256, 4,
+					Short.MAX_VALUE, "Fallback Cyano region size.");
+			rockLayerNoise = config.getFloat("cyano_layer_reach", category, 32.0F,
+					1.0F, Short.MAX_VALUE, "Fallback Cyano layer reach.");
+			layerThickness = config.getInt("cyano_layer_thickness", category, 8, 1,
+					255, "Fallback Cyano layer thickness.");
+		} finally {
+			if (config.hasChanged()) config.save();
+		}
 	}
 
 	public static boolean placeOreSpawnRock() { return placeTerrain; }
@@ -46,26 +50,6 @@ public final class OreSpawnConfig {
 	/** Legacy fallback input retained for source compatibility; JSON deposits are authoritative. */
 	@Deprecated
 	public static boolean placeCrudeOil() { return false; }
-
-	private static final class Common {
-		final ForgeConfigSpec.BooleanValue placeTerrain;
-		final ForgeConfigSpec.EnumValue<GeologyMode> geologyMode;
-		final ForgeConfigSpec.IntValue geomeSize;
-		final ForgeConfigSpec.DoubleValue rockLayerNoise;
-		final ForgeConfigSpec.IntValue layerThickness;
-
-		Common(ForgeConfigSpec.Builder builder) {
-			builder.comment("Bootstrap fallbacks. Detailed settings live in orespawn-worldgen.json.")
-					.push("worldgen");
-			placeTerrain = builder.comment("Master switch for configured terrain replacement.")
-					.define("place_terrain", true);
-			geologyMode = builder.defineEnum("fallback_geology_mode", GeologyMode.GEOME);
-			geomeSize = builder.defineInRange("cyano_region_size", 256, 4, Short.MAX_VALUE);
-			rockLayerNoise = builder.defineInRange("cyano_layer_reach", 32.0D, 1.0D, Short.MAX_VALUE);
-			layerThickness = builder.defineInRange("cyano_layer_thickness", 8, 1, 255);
-			builder.pop();
-		}
-	}
 
 	public static final class OreGenerationSettings {
 		private final int minY;

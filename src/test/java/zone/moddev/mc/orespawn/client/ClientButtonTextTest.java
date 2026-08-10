@@ -26,7 +26,7 @@ class ClientButtonTextTest {
 	private static final Path CLIENT_SOURCE = Paths.get(
 			"src", "main", "java", "zone", "moddev", "mc", "orespawn", "client");
 	private static final Path ENGLISH = Paths.get(
-			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.json");
+			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.lang");
 	private static final Pattern LITERAL_TRANSLATION = Pattern.compile(
 			"new\\s+TextComponentTranslation\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
 	private static final Set<String> MINECRAFT_1_14_KEYS = new HashSet<>(Arrays.asList(
@@ -45,8 +45,7 @@ class ClientButtonTextTest {
 
 	@Test
 	void everyLiteralClientTranslationKeyExistsOnTheTarget() throws Exception {
-		JsonObject english = new JsonParser().parse(new String(
-				Files.readAllBytes(ENGLISH), StandardCharsets.UTF_8)).getAsJsonObject();
+		JsonObject english = zone.moddev.mc.orespawn.test.LangTestFiles.read(ENGLISH);
 		List<String> missing = new ArrayList<>();
 		try (Stream<Path> files = Files.list(CLIENT_SOURCE)) {
 			for (Path source : (Iterable<Path>) files
@@ -63,6 +62,6 @@ class ClientButtonTextTest {
 		}
 
 		assertTrue(missing.isEmpty(),
-				"Client labels must exist in OreSpawn or Minecraft 1.13: " + missing);
+				"Client labels must exist in OreSpawn or Minecraft 1.12: " + missing);
 	}
 }

@@ -10,7 +10,6 @@ import zone.moddev.mc.orespawn.worldgen.WorldIds;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
-import net.minecraftforge.fml.InterModComms;
 
 /** Entry point for OreSpawn API version 1. */
 public final class OreSpawnApi {
@@ -21,14 +20,14 @@ public final class OreSpawnApi {
 	}
 
 	/**
-	 * Enqueues a provider through Forge IMC. Call this during
-	 * {@code InterModEnqueueEvent}.
+	 * Enqueues a provider before OreSpawn freezes discovery. Call this during
+	 * the provider mod's Forge initialization phase.
 	 */
 	public static boolean enqueue(WorldgenProvider provider) {
 		if (provider == null) {
 			throw new IllegalArgumentException("provider cannot be null");
 		}
-		return InterModComms.sendTo(OreSpawn.MODID, IMC_WORLDGEN_PROVIDER, () -> provider);
+		return WorldgenIntegrationManager.submitApiProvider(provider);
 	}
 
 	public static ProviderStatus getProviderStatus(String providerModId) {
@@ -47,7 +46,7 @@ public final class OreSpawnApi {
 	}
 
 	public static Optional<GeologySampler> createSampler(WorldServer level) {
-		if (level == null || WorldGeologyProfileManager.activeServer() != level.getServer()
+		if (level == null || WorldGeologyProfileManager.activeServer() != level.getMinecraftServer()
 				|| GeomeConfig.baked(WorldIds.dimension(level)) == null) {
 			return Optional.empty();
 		}

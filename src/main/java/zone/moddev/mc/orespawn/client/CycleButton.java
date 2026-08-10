@@ -56,7 +56,7 @@ final class CycleButton<T> extends Button {
 
 	private static <T> String message(ITextComponent label,
 			Function<T, ITextComponent> valueLabel, T value) {
-		return label.getFormattedText() + ": " + valueLabel.apply(value).getFormattedText();
+		return label.getUnformattedText() + ": " + valueLabel.apply(value).getUnformattedText();
 	}
 
 	interface OnValueChange<T> {

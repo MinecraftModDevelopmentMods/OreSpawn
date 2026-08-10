@@ -18,7 +18,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 	private static final int BUTTON_HEIGHT = 20;

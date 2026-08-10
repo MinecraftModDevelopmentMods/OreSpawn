@@ -16,12 +16,12 @@ import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.init.Fluids;
-import net.minecraft.util.registry.IRegistry;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 
@@ -50,12 +50,12 @@ public final class OreSpawnPatterns {
 	private OreSpawnPatterns() {
 	}
 
-	public static synchronized void register(IEventBus bus) {
+	public static synchronized void register() {
 		if (attached) {
 			throw new IllegalStateException("Ore pattern registry already attached");
 		}
 		attached = true;
-		bus.addGenericListener(OrePatternType.class, OreSpawnPatterns::registerTypes);
+		MinecraftForge.EVENT_BUS.register(OreSpawnPatterns.class);
 	}
 
 	public static IForgeRegistry<OrePatternType> registry() {
@@ -108,7 +108,8 @@ public final class OreSpawnPatterns {
 		};
 	}
 
-	private static void registerTypes(RegistryEvent.Register<OrePatternType> event) {
+	@SubscribeEvent
+	public static void registerTypes(RegistryEvent.Register<OrePatternType> event) {
 		for (Map.Entry<ResourceLocation, Supplier<OrePatternType>> entry : TYPES.entrySet()) {
 			OrePatternType type = entry.getValue().get();
 			event.getRegistry().register(type.setRegistryName(entry.getKey()));
@@ -221,8 +222,8 @@ public final class OreSpawnPatterns {
 	}
 
 	private static CompiledOrePattern underFluids(StandardPatternSettings settings) {
-		Fluid fluid = IRegistry.field_212619_h.get(new ResourceLocation(settings.fluid()));
-		if (fluid == null) fluid = Fluids.WATER;
+		Fluid fluid = FluidRegistry.getFluid(settings.fluid());
+		if (fluid == null) fluid = FluidRegistry.WATER;
 		final Fluid targetFluid = fluid;
 		return context -> {
 			Random random = context.random();

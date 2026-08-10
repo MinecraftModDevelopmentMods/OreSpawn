@@ -4,6 +4,8 @@ import zone.moddev.mc.orespawn.util.JsonCopies;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -37,13 +39,12 @@ import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.init.Blocks;
-import net.minecraftforge.fml.InterModComms;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.forgespi.language.IModInfo;
-import net.minecraftforge.fml.loading.moddiscovery.ModFile;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.ModContainer;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,8 +76,17 @@ public final class WorldgenIntegrationManager {
 	private WorldgenIntegrationManager() {
 	}
 
+	/** Forge 1.12 has no object-valued IMC, so the API submits before baking. */
+	public static synchronized boolean submitApiProvider(WorldgenProvider provider) {
+		if (provider == null) throw new IllegalArgumentException("provider cannot be null");
+		if (frozen) throw new IllegalStateException("OreSpawn provider registration is closed");
+		if (API_PROVIDERS.containsKey(provider.modId())) return false;
+		API_PROVIDERS.put(provider.modId(), provider);
+		return true;
+	}
+
 	public static synchronized void initialize() {
-		initialize(FMLPaths.CONFIGDIR.get());
+		initialize(net.minecraftforge.fml.common.Loader.instance().getConfigDir().toPath());
 	}
 
 	static synchronized void initialize(Path configDirectory) {
@@ -110,27 +120,13 @@ public final class WorldgenIntegrationManager {
 	}
 
 	public static synchronized void processImcMessages() {
-		InterModComms.getMessages(OreSpawn.MODID,
-				OreSpawnApi.IMC_WORLDGEN_PROVIDER::equals).forEach(message -> {
-			String providerId = "<unknown>";
-			try {
-				Object value = message.getMessageSupplier().get();
-				if (!(value instanceof WorldgenProvider)) {
-					throw new IllegalArgumentException("message is not a WorldgenProvider");
-				}
-				WorldgenProvider provider = (WorldgenProvider) value;
-				providerId = provider.modId();
-				if (!net.minecraftforge.fml.ModList.get().isLoaded(providerId)) {
-					throw new IllegalArgumentException("provider mod is not loaded: " + providerId);
-				}
-				if (API_PROVIDERS.putIfAbsent(provider.modId(), provider) != null) {
-					throw new IllegalArgumentException("provider was submitted more than once");
-				}
-			} catch (RuntimeException e) {
-				INVALID_PROVIDERS.add(providerId);
-				LOGGER.error("Rejected OreSpawn API provider '{}'", providerId, e);
+		for (WorldgenProvider provider : new ArrayList<>(API_PROVIDERS.values())) {
+			if (!Loader.isModLoaded(provider.modId())) {
+				INVALID_PROVIDERS.add(provider.modId());
+				LOGGER.error("Rejected OreSpawn API provider '{}': provider mod is not loaded",
+						provider.modId());
 			}
-		});
+		}
 		rebuildActiveProviders();
 	}
 
@@ -353,7 +349,7 @@ public final class WorldgenIntegrationManager {
 		String fileName = path.getFileName().toString();
 		String providerId = fileName.substring(0, fileName.length() - FILE_SUFFIX.length());
 		FILE_PROVIDER_IDS.add(providerId);
-		if (!MOD_ID.matcher(providerId).matches() || !ModList.get().isLoaded(providerId)) {
+		if (!MOD_ID.matcher(providerId).matches() || !Loader.isModLoaded(providerId)) {
 			return;
 		}
 		try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
@@ -372,22 +368,19 @@ public final class WorldgenIntegrationManager {
 	}
 
 	private static void scanPackagedProviders() {
-		ModList mods = ModList.get();
-		if (mods == null) {
-			return;
+		for (ModContainer mod : Loader.instance().getActiveModList()) {
+			scanPackagedProvider(mod.getModId());
 		}
-		mods.forEachModFile(WorldgenIntegrationManager::scanPackagedProvider);
 	}
 
-	private static void scanPackagedProvider(ModFile file) {
-		for (IModInfo info : file.getModInfos()) {
-			String providerId = info.getModId();
-			Path path = file.findResource("data/" + providerId + "/orespawn/provider.json");
-			if (!Files.isRegularFile(path)) {
-				continue;
-			}
+	private static void scanPackagedProvider(String providerId) {
+		String path = "assets/" + providerId + "/orespawn/provider.json";
+		try (InputStream input = WorldgenIntegrationManager.class.getClassLoader()
+				.getResourceAsStream(path)) {
+			if (input == null) return;
 			FILE_PROVIDER_IDS.add(providerId);
-			try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+			try (BufferedReader reader = new BufferedReader(
+					new InputStreamReader(input, StandardCharsets.UTF_8))) {
 				JsonElement element = new JsonParser().parse(reader);
 				if (!element.isJsonObject()) {
 					throw new JsonSyntaxException("root is not an object");
@@ -395,10 +388,10 @@ public final class WorldgenIntegrationManager {
 				JsonObject root = element.getAsJsonObject();
 				validateProvider(providerId, root);
 				RESOURCE_PROVIDERS.put(providerId, JsonCopies.copy(root));
-			} catch (IOException | RuntimeException e) {
-				INVALID_PROVIDERS.add(providerId);
-				LOGGER.error("Rejected packaged OreSpawn provider '{}' from '{}'", providerId, path, e);
 			}
+		} catch (IOException | RuntimeException e) {
+			INVALID_PROVIDERS.add(providerId);
+			LOGGER.error("Rejected packaged OreSpawn provider '{}' from '{}'", providerId, path, e);
 		}
 	}
 
@@ -425,7 +418,7 @@ public final class WorldgenIntegrationManager {
 				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
 				root = apiProvider == null ? null : apiProvider.toJson();
 			}
-			if (root == null || !ModList.get().isLoaded(providerId)) {
+			if (root == null || !Loader.isModLoaded(providerId)) {
 				continue;
 			}
 			try {
@@ -480,7 +473,7 @@ public final class WorldgenIntegrationManager {
 				if (!entry.getValue().isJsonObject()) {
 					throw new JsonSyntaxException(section + " entry is not an object: " + entry.getKey());
 				}
-				if (!"biome_rules".equals(section)) {
+				if (!"biome_rules".equals(section) && !"terrain_dimensions".equals(section)) {
 					validateOwnedId(providerId, entry.getKey(), section);
 				} else {
 					new ResourceLocation(entry.getKey());
@@ -531,6 +524,7 @@ public final class WorldgenIntegrationManager {
 		if (block == null || block == Blocks.AIR) {
 			throw new JsonSyntaxException("unknown rock block: " + blockId);
 		}
+		validateMetadata(rock, "metadata", idText);
 		RockFamily.fromConfigName(string(rock, "family", ""));
 		int minY = integer(rock, "min_y", 0);
 		int maxY = integer(rock, "max_y", 255);
@@ -548,6 +542,8 @@ public final class WorldgenIntegrationManager {
 		if (output == null || output == Blocks.AIR) {
 			throw new JsonSyntaxException("unknown ore block: " + blockId);
 		}
+		validateMetadata(ore, "metadata", idText);
+		validateMetadata(ore, "deep_output_metadata", idText);
 		if (ore.has("outputs")) validateOutputs(idText, ore.get("outputs"));
 		JsonObject dimensions = optionalObject(ore, "dimensions");
 		JsonObject selectors = optionalObject(ore, "dimension_selectors");
@@ -630,6 +626,7 @@ public final class WorldgenIntegrationManager {
 		for (JsonElement value : element.getAsJsonArray()) {
 			if (!value.isJsonObject()) throw new JsonSyntaxException("weighted output is not an object: " + idText);
 			JsonObject output = value.getAsJsonObject();
+			validateMetadata(output, "metadata", idText);
 			String blockId = string(output, "block", "");
 			Block block = block(blockId);
 			if (block == null || block == Blocks.AIR || decimal(output, "weight", 1.0D) <= 0.0D
@@ -675,9 +672,10 @@ public final class WorldgenIntegrationManager {
 	private static void validateFluidDeposit(String id, JsonObject deposit) {
 		String blockId = string(deposit, "block", "");
 		Block output = block(blockId);
-		if (output == null || output == Blocks.AIR || output.getDefaultState().getFluidState().isEmpty()) {
+		if (output == null || output == Blocks.AIR || !isFluidBlock(output)) {
 			throw new JsonSyntaxException("fluid deposit output is not a fluid block: " + blockId);
 		}
+		validateMetadata(deposit, "metadata", id);
 		JsonObject dimensions = requiredObject(deposit, "dimensions");
 		if (dimensions.size() == 0) {
 			throw new JsonSyntaxException("fluid deposit has no dimensions: " + id);
@@ -792,6 +790,7 @@ public final class WorldgenIntegrationManager {
 				throw new JsonSyntaxException("unknown biome surface block for " + id + ": "
 						+ surface.get(key).getAsString());
 			}
+			validateMetadata(surface, key + "_metadata", id);
 		}
 		int fillerDepth = integer(surface, "filler_depth", 3);
 		if (fillerDepth < 0 || fillerDepth > 16) {
@@ -806,7 +805,7 @@ public final class WorldgenIntegrationManager {
 		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
 			if (!materials.has(key)) continue;
 			Block value = block(materials.get(key).getAsString());
-			if (value == null || value == Blocks.AIR || value.getDefaultState().getFluidState().isEmpty()) {
+			if (value == null || value == Blocks.AIR || !isFluidBlock(value)) {
 				throw new JsonSyntaxException("dimension material is not a fluid block for " + id + ": "
 						+ materials.get(key).getAsString());
 			}
@@ -892,7 +891,7 @@ public final class WorldgenIntegrationManager {
 			boolean available = true;
 			if (json.has("required_mods") && json.get("required_mods").isJsonArray()) {
 				for (JsonElement mod : json.getAsJsonArray("required_mods")) {
-					available &= ModList.get().isLoaded(mod.getAsString());
+					available &= Loader.isModLoaded(mod.getAsString());
 				}
 			}
 			TEMPLATES.put(id, new TemplateDefinition(id,
@@ -928,6 +927,11 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
+	private static boolean isFluidBlock(Block block) {
+		return block instanceof BlockLiquid || block instanceof IFluidBlock
+				|| block.getDefaultState().getMaterial().isLiquid();
+	}
+
 	private static boolean validBlocks(JsonElement element) {
 		if (element == null || !element.isJsonArray() || element.getAsJsonArray().size() == 0) {
 			return false;
@@ -942,8 +946,21 @@ public final class WorldgenIntegrationManager {
 			if (value.isJsonObject() && (decimal(value.getAsJsonObject(), "weight", 1.0D) < 0.0D
 					|| decimal(value.getAsJsonObject(), "weight", 1.0D) > 1.0D))
 				throw new JsonSyntaxException("invalid host block weight: " + id);
+			if (value.isJsonObject()) validateMetadata(value.getAsJsonObject(), "metadata", id);
 		}
 		return true;
+	}
+
+	private static void validateMetadata(JsonObject object, String key, String owner) {
+		if (!object.has(key)) return;
+		int metadata;
+		try { metadata = object.get(key).getAsInt(); }
+		catch (RuntimeException failure) {
+			throw new JsonSyntaxException("invalid metadata for " + owner + ": " + key);
+		}
+		if (metadata < 0 || metadata > 15) {
+			throw new JsonSyntaxException("metadata outside 0..15 for " + owner + ": " + key);
+		}
 	}
 
 	private static boolean validateIds(JsonElement element) {

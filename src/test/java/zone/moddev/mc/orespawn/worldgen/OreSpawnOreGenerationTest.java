@@ -13,6 +13,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 
 class OreSpawnOreGenerationTest {
 	@Test
@@ -55,6 +57,19 @@ class OreSpawnOreGenerationTest {
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector",
 				new ResourceLocation("examplemod:disabled")));
 		assertEquals(null, OreSpawnOreGeneration.selectRule(explicit, configured, "selector", WorldIds.NETHER));
+	}
+
+	@Test
+	void metadataOnlyReplacementHostsAreValidOreTargets() {
+		Map<Block, Double> blocks = new HashMap<>();
+		Map<IBlockState, Double> states = new HashMap<>();
+		// The parser stores a metadata-qualified host in the exact-state map,
+		// independently of the whole-block map.
+		states.put(null, 1.0D);
+
+		assertTrue(OreSpawnOreGeneration.hasHostTargets(blocks, states, 0));
+		states.clear();
+		assertFalse(OreSpawnOreGeneration.hasHostTargets(blocks, states, 0));
 	}
 
 	private static final class CountingRandom extends Random {

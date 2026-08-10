@@ -79,7 +79,7 @@ final class LegacyConfigMigrator {
 				if (!entry.getValue().isJsonObject()) continue;
 				JsonObject converted = convertSpawn(entry.getKey(), entry.getValue().getAsJsonObject(), report);
 				if (converted != null) {
-					String id = migratedRuleId(owner, entry.getKey(), converted, providerRules, report);
+					String id = migratedRuleId(owner, entry.getKey(), converted, ores, providerRules, report);
 					ores.add(id, converted);
 					imported++;
 				}
@@ -102,9 +102,19 @@ final class LegacyConfigMigrator {
 	}
 
 	private static String migratedRuleId(String owner, String legacyName, JsonObject converted,
+			JsonObject existingRules,
 			BiFunction<String, String, List<String>> providerRules, List<String> report) {
 		String legacyId = "orespawn:legacy/" + owner + "/" + safe(legacyName);
 		String output = string(converted, "block", "");
+		String ownedProviderId = owner + ":legacy/" + safe(legacyName);
+		for (String stableId : Arrays.asList(ownedProviderId, legacyId)) {
+			if (existingRules.has(stableId) && existingRules.get(stableId).isJsonObject()
+					&& output.equals(string(existingRules.getAsJsonObject(stableId), "block", ""))) {
+				report.add("Mapped legacy rule " + legacyName + " to synthesized provider rule "
+						+ stableId + ".");
+				return stableId;
+			}
+		}
 		List<String> matches = providerRules.apply(owner, output);
 		if (matches == null) return legacyId;
 		if (matches.size() == 1) {
@@ -140,11 +150,18 @@ final class LegacyConfigMigrator {
 		for (JsonElement element : blocks) {
 			if (!element.isJsonObject()) continue;
 			JsonObject old = element.getAsJsonObject();
-			String block = modernBlock(string(old, "name", ""), string(old, "state", ""));
+			String oldName = string(old, "name", "");
+			String oldState = string(old, "state", "");
+			String block = legacyBlockName(oldName);
 			if (block.isEmpty()) continue;
-			if (primary == null) primary = block;
+			int metadata = legacyMetadata(oldName, oldState, old);
+			if (primary == null) {
+				primary = block;
+				if (metadata != 0) ore.addProperty("metadata", metadata);
+			}
 			JsonObject output = new JsonObject();
 			output.addProperty("block", block);
+			if (metadata != 0) output.addProperty("metadata", metadata);
 			output.addProperty("weight", Math.max(0, integer(old, "chance", 100)));
 			outputs.add(output);
 		}
@@ -155,8 +172,8 @@ final class LegacyConfigMigrator {
 		JsonObject parameters = source.has("parameters") && source.get("parameters").isJsonObject()
 				? source.getAsJsonObject("parameters") : new JsonObject();
 		String feature = normalizePattern(string(source, "feature", "default"));
-		int minY = integer(parameters, "minHeight", 0);
-		int exclusiveMaxY = integer(parameters, "maxHeight", 256);
+		int minY = Math.max(0, Math.min(255, integer(parameters, "minHeight", 0)));
+		int exclusiveMaxY = Math.max(0, Math.min(256, integer(parameters, "maxHeight", 256)));
 		if (exclusiveMaxY <= minY) {
 			report.add("Skipped " + name + ": empty legacy height range " + minY + ".." + exclusiveMaxY + ".");
 			return null;
@@ -238,9 +255,19 @@ final class LegacyConfigMigrator {
 		} else if (replaces.isJsonArray()) {
 			for (JsonElement element : replaces.getAsJsonArray()) {
 				if (!element.isJsonObject()) continue;
-				String name = modernBlock(string(element.getAsJsonObject(), "name", ""),
-						string(element.getAsJsonObject(), "state", ""));
-				if (!name.isEmpty() && !name.startsWith("ore:")) hosts.add(name);
+				JsonObject old = element.getAsJsonObject();
+				String oldName = string(old, "name", "");
+				String name = legacyBlockName(oldName);
+				if (!name.isEmpty() && !name.startsWith("ore:")) {
+					int metadata = legacyMetadata(oldName, string(old, "state", ""), old);
+					if (metadata == 0) hosts.add(name);
+					else {
+						JsonObject host = new JsonObject();
+						host.addProperty("block", name);
+						host.addProperty("metadata", metadata);
+						hosts.add(host);
+					}
+				}
 			}
 		}
 		rule.add("host_blocks", hosts);
@@ -373,13 +400,18 @@ final class LegacyConfigMigrator {
 		return normalized;
 	}
 
-	private static String modernBlock(String name, String state) {
-		if ("minecraft:stone".equals(name)) {
-			if (state.contains("andesite")) return "minecraft:andesite";
-			if (state.contains("diorite")) return "minecraft:diorite";
-			if (state.contains("granite")) return "minecraft:granite";
-		}
+	private static String legacyBlockName(String name) {
+		if ("minecraft:andesite".equals(name) || "minecraft:diorite".equals(name)
+				|| "minecraft:granite".equals(name)) return "minecraft:stone";
 		return name.indexOf(':') >= 0 ? name : name.isEmpty() ? "" : "minecraft:" + name;
+	}
+
+	private static int legacyMetadata(String name, String state, JsonObject source) {
+		if (source.has("metadata")) return Math.max(0, Math.min(15, source.get("metadata").getAsInt()));
+		if ("minecraft:granite".equals(name) || state.contains("variant=granite")) return 1;
+		if ("minecraft:diorite".equals(name) || state.contains("variant=diorite")) return 3;
+		if ("minecraft:andesite".equals(name) || state.contains("variant=andesite")) return 5;
+		return 0;
 	}
 
 	private static String legacyDimension(JsonElement value) {

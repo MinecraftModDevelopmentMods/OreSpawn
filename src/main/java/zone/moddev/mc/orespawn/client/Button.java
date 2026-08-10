@@ -27,15 +27,11 @@ class Button extends net.minecraft.client.gui.GuiButton {
 		this.tooltip = tooltip;
 	}
 
-	@Override
-	public void onClick(double mouseX, double mouseY) {
-		super.onClick(mouseX, mouseY);
+	void press() {
 		if (onPress != null) onPress.onPress(this);
 	}
 
-	@Override
-	public void render(int mouseX, int mouseY, float partialTick) {
-		super.render(mouseX, mouseY, partialTick);
+	void renderTooltip(int mouseX, int mouseY) {
 		if (tooltip != null && isMouseOver()) tooltip.render(this, mouseX, mouseY);
 	}
 

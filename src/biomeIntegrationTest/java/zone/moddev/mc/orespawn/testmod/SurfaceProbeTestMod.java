@@ -3,404 +3,459 @@ package zone.moddev.mc.orespawn.testmod;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.LinkedHashSet;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
+import zone.moddev.mc.orespawn.api.OrePatternType;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes.BiomeReference;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes.BiomeRegistrar;
-import zone.moddev.mc.orespawn.api.OrePatternType;
 import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.ProviderStatus;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
-import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
+import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.WorldServer;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.item.EnumDyeColor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.init.Items;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.world.chunk.IChunk;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.tileentity.TileEntityChest;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeDecorator;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.ChunkGeneratorFlat;
-import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.gen.IChunkGenerator;
-import net.minecraft.world.gen.IChunkGenSettings;
-import net.minecraft.world.gen.surfacebuilders.CompositeSurfaceBuilder;
-import net.minecraft.world.gen.feature.CompositeFeature;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.feature.LiquidsConfig;
-import net.minecraft.world.gen.placement.IPlacementConfig;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
 import net.minecraftforge.common.BiomeDictionary;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.common.IWorldGenerator;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-/** Independent, test-only provider surface fixture. */
-@Mod(SurfaceProbeTestMod.MODID)
+/** Independent Forge 1.12 provider-surface and exact-biome regression fixture. */
+@Mod(modid = SurfaceProbeTestMod.MODID, name = "OreSpawn Surface Probe",
+		version = "1.0.0", acceptedMinecraftVersions = "[1.12.2]",
+		dependencies = "required-after:orespawn@[4.0.6,5.0.0)")
 public final class SurfaceProbeTestMod {
 	static final String MODID = "surfaceprobe";
-
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static final OrePatternType EXTERNAL_PATTERN = OrePatternType.create(
-			StandardPatternSettings.CODEC, settings -> context -> true)
-			.setRegistryName(MODID, "external_probe");
-	private static final ProbeFeature TERRAIN_FEATURE = new ProbeFeature(ProbeStage.TERRAIN);
-	private static final ProbeFeature STRUCTURE_FEATURE = new ProbeFeature(ProbeStage.STRUCTURE);
-	private static final ProbeFeature VEGETATION_FEATURE = new ProbeFeature(ProbeStage.VEGETATION);
-	private final BiomeRegistrar biomes;
-	private final BiomeReference surfaceA;
-	private final BiomeReference surfaceB;
-	private static CompositeFeature<?, ?> terrainConfigured;
-	private static CompositeFeature<?, ?> structureConfigured;
-	private static CompositeFeature<?, ?> vegetationConfigured;
-	private static final DimensionType OPEN = DimensionType.THE_END;
-	private static final DimensionType ROOFED = DimensionType.NETHER;
-	private static final ResourceLocation OPEN_ID = new ResourceLocation("minecraft:the_end");
-	private static final ResourceLocation ROOFED_ID = new ResourceLocation("minecraft:the_nether");
-	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
-	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
-	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
-	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID + ":rock/spring_host");
+	private static final ResourceLocation END = new ResourceLocation("minecraft", "the_end");
+	private static final ResourceLocation NETHER = new ResourceLocation("minecraft", "the_nether");
+	private static final ResourceLocation OVERWORLD = new ResourceLocation("minecraft", "overworld");
+	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID, "surface_a");
+	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID, "surface_b");
+	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID, "exact_biome");
+	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID, "rock/spring_host");
 	private static final BlockPos SPRING_POS = new BlockPos(1128, 32, 1128);
-	private static final ResourceLocation[] BUILT_IN_GEOMES = {
-			new ResourceLocation("orespawn:stable_craton"), new ResourceLocation("orespawn:mountain_belt"),
-			new ResourceLocation("orespawn:volcanic_arc"), new ResourceLocation("orespawn:sedimentary_basin"),
-			new ResourceLocation("orespawn:coastal_shelf"), new ResourceLocation("orespawn:arid_basin"),
-			new ResourceLocation("orespawn:wetland_basin"), new ResourceLocation("orespawn:glacial_highland")
-	};
-	private static final Set<ResourceLocation> BASE_BIOMES = Collections.unmodifiableSet(
-			new java.util.LinkedHashSet<ResourceLocation>(Arrays.asList(
-			new ResourceLocation("minecraft", "the_end"),
-			new ResourceLocation("minecraft", "small_end_islands"),
-			new ResourceLocation("minecraft", "end_midlands"),
-			new ResourceLocation("minecraft", "end_highlands"),
-			new ResourceLocation("minecraft", "end_barrens"),
-			new ResourceLocation("minecraft", "nether"), BIOME_A, BIOME_B)));
-	private static final int MINIMUM_CHUNK = 63;
-	private static final int MAXIMUM_CHUNK = 65;
-	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
-	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
-	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
-	private static final int EXPECTED_FILLER = EXPECTED_COLUMNS * 3;
+	private static final int MIN_CHUNK = 63;
+	private static final int MAX_CHUNK = 65;
+	private static final int COLUMNS = 9 * 16 * 16;
+	private static final int FILLER = COLUMNS * 3;
+	private static final int GROUND_Y = 200;
+	private static final int MARKER_Y = GROUND_Y - 5;
+	private static final int ROOF_UNDERSIDE_Y = 220;
+	private static final int ROOF_TOP_Y = 222;
+	private static final int GEOLOGY_MIN_Y = 20;
+	private static final int GEOLOGY_MAX_Y = 22;
 	private static final String PHASE_PROPERTY = "surfaceprobe.integrationPhase";
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
+	private static final ResourceLocation[] BUILT_IN_GEOMES = {
+			new ResourceLocation("orespawn", "stable_craton"),
+			new ResourceLocation("orespawn", "mountain_belt"),
+			new ResourceLocation("orespawn", "volcanic_arc"),
+			new ResourceLocation("orespawn", "sedimentary_basin"),
+			new ResourceLocation("orespawn", "coastal_shelf"),
+			new ResourceLocation("orespawn", "arid_basin"),
+			new ResourceLocation("orespawn", "wetland_basin"),
+			new ResourceLocation("orespawn", "glacial_highland")
+	};
+
+	private static final OrePatternType EXTERNAL_PATTERN = OrePatternType.create(
+			StandardPatternSettings.CODEC, settings -> context -> false)
+			.setRegistryName(MODID, "external_probe");
+
+	private final BiomeRegistrar registrar = OreSpawnBiomes.registrar(MODID);
+	private final BiomeReference surfaceA = OreSpawnBiomes.blankAndRegister(registrar,
+			"surface_a", properties -> configure(properties, 1.35F, 0.15F));
+	private final BiomeReference surfaceB = OreSpawnBiomes.blankAndRegister(registrar,
+			"surface_b", properties -> configure(properties, 0.7F, 0.8F));
+	private final Set<String> preparedTerrain = new LinkedHashSet<>();
 
 	public SurfaceProbeTestMod() {
-		FMLJavaModLoadingContext context = FMLJavaModLoadingContext.get();
-		IEventBus modBus = context.getModEventBus();
-		biomes = OreSpawnBiomes.registrar(MODID);
-		surfaceA = OreSpawnBiomes.blankAndRegister(
-				biomes, "surface_a", builder -> configureBiome(builder, 1.35F, 0.15F));
-		surfaceB = OreSpawnBiomes.blankAndRegister(
-				biomes, "surface_b", builder -> configureBiome(builder, 0.7F, 0.8F));
-		modBus.addGenericListener(Biome.class, this::tagBiomes);
-		modBus.addGenericListener(OrePatternType.class, this::registerPatterns);
-		modBus.addListener(this::setup);
-		modBus.addListener(this::enqueueProvider);
-		MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::enableGeologyProbe);
-		MinecraftForge.EVENT_BUS.addListener(this::auditGeneratedSurfaces);
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 
-	private void setup(FMLCommonSetupEvent event) {
-		terrainConfigured = configured(TERRAIN_FEATURE);
-		structureConfigured = configured(STRUCTURE_FEATURE);
-		vegetationConfigured = configured(VEGETATION_FEATURE);
-		addFixtureFeatures();
+	private static void configure(Biome.BiomeProperties properties,
+			float temperature, float rainfall) {
+		properties.setBaseHeight(0.1F).setHeightVariation(0.2F)
+				.setTemperature(temperature).setRainfall(rainfall)
+				.setWaterColor(4159204);
 	}
 
-	private void registerPatterns(RegistryEvent.Register<OrePatternType> event) {
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void registerBiomes(RegistryEvent.Register<Biome> event) {
+		surfaceA.get().decorator = new ProbeDecorator();
+		surfaceB.get().decorator = new ProbeDecorator();
+		BiomeDictionary.addTypes(surfaceA.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
+		BiomeDictionary.addTypes(surfaceB.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
+	}
+
+	@SubscribeEvent
+	public void registerPatterns(RegistryEvent.Register<OrePatternType> event) {
 		event.getRegistry().register(EXTERNAL_PATTERN);
 	}
 
-	private void tagBiomes(RegistryEvent.Register<Biome> event) {
-		BiomeDictionary.addTypes(surfaceA.get(),
-				BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
-		BiomeDictionary.addTypes(surfaceB.get(),
-				BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
+	@EventHandler
+	public void preInit(FMLPreInitializationEvent event) {
+		GameRegistry.registerWorldGenerator(new ProbeGenerator(), 1000);
 	}
 
-	private static void configureBiome(Biome.BiomeBuilder builder, float temperature, float downfall) {
-		builder.precipitation(Biome.RainType.RAIN).category(Biome.Category.NONE)
-				.depth(0.1F).scale(0.2F).temperature(temperature).downfall(downfall)
-				.waterColor(4159204).waterFogColor(329011)
-				.surfaceBuilder(new CompositeSurfaceBuilder<>(Biome.DEFAULT_SURFACE_BUILDER,
-						Biome.GRASS_DIRT_GRAVEL_SURFACE));
+	@SubscribeEvent(priority = EventPriority.HIGHEST)
+	public void placeControlledTerrain(DecorateBiomeEvent.Pre event) {
+		World world = event.getWorld();
+		int chunkX = event.getChunkPos().x;
+		int chunkZ = event.getChunkPos().z;
+		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
+				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
+				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
+		String key = world.provider.getDimension() + ":" + chunkX + ":" + chunkZ;
+		if (!preparedTerrain.add(key)) return;
+		Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
+		ProbeGenerator.placeTerrain(chunk, chunkX << 4, chunkZ << 4,
+				world.provider.getDimension() == -1);
 	}
 
-	private static CompositeFeature<?, ?> configured(Feature<NoFeatureConfig> feature) {
-		return Biome.createCompositeFeature(feature, new NoFeatureConfig(),
-				Biome.PASSTHROUGH, IPlacementConfig.NO_PLACEMENT_CONFIG);
-	}
-
-	private static void addFixtureFeatures() {
-		for (ResourceLocation id : BASE_BIOMES) {
-			Biome biome = ForgeRegistries.BIOMES.getValue(id);
-			if (biome == null) throw new IllegalStateException("Surface probe biome is unavailable: " + id);
-			addUnique(biome.getFeatures(GenerationStage.Decoration.RAW_GENERATION), terrainConfigured);
-			addUnique(biome.getFeatures(GenerationStage.Decoration.SURFACE_STRUCTURES), structureConfigured);
-			addUnique(biome.getFeatures(GenerationStage.Decoration.VEGETAL_DECORATION), vegetationConfigured);
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void verifySurfaceStage(DecorateBiomeEvent.Pre event) {
+		World world = event.getWorld();
+		int chunkX = event.getChunkPos().x;
+		int chunkZ = event.getChunkPos().z;
+		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
+				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
+				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
+		BlockPos pos = new BlockPos(chunkX << 4, GROUND_Y, chunkZ << 4);
+		if (world.getBlockState(pos).getBlock() == Blocks.GRASS) {
+			throw new IllegalStateException("OreSpawn surface did not run within the native decoration stage at "
+					+ pos + " in dimension " + world.provider.getDimension());
 		}
 	}
 
-	private static void addUnique(java.util.List<CompositeFeature<?, ?>> features,
-			CompositeFeature<?, ?> feature) {
-		if (!features.contains(feature)) features.add(feature);
-	}
-
-	private void enqueueProvider(InterModEnqueueEvent event) {
+	@EventHandler
+	public void init(FMLInitializationEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
-		addDynamicBiomeGeology(provider);
-		addPalette(provider, "open_palette_0", OPEN_ID, false);
-		addPalette(provider, "roofed_palette_0", ROOFED_ID, true);
-		provider.dimensionMaterials(new ResourceLocation(MODID + ":materials/nether"), ROOFED_ID,
-				materials -> materials.defaultFluid(blockId(Blocks.WATER)));
+		addGeology(provider);
+		// This stable palette id makes seed zero select both fixture biomes on
+		// opposite sides of the 1,024-block Tiny-region boundary.
+		addPalette(provider, "end_palette_1", END, false);
+		addPalette(provider, "nether_palette_1", NETHER, true);
 		if (!OreSpawnApi.enqueue(provider.build())) {
-			throw new IllegalStateException("Could not enqueue surface probe provider");
+			throw new IllegalStateException("Could not enqueue the surfaceprobe provider");
 		}
 	}
 
-	private static void addDynamicBiomeGeology(WorldgenProvider.Builder provider) {
-		provider.geome(PROBE_GEOME, geome -> geome
-				.baseWeight(0.0D)
+	private static void addGeology(WorldgenProvider.Builder provider) {
+		provider.geome(PROBE_GEOME, geome -> geome.baseWeight(0.0D)
 				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
-		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome"), blockId(Blocks.DIORITE),
+		provider.rock(new ResourceLocation(MODID, "rock/exact_biome"), id(Blocks.PRISMARINE),
 				GeologyFamily.SEDIMENTARY, rock -> {
-					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
-					rock.geomeWeight(PROBE_GEOME, 1.0D);
+					rock.dimension(END).yRange(0, 255).geomeWeight(PROBE_GEOME, 1.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
 				});
-		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.GRANITE),
+		provider.rock(new ResourceLocation(MODID, "rock/fallback"), id(Blocks.NETHERRACK),
 				GeologyFamily.SEDIMENTARY, rock -> {
-					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
-					rock.geomeWeight(PROBE_GEOME, 0.0D);
+					rock.dimension(END).yRange(0, 255).geomeWeight(PROBE_GEOME, 0.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
 				});
-		provider.rock(SPRING_ROCK, blockId(Blocks.DIAMOND_BLOCK),
+		provider.rock(SPRING_ROCK, id(Blocks.PURPUR_BLOCK),
 				GeologyFamily.IGNEOUS_INTRUSIVE, rock -> {
-					rock.dimensions(java.util.Collections.singleton(
-							new ResourceLocation("minecraft", "overworld")));
+					rock.dimension(OVERWORLD).yRange(0, 0).weight(0.000001D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
 				});
-		provider.biome(BIOME_A, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
-		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
-	}
-
-	private void enableGeologyProbe(FMLServerAboutToStartEvent event) {
-		Path profile = worldRoot(event.getServer()).resolve("serverconfig")
-				.resolve("orespawn-worldgen.json");
-		JsonObject root;
-		try (BufferedReader reader = Files.newBufferedReader(profile)) {
-			root = new JsonParser().parse(reader).getAsJsonObject();
-		} catch (IOException | RuntimeException exception) {
-			throw new IllegalStateException("Could not read the test-owned End geology profile", exception);
-		}
-		try {
-			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
-			if (terrain == null) {
-				terrain = new JsonObject();
-				root.add("terrain_dimensions", terrain);
-			}
-			JsonObject end = new JsonObject();
-			end.addProperty("enabled", true);
-			end.add("biome_ids", new JsonArray());
-			JsonArray namespaces = new JsonArray();
-			namespaces.add(MODID);
-			end.add("biome_namespaces", namespaces);
-			JsonArray hosts = new JsonArray();
-			hosts.add(blockId(Blocks.END_STONE).toString());
-			end.add("host_blocks", hosts);
-			end.add("host_tags", new JsonArray());
-			terrain.add(OPEN_ID.toString(), end);
-			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
-				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
-			}
-		} catch (IOException | RuntimeException exception) {
-			throw new IllegalStateException("Could not write the test-owned End geology profile", exception);
-		}
-		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
-			throw new IllegalStateException("Could not reload the test-owned End geology profile");
-		}
+		provider.biome(BIOME_A, Collections.singletonMap(PROBE_GEOME, 100.0D));
+		provider.biome(BIOME_B, Collections.singletonMap(PROBE_GEOME, 100.0D));
+		provider.terrainDimension(TerrainDimensionDefinition.builder(END)
+				.biomeNamespace(MODID).hostBlock(id(Blocks.END_STONE)).build());
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
 			ResourceLocation dimension, boolean ceiling) {
-		BiomeSurfaceDefinition surfaceA = surface(EnumDyeColor.PINK, EnumDyeColor.WHITE,
-				EnumDyeColor.BLUE, ceiling ? EnumDyeColor.ORANGE : null);
-		BiomeSurfaceDefinition surfaceB = surface(EnumDyeColor.LIME, EnumDyeColor.YELLOW,
-				EnumDyeColor.LIGHT_BLUE, ceiling ? EnumDyeColor.MAGENTA : null);
-		provider.biomePalette(new ResourceLocation(MODID + ":" + name), dimension,
-				palette -> palette
-						.mode(BiomePlacementMode.REPLACE)
+		BiomeSurfaceDefinition a = surface(Blocks.EMERALD_BLOCK, Blocks.QUARTZ_BLOCK,
+				Blocks.LAPIS_BLOCK, ceiling ? Blocks.IRON_BLOCK : null);
+		BiomeSurfaceDefinition b = surface(Blocks.DIAMOND_BLOCK, Blocks.REDSTONE_BLOCK,
+				Blocks.COAL_BLOCK, ceiling ? Blocks.GOLD_BLOCK : null);
+		provider.biomePalette(new ResourceLocation(MODID, name), dimension,
+				palette -> palette.mode(BiomePlacementMode.REPLACE)
 						.scope(BiomeReplacementScope.MINECRAFT_ONLY)
-						.regionSize(BiomeRegionSize.TINY)
-						.coverage(1.0D)
-						.fallbackWeight(0.0D)
-						.biome(BIOME_A, biome -> biome
-								.weight(1.0D)
-								.temperature(-2.0D, 2.0D)
-								.downfall(0.0D, 1.0D)
-								.surface(surfaceA))
-						.biome(BIOME_B, biome -> biome
-								.weight(1.0D)
-								.temperature(-2.0D, 2.0D)
-								.downfall(0.0D, 1.0D)
-								.surface(surfaceB)));
+						.regionSize(BiomeRegionSize.TINY).coverage(1.0D).fallbackWeight(0.0D)
+						.biome(BIOME_A, biome -> biome.weight(1.0D)
+								.temperature(-2.0D, 2.0D).downfall(0.0D, 1.0D).surface(a))
+						.biome(BIOME_B, biome -> biome.weight(1.0D)
+								.temperature(-2.0D, 2.0D).downfall(0.0D, 1.0D).surface(b)));
 	}
 
-	private static BiomeSurfaceDefinition surface(EnumDyeColor top, EnumDyeColor filler,
-			EnumDyeColor underwater, EnumDyeColor ceiling) {
+	private static BiomeSurfaceDefinition surface(Block top, Block filler,
+			Block underwater, Block ceiling) {
 		BiomeSurfaceDefinition.Builder builder = BiomeSurfaceDefinition.builder()
-				.topBlock(blockId(concreteBlock(top)))
-				.fillerBlock(blockId(concreteBlock(filler)))
-				.fillerDepth(3)
-				.underwaterBlock(blockId(concreteBlock(underwater)));
-		if (ceiling != null) {
-			builder.ceilingBlock(blockId(concreteBlock(ceiling)));
-		}
+				.topBlock(id(top)).fillerBlock(id(filler)).underwaterBlock(id(underwater))
+				.fillerDepth(3);
+		if (ceiling != null) builder.ceilingBlock(id(ceiling));
 		return builder.build();
 	}
 
-	private static ResourceLocation blockId(Block block) {
-		return ForgeRegistries.BLOCKS.getKey(block);
+	private static ResourceLocation id(Block block) {
+		ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
+		if (id == null) throw new IllegalStateException("Unregistered fixture block " + block);
+		return id;
 	}
 
-	private void auditGeneratedSurfaces(FMLServerStartedEvent event) {
+	@EventHandler
+	public void serverStarted(FMLServerStartedEvent event) {
 		String phase = System.getProperty(PHASE_PROPERTY, "").trim();
-		if (!phase.equals("fresh") && !phase.equals("reload")) {
+		if (!"fresh".equals(phase) && !"reload".equals(phase)) {
 			throw new IllegalStateException("Missing or invalid " + PHASE_PROPERTY + ": " + phase);
 		}
 		if (OreSpawnApi.getProviderStatus(MODID) != ProviderStatus.ACTIVE) {
-			throw new IllegalStateException("Surface probe provider is not active");
+			throw new IllegalStateException("surfaceprobe provider is not active");
 		}
-		verifyOrePatternRegistry();
-		WorldServer overworld = event.getServer().getWorld(DimensionType.OVERWORLD);
+		verifyPatterns();
+		MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+		WorldServer overworld = server.getWorld(0);
 		if (overworld == null || overworld.getSeed() != 0L) {
-			throw new IllegalStateException("Surface probe expected actual world seed 0 but found "
-					+ (overworld == null ? "missing overworld" : overworld.getSeed()));
+			throw new IllegalStateException("surfaceprobe requires seed token zsjpxah (hash zero)");
 		}
-
-		Path marker = worldRoot(event.getServer()).resolve(MARKER_NAME);
-		Properties previous = phase.equals("reload") ? readMarker(marker) : null;
-		if (phase.equals("fresh") && Files.exists(marker)) {
-			throw new IllegalStateException("Fresh surface probe retained a reload marker");
+		Path marker = worldRoot(server).resolve(MARKER_NAME);
+		Properties previous = "reload".equals(phase) ? read(marker) : null;
+		if ("fresh".equals(phase) && Files.exists(marker)) {
+			throw new IllegalStateException("Fresh surfaceprobe retained an old marker");
 		}
-
-		Map<String, AuditResult> results = new LinkedHashMap<>();
-		results.put("open", auditDimension(requireLevel(event, OPEN), false));
-		results.put("roofed", auditDimension(requireLevel(event, ROOFED), true));
-		SpringResult spring = auditProviderRockSpring(overworld, phase);
+		Map<String, Audit> results = new LinkedHashMap<>();
+		results.put("end", audit(requireWorld(server, 1), false));
+		results.put("nether", audit(requireWorld(server, -1), true));
+		ResourceLocation spring = auditSpring(overworld, phase);
 		Properties current = properties(overworld.getSeed(), results, spring);
 		if (previous == null) {
-			writeMarker(marker, current);
+			write(marker, current);
 		} else {
-			for (String name : current.stringPropertyNames()) {
-				String expected = previous.getProperty(name);
-				String actual = current.getProperty(name);
-				if (!actual.equals(expected)) {
-					throw new IllegalStateException("Reloaded surface value changed for " + name
-							+ ": expected " + expected + " but found " + actual);
+			for (String key : current.stringPropertyNames()) {
+				if (!current.getProperty(key).equals(previous.getProperty(key))) {
+					throw new IllegalStateException("Reload changed " + key + ": expected "
+							+ previous.getProperty(key) + " but found " + current.getProperty(key));
 				}
 			}
 			previous.setProperty("reload_verified", "true");
-			writeMarker(marker, previous);
+			write(marker, previous);
 		}
-
-		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
-				phase, results.get("open"), results.get("roofed"));
-		event.getServer().initiateShutdown();
+		LOGGER.info("SURFACEPROBE PASS phase={} end={} nether={}",
+				phase, results.get("end"), results.get("nether"));
+		server.initiateShutdown();
 	}
 
-	private static void verifyOrePatternRegistry() {
+	private static WorldServer requireWorld(MinecraftServer server, int dimension) {
+		WorldServer world = server.getWorld(dimension);
+		if (world == null) {
+			DimensionManager.initDimension(dimension);
+			world = DimensionManager.getWorld(dimension);
+		}
+		if (world == null) throw new IllegalStateException("Missing dimension " + dimension);
+		if (world.getChunkProvider().chunkGenerator instanceof ChunkGeneratorFlat) {
+			throw new IllegalStateException("surfaceprobe requires normal-noise dimension " + dimension);
+		}
+		return world;
+	}
+
+	private static Audit audit(WorldServer world, boolean roofed) {
+		long dry = 0, wet = 0, filler = 0, geology = 0, ceiling = 0, roof = 0;
+		int biomeA = 0, biomeB = 0, edges = 0, sentinels = 0;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		loadPopulationBorder(world);
+		for (int chunkZ = MIN_CHUNK; chunkZ <= MAX_CHUNK; chunkZ++) {
+			for (int chunkX = MIN_CHUNK; chunkX <= MAX_CHUNK; chunkX++) {
+				Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
+				if (!chunk.isTerrainPopulated()) {
+					throw new IllegalStateException("Normal chunk population did not complete at "
+							+ chunkX + "," + chunkZ);
+				}
+				int minX = chunkX << 4, minZ = chunkZ << 4;
+				for (int localZ = 0; localZ < 16; localZ++) {
+					for (int localX = 0; localX < 16; localX++) {
+						int x = minX + localX, z = minZ + localZ;
+						int ground = markedGround(chunk, cursor, x, z);
+						Biome biome = world.getBiome(cursor.setPos(x, ground, z));
+						ResourceLocation biomeId = biome.getRegistryName();
+						Material material = material(biomeId, roofed);
+						float temperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
+						float rainfall = BIOME_A.equals(biomeId) ? 0.15F : 0.8F;
+						if (Float.compare(biome.getDefaultTemperature(), temperature) != 0
+								|| Float.compare(biome.getRainfall(), rainfall) != 0) {
+							throw new IllegalStateException("Climate mismatch for " + biomeId + " at " + cursor);
+						}
+						if (BIOME_A.equals(biomeId)) biomeA++; else biomeB++;
+						if (x > (MIN_CHUNK << 4)
+								&& !biomeId.equals(world.getBiome(cursor.setPos(x - 1, ground, z)).getRegistryName())) edges++;
+						if (z > (MIN_CHUNK << 4)
+								&& !biomeId.equals(world.getBiome(cursor.setPos(x, ground, z - 1)).getRegistryName())) edges++;
+						boolean underwater = localX == 1 && localZ == 1;
+						Block expectedTop = underwater ? material.underwater : material.top;
+						assertBlock(chunk, cursor, x, ground, z,
+								expectedTop, "surface top");
+						if (underwater) wet++; else dry++;
+						for (int depth = 1; depth <= 3; depth++) {
+							assertBlock(chunk, cursor, x, ground - depth, z, material.filler,
+									"surface filler " + depth);
+							filler++;
+						}
+						if (!roofed) {
+							for (int y = GEOLOGY_MIN_Y; y <= GEOLOGY_MAX_Y; y++) {
+								assertBlock(chunk, cursor, x, y, z, Blocks.PRISMARINE, "exact-biome geology");
+								geology++;
+							}
+						} else {
+							assertBlock(chunk, cursor, x, ROOF_UNDERSIDE_Y, z, material.ceiling, "roof underside");
+							assertBlock(chunk, cursor, x, ROOF_TOP_Y, z, Blocks.STONE, "roof top");
+							ceiling++; roof++;
+						}
+					}
+				}
+				sentinels += auditSentinels(world, minX, minZ);
+			}
+		}
+		if (dry != COLUMNS - 9 || wet != 9 || filler != FILLER || biomeA == 0 || biomeB == 0
+				|| edges == 0 || sentinels != 36 || geology != (roofed ? 0 : FILLER)
+				|| (roofed && (ceiling != COLUMNS || roof != COLUMNS))) {
+			throw new IllegalStateException("Incomplete surface audit: dry=" + dry + ", wet=" + wet
+					+ ", filler=" + filler + ", biomeA=" + biomeA + ", biomeB=" + biomeB
+					+ ", edges=" + edges + ", sentinels=" + sentinels + ", geology=" + geology
+					+ ", ceiling=" + ceiling + ", roof=" + roof);
+		}
+		return new Audit(dry, wet, filler, geology, ceiling, roof, biomeA, biomeB, edges, sentinels);
+	}
+
+	private static void loadPopulationBorder(WorldServer world) {
+		for (int chunkZ = MIN_CHUNK - 1; chunkZ <= MAX_CHUNK + 1; chunkZ++) {
+			for (int chunkX = MIN_CHUNK - 1; chunkX <= MAX_CHUNK + 1; chunkX++) {
+				world.getChunkProvider().provideChunk(chunkX, chunkZ);
+			}
+		}
+	}
+
+	private static int auditSentinels(WorldServer world, int minX, int minZ) {
+		assertBlock(world, minX + 4, GROUND_Y + 1, minZ + 4, Blocks.LOG, "tree log");
+		assertBlock(world, minX + 4, GROUND_Y + 4, minZ + 4, Blocks.LEAVES, "tree leaves");
+		assertBlock(world, minX + 6, GROUND_Y + 1, minZ + 6, Blocks.DIRT, "vegetation substrate");
+		assertBlock(world, minX + 6, GROUND_Y + 2, minZ + 6, Blocks.SAPLING, "vegetation");
+		assertBlock(world, minX + 8, GROUND_Y + 1, minZ + 8, Blocks.BRICK_BLOCK, "structure");
+		BlockPos chestPos = new BlockPos(minX + 10, GROUND_Y + 1, minZ + 10);
+		assertBlock(world, chestPos.getX(), chestPos.getY(), chestPos.getZ(), Blocks.CHEST, "chest");
+		if (!(world.getTileEntity(chestPos) instanceof TileEntityChest)) {
+			throw new IllegalStateException("Chest block entity missing at " + chestPos);
+		}
+		ItemStack stack = ((TileEntityChest) world.getTileEntity(chestPos)).getStackInSlot(0);
+		if (stack.getItem() != Items.DIAMOND || !CHEST_ITEM_NAME.equals(stack.getDisplayName())) {
+			throw new IllegalStateException("Chest inventory changed at " + chestPos);
+		}
+		return 4;
+	}
+
+	private static ResourceLocation auditSpring(WorldServer world, String phase) {
+		if (!SurfaceProbeSpringBridge.recognizesProviderRock(Blocks.PURPUR_BLOCK)) {
+			throw new IllegalStateException("Provider rock is not accepted by the spring compatibility path");
+		}
+		world.getChunkProvider().provideChunk(SPRING_POS.getX() >> 4, SPRING_POS.getZ() >> 4);
+		if ("fresh".equals(phase)) {
+			for (BlockPos rock : Arrays.asList(SPRING_POS.up(), SPRING_POS.down(),
+					SPRING_POS.west(), SPRING_POS.east(), SPRING_POS.north())) {
+				world.setBlockState(rock, Blocks.PURPUR_BLOCK.getDefaultState(), 2);
+			}
+			world.setBlockToAir(SPRING_POS);
+			world.setBlockToAir(SPRING_POS.south());
+			if (!SurfaceProbeSpringBridge.placeWater(world, SPRING_POS)) {
+				throw new IllegalStateException("Provider-rock spring was rejected");
+			}
+		}
+		Block block = world.getBlockState(SPRING_POS).getBlock();
+		if (block != Blocks.FLOWING_WATER && block != Blocks.WATER) {
+			throw new IllegalStateException("Provider-rock spring changed across " + phase + ": " + block);
+		}
+		return id(block);
+	}
+
+	private static void verifyPatterns() {
 		for (String name : Arrays.asList("default", "vein", "normal_cloud", "precision",
 				"clusters", "underfluids")) {
-			if (OreSpawnPatternRegistry.registry().getValue(
-					new ResourceLocation("orespawn", name)) == null) {
-				throw new IllegalStateException("Built-in ore pattern is missing: " + name);
+			if (OreSpawnPatternRegistry.registry().getValue(new ResourceLocation("orespawn", name)) == null) {
+				throw new IllegalStateException("Missing built-in ore pattern " + name);
 			}
 		}
 		if (OreSpawnPatternRegistry.registry().getValue(
 				new ResourceLocation(MODID, "external_probe")) != EXTERNAL_PATTERN) {
-			throw new IllegalStateException("Fixture-owned external ore pattern did not register");
+			throw new IllegalStateException("Fixture external ore pattern did not register");
 		}
 	}
 
-	private static SpringResult auditProviderRockSpring(WorldServer level, String phase) {
-		LiquidsConfig spring = SurfaceProbeSpringBridge.findRewrittenSpring(
-				ForgeRegistries.BIOMES.getValues());
-		if (spring == null) {
-			throw new IllegalStateException("No rewritten Forge 28 vanilla spring leaf was found");
+	private static Material material(ResourceLocation biome, boolean roofed) {
+		if (BIOME_A.equals(biome)) return new Material(Blocks.EMERALD_BLOCK, Blocks.QUARTZ_BLOCK,
+				Blocks.LAPIS_BLOCK, roofed ? Blocks.IRON_BLOCK : null);
+		if (BIOME_B.equals(biome)) return new Material(Blocks.DIAMOND_BLOCK, Blocks.REDSTONE_BLOCK,
+				Blocks.COAL_BLOCK, roofed ? Blocks.GOLD_BLOCK : null);
+		throw new IllegalStateException("Unexpected provider biome " + biome);
+	}
+
+	private static int markedGround(Chunk chunk, BlockPos.MutableBlockPos cursor, int x, int z) {
+		for (int y = 255; y >= 0; y--) {
+			if (chunk.getBlockState(cursor.setPos(x, y, z)).getBlock() == Blocks.OBSIDIAN) return y + 5;
 		}
-		if (!SurfaceProbeSpringBridge.recognizesProviderRock(Blocks.DIAMOND_BLOCK)) {
-			throw new IllegalStateException("Baked provider rock was not accepted by the spring wrapper");
-		}
-		level.getChunk(SPRING_POS.getX() >> 4, SPRING_POS.getZ() >> 4);
-		if ("fresh".equals(phase)) {
-			for (BlockPos rock : Arrays.asList(SPRING_POS.up(), SPRING_POS.down(),
-					SPRING_POS.west(), SPRING_POS.east(), SPRING_POS.north())) {
-				level.setBlockState(rock, Blocks.DIAMOND_BLOCK.getDefaultState(), 2);
-			}
-			level.setBlockState(SPRING_POS, Blocks.AIR.getDefaultState(), 2);
-			level.setBlockState(SPRING_POS.south(), Blocks.AIR.getDefaultState(), 2);
-			if (!SurfaceProbeSpringBridge.place(level, SPRING_POS, spring)) {
-				throw new IllegalStateException("Rewritten spring did not place in provider rock cavity");
-			}
-		}
-		Block expected = spring.field_202459_a.getDefaultState().getBlockState().getBlock();
-		Block actual = level.getBlockState(SPRING_POS).getBlock();
-		if (actual != expected) {
-			throw new IllegalStateException("Provider-rock spring changed across " + phase
-					+ ": expected " + expected + " but found " + actual);
-		}
-		return new SpringResult(ForgeRegistries.BLOCKS.getKey(actual));
+		throw new IllegalStateException("Surface marker missing at " + x + "," + z);
+	}
+
+	private static void assertBlock(Chunk chunk, BlockPos.MutableBlockPos cursor,
+			int x, int y, int z, Block expected, String purpose) {
+		Block actual = chunk.getBlockState(cursor.setPos(x, y, z)).getBlock();
+		if (actual != expected) throw new IllegalStateException("Expected " + purpose + " " + expected
+				+ " at " + cursor + " but found " + actual);
+	}
+
+	private static void assertBlock(World world, int x, int y, int z, Block expected, String purpose) {
+		BlockPos pos = new BlockPos(x, y, z);
+		Block actual = world.getBlockState(pos).getBlock();
+		if (actual != expected) throw new IllegalStateException("Expected " + purpose + " " + expected
+				+ " at " + pos + " but found " + actual);
 	}
 
 	private static Path worldRoot(MinecraftServer server) {
@@ -408,476 +463,125 @@ public final class SurfaceProbeTestMod {
 				.toPath().toAbsolutePath().normalize().getParent();
 	}
 
-	private static WorldServer requireLevel(FMLServerStartedEvent event, DimensionType key) {
-		WorldServer level = event.getServer().getWorld(key);
-		if (level == null) throw new IllegalStateException("Surface probe dimension is unavailable: " + DimensionType.func_212678_a(key));
-		if (level.getChunkProvider().getChunkGenerator() instanceof ChunkGeneratorFlat) {
-			throw new IllegalStateException("Surface probe requires normal noise terrain: " + DimensionType.func_212678_a(key));
-		}
-		return level;
+	private static Properties properties(long seed, Map<String, Audit> audits, ResourceLocation spring) {
+		Properties properties = new Properties();
+		properties.setProperty("seed", Long.toString(seed));
+		properties.setProperty("dimensions", Integer.toString(audits.size()));
+		properties.setProperty("columns_per_dimension", Integer.toString(COLUMNS));
+		properties.setProperty("spring", spring.toString());
+		for (Map.Entry<String, Audit> entry : audits.entrySet()) entry.getValue().put(properties, entry.getKey());
+		return properties;
 	}
 
-	private static AuditResult auditDimension(WorldServer level, boolean roofed) {
-		long top = 0L;
-		long underwater = 0L;
-		long filler = 0L;
-		long geology = 0L;
-		long ceiling = 0L;
-		long roofTop = 0L;
-		int biomeA = 0;
-		int biomeB = 0;
-		int edgeChanges = 0;
-		int sentinels = 0;
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+	private static Properties read(Path path) {
+		Properties properties = new Properties();
+		try (BufferedReader reader = Files.newBufferedReader(path)) { properties.load(reader); }
+		catch (IOException exception) { throw new IllegalStateException("Could not read " + path, exception); }
+		return properties;
+	}
 
-		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
-			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
-				level.getChunk(chunkX, chunkZ);
-				Chunk chunk = level.getChunk(chunkX, chunkZ);
-				int chunkMinX = chunkX << 4;
-				int chunkMinZ = chunkZ << 4;
-				for (int localZ = 0; localZ < 16; localZ++) {
-					for (int localX = 0; localX < 16; localX++) {
-						int x = chunkMinX + localX;
-						int z = chunkMinZ + localZ;
-						int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
-						Biome biome = level.getBiome(pos.setPos(x, groundY, z));
-						ResourceLocation biomeId = biomeId(level, biome);
-						Material material = material(biomeId, roofed);
-						float expectedTemperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
-						float expectedDownfall = BIOME_A.equals(biomeId) ? 0.15F : 0.8F;
-						Biome biomeValue = biome;
-						if (Float.compare(biomeValue.getDefaultTemperature(), expectedTemperature) != 0
-								|| Float.compare(biomeValue.getDownfall(), expectedDownfall) != 0) {
-							throw new IllegalStateException("Provider climate changed for " + biomeId
-									+ " at " + pos + ": temperature="
-									+ biomeValue.getDefaultTemperature() + ", downfall="
-									+ biomeValue.getDownfall());
-						}
-						if (BIOME_A.equals(biomeId)) biomeA++; else biomeB++;
-						if (x > (MINIMUM_CHUNK << 4)) {
-							ResourceLocation westBiome = biomeId(level,
-									level.getBiome(pos.setPos(x - 1, groundY, z)));
-							if (!westBiome.equals(biomeId)) edgeChanges++;
-						}
-						if (z > (MINIMUM_CHUNK << 4)) {
-							ResourceLocation northBiome = biomeId(level,
-									level.getBiome(pos.setPos(x, groundY, z - 1)));
-							if (!northBiome.equals(biomeId)) edgeChanges++;
-						}
-						boolean waterColumn = localX == 1 && localZ == 1;
-						IBlockState expectedTop = waterColumn ? material.underwater() : material.top();
-						assertBlock(chunk, pos, x, groundY, z, expectedTop,
-								"provider top at exposed marked ground");
-						if (waterColumn) underwater++; else top++;
-						for (int depth = 1; depth <= 3; depth++) {
-							assertBlock(chunk, pos, x, groundY - depth, z, material.filler(),
-									"provider filler depth " + depth);
-							filler++;
-						}
-						if (!roofed) {
-							for (int depth = 6; depth <= 8; depth++) {
-								assertBlock(chunk, pos, x, groundY - depth, z,
-										Blocks.DIORITE.getDefaultState(), "dynamic-biome geome rock");
-								geology++;
-							}
-						}
-						if (roofed) {
-							ResourceLocation ceilingBiome = biomeId(level, level.getBiome(
-									pos.setPos(x, groundY + 8, z)));
-							IBlockState expectedCeiling = material(ceilingBiome, true).ceiling();
-							assertBlock(chunk, pos, x, groundY + 8, z, expectedCeiling,
-									"roof underside");
-							assertBlock(chunk, pos, x, groundY + 10, z, Blocks.STONE.getDefaultState(),
-									"roof top");
-							ceiling++;
-							roofTop++;
-						}
-					}
-				}
-				sentinels += auditSentinels(level, chunk, pos, chunkMinX, chunkMinZ);
+	private static void write(Path path, Properties properties) {
+		try {
+			Files.createDirectories(path.getParent());
+			try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+				properties.store(writer, "OreSpawn Forge 1.12 surface integration");
 			}
-		}
-
-		if (top != EXPECTED_COLUMNS - 9 || underwater != 9 || filler != EXPECTED_FILLER
-				|| biomeA == 0 || biomeB == 0 || edgeChanges == 0 || sentinels != 9 * 4
-				|| geology != (roofed ? 0 : EXPECTED_FILLER)
-				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS))) {
-			throw new IllegalStateException("Incomplete surface audit for " + DimensionType.func_212678_a(level.dimension.getType())
-					+ ": top=" + top + ", underwater=" + underwater + ", filler=" + filler
-					+ ", biomeA=" + biomeA + ", biomeB=" + biomeB + ", edges=" + edgeChanges
-					+ ", sentinels=" + sentinels + ", geology=" + geology
-					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop);
-		}
-		long aquiferFluid = 0L;
-		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
-				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid);
-	}
-
-	private static long auditDefaultFluid(WorldServer level) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		long water = 0L;
-		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
-			for (int chunkX = FLUID_PROBE_MIN_CHUNK_X; chunkX <= FLUID_PROBE_MAX_CHUNK_X; chunkX++) {
-				level.getChunk(chunkX, chunkZ);
-				Chunk chunk = level.getChunk(chunkX, chunkZ);
-				for (int x = chunk.getPos().getXStart(); x <= chunk.getPos().getXEnd(); x++) {
-					for (int z = chunk.getPos().getZStart(); z <= chunk.getPos().getZEnd(); z++) {
-						for (int y = 0; y <= 63; y++) {
-							if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() == Blocks.WATER) water++;
-						}
-					}
-				}
-			}
-		}
-		if (water == 0L) {
-			throw new IllegalStateException("Minecraft 1.17.1 default-fluid override produced no water in the fixed untouched Nether probe strip");
-		}
-		return water;
-	}
-
-	private static int auditSentinels(WorldServer level, Chunk chunk,
-			BlockPos.MutableBlockPos pos, int minX, int minZ) {
-		int groundTree = findMarkedGround(chunk, pos, minX + 4, minZ + 4,
-				0, 256);
-		assertBlock(chunk, pos, minX + 4, groundTree + 1, minZ + 4,
-				Blocks.OAK_LOG.getDefaultState(), "tree log");
-		assertBlock(chunk, pos, minX + 4, groundTree + 3, minZ + 4,
-				Blocks.OAK_LEAVES.getDefaultState(), "tree leaves");
-
-		int groundVegetation = findMarkedGround(chunk, pos, minX + 6, minZ + 6,
-				0, 256);
-		assertBlock(chunk, pos, minX + 6, groundVegetation + 1, minZ + 6,
-				Blocks.DIRT.getDefaultState(), "vegetation substrate");
-		assertBlock(chunk, pos, minX + 6, groundVegetation + 2, minZ + 6,
-				Blocks.OAK_SAPLING.getDefaultState(), "vegetation");
-
-		int groundStructure = findMarkedGround(chunk, pos, minX + 8, minZ + 8,
-				0, 256);
-		assertBlock(chunk, pos, minX + 8, groundStructure + 1, minZ + 8,
-				Blocks.GOLD_BLOCK.getDefaultState(), "authored structure");
-
-		int groundChest = findMarkedGround(chunk, pos, minX + 10, minZ + 10,
-				0, 256);
-		assertBlock(chunk, pos, minX + 10, groundChest + 1, minZ + 10,
-				Blocks.CHEST.getDefaultState(), "chest sentinel");
-		if (!(level.getTileEntity(pos.setPos(minX + 10, groundChest + 1, minZ + 10))
-				instanceof TileEntityChest)) {
-			throw new IllegalStateException("Chest block entity data changed at " + pos);
-		}
-		TileEntityChest chest = (TileEntityChest) level.getTileEntity(pos);
-		if (chest == null
-				|| chest.getStackInSlot(0).getItem() != Items.DIAMOND
-				|| !CHEST_ITEM_NAME.equals(chest.getStackInSlot(0).getDisplayName().getString())) {
-			throw new IllegalStateException("Chest block entity data changed at " + pos);
-		}
-		return 4;
-	}
-
-	private static int findMarkedGround(IChunk chunk, BlockPos.MutableBlockPos pos,
-			int x, int z, int minY, int maxY) {
-		for (int y = maxY - 1; y >= minY; y--) {
-			if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() == concreteBlock(EnumDyeColor.BLACK)) return y + 5;
-		}
-		throw new IllegalStateException("Independent surface marker missing at " + x + "," + z);
-	}
-
-	private static void assertBlock(IChunk chunk, BlockPos.MutableBlockPos pos,
-			int x, int y, int z, IBlockState expected, String purpose) {
-		IBlockState actual = chunk.getBlockState(pos.setPos(x, y, z));
-		if (actual.getBlock() != expected.getBlock()) {
-			throw new IllegalStateException("Expected " + purpose + " " + expected.getBlock()
-					+ " at " + pos + " but found " + actual.getBlock());
-		}
-	}
-
-	private static Material material(ResourceLocation biome, boolean roofed) {
-		if (BIOME_A.equals(biome)) {
-			return new Material(concrete(EnumDyeColor.PINK), concrete(EnumDyeColor.WHITE),
-					concrete(EnumDyeColor.BLUE), roofed ? concrete(EnumDyeColor.ORANGE) : null);
-		}
-		if (BIOME_B.equals(biome)) {
-			return new Material(concrete(EnumDyeColor.LIME), concrete(EnumDyeColor.YELLOW),
-					concrete(EnumDyeColor.LIGHT_BLUE), roofed ? concrete(EnumDyeColor.MAGENTA) : null);
-		}
-		throw new IllegalStateException("Unexpected provider biome " + biome);
-	}
-
-	private static IBlockState concrete(EnumDyeColor color) {
-		return concreteBlock(color).getDefaultState();
-	}
-
-	private static Block concreteBlock(EnumDyeColor color) {
-		if (color == EnumDyeColor.WHITE) return Blocks.WHITE_CONCRETE;
-		if (color == EnumDyeColor.ORANGE) return Blocks.ORANGE_CONCRETE;
-		if (color == EnumDyeColor.MAGENTA) return Blocks.MAGENTA_CONCRETE;
-		if (color == EnumDyeColor.LIGHT_BLUE) return Blocks.LIGHT_BLUE_CONCRETE;
-		if (color == EnumDyeColor.YELLOW) return Blocks.YELLOW_CONCRETE;
-		if (color == EnumDyeColor.LIME) return Blocks.LIME_CONCRETE;
-		if (color == EnumDyeColor.PINK) return Blocks.PINK_CONCRETE;
-		if (color == EnumDyeColor.GRAY) return Blocks.GRAY_CONCRETE;
-		if (color == EnumDyeColor.LIGHT_GRAY) return Blocks.LIGHT_GRAY_CONCRETE;
-		if (color == EnumDyeColor.CYAN) return Blocks.CYAN_CONCRETE;
-		if (color == EnumDyeColor.PURPLE) return Blocks.PURPLE_CONCRETE;
-		if (color == EnumDyeColor.BLUE) return Blocks.BLUE_CONCRETE;
-		if (color == EnumDyeColor.BROWN) return Blocks.BROWN_CONCRETE;
-		if (color == EnumDyeColor.GREEN) return Blocks.GREEN_CONCRETE;
-		if (color == EnumDyeColor.RED) return Blocks.RED_CONCRETE;
-		return Blocks.BLACK_CONCRETE;
-	}
-
-	private static ResourceLocation biomeId(WorldServer level, Biome biome) {
-		return ForgeRegistries.BIOMES.getKey(biome);
-	}
-
-	private static Properties properties(long seed, Map<String, AuditResult> results,
-			SpringResult spring) {
-		Properties values = new Properties();
-		values.setProperty("seed", Long.toString(seed));
-		values.setProperty("dimensions", Integer.toString(results.size()));
-		values.setProperty("columns_per_dimension", Integer.toString(EXPECTED_COLUMNS));
-		values.setProperty("spring.x", Integer.toString(SPRING_POS.getX()));
-		values.setProperty("spring.y", Integer.toString(SPRING_POS.getY()));
-		values.setProperty("spring.z", Integer.toString(SPRING_POS.getZ()));
-		values.setProperty("spring.block", spring.block().toString());
-		values.setProperty("external_pattern", new ResourceLocation(MODID, "external_probe").toString());
-		for (Map.Entry<String, AuditResult> entry : results.entrySet()) {
-			String prefix = entry.getKey() + ".";
-			AuditResult result = entry.getValue();
-			values.setProperty(prefix + "top", Long.toString(result.top()));
-			values.setProperty(prefix + "underwater", Long.toString(result.underwater()));
-			values.setProperty(prefix + "filler", Long.toString(result.filler()));
-			values.setProperty(prefix + "geology", Long.toString(result.geology()));
-			values.setProperty(prefix + "ceiling", Long.toString(result.ceiling()));
-			values.setProperty(prefix + "roof_top", Long.toString(result.roofTop()));
-			values.setProperty(prefix + "biome_a", Integer.toString(result.biomeA()));
-			values.setProperty(prefix + "biome_b", Integer.toString(result.biomeB()));
-			values.setProperty(prefix + "edge_changes", Integer.toString(result.edgeChanges()));
-			values.setProperty(prefix + "sentinels", Integer.toString(result.sentinels()));
-			values.setProperty(prefix + "aquifer_fluid", Long.toString(result.aquiferFluid()));
-		}
-		return values;
-	}
-
-	private static Properties readMarker(Path marker) {
-		if (!Files.isRegularFile(marker)) {
-			throw new IllegalStateException("Reload phase did not reuse the fresh test world: " + marker);
-		}
-		Properties values = new Properties();
-		try (InputStream input = Files.newInputStream(marker)) {
-			values.load(input);
-			return values;
 		} catch (IOException exception) {
-			throw new IllegalStateException("Could not read surface integration marker", exception);
+			throw new IllegalStateException("Could not write " + path, exception);
 		}
 	}
 
-	private static void writeMarker(Path marker, Properties values) {
-		try (OutputStream output = Files.newOutputStream(marker)) {
-			values.store(output, "OreSpawn provider surface integration test");
-		} catch (IOException exception) {
-			throw new IllegalStateException("Could not write surface integration marker", exception);
-		}
-	}
-
-	private enum ProbeStage { TERRAIN, STRUCTURE, VEGETATION }
-
-	private static final class ProbeFeature extends Feature<NoFeatureConfig> {
-		private final ProbeStage stage;
-
-		private ProbeFeature(ProbeStage stage) {
-			super();
-			this.stage = stage;
-		}
-
+	private static final class ProbeGenerator implements IWorldGenerator {
 		@Override
-		public boolean func_212245_a(IWorld world,
-				IChunkGenerator<? extends IChunkGenSettings> chunkGenerator, Random random,
-				BlockPos origin, NoFeatureConfig config) {
-			IChunk chunk = world.getChunk((origin.getX() >> 4) + 1,
-					(origin.getZ() >> 4) + 1);
-			if (stage == ProbeStage.TERRAIN) return prepareTerrain(world, chunk);
-			if (stage == ProbeStage.STRUCTURE) return placeStructureSentinels(world, chunk);
-			return placeVegetationSentinels(world, chunk);
+		public void generate(Random random, int chunkX, int chunkZ, World world,
+				IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+			if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
+					|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
+					|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
+			placeSentinels(world, chunkX << 4, chunkZ << 4);
 		}
-	}
 
-	private static boolean prepareTerrain(IWorld world, IChunk chunk) {
-		boolean roofed = ROOFED_ID.equals(DimensionType.func_212678_a(world.getWorld().dimension.getType()));
-		if (roofed && chunk.getPos().x >= FLUID_PROBE_MIN_CHUNK_X
-				&& chunk.getPos().x <= FLUID_PROBE_MAX_CHUNK_X
-				&& chunk.getPos().z >= MINIMUM_CHUNK && chunk.getPos().z <= MAXIMUM_CHUNK) return false;
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		int minX = chunk.getPos().getXStart();
-		int minZ = chunk.getPos().getZStart();
-		for (int localX = 0; localX < 16; localX++) {
+		private static void placeTerrain(Chunk chunk, int minX, int minZ, boolean roofed) {
+			BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 			for (int localZ = 0; localZ < 16; localZ++) {
-				int x = minX + localX;
-				int z = minZ + localZ;
-				int groundY = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, localX, localZ);
-				if (roofed) {
-					while (groundY > 0
-							&& solid(chunk.getBlockState(pos.setPos(x, groundY, z)))) groundY--;
-				}
-				while (groundY > 0
-						&& !solid(chunk.getBlockState(pos.setPos(x, groundY, z)))) groundY--;
-				if (!roofed && groundY <= 0) groundY = 64;
-				// Forge 25 decoration may revisit a neighbouring chunk through the
-				// +8 feature origin. Never let a later RAW_GENERATION pass bury the
-				// provider surface that the first pass already corrected.
-				if (chunk.getBlockState(pos.setPos(x, groundY - 5, z)).getBlock()
-						== concreteBlock(EnumDyeColor.BLACK)) continue;
-				chunk.setBlockState(pos.setPos(x, groundY, z), Blocks.GRASS_BLOCK.getDefaultState(), false);
-				for (int depth = 1; depth <= 3; depth++) {
-					chunk.setBlockState(pos.setPos(x, groundY - depth, z), Blocks.DIRT.getDefaultState(), false);
-				}
-				if (!roofed) {
-					for (int depth = 6; depth <= 8; depth++) {
-						chunk.setBlockState(pos.setPos(x, groundY - depth, z), Blocks.END_STONE.getDefaultState(), false);
-					}
-				}
-				chunk.setBlockState(pos.setPos(x, groundY - 5, z),
-						concreteBlock(EnumDyeColor.BLACK).getDefaultState(), false);
-				if (roofed) {
-					for (int openY = groundY + 1; openY < 256; openY++) {
-						chunk.setBlockState(pos.setPos(x, openY, z), Blocks.AIR.getDefaultState(), false);
-					}
-					for (int roofY = groundY + 8; roofY <= groundY + 10; roofY++) {
-						chunk.setBlockState(pos.setPos(x, roofY, z), Blocks.STONE.getDefaultState(), false);
-					}
-				}
-				if (localX == 1 && localZ == 1) {
-					chunk.setBlockState(pos.setPos(x, groundY + 1, z), Blocks.WATER.getDefaultState(), false);
+				for (int localX = 0; localX < 16; localX++) {
+					int x = minX + localX, z = minZ + localZ;
+					for (int y = GROUND_Y + 1; y < 256; y++)
+						chunk.setBlockState(pos.setPos(x, y, z), Blocks.AIR.getDefaultState());
+					chunk.setBlockState(pos.setPos(x, MARKER_Y, z), Blocks.OBSIDIAN.getDefaultState());
+					if (!roofed) for (int y = GEOLOGY_MIN_Y; y <= GEOLOGY_MAX_Y; y++)
+						chunk.setBlockState(pos.setPos(x, y, z), Blocks.END_STONE.getDefaultState());
+					chunk.setBlockState(pos.setPos(x, GROUND_Y - 4, z), Blocks.STONE.getDefaultState());
+					for (int y = GROUND_Y - 3; y < GROUND_Y; y++)
+						chunk.setBlockState(pos.setPos(x, y, z), Blocks.DIRT.getDefaultState());
+					chunk.setBlockState(pos.setPos(x, GROUND_Y, z), Blocks.GRASS.getDefaultState());
+					if (localX == 1 && localZ == 1)
+						chunk.setBlockState(pos.setPos(x, GROUND_Y + 1, z), Blocks.WATER.getDefaultState());
+					if (roofed) for (int y = ROOF_UNDERSIDE_Y; y <= ROOF_TOP_Y; y++)
+						chunk.setBlockState(pos.setPos(x, y, z), Blocks.STONE.getDefaultState());
 				}
 			}
+			chunk.markDirty();
 		}
-		// Decoration writes do not update Forge 25's frozen *_WG maps. Rebuild
-		// the controlled fixture map so the production pass sees the exposed Y.
-		SurfaceProbeSpringBridge.rebuildWorldSurfaceHeight(chunk);
-		return true;
-	}
 
-	private static boolean solid(IBlockState state) {
-		return !state.isAir() && state.getFluidState().isEmpty();
-	}
-
-	private static boolean placeStructureSentinels(IWorld world, IChunk chunk) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		int minX = chunk.getPos().getXStart();
-		int minZ = chunk.getPos().getZStart();
-		int structureY = markedGroundOrMissing(chunk, pos, minX + 8, minZ + 8, world);
-		if (structureY == Integer.MIN_VALUE) return false;
-		world.setBlockState(pos.setPos(minX + 8, structureY + 1, minZ + 8),
-				Blocks.GOLD_BLOCK.getDefaultState(), 2);
-		int chestY = markedGround(chunk, pos, minX + 10, minZ + 10, world);
-		world.setBlockState(pos.setPos(minX + 10, chestY + 1, minZ + 10), Blocks.CHEST.getDefaultState(), 2);
-		if (world.getTileEntity(pos) instanceof TileEntityChest) {
-			TileEntityChest chest = (TileEntityChest) world.getTileEntity(pos);
-			ItemStack sentinel = new ItemStack(Items.DIAMOND);
-			sentinel.setDisplayName(new TextComponentString(CHEST_ITEM_NAME));
-			chest.setInventorySlotContents(0, sentinel);
-			chest.markDirty();
+		private static void placeSentinels(World world, int minX, int minZ) {
+			world.setBlockState(new BlockPos(minX + 4, GROUND_Y + 1, minZ + 4), Blocks.LOG.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 4, GROUND_Y + 2, minZ + 4), Blocks.LOG.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 4, GROUND_Y + 3, minZ + 4), Blocks.LOG.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 4, GROUND_Y + 4, minZ + 4), Blocks.LEAVES.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 6, GROUND_Y + 1, minZ + 6), Blocks.DIRT.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 6, GROUND_Y + 2, minZ + 6), Blocks.SAPLING.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 8, GROUND_Y + 1, minZ + 8), Blocks.BRICK_BLOCK.getDefaultState(), 2);
+			BlockPos chestPos = new BlockPos(minX + 10, GROUND_Y + 1, minZ + 10);
+			world.setBlockState(chestPos, Blocks.CHEST.getDefaultState(), 2);
+			if (!(world.getTileEntity(chestPos) instanceof TileEntityChest))
+				throw new IllegalStateException("Fixture chest failed at " + chestPos);
+			ItemStack stack = new ItemStack(Items.DIAMOND);
+			stack.setStackDisplayName(CHEST_ITEM_NAME);
+			((TileEntityChest) world.getTileEntity(chestPos)).setInventorySlotContents(0, stack);
 		}
-		return true;
-	}
-
-	private static boolean placeVegetationSentinels(IWorld world, IChunk chunk) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		int minX = chunk.getPos().getXStart();
-		int minZ = chunk.getPos().getZStart();
-		int treeY = markedGroundOrMissing(chunk, pos, minX + 4, minZ + 4, world);
-		if (treeY == Integer.MIN_VALUE) return false;
-		for (int y = 1; y <= 2; y++) {
-			world.setBlockState(pos.setPos(minX + 4, treeY + y, minZ + 4), Blocks.OAK_LOG.getDefaultState(), 2);
-		}
-		world.setBlockState(pos.setPos(minX + 4, treeY + 3, minZ + 4), Blocks.OAK_LEAVES.getDefaultState(), 2);
-		int vegetationY = markedGround(chunk, pos, minX + 6, minZ + 6, world);
-		world.setBlockState(pos.setPos(minX + 6, vegetationY + 1, minZ + 6), Blocks.DIRT.getDefaultState(), 2);
-		world.setBlockState(pos.setPos(minX + 6, vegetationY + 2, minZ + 6), Blocks.OAK_SAPLING.getDefaultState(), 2);
-		return true;
-	}
-
-	private static int markedGround(IChunk chunk, BlockPos.MutableBlockPos pos,
-			int x, int z, IWorld world) {
-		return findMarkedGround(chunk, pos, x, z, 0, 256);
-	}
-
-	private static int markedGroundOrMissing(IChunk chunk, BlockPos.MutableBlockPos pos,
-			int x, int z, IWorld world) {
-		for (int y = 255; y >= 0; y--) {
-			if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() == concreteBlock(EnumDyeColor.BLACK)) return y + 5;
-		}
-		return Integer.MIN_VALUE;
 	}
 
 	private static final class Material {
-		private final IBlockState top;
-		private final IBlockState filler;
-		private final IBlockState underwater;
-		private final IBlockState ceiling;
-
-		Material(IBlockState top, IBlockState filler, IBlockState underwater, IBlockState ceiling) {
-			this.top = top;
-			this.filler = filler;
-			this.underwater = underwater;
-			this.ceiling = ceiling;
+		final Block top, filler, underwater, ceiling;
+		Material(Block top, Block filler, Block underwater, Block ceiling) {
+			this.top = top; this.filler = filler; this.underwater = underwater; this.ceiling = ceiling;
 		}
-
-		IBlockState top() { return top; }
-		IBlockState filler() { return filler; }
-		IBlockState underwater() { return underwater; }
-		IBlockState ceiling() { return ceiling; }
 	}
 
-	private static final class SpringResult {
-		private final ResourceLocation block;
-
-		SpringResult(ResourceLocation block) {
-			this.block = block;
+	private static final class ProbeDecorator extends BiomeDecorator {
+		@Override
+		public void decorate(World world, Random random, Biome biome, BlockPos pos) {
+			net.minecraft.util.math.ChunkPos chunkPos = new net.minecraft.util.math.ChunkPos(pos);
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, chunkPos));
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, chunkPos));
 		}
-
-		ResourceLocation block() { return block; }
 	}
 
-	private static final class AuditResult {
-		private final long top;
-		private final long underwater;
-		private final long filler;
-		private final long geology;
-		private final long ceiling;
-		private final long roofTop;
-		private final int biomeA;
-		private final int biomeB;
-		private final int edgeChanges;
-		private final int sentinels;
-		private final long aquiferFluid;
-
-		AuditResult(long top, long underwater, long filler, long geology, long ceiling,
-				long roofTop, int biomeA, int biomeB, int edgeChanges, int sentinels,
-				long aquiferFluid) {
-			this.top = top;
-			this.underwater = underwater;
-			this.filler = filler;
-			this.geology = geology;
-			this.ceiling = ceiling;
-			this.roofTop = roofTop;
-			this.biomeA = biomeA;
-			this.biomeB = biomeB;
-			this.edgeChanges = edgeChanges;
-			this.sentinels = sentinels;
-			this.aquiferFluid = aquiferFluid;
+	private static final class Audit {
+		final long dry, wet, filler, geology, ceiling, roof;
+		final int biomeA, biomeB, edges, sentinels;
+		Audit(long dry, long wet, long filler, long geology, long ceiling, long roof,
+				int biomeA, int biomeB, int edges, int sentinels) {
+			this.dry = dry; this.wet = wet; this.filler = filler; this.geology = geology;
+			this.ceiling = ceiling; this.roof = roof; this.biomeA = biomeA;
+			this.biomeB = biomeB; this.edges = edges; this.sentinels = sentinels;
 		}
-
-		long top() { return top; }
-		long underwater() { return underwater; }
-		long filler() { return filler; }
-		long geology() { return geology; }
-		long ceiling() { return ceiling; }
-		long roofTop() { return roofTop; }
-		int biomeA() { return biomeA; }
-		int biomeB() { return biomeB; }
-		int edgeChanges() { return edgeChanges; }
-		int sentinels() { return sentinels; }
-		long aquiferFluid() { return aquiferFluid; }
+		void put(Properties properties, String prefix) {
+			properties.setProperty(prefix + ".dry", Long.toString(dry));
+			properties.setProperty(prefix + ".wet", Long.toString(wet));
+			properties.setProperty(prefix + ".filler", Long.toString(filler));
+			properties.setProperty(prefix + ".geology", Long.toString(geology));
+			properties.setProperty(prefix + ".ceiling", Long.toString(ceiling));
+			properties.setProperty(prefix + ".roof", Long.toString(roof));
+			properties.setProperty(prefix + ".biome_a", Integer.toString(biomeA));
+			properties.setProperty(prefix + ".biome_b", Integer.toString(biomeB));
+			properties.setProperty(prefix + ".edges", Integer.toString(edges));
+			properties.setProperty(prefix + ".sentinels", Integer.toString(sentinels));
+		}
+		@Override public String toString() {
+			return "Audit{dry=" + dry + ", wet=" + wet + ", filler=" + filler
+					+ ", geology=" + geology + ", ceiling=" + ceiling + ", sentinels=" + sentinels + "}";
+		}
 	}
 }

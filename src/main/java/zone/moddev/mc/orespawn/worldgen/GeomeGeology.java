@@ -8,10 +8,9 @@ import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.block.state.IBlockState;
 
 public final class GeomeGeology {
@@ -83,7 +82,7 @@ public final class GeomeGeology {
 		}
 	}
 
-	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
+	public void replaceStoneInChunk(World world, Chunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getXStart();
 		int zOffset = chunkPos.getZStart();
@@ -95,7 +94,7 @@ public final class GeomeGeology {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int surfaceY = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
+				int surfaceY = chunk.getHeightValue(dx, dz) - 1;
 				cursor.setPos(x, surfaceY, z);
 				Biome biome = world.getBiome(cursor);
 				ResourceLocation biomeId = WorldIds.biome(biome);
@@ -119,7 +118,7 @@ public final class GeomeGeology {
 							IBlockState replacement = pickReplacement(
 									geomeIndex, baseRockValue, formationRegion, x, y, z);
 							if (!changes(current, replacement)) continue;
-							chunk.setBlockState(cursor, replacement, false);
+							chunk.setBlockState(cursor, replacement);
 							changed = true;
 						}
 					}
@@ -128,13 +127,11 @@ public final class GeomeGeology {
 		}
 
 		if (changed) {
-			if (chunk instanceof net.minecraft.world.chunk.Chunk) {
-				((net.minecraft.world.chunk.Chunk) chunk).markDirty();
-			}
+			chunk.markDirty();
 		}
 	}
 
-	private boolean replaceStableColumn(IChunk chunk, BlockPos.MutableBlockPos cursor, int geomeIndex,
+	private boolean replaceStableColumn(Chunk chunk, BlockPos.MutableBlockPos cursor, int geomeIndex,
 			int secondGeome, double[] geomeScores, int baseRockValue,
 			long formationRegion, int x, int z, int surfaceY,
 			BakedTerrainDimension terrain) {
@@ -158,7 +155,7 @@ public final class GeomeGeology {
 			cursor.setY(y);
 			IBlockState current = chunk.getBlockState(cursor);
 			if (terrain.isReplaceable(current) && changes(current, replacement)) {
-				chunk.setBlockState(cursor, replacement, false);
+				chunk.setBlockState(cursor, replacement);
 				changed = true;
 			}
 		}

@@ -43,11 +43,12 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.tags.BlockTags;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -77,7 +78,7 @@ public final class GeomeConfig {
 	private static final String LEGACY_MINERALOGY_VANILLA_ORE_PREFIX = "mineralogy:ore/minecraft/";
 	private static final String[] VANILLA_ORE_IDS = {
 			"coal_ore", "iron_ore", "gold_ore", "redstone_ore",
-			"diamond_ore", "lapis_ore", "emerald_ore", "nether_quartz_ore"
+			"diamond_ore", "lapis_ore", "emerald_ore", "quartz_ore"
 	};
 
 	private static volatile BakedGeomeConfig bakedConfig = null;
@@ -359,7 +360,13 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			target.addAll(BlockTags.getCollection().getOrCreate(id).getAllElements());
+			String path = id.getPath();
+			if ("stone".equals(path) || "base_stone_overworld".equals(path)) target.add(Blocks.STONE);
+			if ("netherrack".equals(path) || "base_stone_nether".equals(path)) target.add(Blocks.NETHERRACK);
+			for (ItemStack stack : OreDictionary.getOres(path, false)) {
+				Block block = Block.getBlockFromItem(stack.getItem());
+				if (block != null && block != Blocks.AIR) target.add(block);
+			}
 		}
 	}
 
@@ -592,7 +599,15 @@ public final class GeomeConfig {
 
 			JsonObject geomeWeightsJson = getObject(json, "geomes", new JsonObject());
 			double[] geomeWeights = readGeomeWeights(geomeWeightsJson, geomeIndexes, 1.0D);
-			IBlockState state = GeologyBlockAliases.aliasState(id, block.getDefaultState(), worldgenAliases);
+			int metadata = getBoundedInt(json, "metadata", 0, 0, 15);
+			IBlockState state;
+			try {
+				state = block.getStateFromMeta(metadata);
+			} catch (RuntimeException invalidMetadata) {
+				LOGGER.warn("Ignoring OreSpawn geome rock '{}' with invalid metadata {}", ruleId, metadata);
+				continue;
+			}
+			state = GeologyBlockAliases.aliasState(id, state, worldgenAliases);
 			ResourceLocation previousId = configuredStates.putIfAbsent(state, ruleId);
 			if (previousId != null) {
 				LOGGER.warn("Ignoring duplicate OreSpawn geome rock rule '{}' because block '{}' resolves to the same state as '{}'",
@@ -779,7 +794,7 @@ public final class GeomeConfig {
 				-64, 64, 3.4D, 7, "cloud", -64, 64, 3.25D);
 		upgraded |= upgradeOreRule(root, "minecraft:emerald_ore", "minecraft:overworld",
 				-16, 128, 0.55D, 3, "cluster", -16, 128, 0.35D);
-		upgraded |= upgradeOreRule(root, "minecraft:nether_quartz_ore", "minecraft:the_nether",
+		upgraded |= upgradeOreRule(root, "minecraft:quartz_ore", "minecraft:the_nether",
 				0, 127, 16.0D, 14, "vein", 0, 127, 11.2D);
 		upgraded |= upgradeOreFidelityRule(root, "minecraft:coal_ore", "minecraft:overworld",
 				0, 96, 6.25D, 17, "cluster", OreHeightDistribution.TRIANGLE, 0.0D,
@@ -1125,7 +1140,7 @@ public final class GeomeConfig {
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, Biome biome) {
 		applyBiomeHeuristic(weights, geomeIndexes, biomeId,
-				biome.getDefaultTemperature(), biome.getDownfall());
+				biome.getDefaultTemperature(), biome.getRainfall());
 	}
 
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
@@ -1422,6 +1437,10 @@ public final class GeomeConfig {
 		return root;
 	}
 
+	static JsonObject legacyMigrationDefaults() {
+		return defaultConfig();
+	}
+
 	public static JsonObject defaultEditorGeology() {
 		JsonObject defaults = defaultConfig();
 		JsonObject result = new JsonObject();
@@ -1488,7 +1507,7 @@ public final class GeomeConfig {
 				"glacial_highland", 2.0D, "stable_craton", 0.15D, "sedimentary_basin", 0.05D,
 				"coastal_shelf", 0.05D, "arid_basin", 0.15D, "wetland_basin", 0.05D,
 				"volcanic_arc", 0.35D);
-		addVanillaNetherOre(ores, "nether_quartz_ore", 0, 127, 11.2D, 14, OrePattern.VEIN, 8, 4, 4);
+		addVanillaNetherOre(ores, "quartz_ore", 0, 127, 11.2D, 14, OrePattern.VEIN, 8, 4, 4);
 		return ores;
 	}
 

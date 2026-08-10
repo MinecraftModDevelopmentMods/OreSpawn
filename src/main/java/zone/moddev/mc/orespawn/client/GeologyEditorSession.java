@@ -28,10 +28,12 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.init.Blocks;
-import net.minecraft.block.BlockFlowingFluid;
 import net.minecraft.init.Items;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.item.Item;
+import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 /** Mutable client-side copy used until the Create World settings are accepted. */
 final class GeologyEditorSession {
@@ -210,7 +212,7 @@ final class GeologyEditorSession {
 		TreeSet<String> namespaces = new TreeSet<>();
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id != null && block != Blocks.AIR && block.asItem() != Items.AIR) {
+			if (id != null && block != Blocks.AIR && Item.getItemFromBlock(block) != Items.AIR) {
 				namespaces.add(id.getNamespace());
 			}
 		}
@@ -246,13 +248,13 @@ final class GeologyEditorSession {
 			return false;
 		}
 		ensureDefaultGeologyRules();
-		addStarterRock("minecraft:stone", RockFamily.SEDIMENTARY,
+		addStarterRock("minecraft:stone", "minecraft:stone", 0, RockFamily.SEDIMENTARY,
 				64, 96, 0, 255, 5.0D);
-		addStarterRock("minecraft:granite", RockFamily.IGNEOUS_INTRUSIVE,
+		addStarterRock("orespawn:vanilla_granite", "minecraft:stone", 1, RockFamily.IGNEOUS_INTRUSIVE,
 				0, 72, 0, 192, 1.5D);
-		addStarterRock("minecraft:diorite", RockFamily.IGNEOUS_INTRUSIVE,
+		addStarterRock("orespawn:vanilla_diorite", "minecraft:stone", 3, RockFamily.IGNEOUS_INTRUSIVE,
 				24, 64, 0, 192, 1.25D);
-		addStarterRock("minecraft:andesite", RockFamily.IGNEOUS_VOLCANIC,
+		addStarterRock("orespawn:vanilla_andesite", "minecraft:stone", 5, RockFamily.IGNEOUS_VOLCANIC,
 				48, 64, 0, 224, 1.5D);
 		ensureDefaultOverworldTerrain();
 		return true;
@@ -265,11 +267,14 @@ final class GeologyEditorSession {
 		}
 	}
 
-	private void addStarterRock(String id, RockFamily family, int peak, int spread,
+	private void addStarterRock(String ruleId, String blockId, int metadata,
+			RockFamily family, int peak, int spread,
 			int minY, int maxY, double weight) {
-		String canonicalId = canonicalBlockId(id);
-		if (canonicalId == null) return;
+		String canonicalId = canonicalBlockId(blockId);
+		if (canonicalId == null || !validResource(ruleId)) return;
 		JsonObject rock = new JsonObject();
+		rock.addProperty("block", canonicalId);
+		rock.addProperty("metadata", metadata);
 		rock.addProperty("enabled", true);
 		rock.addProperty("family", family.configName);
 		rock.addProperty("depth_peak", peak);
@@ -279,7 +284,7 @@ final class GeologyEditorSession {
 		rock.addProperty("weight", weight);
 		rock.addProperty("ore_replaceable", true);
 		rock.add("geomes", new JsonObject());
-		section("rocks").add(canonicalId, rock);
+		section("rocks").add(ruleId, rock);
 		disableOrRemoveOre(canonicalId);
 	}
 
@@ -484,8 +489,7 @@ final class GeologyEditorSession {
 		}
 		if (!validResource(blockId)) return;
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockId));
-		if (block == null || block == Blocks.AIR
-				|| (fluid && block.getDefaultState().getFluidState().isEmpty())) return;
+		if (block == null || block == Blocks.AIR || (fluid && !isFluidBlock(block))) return;
 		JsonObject materials = dimensionMaterials(dimensionId, true);
 		materials.addProperty(key, blockId);
 		materials.addProperty("enabled", true);
@@ -501,9 +505,10 @@ final class GeologyEditorSession {
 		List<String> result = new ArrayList<>();
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id == null || block == Blocks.AIR || (!fluidOnly && block.asItem() == Items.AIR)
-					|| (fluidOnly && block.getDefaultState().getFluidState().isEmpty())
-					|| (!fluidOnly && block.getDefaultState().hasTileEntity())
+			if (id == null || block == Blocks.AIR
+					|| (!fluidOnly && Item.getItemFromBlock(block) == Items.AIR)
+					|| (fluidOnly && !isFluidBlock(block))
+					|| (!fluidOnly && block.hasTileEntity(block.getDefaultState()))
 					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
 			result.add(id.toString());
 		}
@@ -532,7 +537,7 @@ final class GeologyEditorSession {
 		List<String> result = new ArrayList<>();
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id != null && block != Blocks.AIR && !block.getDefaultState().getFluidState().isEmpty()
+			if (id != null && block != Blocks.AIR && isFluidBlock(block)
 					&& !configured.contains(id.toString())
 					&& (query.isEmpty() || id.toString().contains(query))) result.add(id.toString());
 		}
@@ -1046,13 +1051,13 @@ final class GeologyEditorSession {
 	}
 
 	private static boolean isSelectable(Block block, boolean showAll) {
-		if (block == Blocks.AIR || block.asItem() == Items.AIR || block instanceof BlockFlowingFluid) {
+		if (block == Blocks.AIR || Item.getItemFromBlock(block) == Items.AIR || isFluidBlock(block)) {
 			return false;
 		}
 		if (showAll) {
 			return true;
 		}
-		return !block.getDefaultState().hasTileEntity()
+		return !block.hasTileEntity(block.getDefaultState())
 				&& block.getDefaultState().getMaterial().blocksMovement()
 				&& block.getDefaultState().isFullCube();
 	}
@@ -1156,10 +1161,16 @@ final class GeologyEditorSession {
 	private static boolean validFluidBlock(String id) {
 		if (!validResource(id)) return false;
 		Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-		return block != null && block != Blocks.AIR && !block.getDefaultState().getFluidState().isEmpty();
+		return block != null && block != Blocks.AIR && isFluidBlock(block);
+	}
+
+	private static boolean isFluidBlock(Block block) {
+		return block instanceof BlockLiquid || block instanceof IFluidBlock
+				|| block.getDefaultState().getMaterial().isLiquid();
 	}
 
 	private static boolean validResource(String id) {
+		if (id == null || !id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")) return false;
 		try {
 			new ResourceLocation(id);
 			return true;

@@ -13,12 +13,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
 
 class GeologyEditorSessionTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge25TestBootstrap.registerVanilla();
+		Forge14TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -46,8 +46,9 @@ class GeologyEditorSessionTest {
 		assertFalse(session.section("rocks").has("minecraft:calcite"));
 		assertFalse(session.section("rocks").has("minecraft:dripstone_block"));
 		assertEquals("sedimentary", session.rock("minecraft:stone").get("family").getAsString());
-		assertEquals("igneous_intrusive", session.rock("minecraft:granite").get("family").getAsString());
-		assertEquals("igneous_volcanic", session.rock("minecraft:andesite").get("family").getAsString());
+		assertEquals("igneous_intrusive", session.rock("orespawn:vanilla_granite").get("family").getAsString());
+		assertEquals(1, session.rock("orespawn:vanilla_granite").get("metadata").getAsInt());
+		assertEquals("igneous_volcanic", session.rock("orespawn:vanilla_andesite").get("family").getAsString());
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
 	}

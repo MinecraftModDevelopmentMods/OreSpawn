@@ -1,8 +1,6 @@
 {
   "pack": {
     "description": "OreSpawn provider-surface integration fixtures",
-    "forge:resource_pack_format": 4,
-    "forge:data_pack_format": 4,
-    "pack_format": 4
+    "pack_format": 3
   }
 }

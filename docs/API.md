@@ -1,7 +1,7 @@
 # Java API
 
-This branch targets Minecraft 1.13.2 and Forge 25. Public examples therefore
-use the public `ResourceLocation(String, String)` constructor. Forge 25 has no
+This branch targets Minecraft 1.12.2 and Forge 14. Public examples therefore
+use the public `ResourceLocation(String, String)` constructor. Forge 14 has no
 `DeferredRegister`, so provider mods use OreSpawn's API-major-1
 `BiomeRegistrar` while provider JSON, profiles, schemas, and biome meanings
 remain identical to later ports.
@@ -12,27 +12,28 @@ implementation detail. API major version is available as
 `OreSpawn-API-Version`.
 
 Provider mods must depend on the full OreSpawn mod at compile time and
-runtime. In `mods.toml` use a mandatory dependency, for example:
-
-```toml
-[[dependencies.examplemod]]
-modId="orespawn"
-mandatory=true
-versionRange="[4.0.0,5.0.0)"
-ordering="AFTER"
-side="BOTH"
-```
-
-Submit declarations during `InterModEnqueueEvent`:
+runtime. Forge 1.12 declares the mandatory dependency on the mod annotation,
+for example:
 
 ```java
-WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
-    .rock(new ResourceLocation("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
-        .depth(12, 36)
-        .weight(1.2)
-        .oreReplaceable(true))
-    .build();
-OreSpawnApi.enqueue(provider);
+@Mod(modid = "examplemod", name = "Example Mod", version = "1.0.0",
+    dependencies = "required-after:orespawn@[4.0.6,5.0.0)")
+```
+
+Submit declarations during Forge's initialization event, before OreSpawn
+freezes provider discovery during post-initialization:
+
+```java
+@Mod.EventHandler
+public void init(FMLInitializationEvent event) {
+    WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+        .rock(new ResourceLocation("examplemod", "slate"), GeologyFamily.METAMORPHIC, rock -> rock
+            .depth(12, 36)
+            .weight(1.2)
+            .oreReplaceable(true))
+        .build();
+    OreSpawnApi.enqueue(provider);
+}
 ```
 
 For a complete ore-only Java example, including dimensions, height curves,
@@ -40,8 +41,8 @@ patterns, and host tags, see `DEVELOPER_GUIDE.md`.
 
 Definitions are immutable after `build()`. Registry references remain
 `ResourceLocation` values until OreSpawn validates and bakes them. Provider
-messages are processed through Forge IMC and frozen at load completion; direct
-cross-mod mutation during parallel setup is unsupported.
+declarations are collected during Forge initialization and frozen during
+post-initialization; late mutation is rejected.
 
 Ore dimensions use `quantity(int)` for fixed budgets or
 `quantityRange(min, max)` for inclusive random budgets. The compatibility
@@ -146,7 +147,7 @@ Y query. Sampling is read-only and is intended for gameplay decisions,
 diagnostics, and compatible generation outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
-Forge 25 custom-pattern mods attach a generic
+Forge 14 custom-pattern mods attach a generic
 `RegistryEvent.Register<OrePatternType>` listener to their mod event bus and
 register named values into `OreSpawnPatternRegistry.REGISTRY_NAME`. An
 `OrePatternType` contains a codec and a compiler from decoded settings to

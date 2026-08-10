@@ -1,22 +1,13 @@
 package zone.moddev.mc.orespawn.client;
 
-import zone.moddev.mc.orespawn.util.JsonCopies;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Stream;
 
 import net.minecraft.client.gui.GuiCreateWorld;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.util.registry.IRegistry;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.loading.moddiscovery.ModFile;
+import net.minecraftforge.common.DimensionManager;
 
 final class DimensionDiscovery {
 	private static final String OVERWORLD = "minecraft:overworld";
@@ -32,11 +23,9 @@ final class DimensionDiscovery {
 		result.add(NETHER);
 		result.add(END);
 
-		for (ResourceLocation id : IRegistry.field_212622_k.getKeys()) result.add(id.toString());
-
-		ModList modList = ModList.get();
-		if (modList != null) {
-			modList.forEachModFile(file -> collectModDimensions(file, result));
+		for (Integer id : DimensionManager.getStaticDimensionIDs()) {
+			if (id == 0 || id == -1 || id == 1) continue;
+			result.add("legacy:dimension_" + id);
 		}
 		return vanillaFirst(result);
 	}
@@ -53,35 +42,8 @@ final class DimensionDiscovery {
 		return result;
 	}
 
-	private static void collectModDimensions(ModFile modFile, Set<String> result) {
-		try {
-			Path dataRoot = modFile.findResource("data");
-			if (!Files.isDirectory(dataRoot)) return;
-			try (Stream<Path> namespaces = Files.list(dataRoot)) {
-				namespaces.filter(Files::isDirectory)
-						.forEach(namespace -> collectNamespaceDimensions(namespace, result));
-			}
-		} catch (IOException | RuntimeException ignored) {
-			// A broken optional resource path must not prevent opening the world editor.
-		}
-	}
-
-	private static void collectNamespaceDimensions(Path namespaceRoot, Set<String> result) {
-		Path dimensionRoot = namespaceRoot.resolve("dimension");
-		if (!Files.isDirectory(dimensionRoot)) return;
-		String namespace = namespaceRoot.getFileName().toString();
-		try (Stream<Path> files = Files.walk(dimensionRoot)) {
-			files.filter(Files::isRegularFile).forEach(file -> {
-				String relative = dimensionRoot.relativize(file).toString().replace('\\', '/');
-				if (!relative.endsWith(".json")) return;
-				addDimensionId(result, namespace, relative.substring(0, relative.length() - 5));
-			});
-		} catch (IOException | RuntimeException ignored) {
-			// Continue with dimensions discovered from other mods and the active preset.
-		}
-	}
-
 	static void addDimensionId(Set<String> target, String namespace, String path) {
+		if (!namespace.matches("[a-z0-9_.-]+") || !path.matches("[a-z0-9_./-]+")) return;
 		try {
 			target.add(new ResourceLocation(namespace, path).toString());
 		} catch (RuntimeException ignored) {

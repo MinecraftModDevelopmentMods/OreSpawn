@@ -4,24 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.provider.BiomeProvider;
-import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.surfacebuilders.CompositeSurfaceBuilder;
-import net.minecraft.world.gen.surfacebuilders.SurfaceBuilderConfig;
+import net.minecraft.world.biome.BiomeProvider;
+import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
 
 class BiomeOverlaySourceTest {
 	private static Biome source;
@@ -29,21 +26,21 @@ class BiomeOverlaySourceTest {
 
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge25TestBootstrap.registerVanilla();
-		source = biome(0.7F, 0.8F, Biome.GRASS_DIRT_GRAVEL_SURFACE);
-		output = biome(1.35F, 0.15F, Biome.STONE_STONE_GRAVEL_SURFACE);
+		Forge14TestBootstrap.registerVanilla();
+		source = biome("source", 0.7F, 0.8F, false);
+		output = biome("output", 1.35F, 0.15F, true);
 	}
 
 	@Test
-	void blockCoordinatesMapToFloorDividedQuartCoordinatesAcrossNegativeEdges() {
+	void blockCoordinatesMapToFloorDividedGenerationCoordinatesAcrossNegativeEdges() {
 		BiomeOverlaySource overlay = overlay(0.5D);
 		boolean observedReplacement = false;
 		for (int blockX = -65; blockX <= 65; blockX++) {
 			for (int blockZ = -9; blockZ <= 9; blockZ++) {
-				Biome expected = overlay.getBiomes(
+				Biome expected = overlay.getBiomesForGeneration(null,
 						Math.floorDiv(blockX, 4), Math.floorDiv(blockZ, 4), 1, 1)[0];
 				Biome actual = overlay.getBiome(new BlockPos(blockX, 0, blockZ), source);
-				assertEquals(expected, actual, "block-to-quart conversion at " + blockX + "," + blockZ);
+				assertEquals(expected, actual, "block-to-generation conversion at " + blockX + "," + blockZ);
 				observedReplacement |= actual == output;
 			}
 		}
@@ -53,26 +50,25 @@ class BiomeOverlaySourceTest {
 	@Test
 	void bulkBlockQueryUsesTheSameCoordinateContract() {
 		BiomeOverlaySource overlay = overlay(0.5D);
-		Biome[] values = overlay.getBiomes(-9, -7, 11, 9, false);
+		Biome[] values = overlay.getBiomes(null, -9, -7, 11, 9, false);
 		for (int z = 0; z < 9; z++) {
 			for (int x = 0; x < 11; x++) {
-				assertEquals(overlay.getBiomes(Math.floorDiv(-9 + x, 4),
+				assertEquals(overlay.getBiomesForGeneration(null, Math.floorDiv(-9 + x, 4),
 						Math.floorDiv(-7 + z, 4), 1, 1)[0], values[x + z * 11]);
 			}
 		}
 	}
 
 	@Test
-	void squareSearchAndSurfaceQueriesIncludeProviderBiomes() {
+	void viabilitySearchAndSurfaceMaterialIncludeProviderBiomes() {
 		BiomeOverlaySource overlay = overlay(1.0D);
-		assertTrue(overlay.getBiomesInSquare(-9, -9, 8).contains(output));
+		assertTrue(overlay.areBiomesViable(-9, -9, 8, Collections.singletonList(output)));
 		BlockPos found = overlay.findBiomePosition(-9, -9, 8,
 				Collections.singletonList(output), new Random(0L));
 		assertNotNull(found);
 		assertEquals(0, found.getX() & 3);
 		assertEquals(0, found.getZ() & 3);
-		assertTrue(overlay.getSurfaceBlocks().contains(
-				output.getSurfaceBuilderConfig().getTop()));
+		assertEquals(Blocks.STONE.getDefaultState(), output.topBlock);
 	}
 
 	private static BiomeOverlaySource overlay(double coverage) {
@@ -91,16 +87,19 @@ class BiomeOverlaySourceTest {
 				Collections.singletonList(palette), 0L);
 	}
 
-	private static Biome biome(float temperature, float downfall, SurfaceBuilderConfig surface) {
-		return new TestBiome(new Biome.BiomeBuilder()
-				.precipitation(Biome.RainType.RAIN).category(Biome.Category.NONE)
-				.depth(0.1F).scale(0.2F).temperature(temperature).downfall(downfall)
-				.waterColor(0x3f76e4).waterFogColor(0x050533)
-				.surfaceBuilder(new CompositeSurfaceBuilder<>(Biome.DEFAULT_SURFACE_BUILDER, surface)));
+	private static Biome biome(String name, float temperature, float rainfall, boolean stoneSurface) {
+		TestBiome biome = new TestBiome(new Biome.BiomeProperties(name)
+				.setBaseHeight(0.1F).setHeightVariation(0.2F)
+				.setTemperature(temperature).setRainfall(rainfall).setWaterColor(0x3f76e4));
+		if (stoneSurface) {
+			biome.topBlock = Blocks.STONE.getDefaultState();
+			biome.fillerBlock = Blocks.STONE.getDefaultState();
+		}
+		return biome;
 	}
 
 	private static final class TestBiome extends Biome {
-		TestBiome(Biome.BiomeBuilder builder) { super(builder); }
+		TestBiome(Biome.BiomeProperties properties) { super(properties); }
 	}
 
 	private static final class ConstantBiomeProvider extends BiomeProvider {
@@ -111,28 +110,22 @@ class BiomeOverlaySourceTest {
 		@Override public Biome getBiome(BlockPos pos, Biome fallback) { return biome; }
 
 		@Override
-		public Biome[] getBiomes(int x, int z, int width, int length) {
-			Biome[] result = new Biome[width * length];
-			java.util.Arrays.fill(result, biome);
-			return result;
+		public Biome[] getBiomesForGeneration(Biome[] reuse, int x, int z, int width, int length) {
+			return filled(reuse, width, length);
 		}
 
 		@Override
-		public Biome[] getBiomes(int x, int z, int width, int length, boolean cacheFlag) {
-			Biome[] result = new Biome[width * length];
-			java.util.Arrays.fill(result, biome);
+		public Biome[] getBiomes(Biome[] reuse, int x, int z, int width, int length, boolean cacheFlag) {
+			return filled(reuse, width, length);
+		}
+
+		private Biome[] filled(Biome[] reuse, int width, int length) {
+			Biome[] result = reuse != null && reuse.length >= width * length
+					? reuse : new Biome[width * length];
+			Arrays.fill(result, 0, width * length, biome);
 			return result;
 		}
 
-		@Override public Set<Biome> getBiomesInSquare(int x, int z, int radius) {
-			return Collections.singleton(biome);
-		}
-
-		@Override public BlockPos findBiomePosition(int x, int z, int range,
-				List<Biome> biomes, Random random) { return null; }
-		@Override public boolean hasStructure(Structure<?> structure) { return false; }
-		@Override public Set<IBlockState> getSurfaceBlocks() {
-			return Collections.singleton(biome.getSurfaceBuilderConfig().getTop());
-		}
+		@Override public List<Biome> getBiomesToSpawnIn() { return Collections.singletonList(biome); }
 	}
 }

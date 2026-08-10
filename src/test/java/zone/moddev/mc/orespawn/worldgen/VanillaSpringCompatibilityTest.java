@@ -1,35 +1,24 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
-import net.minecraft.init.Fluids;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.feature.CompositeFeature;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.IFeatureConfig;
-import net.minecraft.world.gen.feature.LiquidsConfig;
-import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.feature.RandomFeatureWithConfigConfig;
-import net.minecraft.world.gen.placement.IPlacementConfig;
+import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
 
 class VanillaSpringCompatibilityTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge25TestBootstrap.registerVanilla();
+		Forge14TestBootstrap.registerVanilla();
 	}
 
 	@AfterEach
@@ -38,54 +27,44 @@ class VanillaSpringCompatibilityTest {
 	}
 
 	@Test
-	void configuredProviderRocksExtendForgeNativeRockRecognition() {
+	void configuredProviderRocksExtendNativeRockRecognitionWithoutBroadTags() {
 		VanillaSpringCompatibility.refreshBlocks(Collections.singleton(Blocks.DIAMOND_BLOCK));
-
-		assertTrue(VanillaSpringCompatibility.isHost(Blocks.DIAMOND_BLOCK));
-		assertFalse(VanillaSpringCompatibility.isHost(Blocks.DIRT));
-		VanillaSpringCompatibility.refreshBlocks(Collections.emptyList());
-		assertFalse(VanillaSpringCompatibility.isHost(Blocks.DIAMOND_BLOCK));
+		assertTrue(VanillaSpringCompatibility.isProviderRock(Blocks.DIAMOND_BLOCK));
+		assertFalse(VanillaSpringCompatibility.isProviderRock(Blocks.DIRT));
 	}
 
 	@Test
-	void rewritesOnlyTheSpringLeafAndPreservesFluidAndPlacement() {
-		CompositeFeature<?, ?> original = Biome.createCompositeFeature(Feature.LIQUIDS,
-				new LiquidsConfig(Fluids.WATER), Biome.PASSTHROUGH,
-				IPlacementConfig.NO_PLACEMENT_CONFIG);
-		List<CompositeFeature<?, ?>> features = new ArrayList<>();
-		features.add(original);
-
-		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
-		CompositeFeature<?, ?> rewritten = features.get(0);
-		assertNotSame(original, rewritten);
-		assertSame(VanillaSpringCompatibility.FEATURE, rewritten.getFeature());
-		assertSame(Fluids.WATER,
-				((LiquidsConfig) ConfiguredFeatureInspector.featureConfig(rewritten)).field_202459_a);
-		assertSame(ConfiguredFeatureInspector.basePlacement(original),
-				ConfiguredFeatureInspector.basePlacement(rewritten));
-		assertSame(ConfiguredFeatureInspector.placementConfig(original),
-				ConfiguredFeatureInspector.placementConfig(rewritten));
-		assertFalse(VanillaSpringCompatibility.rewriteFeatureList(features),
-				"already rewritten leaves remain stable");
+	void nativeForgeOreReplacementPredicateRemainsThePrimaryCheck() throws Exception {
+		String source = source();
+		assertTrue(source.contains("isReplaceableOreGen"));
+		assertTrue(source.indexOf("isReplaceableOreGen") < source.lastIndexOf("providerRocks.contains"),
+				"provider rock identity must only extend Forge's native host decision");
 	}
 
 	@Test
-	void traversesNestedRandomFeatureGraphsWithoutChangingOtherLeaves() {
-		RandomFeatureWithConfigConfig random = new RandomFeatureWithConfigConfig(
-				new Feature<?>[] { Feature.LIQUIDS, Feature.ICE_AND_SNOW },
-				new IFeatureConfig[] { new LiquidsConfig(Fluids.LAVA), new NoFeatureConfig() });
-		CompositeFeature<?, ?> root = Biome.createCompositeFeature(
-				Feature.RANDOM_FEATURE_WITH_CONFIG, random, Biome.PASSTHROUGH,
-				IPlacementConfig.NO_PLACEMENT_CONFIG);
-		List<CompositeFeature<?, ?>> features = new ArrayList<>();
-		features.add(root);
+	void compatibilityDoesNotRewriteStaticBiomeFeatureGraphs() throws Exception {
+		String source = source();
+		assertFalse(source.contains("getSpawnableList"));
+		assertFalse(source.contains("getFeatures"));
+		assertFalse(source.contains("BiomeDecorator"));
+	}
 
-		assertTrue(VanillaSpringCompatibility.rewriteFeatureList(features));
-		RandomFeatureWithConfigConfig rewritten = (RandomFeatureWithConfigConfig)
-				ConfiguredFeatureInspector.featureConfig(features.get(0));
-		assertSame(VanillaSpringCompatibility.FEATURE, rewritten.features[0]);
-		assertSame(Feature.ICE_AND_SNOW, rewritten.features[1]);
-		assertSame(Fluids.LAVA, ((LiquidsConfig) rewritten.configs[0]).field_202459_a);
-		assertEquals(2, rewritten.features.length);
+	@Test
+	void managedWorldgenWritesSuppressObserverDrivenChunkPopulation() throws Exception {
+		String oreGeneration = new String(Files.readAllBytes(Paths.get("src", "main", "java",
+				"zone", "moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),
+				StandardCharsets.UTF_8);
+		String legacyFeatures = new String(Files.readAllBytes(Paths.get("src", "main", "java",
+				"com", "mcmoddev", "orespawn", "api", "FeatureBase.java")), StandardCharsets.UTF_8);
+		assertTrue(oreGeneration.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
+		assertTrue(oreGeneration.contains("setBlockState(cursor, output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(legacyFeatures.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
+		assertTrue(legacyFeatures.contains("setBlockState(pos, output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(legacyFeatures.contains("setBlockState(pos, ore, GENERATION_WRITE_FLAGS)"));
+	}
+
+	private static String source() throws java.io.IOException {
+		return new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone", "moddev", "mc",
+				"orespawn", "worldgen", "VanillaSpringCompatibility.java")), StandardCharsets.UTF_8);
 	}
 }

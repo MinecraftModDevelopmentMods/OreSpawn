@@ -8,10 +8,9 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.World;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 
@@ -56,7 +55,7 @@ public class Geology {
 		return pickStateFromList(rockValue, sedimentaryStones).getBlock();
 	}
 
-	public void replaceStoneInChunk(IWorld world, IChunk chunk, BakedTerrainDimension terrain) {
+	public void replaceStoneInChunk(World world, Chunk chunk, BakedTerrainDimension terrain) {
 		ChunkPos chunkPos = chunk.getPos();
 		int xOffset = chunkPos.getXStart();
 		int zOffset = chunkPos.getZStart();
@@ -67,7 +66,7 @@ public class Geology {
 			int x = xOffset + dx;
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
-				int y = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
+				int y = chunk.getHeightValue(dx, dz) - 1;
 				if (terrain.hasBiomeFilter()) {
 					cursor.setPos(x, y, z);
 					Biome biome = world.getBiome(cursor);
@@ -85,7 +84,7 @@ public class Geology {
 					if (terrain.isReplaceable(current)) {
 						IBlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
 						if (!GeomeGeology.changes(current, replacement)) continue;
-						chunk.setBlockState(cursor, replacement, false);
+						chunk.setBlockState(cursor, replacement);
 						changed = true;
 					}
 				}
@@ -93,9 +92,7 @@ public class Geology {
 		}
 
 		if (changed) {
-			if (chunk instanceof net.minecraft.world.chunk.Chunk) {
-				((net.minecraft.world.chunk.Chunk) chunk).markDirty();
-			}
+			chunk.markDirty();
 		}
 	}
 

@@ -60,7 +60,7 @@ class WorldgenProviderTest {
 
 	@Test
 	void serializesCompleteDeclarativeProviderSurface() {
-		ResourceLocation dimension = id("examplemod:crystal_caverns");
+		ResourceLocation dimension = id("minecraft:the_end");
 		WorldgenProvider.FormationDefinition formations = WorldgenProvider.FormationDefinition.builder()
 				.horizontalSize(FormationPreset.HUGE)
 				.waviness(FormationPreset.CUSTOM)

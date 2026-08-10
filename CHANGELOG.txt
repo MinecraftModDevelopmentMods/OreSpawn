@@ -1,27 +1,32 @@
 Version 4.0.6
 
-* Port OreSpawn 4.0.6 to Minecraft 1.13.2 and Forge 25.0.223 using Java 8.
+* Port OreSpawn 4.0.6 to Minecraft 1.12.2 and Forge 14.23.5.2859 using Java 8.
+* Add a deprecated OS3 binary/configuration compatibility bridge for existing
+  3.2.2 and 3.3.1 consumers, translating plugins and registrations into one
+  deduplicated OS4 scheduler with atomic backups and an idempotent report.
+* Preserve 1.12 metadata block states, legacy dimension/biome selectors,
+  weighted outputs, retrogen flags, vanilla suppression, and flat bedrock.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
 * Preserve exact custom-biome rules and stagger close Stable Layers geome boundaries.
-* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.13.2.
-* Remove later-version basalt, Nether-gold, ancient-debris, and bamboo-jungle defaults from fresh 1.13.2 profiles.
-* Support the single 1.13.2 dimension fluid while retaining later deep-aquifer profile fields as inactive data.
-* Adapt static biome features and set-based biome providers to Forge 25 without changing provider or save contracts.
-* Add an OreSpawn biome registrar so provider mods retain deferred biome declarations without Forge's later DeferredRegister API.
-* Rebuild vanilla spring leaves with a Forge 25-native wrapper so provider rocks work without mutating unavailable platform fields.
-* Create the public ore-pattern registry through Forge 25's native registry lifecycle and retain external registrations.
-* Restore reliable 1.13.2 editor backgrounds, tooltip clearing, and translated cycle-button captions.
-* Use Forge 25's native client rendering and navigation classes without platform-class shadows.
+* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.12.2.
+* Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
+  Forge 1.12 terrain events and one deduplicated IWorldGenerator fallback.
+* Register the early surface/geology coordinator on Forge 1.12's actual event
+  bus so it runs before later structures and vegetation while remaining safe
+  across the Nether's duplicate decoration-pre events.
+* Retain the OreSpawn biome registrar and deferred handles on Forge 1.12 registry events.
+* Preserve vanilla springs in provider rocks through Forge's native terrain hooks.
+* Restore reliable 1.12.2 editor backgrounds, tooltip clearing, and translated cycle-button captions.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
 
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
-* Verify both biome-registration helpers and the Forge 25 registrar lifecycle
-* Confirm Minecraft 1.13.2 ResourceLocation documentation and ForgeGradle 3 workflow
+* Verify both biome-registration helpers and the Forge 1.12 registrar lifecycle
+* Confirm Minecraft 1.12.2 ResourceLocation documentation and ForgeGradle 3 workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1

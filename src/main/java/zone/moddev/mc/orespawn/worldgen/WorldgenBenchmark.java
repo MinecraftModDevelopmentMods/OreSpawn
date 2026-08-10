@@ -10,7 +10,6 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.World;
 import net.minecraft.block.Block;
@@ -18,11 +17,9 @@ import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,18 +36,15 @@ public final class WorldgenBenchmark {
 	}
 
 	public static void register() {
-		if (!ENABLED) {
-			return;
-		}
-		MinecraftForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerAboutToStart);
-		MinecraftForge.EVENT_BUS.addListener(WorldgenBenchmark::onServerStarted);
+		// Lifecycle calls are wired by OreSpawn on Forge 1.12.
 	}
 
 	public static boolean isVanillaBaseline() {
 		return ENABLED && "vanilla".equals(MODE);
 	}
 
-	private static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
+	public static void onServerAboutToStart(FMLServerAboutToStartEvent event) {
+		if (!ENABLED) return;
 		if (isVanillaBaseline()) {
 			return;
 		}
@@ -68,7 +62,8 @@ public final class WorldgenBenchmark {
 		WorldGeologyProfileManager.applyBenchmarkProfile(benchmarkProfile);
 	}
 
-	private static void onServerStarted(FMLServerStartedEvent event) {
+	public static void onServerStarted(FMLServerStartingEvent event) {
+		if (!ENABLED) return;
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
 		WorldServer level = event.getServer().getWorld(benchmarkDimension(dimensionName));
@@ -120,32 +115,32 @@ public final class WorldgenBenchmark {
 		}
 	}
 
-	static DimensionType benchmarkDimension(String configured) {
+	static int benchmarkDimension(String configured) {
 		String dimensionName = configured.trim().toLowerCase(Locale.ROOT);
 		if ("overworld".equals(dimensionName)) {
-			return DimensionType.OVERWORLD;
+			return 0;
 		}
 		if ("nether".equals(dimensionName)) {
-			return DimensionType.NETHER;
+			return -1;
 		}
 		if ("end".equals(dimensionName)) {
-			return DimensionType.THE_END;
+			return 1;
 		}
 		ResourceLocation id = resourceLocation(dimensionName);
 		if (id == null) {
 			throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 		}
-		DimensionType type = DimensionType.byName(id);
-		if (type == null) {
+		if (!"legacy".equals(id.getNamespace()) || !id.getPath().startsWith("dimension_")) {
 			throw new IllegalArgumentException("Unknown benchmark dimension: " + configured);
 		}
-		return type;
+		try { return Integer.parseInt(id.getPath().substring("dimension_".length())); }
+		catch (NumberFormatException e) { throw new IllegalArgumentException("Unknown benchmark dimension: " + configured); }
 	}
 
 	private static void generateSquare(WorldServer level, int centerX, int centerZ, int radius) {
 		for (int z = centerZ - radius; z <= centerZ + radius; z++) {
 			for (int x = centerX - radius; x <= centerX + radius; x++) {
-				level.getChunk(x, z);
+				level.getChunkProvider().provideChunk(x, z);
 			}
 		}
 	}
@@ -164,11 +159,11 @@ public final class WorldgenBenchmark {
 		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
 		BlockPos located = null;
 		double bestDistance = Double.POSITIVE_INFINITY;
-		for (Biome biome : net.minecraftforge.registries.ForgeRegistries.BIOMES.getValues()) {
+		for (Biome biome : net.minecraftforge.fml.common.registry.ForgeRegistries.BIOMES.getValues()) {
 			if (!BiomeDictionary.hasType(biome, type)) continue;
-			BlockPos candidate = level.getChunkProvider().getChunkGenerator().getBiomeProvider()
+			BlockPos candidate = level.provider.getBiomeProvider()
 					.findBiomePosition(origin.getX(), origin.getZ(), 16384,
-							java.util.Collections.singletonList(biome), level.getRandom());
+							java.util.Collections.singletonList(biome), level.rand);
 			if (candidate != null && candidate.distanceSq(origin) < bestDistance) {
 				located = candidate;
 				bestDistance = candidate.distanceSq(origin);
@@ -188,7 +183,7 @@ public final class WorldgenBenchmark {
 			int repetition) {
 		Map<String, OreAudit> audits = new LinkedHashMap<>();
 		if (WorldIds.NETHER.equals(WorldIds.dimension(level))) {
-			audits.put("quartz", new OreAudit(Blocks.NETHER_QUARTZ_ORE, Blocks.NETHER_QUARTZ_ORE));
+			audits.put("quartz", new OreAudit(Blocks.QUARTZ_ORE, Blocks.QUARTZ_ORE));
 		} else {
 			audits.put("coal", new OreAudit(Blocks.COAL_ORE, Blocks.COAL_ORE));
 			audits.put("iron", new OreAudit(Blocks.IRON_ORE, Blocks.IRON_ORE));
@@ -204,7 +199,7 @@ public final class WorldgenBenchmark {
 		BlockPos.MutableBlockPos neighbor = new BlockPos.MutableBlockPos();
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
-				Chunk chunk = level.getChunk(chunkX, chunkZ);
+				Chunk chunk = level.getChunkProvider().provideChunk(chunkX, chunkZ);
 				int minX = chunk.getPos().getXStart();
 				int minZ = chunk.getPos().getZStart();
 				for (int localX = 0; localX < 16; localX++) {
@@ -251,7 +246,7 @@ public final class WorldgenBenchmark {
 				throw new IllegalArgumentException("Invalid benchmark block audit specification: " + specification);
 			}
 			ResourceLocation id = resourceLocation(fields[0].trim());
-			if (id == null || !net.minecraftforge.registries.ForgeRegistries.BLOCKS.containsKey(id)) {
+			if (id == null || !net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.containsKey(id)) {
 				throw new IllegalArgumentException("Unknown benchmark audit block: " + fields[0].trim());
 			}
 			int minimumY = Integer.parseInt(fields[1].trim());
@@ -266,7 +261,7 @@ public final class WorldgenBenchmark {
 				throw new IllegalArgumentException(
 						"Benchmark audit expectation must be present or absent: " + specification);
 			}
-			Block block = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(id);
+			Block block = net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.getValue(id);
 			audits.put(id.toString(), new OreAudit(block, block,
 					minimumY, maximumY, required));
 		}

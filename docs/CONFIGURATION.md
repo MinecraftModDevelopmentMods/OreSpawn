@@ -8,7 +8,7 @@ OreSpawn uses three JSON contracts:
 | `<world>/serverconfig/orespawn-worldgen.json` | 5 | Self-contained snapshot for one world |
 | `config/<modid>-orespawn.json` | 4 | Optional authoritative provider override |
 
-A provider may package schema 4 at `data/<modid>/orespawn/provider.json`.
+A provider may package schema 4 at `assets/<modid>/orespawn/provider.json`.
 Legacy provider schemas 1-3 remain accepted. Fluid deposits require schema 3;
 biome palettes and dimension materials require schema 4.
 
@@ -134,7 +134,7 @@ Dimension-material rules may set `default_fluid`, `deep_aquifer_fluid`,
 `deep_aquifer_max_y`, `snow_block`, and `ice_block`. Fluid IDs must resolve to
 blocks with non-empty fluid states. These substitutions are opt-in; a dimension
 with no matching rule retains its native generator and weather materials.
-Minecraft 1.13.2 exposes one generator fluid, so this branch applies
+Minecraft 1.12.2 exposes one generator fluid, so this branch applies
 `default_fluid` only. It retains `deep_aquifer_fluid` and
 `deep_aquifer_max_y` in provider and world profiles for cross-version
 portability, but the editor keeps those controls disabled and generation does
@@ -151,7 +151,7 @@ Each enabled ore dimension uses:
 
 | Field | Range/default | Meaning |
 |---|---|---|
-| `min_y`, `max_y` | 0-255 in the 1.13.2 editor | Inclusive placement range; the portable schema remains broader for other Minecraft versions |
+| `min_y`, `max_y` | 0-255 in the 1.12.2 editor | Inclusive placement range; metadata block states remain separate from height |
 | `frequency` | 0-64 | Expected attempts per chunk |
 | `quantity` | 1-64 | Fixed block budget for each attempt |
 | `min_quantity`, `max_quantity` | 1-64 | Inclusive random block-budget range; both fields are required |

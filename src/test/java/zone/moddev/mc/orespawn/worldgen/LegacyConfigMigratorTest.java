@@ -16,6 +16,7 @@ import java.util.List;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -129,6 +130,33 @@ class LegacyConfigMigratorTest {
 	}
 
 	@Test
+	void prefersSynthesizedProviderIdentityWhenOutputsAreAmbiguous() throws IOException {
+		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
+		JsonObject root = new JsonObject(); root.addProperty("version", "2.0");
+		JsonObject spawns = new JsonObject();
+		spawns.add("iron_ore", spawn("iron_ore", null, 9, 2, 0.375D, 7, 41));
+		root.add("spawns", spawns); write(legacyDirectory.resolve("orespawn.json"), root.toString());
+
+		JsonObject defaults = new JsonObject(); JsonObject ores = new JsonObject();
+		JsonObject exact = spawn("iron_ore", null, 8, 0, 1.0D, 0, 64);
+		exact.addProperty("block", "basemetals:iron_ore");
+		JsonObject ambiguous = new JsonParser().parse(exact.toString()).getAsJsonObject();
+		ores.add("orespawn:legacy/iron_ore", exact);
+		ores.add("orespawn:legacy/another_iron", ambiguous);
+		defaults.add("ores", ores);
+
+		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
+				temporary.resolve("orespawn-worldgen.json"), defaults,
+				(owner, output) -> java.util.Arrays.asList(
+						"orespawn:legacy/iron_ore", "orespawn:legacy/another_iron"));
+		assertEquals(2, migrated.getAsJsonObject("ores").size());
+		assertTrue(migrated.getAsJsonObject("ores").has("orespawn:legacy/iron_ore"));
+		assertFalse(migrated.getAsJsonObject("ores").has("orespawn:legacy/orespawn/iron_ore"));
+		assertTrue(read(temporary.resolve("orespawn-migration/migration-report.txt"))
+				.contains("synthesized provider rule orespawn:legacy/iron_ore"));
+	}
+
+	@Test
 	void retainsLegacyIdsAndWarnsForAmbiguousAndUnmatchedProviderOutputs() throws IOException {
 		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
 		JsonObject root = new JsonObject();
@@ -152,6 +180,42 @@ class LegacyConfigMigratorTest {
 		String report = read(temporary.resolve("orespawn-migration/migration-report.txt"));
 		assertTrue(report.contains("ambiguous ore rules"));
 		assertTrue(report.contains("no ore rule matching legacy output"));
+	}
+
+	@Test
+	void retains112MetadataStatesAndClampsLegacyHeightRange() throws IOException {
+		Path legacyDirectory = Files.createDirectories(temporary.resolve("orespawn3"));
+		JsonObject root = new JsonObject();
+		root.addProperty("version", "2.0");
+		JsonObject migratedSpawn = spawn("metadata_ore", null, 8, 0, 1.0D, -64, 400);
+		JsonObject output = migratedSpawn.getAsJsonArray("blocks").get(0).getAsJsonObject();
+		output.addProperty("name", "minecraft:stone");
+		output.addProperty("state", "variant=andesite");
+		JsonArray replacements = new JsonArray();
+		JsonObject replacement = new JsonObject();
+		replacement.addProperty("name", "minecraft:stone");
+		replacement.addProperty("state", "variant=granite");
+		replacements.add(replacement);
+		migratedSpawn.add("replaces", replacements);
+		JsonObject spawns = new JsonObject();
+		spawns.add("metadata_ore", migratedSpawn);
+		root.add("spawns", spawns);
+		write(legacyDirectory.resolve("metadata.json"), root.toString());
+		JsonObject defaults = new JsonObject();
+		defaults.add("ores", new JsonObject());
+
+		JsonObject migrated = LegacyConfigMigrator.migrateIfNeeded(
+				temporary.resolve("orespawn-worldgen.json"), defaults);
+		JsonObject ore = ore(migrated.getAsJsonObject("ores"), "metadata", "metadata_ore");
+		assertEquals("minecraft:stone", ore.get("block").getAsString());
+		assertEquals(5, ore.get("metadata").getAsInt());
+		assertEquals(5, ore.getAsJsonArray("outputs").get(0).getAsJsonObject().get("metadata").getAsInt());
+		JsonObject placement = rule(ore);
+		assertEquals(0, placement.get("min_y").getAsInt());
+		assertEquals(255, placement.get("max_y").getAsInt());
+		JsonObject host = placement.getAsJsonArray("host_blocks").get(0).getAsJsonObject();
+		assertEquals("minecraft:stone", host.get("block").getAsString());
+		assertEquals(1, host.get("metadata").getAsInt());
 	}
 
 	private static JsonObject baseMetalsFixture() {

@@ -73,7 +73,7 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	}
 
 	private void save() {
-		// Minecraft 1.13.2 exposes one generator fluid. Retain stored deep-aquifer
+		// Minecraft 1.12.2 exposes one generator fluid. Retain stored deep-aquifer
 		// fields unchanged so the same provider/profile can still be used by later ports.
 	}
 

@@ -8,7 +8,6 @@ import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -16,7 +15,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 /** Shared dimensions for the compact world-creation screens. */
 final class OreSpawnScreenLayout {
 	private static final int COMPACT_HEIGHT = 260;
-	private static final Map<GuiScreen, List<ExplainedWidget>> EXPLANATIONS = new WeakHashMap<>();
+	private static final Map<OreSpawnScreen, List<ExplainedWidget>> EXPLANATIONS = new WeakHashMap<>();
 
 	private OreSpawnScreenLayout() { }
 
@@ -64,7 +63,7 @@ final class OreSpawnScreenLayout {
 		return font.trimStringToWidth(text, available) + suffix;
 	}
 
-	static Button button(GuiScreen screen, FontRenderer font, int x, int y, int width, int height,
+	static Button button(OreSpawnScreen screen, FontRenderer font, int x, int y, int width, int height,
 			ITextComponent message, Button.IPressable onPress) {
 		String fitted = fit(font, message, Math.max(0, width - 8));
 		Button button = new Button(x, y, width, height, fitted, onPress);
@@ -74,27 +73,27 @@ final class OreSpawnScreenLayout {
 		return button;
 	}
 
-	static Button explainedButton(GuiScreen screen, FontRenderer font, int x, int y, int width, int height,
+	static Button explainedButton(OreSpawnScreen screen, FontRenderer font, int x, int y, int width, int height,
 			ITextComponent message, Button.IPressable onPress, String translationKey) {
 		return explain(screen, button(screen, font, x, y, width, height, message, onPress), translationKey);
 	}
 
-	static void beginHelp(GuiScreen screen) {
+	static void beginHelp(OreSpawnScreen screen) {
 		EXPLANATIONS.remove(screen);
 	}
 
-	static <T extends GuiButton> T explain(GuiScreen screen, T widget, String translationKey) {
+	static <T extends GuiButton> T explain(OreSpawnScreen screen, T widget, String translationKey) {
 		EXPLANATIONS.computeIfAbsent(screen, ignored -> new ArrayList<>())
 				.add(new ExplainedWidget(widget, translationKey, true));
 		return widget;
 	}
 
-	private static void explainText(GuiScreen screen, GuiButton widget, String text) {
+	private static void explainText(OreSpawnScreen screen, GuiButton widget, String text) {
 		EXPLANATIONS.computeIfAbsent(screen, ignored -> new ArrayList<>())
 				.add(new ExplainedWidget(widget, text, false));
 	}
 
-	static void renderExplanations(GuiScreen screen, int mouseX, int mouseY) {
+	static void renderExplanations(OreSpawnScreen screen, int mouseX, int mouseY) {
 		List<ExplainedWidget> explanations = EXPLANATIONS.get(screen);
 		if (explanations == null) {
 			return;
@@ -104,12 +103,12 @@ final class OreSpawnScreenLayout {
 					&& mouseX < explanation.widget.x + explanation.widget.width
 					&& mouseY >= explanation.widget.y
 					&& mouseY < explanation.widget.y + explanation.widget.height) {
-				FontRenderer font = Minecraft.getInstance().fontRenderer;
+				FontRenderer font = Minecraft.getMinecraft().fontRenderer;
 				String text = explanation.translation
 						? new TextComponentTranslation(explanation.text).getFormattedText()
 						: explanation.text;
-				screen.drawHoveringText(font.listFormattedStringToWidth(text,
-						Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY, font);
+				screen.renderStringTooltip(font.listFormattedStringToWidth(text,
+						Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY);
 				return;
 			}
 		}

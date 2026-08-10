@@ -29,9 +29,6 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            mods {
-                orespawn { source sourceSets.main }
-            }
         }
 
         server {
@@ -39,19 +36,6 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             args '--nogui'
-            mods {
-                orespawn { source sourceSets.main }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run-data')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-            mods {
-                orespawn { source sourceSets.main }
-            }
         }
 
         surfaceIntegrationFresh {
@@ -59,9 +43,6 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             property 'surfaceprobe.integrationPhase', 'fresh'
             args '--nogui'
-            mods {
-                orespawn { source sourceSets.main }
-            }
         }
 
         surfaceIntegrationReload {
@@ -69,40 +50,20 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             property 'surfaceprobe.integrationPhase', 'reload'
             args '--nogui'
-            mods {
-                orespawn { source sourceSets.main }
-            }
         }
     }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-def configureForge25Run = { JavaExec runTask, String launchTarget ->
-    runTask.main = 'net.minecraftforge.userdev.LaunchTesting'
-    runTask.environment 'target', launchTarget
-    runTask.environment 'MCP_MAPPINGS', "${mapping_channel}_${mapping_version}"
-    runTask.environment 'MCP_VERSION', mcp_version
-    runTask.environment 'FORGE_VERSION', forge_version
-    runTask.environment 'FORGE_GROUP', 'net.minecraftforge'
-    runTask.environment 'MC_VERSION', minecraft_version
-    runTask.environment 'MOD_CLASSES', "${mod_id}%%${sourceSets.main.output.classesDirs.singleFile};" +
-            "${mod_id}%%${sourceSets.main.output.resourcesDir}"
-}
-
-tasks.withType(JavaExec).all { JavaExec runTask ->
-    Map<String, String> targets = [
-            runClient: 'fmluserdevclient',
-            runServer: 'fmluserdevserver',
-            runData: 'fmluserdevdata',
-            runSurfaceIntegrationFresh: 'fmluserdevserver',
-            runSurfaceIntegrationReload: 'fmluserdevserver'
-    ]
-    String launchTarget = targets.get(runTask.name)
-    if (launchTarget != null) {
-        configureForge25Run(runTask, launchTarget)
-    }
-}
+// ForgeGradle 3 resolves its 1.12 mapped dependency during configuration. If
+// `clean` deletes build/fg_cache in the same invocation, compileJava retains a
+// path to a jar that no longer exists. Treat that directory as the target's
+// dependency cache; all OreSpawn classes, resources, jars, reports, fixtures,
+// worlds, and IDE output are still removed by clean.
+clean.setDelete(fileTree(buildDir) {
+    exclude 'fg_cache/**'
+})
 
 repositories {
     mavenCentral()
@@ -155,13 +116,10 @@ processResources {
     inputs.property 'loader_version_range', loader_version_range
     inputs.property 'minecraft_version_range', minecraft_version_range
 
-    filesMatching('META-INF/mods.toml') {
+    filesMatching('mcmod.info') {
         expand([
                 version: project.version,
-                minecraft_version: minecraft_version,
-                forge_version_range: forge_version_range,
-                loader_version_range: loader_version_range,
-                minecraft_version_range: minecraft_version_range
+                mcversion: minecraft_version
         ])
     }
     from('docs/AGENTS.md') {
@@ -220,10 +178,16 @@ task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegratio
 }
 
 def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
+def surfaceIntegrationMainOutput = file("${buildDir}/surface-integration-fixture/orespawn-main")
 task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
     doLast {
         delete surfaceIntegrationRunDirectory
+        delete surfaceIntegrationMainOutput
         surfaceIntegrationRunDirectory.mkdirs()
+        copy {
+            from sourceSets.main.output
+            into surfaceIntegrationMainOutput
+        }
         copy {
             from surfaceIntegrationTestModJar.archivePath
             into new File(surfaceIntegrationRunDirectory, 'mods')
@@ -242,49 +206,89 @@ max-tick-time=-1
     }
 }
 
-tasks.matching { it.name == 'runSurfaceIntegrationFresh' }.all {
-    dependsOn prepareSurfaceIntegrationTest
+def legacyDevRuntime = fileTree(new File(gradle.gradleUserHomeDir,
+        'caches/modules-2/files-2.1/net.minecraftforge/legacydev/0.2.3.1')) {
+    include '**/legacydev-*-fatjar.jar'
+}
+
+// ForgeGradle 3 initially exposes mergetool's three-side compile stub on a
+// completely clean 1.12 build. Its synthetic BUKKIT enum value is not valid in
+// the Forge 14 runtime and makes FML's own channel registration fail. Keep the
+// mapped runtime intact but restore Forge's native two-side Side class in a
+// build-only copy used by integration processes. Nothing from this copy is
+// packaged in OreSpawn's published artifacts.
+def forge14MappedRuntime = {
+    File runtime = sourceSets.main.runtimeClasspath.files.find { File candidate ->
+        candidate.name.startsWith("forge-${minecraft_version}-${forge_version}_mapped_") &&
+                candidate.name.endsWith('.jar')
+    }
+    if (runtime == null) {
+        throw new GradleException('Could not locate the mapped Forge 14 runtime')
+    }
+    runtime
+}
+
+def forge14UniversalRuntime = {
+    File runtime = new File(gradle.gradleUserHomeDir,
+            "caches/forge_gradle/maven_downloader/net/minecraftforge/forge/" +
+            "${minecraft_version}-${forge_version}/" +
+            "forge-${minecraft_version}-${forge_version}-universal.jar")
+    if (!runtime.isFile()) {
+        throw new GradleException("Forge 14 universal runtime is missing: ${runtime}")
+    }
+    runtime
+}
+
+task forge14RuntimeJar(type: Jar, dependsOn: classes) {
+    archiveName = 'forge14-runtime.jar'
+    destinationDir = file("${buildDir}/forge14-runtime")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from({ zipTree(forge14MappedRuntime()) }) {
+        exclude 'net/minecraftforge/fml/relauncher/Side.class'
+    }
+    from({ zipTree(forge14UniversalRuntime()) }) {
+        include 'net/minecraftforge/fml/relauncher/Side.class'
+    }
+}
+
+def useForge14Runtime = { JavaExec process ->
+    process.dependsOn forge14RuntimeJar
+    process.doFirst {
+        File generated = forge14MappedRuntime()
+        def runtime = sourceSets.main.runtimeClasspath.files.findAll { File candidate ->
+            candidate != generated
+        }
+        process.classpath = files(forge14RuntimeJar.archivePath, runtime, legacyDevRuntime)
+    }
+}
+
+// ForgeGradle's ordinary client/server tasks expose the same synthetic
+// three-side compile jar as the integration tasks. Route every development
+// launch through the corrected runtime copy so command-line and Eclipse
+// testing exercise Forge's native CLIENT/SERVER Side enum.
+tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.all { JavaExec process ->
+    useForge14Runtime(process)
 }
 
 def createSurfaceProcess = { String phase, Object dependency ->
-    task("surfaceIntegration${phase}Process", type: Exec, dependsOn: [dependency, "prepareRunSurfaceIntegration${phase}"]) {
+    task("surfaceIntegration${phase}Process", type: JavaExec,
+            dependsOn: [dependency, 'createSrgToMcp']) {
         group = 'verification'
-        doFirst {
-            JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
-            File classpathJar = file("${buildDir}/surface-integration-fixture/${phase.toLowerCase()}-classpath.jar")
-            classpathJar.parentFile.mkdirs()
-            java.util.jar.Manifest manifest = new java.util.jar.Manifest()
-            manifest.mainAttributes.put(java.util.jar.Attributes.Name.MANIFEST_VERSION, '1.0')
-            manifest.mainAttributes.put(java.util.jar.Attributes.Name.CLASS_PATH,
-                    runTask.classpath.files.collect { it.toURI().toASCIIString() }.join(' '))
-            classpathJar.withOutputStream { output ->
-                new java.util.jar.JarOutputStream(output, manifest).close()
-            }
-            List<String> arguments = []
-            arguments.addAll(runTask.allJvmArgs)
-            int classpathFlag = arguments.lastIndexOf('-cp')
-            if (classpathFlag < 0) {
-                classpathFlag = arguments.lastIndexOf('-classpath')
-            }
-            if (classpathFlag >= 0 && classpathFlag + 1 < arguments.size()) {
-                arguments.remove(classpathFlag + 1)
-                arguments.remove(classpathFlag)
-            }
-            arguments.add('-cp')
-            arguments.add(classpathJar.absolutePath)
-            arguments.add(runTask.main ?: 'net.minecraftforge.userdev.LaunchTesting')
-            arguments.addAll(runTask.args)
-            workingDir runTask.workingDir
-            environment runTask.environment
-            File javaExecutable = new File(System.getProperty('java.home'), 'bin/java.exe')
-            String command = 'call "' + javaExecutable.absolutePath + '" ' +
-                    arguments.collect { '"' + it.toString().replace('"', '""') + '"' }.join(' ')
-            commandLine 'cmd.exe', '/d', '/s', '/c', command
-        }
+        main = 'net.minecraftforge.legacydev.MainServer'
+        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
+        workingDir surfaceIntegrationRunDirectory
+        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
+        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
+        environment 'MOD_CLASSES', surfaceIntegrationMainOutput.absolutePath
+        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
+        systemProperty 'forge.logging.console.level', 'info'
+        systemProperty 'surfaceprobe.integrationPhase', phase.toLowerCase()
+        args '--nogui'
     }
 }
 
 def surfaceIntegrationFreshProcess = createSurfaceProcess('Fresh', prepareSurfaceIntegrationTest)
+useForge14Runtime(surfaceIntegrationFreshProcess)
 surfaceIntegrationFreshProcess.doLast {
     File marker = new File(surfaceIntegrationRunDirectory,
             'surface-integration-world/surfaceprobe-integration.properties')
@@ -293,6 +297,7 @@ surfaceIntegrationFreshProcess.doLast {
     }
 }
 def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
+useForge14Runtime(surfaceIntegrationReloadProcess)
 
 task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
     group = 'verification'
@@ -311,67 +316,203 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 
 check.dependsOn surfaceIntegrationTest
 
-task syncForge25EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+def migrationIntegrationClasses = file("${buildDir}/migration-integration-fixture/classes")
+task compileMigrationIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/migrationIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDir = migrationIntegrationClasses
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+}
+
+task migrationIntegrationTestModJar(type: Jar, dependsOn: compileMigrationIntegrationTestMod) {
+    archiveName = 'migrationprobe.jar'
+    destinationDir = file("${buildDir}/migration-integration-fixture")
+    from migrationIntegrationClasses
+    from 'src/migrationIntegrationTest/resources'
+}
+
+if (project.hasProperty('migrationRunDir')) {
+    def migrationRunDirectory = file(project.property('migrationRunDir'))
+    def migrationMainOutput = file("${buildDir}/migration-integration-fixture/orespawn-main")
+    task prepareMigrationIntegrationRun(dependsOn: migrationIntegrationTestModJar) {
+        doLast {
+            delete migrationMainOutput
+            migrationMainOutput.mkdirs()
+            copy { from sourceSets.main.output; into migrationMainOutput }
+            copy { from migrationIntegrationTestModJar.archivePath; into new File(migrationRunDirectory, 'mods') }
+            new File(migrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        }
+    }
+    task migrationIntegrationProcess(type: JavaExec,
+            dependsOn: [prepareMigrationIntegrationRun, 'createSrgToMcp']) {
+        group = 'verification'
+        main = 'net.minecraftforge.legacydev.MainServer'
+        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
+        workingDir migrationRunDirectory
+        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
+        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
+        environment 'MOD_CLASSES', migrationMainOutput.absolutePath
+        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
+        systemProperty 'forge.logging.console.level', 'info'
+        systemProperty 'orespawn.migrationFamily', project.findProperty('migrationFamily') ?: 'unspecified'
+        systemProperty 'orespawn.migrationPhase', project.findProperty('migrationPhase') ?: 'fresh'
+        if ((project.findProperty('migrationAllowMissingMappings') ?: 'false') == 'true') {
+            systemProperty 'fml.queryResult', 'confirm'
+        }
+        args '--nogui'
+		doLast {
+			def phase = project.findProperty('migrationPhase') ?: 'fresh'
+			def marker = new File(migrationRunDirectory,
+					'world/orespawn4-migration-probe.properties')
+			if (!marker.isFile()) {
+				throw new GradleException("Migration probe did not produce ${marker}")
+			}
+			def values = new Properties()
+			marker.withInputStream { values.load(it) }
+			if (values.getProperty("${phase}_complete") != 'true') {
+				throw new GradleException("Migration ${phase} phase did not complete: ${marker}")
+			}
+			def latest = new File(migrationRunDirectory, 'logs/latest.log')
+			if (latest.isFile() && (latest.text.contains('Migration audit failed')
+					|| latest.text.contains('Encountered an unexpected exception'))) {
+				throw new GradleException("Migration ${phase} phase logged a server failure: ${latest}")
+			}
+			if (latest.isFile()
+					&& (project.findProperty('migrationAllowMissingMappings') ?: 'false') == 'true') {
+				def protectedMissing = latest.text =~ /(?m)^(?:Missing (?:basemetals|orespawn):|\s+(?:basemetals|mmdlib|orespawn):)/
+				if (protectedMissing.find()) {
+					throw new GradleException("Protected Base Metals/OreSpawn mapping is missing: ${protectedMissing.group()}")
+				}
+			}
+		}
+    }
+    useForge14Runtime(migrationIntegrationProcess)
+}
+
+if (project.hasProperty('os3AbiFixtureJar')) {
+    def os3AbiFixture = file(project.property('os3AbiFixtureJar'))
+    def os3AbiRunDirectory = file(project.findProperty('os3AbiRunDir')
+            ?: "${buildDir}/os3-abi-integration-run")
+    def os3AbiMainOutput = file("${buildDir}/os3-abi-integration-fixture/orespawn-main")
+    task prepareOs3AbiCompatibilityRun(dependsOn: classes) {
+        doLast {
+            if (!os3AbiFixture.isFile()) {
+                throw new GradleException("Published-API fixture jar is missing: ${os3AbiFixture}")
+            }
+            delete os3AbiRunDirectory
+            delete os3AbiMainOutput
+            os3AbiRunDirectory.mkdirs()
+            copy { from sourceSets.main.output; into os3AbiMainOutput }
+            copy { from os3AbiFixture; into new File(os3AbiRunDirectory, 'mods') }
+            new File(os3AbiRunDirectory, 'server.properties').setText('''\
+level-name=os3-abi-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            new File(os3AbiRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        }
+    }
+    task os3AbiCompatibilityProcess(type: JavaExec,
+            dependsOn: [prepareOs3AbiCompatibilityRun, 'createSrgToMcp']) {
+        group = 'verification'
+        main = 'net.minecraftforge.legacydev.MainServer'
+        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
+        workingDir os3AbiRunDirectory
+        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
+        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
+        environment 'MOD_CLASSES', os3AbiMainOutput.absolutePath
+        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
+        systemProperty 'forge.logging.console.level', 'info'
+        args '--nogui'
+        doLast {
+            String fixtureName = os3AbiFixture.name.toLowerCase(java.util.Locale.ROOT)
+            String fixtureId = fixtureName.contains('322') ? 'os3abi322' : 'os3abi331'
+            File marker = new File(os3AbiRunDirectory, "${fixtureId}-pass.txt")
+            if (!marker.isFile()) {
+                throw new GradleException("Published OS3 API fixture did not pass: ${marker}")
+            }
+            File latest = new File(os3AbiRunDirectory, 'logs/latest.log')
+            if (latest.isFile() && (latest.text.contains('Encountered an unexpected exception')
+                    || latest.text.contains('Exception stopping the server'))) {
+                throw new GradleException("Published OS3 API fixture logged a server failure: ${latest}")
+            }
+        }
+    }
+    useForge14Runtime(os3AbiCompatibilityProcess)
+}
+
+task syncForge14EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
     group = 'ide'
     doLast {
-        String mainClass = 'net.minecraftforge.userdev.LaunchTesting'
         String mainOutput = new File(projectDir, 'bin/main').absolutePath
-		String ordinaryModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput}"
         String fixtureOutput = surfaceIntegrationClasses.absolutePath
         String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
-        String fixtureModClasses = "${mod_id}%%${mainOutput};${mod_id}%%${mainOutput};" +
-                "surfaceprobe%%${fixtureOutput};surfaceprobe%%${fixtureResources}"
-        def environmentEntries = { String launchTarget ->
-                "    <mapEntry key=\"MCP_MAPPINGS\" value=\"${mapping_channel}_${mapping_version}\"/>\r\n" +
-                "    <mapEntry key=\"MCP_VERSION\" value=\"${mcp_version}\"/>\r\n" +
-                "    <mapEntry key=\"FORGE_VERSION\" value=\"${forge_version}\"/>\r\n" +
-                "    <mapEntry key=\"FORGE_GROUP\" value=\"net.minecraftforge\"/>\r\n" +
-                "    <mapEntry key=\"target\" value=\"${launchTarget}\"/>\r\n" +
-                "    <mapEntry key=\"MC_VERSION\" value=\"${minecraft_version}\"/>\r\n"
-		}
-		['Client', 'Server', 'Data'].each { String runName ->
+        String fixtureModClasses = "${mainOutput};${mainOutput};${fixtureOutput};${fixtureResources}"
+		['Client', 'Server'].each { String runName ->
 			File launch = file("run${runName}.launch")
 			if (!launch.isFile()) {
 				throw new GradleException("Missing generated Eclipse launch: ${launch}")
 			}
 			String text = launch.getText('UTF-8')
-			text = text.replace(
-					'<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
-					"<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
-			text = text.replaceFirst(
-					/<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
-					java.util.regex.Matcher.quoteReplacement(
-							"<mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>"))
-			if (!text.contains('key="target"')) {
-				String launchTarget = [Client: 'fmluserdevclient', Server: 'fmluserdevserver',
-						Data: 'fmluserdevdata'][runName]
-				text = text.replace('    <mapEntry key="MOD_CLASSES"',
-						environmentEntries(launchTarget) + '    <mapEntry key="MOD_CLASSES"')
+			String expectedMain = runName == 'Client'
+					? 'net.minecraftforge.legacydev.MainClient'
+					: 'net.minecraftforge.legacydev.MainServer'
+			if (!text.contains("value=\"${expectedMain}\"")) {
+				throw new GradleException("ForgeGradle generated an unexpected ${runName} launcher")
 			}
+			text = text.replace('value="${MC_VERSION}"', "value=\"${minecraft_version}\"")
 			launch.setText(text, 'UTF-8')
 		}
+        File serverLaunch = file('runServer.launch')
+        String serverTemplate = serverLaunch.getText('UTF-8')
         ['Fresh', 'Reload'].each { String phase ->
             File launch = file("runSurfaceIntegration${phase}.launch")
-            if (!launch.isFile()) {
-                throw new GradleException("Missing generated Eclipse launch: ${launch}")
-            }
-            String text = launch.getText('UTF-8')
+            String text = serverTemplate
             text = text.replace(
-                    '<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
-                    "<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
+                    '<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dforge.logging.console.level=debug -Dforge.logging.markers=REGISTRIES"/>',
+                    "<stringAttribute key=\"org.eclipse.jdt.launching.VM_ARGUMENTS\" value=\"-Dforge.logging.console.level=info -Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}\"/>")
+            text = text.replace(
+                    "<stringAttribute key=\"org.eclipse.jdt.launching.WORKING_DIRECTORY\" value=\"${file('run').absolutePath}\"/>",
+                    "<stringAttribute key=\"org.eclipse.jdt.launching.WORKING_DIRECTORY\" value=\"${surfaceIntegrationRunDirectory.absolutePath}\"/>")
             text = text.replaceFirst(
                     /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
                     java.util.regex.Matcher.quoteReplacement(
                             "<mapEntry key=\"MOD_CLASSES\" value=\"${fixtureModClasses}\"/>"))
-            if (!text.contains('key="target"')) {
-                text = text.replace('    <mapEntry key="MOD_CLASSES"',
-                        environmentEntries('fmluserdevserver') + '    <mapEntry key="MOD_CLASSES"')
-            }
             launch.setText(text, 'UTF-8')
         }
     }
 }
 
+task syncForge14EclipseClasspath(dependsOn: forge14RuntimeJar) {
+    group = 'ide'
+    doLast {
+        File classpathFile = file('.classpath')
+        if (!classpathFile.isFile()) {
+            throw new GradleException("Missing generated Eclipse classpath: ${classpathFile}")
+        }
+        String mappedPath = forge14MappedRuntime().absolutePath.replace('\\', '/')
+        String runtimePath = forge14RuntimeJar.archivePath.absolutePath.replace('\\', '/')
+        String text = classpathFile.getText('UTF-8')
+        String mappedEntry = "kind=\"lib\" path=\"${mappedPath}\""
+        if (!text.contains(mappedEntry)) {
+            throw new GradleException("Eclipse classpath does not contain mapped Forge 14 runtime: ${mappedPath}")
+        }
+        text = text.replace(mappedEntry, "kind=\"lib\" path=\"${runtimePath}\"")
+        classpathFile.setText(text, 'UTF-8')
+    }
+}
+
 tasks.matching { it.name == 'genEclipseRuns' }.all {
-    finalizedBy syncForge25EclipseLaunches
+    finalizedBy syncForge14EclipseLaunches
+}
+
+tasks.matching { it.name == 'eclipse' }.all {
+    finalizedBy syncForge14EclipseClasspath
 }

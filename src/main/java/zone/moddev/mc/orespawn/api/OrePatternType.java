@@ -8,14 +8,14 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
 /**
  * Forge-registered ore pattern type. Its codec is evaluated once while a
  * geology profile is baked; only the resulting compiled pattern reaches the
  * generation loop.
  */
-public final class OrePatternType extends ForgeRegistryEntry<OrePatternType> {
+public final class OrePatternType extends IForgeRegistryEntry.Impl<OrePatternType> {
 	private final Codec<?> codec;
 	private final Function<Object, CompiledOrePattern> compiler;
 

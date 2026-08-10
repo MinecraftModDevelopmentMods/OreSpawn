@@ -17,28 +17,42 @@ import zone.moddev.mc.orespawn.worldgen.OreRetrogenManager;
 import zone.moddev.mc.orespawn.worldgen.BiomeSurfaceFeature;
 import zone.moddev.mc.orespawn.worldgen.BiomeWorldgenBootstrap;
 import zone.moddev.mc.orespawn.worldgen.WorldMaterialWeather;
+import zone.moddev.mc.orespawn.worldgen.OreSpawnWorldGenerator;
 import zone.moddev.mc.orespawn.commands.OreSpawnCommands;
 import zone.moddev.mc.orespawn.documentation.DocumentationExporter;
+import com.mcmoddev.orespawn.compat.LegacyOs3Bridge;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.event.world.ChunkDataEvent;
+import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(OreSpawn.MODID)
+@Mod(modid = OreSpawn.MODID, name = OreSpawn.NAME, version = OreSpawn.VERSION,
+		acceptedMinecraftVersions = "[1.12.2]")
 public class OreSpawn {
+	@Mod.Instance(OreSpawn.MODID)
 	public static OreSpawn instance;
 
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = getVersion();
+	public static final String VERSION = "4.0.6";
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -50,60 +64,84 @@ public class OreSpawn {
 
 	public OreSpawn() {
 		instance = this;
-		OreSpawnConfig.register();
-		OreSpawnPatterns.register(FMLJavaModLoadingContext.get().getModEventBus());
-
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueInterMod);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processInterMod);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
-		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
-		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
-		WorldgenBenchmark.register();
 	}
 
-	private void loadComplete(final FMLLoadCompleteEvent event) {
-		WorldgenIntegrationManager.freeze();
-		GeomeConfig.bake();
-		OreSpawnOreGeneration.refreshWorldConfig();
-		FlatBedrockFeature.refreshWorldConfig();
-		OreRetrogenManager.refreshWorldConfig();
-		WorldgenIntegrationManager.markFeatureReady();
+	@EventHandler
+	public void preInit(FMLPreInitializationEvent event) {
+		OreSpawnConfig.load(event.getSuggestedConfigurationFile());
+		OreSpawnPatterns.register();
+		LegacyOs3Bridge.initialize(event);
+		MinecraftForge.EVENT_BUS.register(RuntimeEvents.INSTANCE);
+		// Forge 1.12 posts DecorateBiomeEvent.Pre on EVENT_BUS even though the
+		// event's own documentation names TERRAIN_GEN_BUS. Register the
+		// deduplicated coordinator on both native buses so the early surface and
+		// geology pass runs before ores, structures, and vegetation.
+		MinecraftForge.EVENT_BUS.register(OreSpawnWorldGenerator.INSTANCE);
+		MinecraftForge.ORE_GEN_BUS.register(OreSpawnWorldGenerator.INSTANCE);
+		MinecraftForge.TERRAIN_GEN_BUS.register(OreSpawnWorldGenerator.INSTANCE);
+		GameRegistry.registerWorldGenerator(OreSpawnWorldGenerator.INSTANCE, 0);
+		if (event.getSide().isClient()) zone.moddev.mc.orespawn.client.ClientSetup.initialize();
 	}
 
-	private void enqueueInterMod(final InterModEnqueueEvent event) {
-		// Provider mods submit WorldgenProvider values from their own enqueue event.
-	}
-
-	private void processInterMod(final InterModProcessEvent event) {
-		// Files are authoritative, so scan them before accepting API submissions.
-		WorldgenIntegrationManager.initialize();
-		WorldgenIntegrationManager.processImcMessages();
-		GeomeConfig.bake();
-		OreSpawnOreGeneration.refreshWorldConfig();
-		FlatBedrockFeature.refreshWorldConfig();
-		OreRetrogenManager.refreshWorldConfig();
-	}
-
-	private void setup(final FMLCommonSetupEvent event) {
-		OreSpawnConfig.bake();
+	@EventHandler
+	public void init(FMLInitializationEvent event) {
 		WorldgenIntegrationManager.initialize();
 		GeomeConfig.bake();
 		logGeomeSampler();
-		BiomeWorldgenBootstrap.registerCodecs();
 		DocumentationExporter.exportBundledGuide();
 		StoneReplacer.registerConfiguredFeature();
 		OreSpawnOreGeneration.registerConfiguredFeatures();
 		FluidDepositFeature.registerConfiguredFeature();
 		FlatBedrockFeature.registerConfiguredFeature();
 		BiomeSurfaceFeature.registerConfiguredFeature();
+	}
+
+	@EventHandler
+	public void processInterMod(FMLInterModComms.IMCEvent event) {
+		WorldgenIntegrationManager.processImcMessages();
+	}
+
+	@EventHandler
+	public void postInit(FMLPostInitializationEvent event) {
+		WorldgenIntegrationManager.processImcMessages();
+		WorldgenIntegrationManager.freeze();
+		GeomeConfig.bake();
+		refreshGenerationConfig();
+		WorldgenIntegrationManager.markFeatureReady();
+	}
+
+	@EventHandler
+	public void loadComplete(final FMLLoadCompleteEvent event) {
+		WorldgenIntegrationManager.freeze();
+		GeomeConfig.bake();
+		refreshGenerationConfig();
+		WorldgenIntegrationManager.markFeatureReady();
+	}
+
+	@EventHandler
+	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
+		WorldGeologyProfileManager.onServerAboutToStart(event);
+		WorldgenBenchmark.onServerAboutToStart(event);
+	}
+
+	@EventHandler
+	public void serverStarting(FMLServerStartingEvent event) {
+		OreSpawnCommands.register(event);
+		WorldgenBenchmark.onServerStarted(event);
+	}
+
+	@EventHandler
+	public void serverStopped(FMLServerStoppedEvent event) {
+		WorldGeologyProfileManager.onServerStopped(event);
+		OreSpawnWorldGenerator.INSTANCE.clear();
+	}
+
+	private static void refreshGenerationConfig() {
+		StoneReplacer.refreshWorldConfig();
+		OreSpawnOreGeneration.refreshWorldConfig();
+		FluidDepositFeature.refreshWorldConfig();
+		FlatBedrockFeature.refreshWorldConfig();
+		OreRetrogenManager.refreshWorldConfig();
 	}
 
 	private static void logGeomeSampler() {
@@ -169,6 +207,29 @@ public class OreSpawn {
 					GeomeDistributionSampler.sampleTerrain(seed, java.nio.file.Paths.get(terrainSample)));
 		} catch (java.io.IOException e) {
 			LOGGER.error("Could not replay OreSpawn terrain sample '{}'", terrainSample, e);
+		}
+	}
+
+	private static final class RuntimeEvents {
+		static final RuntimeEvents INSTANCE = new RuntimeEvents();
+
+		@SubscribeEvent public void worldLoad(WorldEvent.Load event) {
+			WorldGeologyProfileManager.onWorldLoad(event);
+		}
+		@SubscribeEvent public void chunkLoad(ChunkEvent.Load event) {
+			WorldMaterialWeather.onChunkLoad(event);
+		}
+		@SubscribeEvent public void worldTick(TickEvent.WorldTickEvent event) {
+			WorldMaterialWeather.onWorldTick(event);
+		}
+		@SubscribeEvent public void retrogenLoad(ChunkDataEvent.Load event) {
+			OreRetrogenManager.onChunkLoad(event);
+		}
+		@SubscribeEvent public void retrogenSave(ChunkDataEvent.Save event) {
+			OreRetrogenManager.onChunkSave(event);
+		}
+		@SubscribeEvent public void serverTick(TickEvent.ServerTickEvent event) {
+			OreRetrogenManager.onServerTick(event);
 		}
 	}
 

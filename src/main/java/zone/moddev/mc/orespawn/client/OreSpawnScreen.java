@@ -6,21 +6,25 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.text.ITextComponent;
 
-/** Shared target-native helpers for the Minecraft 1.13 screen contract. */
+/** Shared target-native helpers for the Minecraft 1.12 screen contract. */
 abstract class OreSpawnScreen extends GuiScreen {
 	protected final ITextComponent title;
-	protected final Minecraft minecraft = Minecraft.getInstance();
+	protected final Minecraft minecraft = Minecraft.getMinecraft();
 	protected FontRenderer font;
+	/** Later-name aliases retained only inside OreSpawn's own UI implementation. */
+	protected final List<GuiButton> buttons = buttonList;
+	protected final List<Object> children = new ArrayList<>();
 
 	OreSpawnScreen(ITextComponent title) {
 		this.title = title;
 	}
 
 	@Override
-	protected final void initGui() {
-		font = mc.fontRenderer;
+	public final void initGui() {
+		font = fontRenderer;
 		init();
 	}
 
@@ -37,9 +41,40 @@ abstract class OreSpawnScreen extends GuiScreen {
 		minecraft.displayGuiScreen(null);
 	}
 
-	@Override
 	public final void close() {
 		onClose();
+	}
+
+	@Override
+	public void onGuiClosed() {
+		onClose();
+	}
+
+	@Override
+	public final void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		render(mouseX, mouseY, partialTicks);
+	}
+
+	/** Later-name adapter used by the 24 target-native editor implementations. */
+	public void render(int mouseX, int mouseY, float partialTicks) {
+		super.drawScreen(mouseX, mouseY, partialTicks);
+		for (GuiButton widget : buttonList) {
+			if (widget instanceof Button) ((Button) widget).renderTooltip(mouseX, mouseY);
+		}
+	}
+
+	@Override
+	protected void actionPerformed(GuiButton button) {
+		if (button instanceof Button) ((Button) button).press();
+	}
+
+	@Override
+	protected void keyTyped(char typedChar, int keyCode) throws java.io.IOException {
+		for (GuiButton widget : buttonList) {
+			if (widget instanceof TextFieldWidget
+					&& ((TextFieldWidget) widget).keyTyped(typedChar, keyCode)) return;
+		}
+		super.keyTyped(typedChar, keyCode);
 	}
 
 	protected final void drawCenteredString(FontRenderer renderer,
@@ -57,5 +92,9 @@ abstract class OreSpawnScreen extends GuiScreen {
 		List<String> text = new ArrayList<>();
 		for (ITextComponent line : lines) text.add(line.getFormattedText());
 		drawHoveringText(text, mouseX, mouseY);
+	}
+
+	final void renderStringTooltip(List<String> lines, int mouseX, int mouseY) {
+		drawHoveringText(lines, mouseX, mouseY, fontRenderer);
 	}
 }

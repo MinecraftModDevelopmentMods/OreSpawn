@@ -11,11 +11,9 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Entry;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.provider.BiomeProvider;
-import net.minecraft.world.gen.feature.structure.Structure;
+import net.minecraft.world.biome.BiomeProvider;
 
 /** Delegates biome choice first, then applies pre-baked provider palettes. */
 final class BiomeOverlaySource extends BiomeProvider {
@@ -44,14 +42,20 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
+	public Biome getBiome(BlockPos pos) {
+		return getBiome(pos, null);
+	}
+
+	@Override
 	public Biome getBiome(BlockPos pos, @Nullable Biome defaultBiome) {
 		return selectAll(delegate.getBiome(pos, defaultBiome),
 				Math.floorDiv(pos.getX(), 4), Math.floorDiv(pos.getZ(), 4));
 	}
 
 	@Override
-	public Biome[] getBiomes(int quartX, int quartZ, int width, int length) {
-		Biome[] selected = delegate.getBiomes(quartX, quartZ, width, length);
+	public Biome[] getBiomesForGeneration(Biome[] reuse, int quartX, int quartZ,
+			int width, int length) {
+		Biome[] selected = delegate.getBiomesForGeneration(reuse, quartX, quartZ, width, length);
 		for (int z = 0; z < length; z++) {
 			for (int x = 0; x < width; x++) {
 				int index = x + z * width;
@@ -62,9 +66,14 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public Biome[] getBiomes(int blockX, int blockZ, int width, int length,
+	public Biome[] getBiomes(Biome[] reuse, int blockX, int blockZ, int width, int length) {
+		return getBiomes(reuse, blockX, blockZ, width, length, true);
+	}
+
+	@Override
+	public Biome[] getBiomes(Biome[] reuse, int blockX, int blockZ, int width, int length,
 			boolean cacheFlag) {
-		Biome[] selected = delegate.getBiomes(blockX, blockZ, width, length, cacheFlag);
+		Biome[] selected = delegate.getBiomes(reuse, blockX, blockZ, width, length, cacheFlag);
 		for (int z = 0; z < length; z++) {
 			for (int x = 0; x < width; x++) {
 				int index = x + z * width;
@@ -76,19 +85,15 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public Set<Biome> getBiomesInSquare(int centerX, int centerZ, int sideLength) {
-		int minQuartX = centerX - sideLength >> 2;
-		int minQuartZ = centerZ - sideLength >> 2;
-		int maxQuartX = centerX + sideLength >> 2;
-		int maxQuartZ = centerZ + sideLength >> 2;
-		Set<Biome> result = new HashSet<>();
-		for (int quartZ = minQuartZ; quartZ <= maxQuartZ; quartZ++) {
-			for (int quartX = minQuartX; quartX <= maxQuartX; quartX++) {
-				BlockPos pos = new BlockPos(quartX << 2, 0, quartZ << 2);
-				result.add(getBiome(pos, null));
-			}
-		}
-		return result;
+	public boolean areBiomesViable(int x, int z, int range, List<Biome> biomes) {
+		int minQuartX = (x - range) >> 2;
+		int minQuartZ = (z - range) >> 2;
+		int maxQuartX = (x + range) >> 2;
+		int maxQuartZ = (z + range) >> 2;
+		Biome[] values = getBiomesForGeneration(null, minQuartX, minQuartZ,
+				maxQuartX - minQuartX + 1, maxQuartZ - minQuartZ + 1);
+		for (Biome biome : values) if (!biomes.contains(biome)) return false;
+		return true;
 	}
 
 	@Override
@@ -114,36 +119,18 @@ final class BiomeOverlaySource extends BiomeProvider {
 	}
 
 	@Override
-	public boolean hasStructure(Structure<?> structure) {
-		if (delegate.hasStructure(structure)) return true;
-		for (Biome biome : possibleBiomes) {
-			if (biome.hasStructure(structure)) return true;
-		}
-		return false;
-	}
-
-	@Override
-	public Set<IBlockState> getSurfaceBlocks() {
-		Set<IBlockState> result = new HashSet<>(delegate.getSurfaceBlocks());
-		for (Biome biome : possibleBiomes) {
-			result.add(biome.getSurfaceBuilderConfig().getTop());
-		}
-		return result;
-	}
-
-	@Override
 	public List<Biome> getBiomesToSpawnIn() {
 		return delegate.getBiomesToSpawnIn();
 	}
 
 	@Override
-	public float getHeightValue(int x, int z, int width, int length) {
-		return delegate.getHeightValue(x, z, width, length);
+	public float getTemperatureAtHeight(float temperature, int y) {
+		return delegate.getTemperatureAtHeight(temperature, y);
 	}
 
 	@Override
-	public void tick() {
-		delegate.tick();
+	public void cleanupCache() {
+		delegate.cleanupCache();
 	}
 
 	private Biome selectAll(Biome selected, int quartX, int quartZ) {

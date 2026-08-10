@@ -1,0 +1,10 @@
+[
+  {
+    "modid": "migrationprobe",
+    "name": "OreSpawn Migration Probe",
+    "description": "Build-only OS3 migration and reload driver.",
+    "version": "1",
+    "mcversion": "1.12.2",
+    "dependencies": ["required-after:orespawn@[4.0.6,5.0.0)"]
+  }
+]

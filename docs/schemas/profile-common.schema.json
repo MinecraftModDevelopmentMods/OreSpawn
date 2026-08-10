@@ -34,11 +34,13 @@
     "family": { "enum": ["sedimentary", "metamorphic", "igneous_intrusive", "igneous_volcanic"] },
     "preset": { "enum": ["tiny", "small", "average", "large", "huge", "custom"] },
     "weights": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+	"metadata": { "type": "integer", "minimum": 0, "maximum": 15 },
     "weightedBlock": {
       "type": "object",
       "required": ["block"],
       "properties": {
         "block": { "$ref": "#/$defs/registryId" },
+		"metadata": { "$ref": "#/$defs/metadata" },
         "weight": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
@@ -82,6 +84,7 @@
       "required": ["enabled", "family", "depth_peak", "depth_spread", "min_y", "max_y", "weight", "ore_replaceable"],
       "properties": {
         "block": { "$ref": "#/$defs/registryId" },
+		"metadata": { "$ref": "#/$defs/metadata" },
         "enabled": { "type": "boolean" },
         "family": { "$ref": "#/$defs/family" },
         "depth_peak": { "type": "integer", "minimum": -2048, "maximum": 2048 },
@@ -181,6 +184,7 @@
       "required": ["enabled"],
       "properties": {
         "block": { "$ref": "#/$defs/registryId" },
+		"metadata": { "$ref": "#/$defs/metadata" },
         "enabled": { "type": "boolean" },
         "source_mod": { "type": "string" },
         "native_generation": { "type": "boolean" },
@@ -193,6 +197,7 @@
             "required": ["block", "weight"],
             "properties": {
               "block": { "$ref": "#/$defs/registryId" },
+			  "metadata": { "$ref": "#/$defs/metadata" },
               "weight": { "type": "number", "minimum": 0 },
               "min_y": { "type": "integer" },
               "max_y": { "type": "integer" }
@@ -200,6 +205,7 @@
           }
         },
         "deep_output": { "$ref": "#/$defs/registryId" },
+		"deep_output_metadata": { "$ref": "#/$defs/metadata" },
         "deep_output_max_y": { "type": "integer" },
         "dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/oreDimension" } },
         "dimension_selectors": {
@@ -250,6 +256,7 @@
 	  "properties": {
 		"enabled": { "type": "boolean" },
 		"block": { "$ref": "#/$defs/registryId" },
+		"metadata": { "$ref": "#/$defs/metadata" },
 		"dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/fluidDepositDimension" } }
 	  },
 	  "additionalProperties": true
@@ -267,9 +274,13 @@
       "type": "object",
       "properties": {
         "top_block": { "$ref": "#/$defs/registryId" },
+		"top_block_metadata": { "$ref": "#/$defs/metadata" },
         "filler_block": { "$ref": "#/$defs/registryId" },
+		"filler_block_metadata": { "$ref": "#/$defs/metadata" },
         "underwater_block": { "$ref": "#/$defs/registryId" },
+		"underwater_block_metadata": { "$ref": "#/$defs/metadata" },
         "ceiling_block": { "$ref": "#/$defs/registryId" },
+		"ceiling_block_metadata": { "$ref": "#/$defs/metadata" },
         "filler_depth": { "type": "integer", "minimum": 0, "maximum": 16 }
       },
       "additionalProperties": true

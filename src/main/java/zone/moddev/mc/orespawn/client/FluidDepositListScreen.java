@@ -10,7 +10,7 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 final class FluidDepositListScreen extends OreSpawnScreen {
 	private final GuiScreen parent;

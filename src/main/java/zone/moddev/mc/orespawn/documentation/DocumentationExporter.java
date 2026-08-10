@@ -10,7 +10,7 @@ import java.nio.file.StandardCopyOption;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.common.Loader;
 
 /** Copies the bundled public guide beside OreSpawn's configuration on first use. */
 public final class DocumentationExporter {
@@ -43,7 +43,7 @@ public final class DocumentationExporter {
 	}
 
 	public static void exportBundledGuide() {
-		Path target = FMLPaths.CONFIGDIR.get().resolve("orespawn-guide");
+		Path target = Loader.instance().getConfigDir().toPath().resolve("orespawn-guide");
 		try {
 			int exported = exportMissing(target);
 			if (exported > 0) {
