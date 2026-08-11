@@ -170,6 +170,12 @@ Hosts may be plain registry IDs or weighted objects such as
 `geomes`, biome include/exclude IDs, and biome-dictionary include/exclude arrays
 further narrow placement.
 
+On Minecraft 1.12.2, a plain block ID accepts every metadata state belonging to
+that block. To accept ordinary stone only, use
+`{"block":"minecraft:stone","metadata":0}` in `host_blocks`; omitting
+`metadata` also permits granite, diorite, and andesite states stored under the
+same `minecraft:stone` block ID.
+
 `frequency` is expected attempts per chunk: the integer part is guaranteed and
 the fractional part is the chance of one additional attempt. A fixed
 `quantity` or sampled quantity range is a placement budget, not a promise that
