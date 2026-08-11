@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Random;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,10 +16,46 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 
 class OreSpawnOreGenerationTest {
+	@Test
+	void airExposureCheckRejectsCrossChunkReadsBeforeTouchingTheWorld() throws Exception {
+		String source = new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
+				"moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),
+				StandardCharsets.UTF_8);
+		int methodStart = source.indexOf("private boolean isAir(int x, int y, int z)");
+		int methodEnd = source.indexOf("\n\t\t}", methodStart);
+		String method = source.substring(methodStart, methodEnd);
+		int boundsCheck = method.indexOf("if (!insideChunk(chunk, x, y, z))");
+		int worldRead = method.indexOf("world.getBlockState(airCursor)");
+
+		assertTrue(boundsCheck >= 0, "air exposure must reject positions outside the active chunk");
+		assertTrue(boundsCheck < worldRead, "the chunk bound must be checked before any world read");
+	}
+
+	@Test
+	void chunkBoundsIncludeAllFourEdgesAndRejectEveryNeighbour() {
+		ChunkPos chunk = new ChunkPos(7, -4);
+		int minX = chunk.getXStart();
+		int maxX = chunk.getXEnd();
+		int minZ = chunk.getZStart();
+		int maxZ = chunk.getZEnd();
+
+		assertTrue(OreSpawnOreGeneration.insideChunk(chunk, minX, 64, minZ));
+		assertTrue(OreSpawnOreGeneration.insideChunk(chunk, minX, 64, maxZ));
+		assertTrue(OreSpawnOreGeneration.insideChunk(chunk, maxX, 64, minZ));
+		assertTrue(OreSpawnOreGeneration.insideChunk(chunk, maxX, 64, maxZ));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX - 1, 64, minZ));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, maxX + 1, 64, minZ));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, 64, minZ - 1));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, 64, maxZ + 1));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, -1, minZ));
+		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, 256, minZ));
+	}
+
 	@Test
 	void fixedQuantityDoesNotConsumeRandomState() {
 		CountingRandom random = new CountingRandom(0);

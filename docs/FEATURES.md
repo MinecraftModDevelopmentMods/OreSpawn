@@ -47,13 +47,14 @@ dimension coverage, with explicit dimensions taking precedence.
 `discard_chance_on_air_exposure` is a
 number from 0 to 1; selected placements touching air are rejected with that
 probability. It can reproduce buried ore behavior without reducing deposits
-that remain enclosed in rock.
+that remain enclosed in rock. Exposure inspection is limited to the active
+chunk; an unavailable neighbouring block is not read or treated as cave air.
 
 Compact nodes use one of 48 pre-baked orientations. Every prefix from 1 to 64
-blocks is face-connected when the host material is continuous. During initial
-generation deposits may cross chunk borders through Minecraft's writable
-worldgen region; retrogen remains deliberately limited to the chunk being
-updated.
+blocks is face-connected when the host material is continuous. Forge 1.12
+initial generation and retrogen both keep reads and writes inside the active
+chunk. A shape reaching an edge is clipped there, and the neighbouring chunk
+receives its own independently sampled attempts when it generates.
 
 Retrogen records a deterministic profile revision in chunk NBT under
 `OreSpawn`. Only ore rules with `retrogen:true` participate. Processing is

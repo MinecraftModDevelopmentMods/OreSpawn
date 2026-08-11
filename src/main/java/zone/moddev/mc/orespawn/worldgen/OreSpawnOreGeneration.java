@@ -219,7 +219,10 @@ public final class OreSpawnOreGeneration {
 	}
 
 	private static boolean insideChunk(Chunk chunk, int x, int y, int z) {
-		ChunkPos pos = chunk.getPos();
+		return insideChunk(chunk.getPos(), x, y, z);
+	}
+
+	static boolean insideChunk(ChunkPos pos, int x, int y, int z) {
 		return x >= pos.getXStart() && x <= pos.getXEnd()
 				&& z >= pos.getZStart() && z <= pos.getZEnd()
 				&& y >= 0 && y < 256;
@@ -871,10 +874,7 @@ public final class OreSpawnOreGeneration {
 		}
 
 		private boolean isAir(int x, int y, int z) {
-			if (y < 0 || y >= 256) {
-				return false;
-			}
-			if (world == null && !insideChunk(chunk, x, y, z)) {
+			if (!insideChunk(chunk, x, y, z)) {
 				return false;
 			}
 			airCursor.setPos(x, y, z);
