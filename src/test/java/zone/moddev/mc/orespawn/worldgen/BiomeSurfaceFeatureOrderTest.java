@@ -23,6 +23,11 @@ class BiomeSurfaceFeatureOrderTest {
 		assertTrue(ores > bedrock, "managed ores must run through the later OreGen event path");
 		assertTrue(source.contains("beforeBiomeDecoration(DecorateBiomeEvent.Pre event)"));
 		assertTrue(source.contains("beforeVanillaOres(OreGenEvent.Pre event)"));
+		assertTrue(source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\r\n\tpublic void filterVanillaOre")
+				|| source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\n\tpublic void filterVanillaOre"),
+				"vanilla-ore suppression must make its decision at Forge's final standard event priority");
+		assertTrue(source.contains("OreSpawnOreGeneration.takesOverVanillaOre(dimension, output)"));
+		assertTrue(source.contains("event.setResult(Event.Result.DENY)"));
 		assertTrue(source.contains("earlyComplete.add(key)") && source.contains("oreComplete.add(key)"),
 				"terrain and ore callbacks must be independently deduplicated");
 		assertTrue(source("BiomeFeatureInstaller.java").contains("ordered terrain-event"),

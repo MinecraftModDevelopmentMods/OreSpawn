@@ -11,6 +11,8 @@ Version 4.0.6
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
 * Preserve exact custom-biome rules and stagger close Stable Layers geome boundaries.
 * Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.12.2.
+* Apply vanilla-ore suppression at Forge's final standard event priority so
+  later ordinary mod listeners cannot re-enable claimed vanilla ore features.
 * Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
   Forge 1.12 terrain events and one deduplicated IWorldGenerator fallback.
 * Register the early surface/geology coordinator on Forge 1.12's actual event

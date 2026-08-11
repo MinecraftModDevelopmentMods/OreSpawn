@@ -56,7 +56,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 		generateOres(event.getWorld(), pos.x, pos.z, event.getRand());
 	}
 
-	@SubscribeEvent
+	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void filterVanillaOre(OreGenEvent.GenerateMinable event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
 		ResourceLocation dimension = WorldIds.dimension(event.getWorld());
