@@ -2,9 +2,13 @@ package zone.moddev.mc.orespawn.migrationtest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +17,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.TreeMap;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import zone.moddev.mc.orespawn.worldgen.OreRetrogenManager;
 
@@ -52,6 +61,7 @@ public final class MigrationProbeTestMod {
 	private static final int MAX_SOURCE_CHUNK = 4;
 	private static final int MIN_RESERVED_CHUNK = 16;
 	private static final int MAX_RESERVED_CHUNK = 20;
+	private static final String BASE_METALS_FRESH_INSTALL = "basemetals-fresh-install";
 
 	private MinecraftServer server;
 	private String phase;
@@ -141,19 +151,23 @@ public final class MigrationProbeTestMod {
 		}
 
 		Properties audit = auditWorld();
+		if (isBaseMetalsFreshInstallFixture()) validateBaseMetalsFreshInstall(root, audit);
 		Path freshAudit = root.resolve("orespawn4-migration-fresh-audit.properties");
 		if ("fresh".equals(phase)) {
 			write(freshAudit, audit, "OreSpawn 4 migration fresh semantic audit");
 		} else {
 			Properties expected = read(freshAudit);
-			if (!expected.equals(audit)) {
+			Properties expectedComparison = reloadComparison(expected);
+			Properties actualComparison = reloadComparison(audit);
+			if (!expectedComparison.equals(actualComparison)) {
 				write(root.resolve("orespawn4-migration-reload-failed-audit.properties"), audit,
 						"OreSpawn 4 failed reload semantic audit");
 				throw new IllegalStateException("Fresh/reload semantic migration audit differs: "
-						+ firstDifference(expected, audit) + "; marked=" + markedSourceLoads.size()
+						+ firstDifference(expectedComparison, actualComparison) + "; marked=" + markedSourceLoads.size()
 						+ "; unmarked=" + unmarkedSourceLoads.size() + "; queued=" + queuedAtStart);
 			}
 		}
+		if (isBaseMetalsFreshInstallFixture()) verifyFreshInstallHashes(root, values);
 
 		values.setProperty("family", family);
 		values.setProperty("seed", Long.toString(server.getWorld(0).getSeed()));
@@ -175,6 +189,148 @@ public final class MigrationProbeTestMod {
 
 	private boolean isRetrogenFixture() {
 		return "os3-322-custom".equals(family);
+	}
+
+	private boolean isBaseMetalsFreshInstallFixture() {
+		return BASE_METALS_FRESH_INSTALL.equals(family);
+	}
+
+	private Properties reloadComparison(Properties source) {
+		if (!isBaseMetalsFreshInstallFixture()) return source;
+		Properties stable = new Properties();
+		for (String key : source.stringPropertyNames()) {
+			// A newly generated vanilla world can finish water/lava conversion while
+			// the first server is saving. Ignore only that unrelated product and the
+			// aggregate hash which contains it; every Base Metals block, range, biome,
+			// tile entity, and all other terrain counts remain exact across reload.
+			if (key.endsWith(".block_hash") || key.contains(".block.minecraft:obsidian@")
+					|| key.contains(".block.minecraft:cobblestone@")) continue;
+			stable.setProperty(key, source.getProperty(key));
+		}
+		return stable;
+	}
+
+	private void validateBaseMetalsFreshInstall(Path worldRoot, Properties audit) throws IOException {
+		Path config = worldRoot.getParent().resolve("config");
+		if (Files.exists(config.resolve("orespawn3"))) {
+			throw new IllegalStateException("Fresh Base Metals qualification unexpectedly created an OS3 config directory");
+		}
+		JsonObject provider = readJson(config.resolve("basemetals-orespawn.json"));
+		if (provider.get("schema_version").getAsInt() != 4
+				|| !"basemetals".equals(provider.get("provider_modid").getAsString())
+				|| provider.get("provider_revision").getAsInt() != 1) {
+			throw new IllegalStateException("Base Metals embedded OS3 resource produced invalid provider metadata");
+		}
+		JsonObject ores = provider.getAsJsonObject("ores");
+		String[][] expected = {
+				{ "coldiron_ore", "-1", "minecraft:the_nether", "0", "127", "5.0" },
+				{ "adamantine_ore", "-1", "minecraft:the_nether", "0", "127", "2.0" },
+				{ "starsteel_ore", "1", "minecraft:the_end", "0", "254", "5.0" },
+				{ "copper_ore", "0", "orespawn:all_except_nether_end", "0", "95", "10.0" },
+				{ "silver_ore", "0", "orespawn:all_except_nether_end", "0", "31", "4.0" },
+				{ "tin_ore", "0", "orespawn:all_except_nether_end", "0", "127", "10.0" },
+				{ "lead_ore", "0", "orespawn:all_except_nether_end", "0", "63", "5.0" },
+				{ "zinc_ore", "0", "orespawn:all_except_nether_end", "0", "95", "5.0" },
+				{ "mercury_ore", "0", "orespawn:all_except_nether_end", "0", "31", "3.0" },
+				{ "nickel_ore", "0", "orespawn:all_except_nether_end", "32", "95", "1.0" },
+				{ "platinum_ore", "0", "orespawn:all_except_nether_end", "1", "31", "0.125" }
+		};
+		if (ores.size() != expected.length) {
+			throw new IllegalStateException("Expected 11 Base Metals rules, found " + ores.size());
+		}
+		for (String[] rule : expected) {
+			String oreName = rule[0];
+			String blockName = "basemetals:" + oreName;
+			JsonObject ore = ores.getAsJsonObject("basemetals:legacy/" + oreName);
+			if (ore == null || !blockName.equals(ore.get("block").getAsString())
+					|| !"basemetals".equals(ore.get("source_mod").getAsString())) {
+				throw new IllegalStateException("Missing or invalid migrated Base Metals rule " + oreName);
+			}
+			JsonObject placements = "0".equals(rule[1])
+					? ore.getAsJsonObject("dimension_selectors") : ore.getAsJsonObject("dimensions");
+			JsonObject placement = placements == null ? null : placements.getAsJsonObject(rule[2]);
+			if (placement == null || placement.get("min_y").getAsInt() != Integer.parseInt(rule[3])
+					|| placement.get("max_y").getAsInt() != Integer.parseInt(rule[4])
+					|| Double.compare(placement.get("frequency").getAsDouble(), Double.parseDouble(rule[5])) != 0) {
+				throw new IllegalStateException("Incorrect migrated placement for " + oreName);
+			}
+			long total = 0L;
+			for (String region : new String[] { "source", "reserved" }) {
+				for (int dimension : new int[] { 0, -1, 1 }) {
+					String prefix = region + "." + dimension;
+					long count = Long.parseLong(audit.getProperty(prefix + ".block." + blockName + "@0", "0"));
+					if (dimension != Integer.parseInt(rule[1]) && count != 0L) {
+						throw new IllegalStateException(blockName + " generated in dimension " + dimension);
+					}
+					total += count;
+					if (count > 0L) {
+						int minimum = Integer.parseInt(audit.getProperty(prefix + ".ore_min_y." + blockName + "@0"));
+						int maximum = Integer.parseInt(audit.getProperty(prefix + ".ore_max_y." + blockName + "@0"));
+						if (minimum < Integer.parseInt(rule[3]) || maximum > Integer.parseInt(rule[4])) {
+							throw new IllegalStateException(blockName + " generated outside its migrated Y range");
+						}
+					}
+				}
+			}
+			if (total == 0L) throw new IllegalStateException("No fresh-world generation found for " + blockName);
+		}
+
+		JsonObject report = readJson(config.resolve("orespawn-os3-migration-report.json"));
+		if (!report.get("idempotent").getAsBoolean()) {
+			throw new IllegalStateException("Base Metals migration report is not idempotent");
+		}
+		Set<String> entries = new HashSet<>();
+		JsonArray rows = report.getAsJsonArray("entries");
+		for (JsonElement row : rows) {
+			String value = row.getAsString();
+			entries.add(value);
+			if (value.contains("_failed=") || value.contains("_rejected=")) {
+				throw new IllegalStateException("Base Metals migration report contains failure: " + value);
+			}
+		}
+		for (String required : new String[] {
+				"resource_loaded=assets/basemetals/orespawn/basemetals.json",
+				"plugin_loaded=com.mcmoddev.orespawn.BaseMetalsOreSpawn",
+				"provider_translated=basemetals:owner=basemetals:ores=11",
+				"provider_written=basemetals-orespawn.json" }) {
+			if (!entries.contains(required)) throw new IllegalStateException("Missing migration evidence: " + required);
+		}
+	}
+
+	private void verifyFreshInstallHashes(Path worldRoot, Properties marker) throws IOException {
+		Path config = worldRoot.getParent().resolve("config");
+		Path[] files = {
+				config.resolve("basemetals-orespawn.json"),
+				config.resolve("orespawn-os3-migration-report.json"),
+				config.resolve("orespawn-worldgen.json"),
+				worldRoot.resolve("serverconfig/orespawn-worldgen.json")
+		};
+		String[] names = { "provider", "report", "global_profile", "world_profile" };
+		for (int index = 0; index < files.length; index++) {
+			String hash = sha256(files[index]);
+			String key = "fresh_basemetals_" + names[index] + "_sha256";
+			if ("fresh".equals(phase)) marker.setProperty(key, hash);
+			else if (!hash.equals(marker.getProperty(key))) {
+				throw new IllegalStateException("Base Metals fresh-install file changed on reload: " + files[index]);
+			}
+		}
+	}
+
+	private static JsonObject readJson(Path path) throws IOException {
+		try (InputStreamReader reader = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
+			return new JsonParser().parse(reader).getAsJsonObject();
+		}
+	}
+
+	private static String sha256(Path path) throws IOException {
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path));
+			StringBuilder result = new StringBuilder();
+			for (byte value : digest) result.append(String.format("%02X", value & 0xff));
+			return result.toString();
+		} catch (NoSuchAlgorithmException impossible) {
+			throw new IllegalStateException("SHA-256 is unavailable", impossible);
+		}
 	}
 
 	private Path worldRoot() {
