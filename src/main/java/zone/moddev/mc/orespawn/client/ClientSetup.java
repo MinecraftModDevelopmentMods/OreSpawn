@@ -12,6 +12,9 @@ public final class ClientSetup {
 	public static synchronized void initialize() {
 		if (initialized) return;
 		initialized = true;
-		MinecraftForge.EVENT_BUS.register(new WorldCreationScreenHandler());
+		// Forge 1.12 ignores static @SubscribeEvent methods when their declaring
+		// class is registered as an instance. Both world-creation hooks are static,
+		// so the class object is required for the OreSpawn button to be installed.
+		MinecraftForge.EVENT_BUS.register(WorldCreationScreenHandler.class);
 	}
 }

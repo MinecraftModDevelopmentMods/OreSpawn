@@ -12,7 +12,7 @@ import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public final class WorldCreationScreenHandler {
-	WorldCreationScreenHandler() {
+	private WorldCreationScreenHandler() {
 	}
 
 	@SubscribeEvent
