@@ -3,6 +3,8 @@ package zone.moddev.mc.orespawn.client;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.lwjgl.input.Keyboard;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -45,11 +47,8 @@ abstract class OreSpawnScreen extends GuiScreen {
 		onClose();
 	}
 
-	@Override
-	public void onGuiClosed() {
-		onClose();
-	}
-
+	// GuiScreen.onGuiClosed is a removal notification, not the later Screen.onClose
+	// action. Keep its inherited no-op behavior; explicit controls and Escape navigate.
 	@Override
 	public final void drawScreen(int mouseX, int mouseY, float partialTicks) {
 		render(mouseX, mouseY, partialTicks);
@@ -70,6 +69,10 @@ abstract class OreSpawnScreen extends GuiScreen {
 
 	@Override
 	protected void keyTyped(char typedChar, int keyCode) throws java.io.IOException {
+		if (keyCode == Keyboard.KEY_ESCAPE) {
+			onClose();
+			return;
+		}
 		for (GuiButton widget : buttonList) {
 			if (widget instanceof TextFieldWidget
 					&& ((TextFieldWidget) widget).keyTyped(typedChar, keyCode)) return;
