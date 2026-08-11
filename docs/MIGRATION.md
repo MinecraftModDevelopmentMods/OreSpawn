@@ -1,10 +1,11 @@
 # Migration
 
-## OreSpawn 3 Compatibility On Minecraft 1.12.2
+## OreSpawn 1 And OreSpawn 3 Compatibility On Minecraft 1.10.2
 
-This branch ships a deprecated compatibility bridge for existing OreSpawn 3
-consumer jars. It preserves the compatible public descriptors from OreSpawn
-3.2.2 and 3.3.1, including `com.mcmoddev.orespawn`, `OreSpawn.API`, plugin
+This branch ships deprecated compatibility bridges for existing OreSpawn 1 and
+OreSpawn 3 consumer jars. It preserves the compatible public descriptors from
+OreSpawn 1.1 and OreSpawn 3.2.2, including `cyano.orespawn`,
+`com.mcmoddev.orespawn`, `OreSpawn.API`, plugin
 annotations, builders, feature hooks, replacements, and programmatic
 registration handles. Existing binaries are discovered without recompilation.
 
@@ -14,6 +15,17 @@ registrations into OreSpawn 4 providers, and schedules custom legacy features
 through one compatibility coordinator. The original OreSpawn 3 generator is
 never registered alongside its translated OreSpawn 4 rule.
 
+OreSpawn 1 files under `config/orespawn/*.json` are read after every mod has
+completed pre-initialization, so older Base Metals builds can create their file
+first. The converter preserves `blockID`/`blockMeta`, size and variation,
+fractional frequency, exclusive maximum height, additional host blocks, flags,
+explicit dimensions, and resolvable biome names or numeric IDs. A `"+"`
+dimension selector is resolved to the static set of dimensions installed for
+that startup, excluding dimensions already named by the source file; the
+report records that set and warns that dimension mods added later need manual
+review. An entirely unresolved biome restriction matches nothing rather than
+silently broadening the rule to every biome.
+
 Migration is atomic and idempotent. Source files are never edited. Before an
 OreSpawn 4 target is written, OreSpawn retains a backup and writes through a
 temporary file. The deterministic report records mappings, clamping,
@@ -21,7 +33,7 @@ unsupported entries, ambiguities, and any required user action. A clean second
 startup does not rewrite the result or repeat registration, retrogen, or
 generation.
 
-Minecraft 1.12 metadata states are preserved as block ID plus metadata; the
+Minecraft 1.10 metadata states are preserved as block ID plus metadata; the
 migrator does not invent post-flattening block IDs. Legacy Base Metals rules
 use stable provider identities when their outputs match uniquely. Mineralogy
 3 replacement rocks are accepted as ore hosts, but Mineralogy remains the
@@ -100,7 +112,7 @@ IDs into OreSpawn's canonical IDs, preserving edited rules and removing
 duplicate placement. Revision 9 recognizes the later-port deep-biased defaults
 so a profile copied from a newer OreSpawn branch can still be migrated safely.
 
-On Minecraft 1.12.2, revision 10 converts only untouched managed-ore signatures
+On Minecraft 1.10.2, revision 10 converts only untouched managed-ore signatures
 to the target's native height range, frequency, quantity, pattern, and exposure
 behavior. It also restores the separate Badlands gold rule. Hand-edited rules
 and explicitly stored Custom values are preserved.

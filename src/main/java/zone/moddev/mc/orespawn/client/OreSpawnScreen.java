@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.text.ITextComponent;
 
-/** Shared target-native helpers for the Minecraft 1.12 screen contract. */
+/** Shared target-native helpers for the Minecraft 1.10 screen contract. */
 abstract class OreSpawnScreen extends GuiScreen {
 	protected final ITextComponent title;
 	protected final Minecraft minecraft = Minecraft.getMinecraft();
@@ -26,7 +26,7 @@ abstract class OreSpawnScreen extends GuiScreen {
 
 	@Override
 	public final void initGui() {
-		font = fontRenderer;
+		font = fontRendererObj;
 		init();
 	}
 
@@ -98,6 +98,6 @@ abstract class OreSpawnScreen extends GuiScreen {
 	}
 
 	final void renderStringTooltip(List<String> lines, int mouseX, int mouseY) {
-		drawHoveringText(lines, mouseX, mouseY, fontRenderer);
+		drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
 	}
 }

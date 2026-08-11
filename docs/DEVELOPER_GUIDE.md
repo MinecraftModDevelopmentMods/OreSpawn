@@ -65,7 +65,7 @@ a custom dimension, a biome palette, world materials, and a selectable template.
 
 ## Java API Quick Start
 
-Declare OreSpawn as a mandatory dependency on the Forge 1.12 mod annotation:
+Declare OreSpawn as a mandatory dependency on the Forge 1.10 mod annotation:
 
 ```java
 @Mod(modid = "examplemod", name = "Example Mod", version = "1.0.0",
@@ -170,7 +170,7 @@ registry IDs, tags, dimensions, geomes, aliases, and block states while baking.
 The generation loop must not contain provider callbacks, config reads, registry
 lookups, strings, logging, reflection, or avoidable allocation.
 
-Biome filters retain their exact registry IDs. Minecraft 1.12.2 uses a static
+Biome filters retain their exact registry IDs. Minecraft 1.10.2 uses a static
 Forge-backed biome registry, so generation carries those stable IDs alongside
 the selected biome instances. Fluid deposits perform one keyed surface-biome
 lookup per chunk invocation and no registry lookup in the placement loop.
@@ -201,9 +201,9 @@ integration test. A separate test provider creates independently marked
 Grass/Dirt, underwater, filler, and roof columns in open and ceiling
 normal-noise dimensions. The gate verifies biome and chunk edges, late tree,
 vegetation, structure and chest sentinels, the roof underside, and exact save
-and reload behavior. On Forge 14 it also exercises the registered spring
+and reload behavior. On Forge 12 it also exercises the registered spring
 wrapper with a non-Forge-stone provider rock and registers an external ore
-pattern beside every built-in type. It also verifies OreSpawn's Forge 14 biome
+pattern beside every built-in type. It also verifies OreSpawn's Forge 12 biome
 registrar rejects duplicate and late declarations.
 Run `gradlew check` (or `gradlew build`, which includes it)
 before publishing any change to biome registration, palettes, surfaces,

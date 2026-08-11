@@ -107,7 +107,7 @@ rules remain in the self-contained snapshot.
 
 Biome providers can add Forge biomes normally, then declare where those biomes
 belong through `biome_palettes`. The overlay wraps the dimension's existing
-biome source, so it composes after vanilla or another Forge 1.12 biome provider
+biome source, so it composes after vanilla or another Forge 1.10 biome provider
 instead of taking a compile-time dependency on it. Use
 `minecraft_only` scope when the provider should leave other mods' biomes alone.
 Use `required_similar_biomes` only when an output truly cannot work without a

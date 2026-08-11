@@ -46,7 +46,7 @@ public final class OreRetrogenManager {
 	public static void onChunkSave(ChunkDataEvent.Save event) {
 		if (!(event.getWorld() instanceof WorldServer)) return;
 		WorldServer level = (WorldServer) event.getWorld();
-		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunkKey(event.getChunk().getPos()));
+		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunkKey(ChunkAccessCompat.position(event.getChunk())));
 		if (!COMPLETE.contains(key)) return;
 		NBTTagCompound marker = event.getData().getCompoundTag(ROOT_TAG);
 		marker.setInteger(REVISION_TAG, settings.revision);
@@ -59,8 +59,9 @@ public final class OreRetrogenManager {
 			QueuedChunk queued = QUEUE.poll();
 			if (queued == null) return;
 			QUEUED.remove(queued.key);
-			if (queued.level.getChunkProvider().getLoadedChunk(queued.chunk.getPos().x,
-					queued.chunk.getPos().z) != queued.chunk) continue;
+			ChunkPos queuedPos = ChunkAccessCompat.position(queued.chunk);
+			if (queued.level.getChunkProvider().getLoadedChunk(queuedPos.chunkXPos,
+					queuedPos.chunkZPos) != queued.chunk) continue;
 			Settings current = settings;
 			if (current.oreEnabled) OreSpawnOreGeneration.retrogen(queued.level, queued.chunk);
 			if (current.bedrockEnabled) FlatBedrockFeature.flattenChunk(queued.level, queued.chunk);
@@ -75,8 +76,8 @@ public final class OreRetrogenManager {
 
 	public static int queueLoadedArea(WorldServer level, ChunkPos center, int radius) {
 		int count = 0;
-		for (int x = center.x - radius; x <= center.x + radius; x++) {
-			for (int z = center.z - radius; z <= center.z + radius; z++) {
+		for (int x = center.chunkXPos - radius; x <= center.chunkXPos + radius; x++) {
+			for (int z = center.chunkZPos - radius; z <= center.chunkZPos + radius; z++) {
 				Chunk loaded = level.getChunkProvider().getLoadedChunk(x, z);
 				if (loaded != null && enqueue(level, loaded)) count++;
 			}
@@ -96,14 +97,14 @@ public final class OreRetrogenManager {
 	}
 
 	private static boolean enqueue(WorldServer level, Chunk chunk) {
-		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunkKey(chunk.getPos()));
+		ChunkKey key = new ChunkKey(WorldIds.dimension(level), chunkKey(ChunkAccessCompat.position(chunk)));
 		if (!QUEUED.add(key)) return false;
 		QUEUE.add(new QueuedChunk(level, chunk, key));
 		return true;
 	}
 
 	private static long chunkKey(ChunkPos pos) {
-		return ((long) pos.x & 0xFFFFFFFFL) | (((long) pos.z & 0xFFFFFFFFL) << 32);
+		return ((long) pos.chunkXPos & 0xFFFFFFFFL) | (((long) pos.chunkZPos & 0xFFFFFFFFL) << 32);
 	}
 
 	private static final class Settings {

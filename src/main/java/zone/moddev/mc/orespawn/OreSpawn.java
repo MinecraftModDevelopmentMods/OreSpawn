@@ -45,7 +45,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Mod(modid = OreSpawn.MODID, name = OreSpawn.NAME, version = OreSpawn.VERSION,
-		acceptedMinecraftVersions = "[1.12.2]")
+		acceptedMinecraftVersions = "[1.10.2]")
 public class OreSpawn {
 	@Mod.Instance(OreSpawn.MODID)
 	public static OreSpawn instance;
@@ -64,15 +64,18 @@ public class OreSpawn {
 
 	public OreSpawn() {
 		instance = this;
+		// Forge 12 fires NewRegistry and Register events before mod pre-init.
+		// Create and attach the custom registry during OreSpawn construction so
+		// dependent mods can declare external patterns during their construction.
+		OreSpawnPatterns.register();
 	}
 
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		OreSpawnConfig.load(event.getSuggestedConfigurationFile());
-		OreSpawnPatterns.register();
 		LegacyOs3Bridge.initialize(event);
 		MinecraftForge.EVENT_BUS.register(RuntimeEvents.INSTANCE);
-		// Forge 1.12 posts DecorateBiomeEvent.Pre on EVENT_BUS even though the
+		// Forge 1.10 posts DecorateBiomeEvent.Pre on EVENT_BUS even though the
 		// event's own documentation names TERRAIN_GEN_BUS. Register the
 		// deduplicated coordinator on both native buses so the early surface and
 		// geology pass runs before ores, structures, and vegetation.
@@ -85,6 +88,7 @@ public class OreSpawn {
 
 	@EventHandler
 	public void init(FMLInitializationEvent event) {
+		LegacyOs3Bridge.completeInitialization();
 		WorldgenIntegrationManager.initialize();
 		GeomeConfig.bake();
 		logGeomeSampler();

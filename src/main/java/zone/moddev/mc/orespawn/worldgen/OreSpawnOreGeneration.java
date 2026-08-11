@@ -33,7 +33,6 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -46,8 +45,8 @@ import org.apache.logging.log4j.Logger;
 
 /** One dynamic feature for every OreSpawn-managed ore and dimension. */
 public final class OreSpawnOreGeneration {
-	/** Forge 1.12 worldgen write: send the update but suppress observer cascades. */
-	private static final int GENERATION_WRITE_FLAGS = 2 | 16;
+	/** Forge 1.10 worldgen write: send the update without triggering neighbour updates. */
+	private static final int GENERATION_WRITE_FLAGS = 2;
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final OreSpawnOreGeneration FEATURE = new OreSpawnOreGeneration();
 	private static final BakedOre[] NO_ORES = new BakedOre[0];
@@ -115,7 +114,7 @@ public final class OreSpawnOreGeneration {
 		ResourceLocation biomeId = WorldIds.biome(biome);
 		boolean changed = generateChunk(world, chunk, biome, biomeId, dimension,
 				world.getSeed(), random, ores, false, scratch);
-		OreRetrogenManager.markGenerated(dimension, chunk.getPos());
+		OreRetrogenManager.markGenerated(dimension, ChunkAccessCompat.position(chunk));
 		return changed;
 	}
 
@@ -123,7 +122,7 @@ public final class OreSpawnOreGeneration {
 		ResourceLocation dimension = WorldIds.dimension(level);
 		BakedOre[] ores = oresForDimension(dimension);
 		if (ores.length == 0) return false;
-		long seed = mix(level.getSeed(), chunkKey(chunk.getPos()),
+		long seed = mix(level.getSeed(), chunkKey(ChunkAccessCompat.position(chunk)),
 				WorldGeologyProfileManager.activeProfile().generationRevision());
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
 		setCenter(scratch.cursor, chunk);
@@ -134,7 +133,7 @@ public final class OreSpawnOreGeneration {
 	}
 
 	private static void setCenter(BlockPos.MutableBlockPos cursor, Chunk chunk) {
-		ChunkPos chunkPos = chunk.getPos();
+		ChunkPos chunkPos = ChunkAccessCompat.position(chunk);
 		cursor.setPos(chunkPos.getXStart() + 8, 0, chunkPos.getZStart() + 8);
 	}
 
@@ -142,7 +141,7 @@ public final class OreSpawnOreGeneration {
 			ResourceLocation biomeId,
 			ResourceLocation dimension, long worldSeed, Random random, BakedOre[] ores,
 			boolean retrogenOnly, GenerationScratch scratch) {
-		ChunkPos chunkPos = chunk.getPos();
+		ChunkPos chunkPos = ChunkAccessCompat.position(chunk);
 		int centerX = chunkPos.getXStart() + 8;
 		int centerZ = chunkPos.getZStart() + 8;
 		int geome = -1;
@@ -167,7 +166,7 @@ public final class OreSpawnOreGeneration {
 			}
 		}
 		if (changed) {
-			if (chunk instanceof Chunk) ((Chunk) chunk).markDirty();
+			ChunkAccessCompat.markChanged(chunk);
 		}
 		return changed;
 	}
@@ -189,9 +188,9 @@ public final class OreSpawnOreGeneration {
 		if (maxY < minY) {
 			return false;
 		}
-		int x = chunk.getPos().getXStart() + random.nextInt(16);
+		int x = ChunkAccessCompat.position(chunk).getXStart() + random.nextInt(16);
 		int y = ore.heightDistribution.sample(random, minY, maxY);
-		int z = chunk.getPos().getZStart() + random.nextInt(16);
+		int z = ChunkAccessCompat.position(chunk).getZStart() + random.nextInt(16);
 		int quantity = sampleQuantity(random, ore.minQuantity, ore.maxQuantity);
 		scratch.patternContext.initialize(world, chunk, random, ore, geome, x, y, z, minY, maxY,
 				quantity);
@@ -219,7 +218,7 @@ public final class OreSpawnOreGeneration {
 	}
 
 	private static boolean insideChunk(Chunk chunk, int x, int y, int z) {
-		return insideChunk(chunk.getPos(), x, y, z);
+		return insideChunk(ChunkAccessCompat.position(chunk), x, y, z);
 	}
 
 	static boolean insideChunk(ChunkPos pos, int x, int y, int z) {
@@ -254,7 +253,7 @@ public final class OreSpawnOreGeneration {
 			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
 			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
-			if (output == null || output == Blocks.AIR || (dimensions.size() == 0 && selectors.size() == 0)) {
+			if (output == null || output == Blocks.AIR || (dimensions.entrySet().size() == 0 && selectors.entrySet().size() == 0)) {
 				reportBakeProblem("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
 				continue;
 			}
@@ -521,7 +520,7 @@ public final class OreSpawnOreGeneration {
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					for (Biome biome : net.minecraftforge.common.BiomeDictionary.getBiomes(
+					for (Biome biome : net.minecraftforge.common.BiomeDictionary.getBiomesForType(
 							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString()))) {
 						if (biome != null) result.add(biome);
 					}
@@ -534,7 +533,7 @@ public final class OreSpawnOreGeneration {
 
 	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		String path = tag.getPath();
+		String path = tag.getResourcePath();
 		if ("stone".equals(path) || "base_stone_overworld".equals(path)) result.add(Blocks.STONE);
 		if ("netherrack".equals(path) || "base_stone_nether".equals(path)) result.add(Blocks.NETHERRACK);
 		for (ItemStack stack : OreDictionary.getOres(path, false)) {
@@ -863,7 +862,7 @@ public final class OreSpawnOreGeneration {
 			}
 			IBlockState output = ore.outputAt(y, random);
 			if (world == null) chunk.setBlockState(cursor, output);
-			else world.setBlockState(cursor, output, GENERATION_WRITE_FLAGS);
+			else world.setBlockState(cursor.toImmutable(), output, GENERATION_WRITE_FLAGS);
 			return true;
 		}
 
@@ -884,7 +883,7 @@ public final class OreSpawnOreGeneration {
 	}
 
 	private static long chunkKey(ChunkPos pos) {
-		return ((long) pos.x & 0xFFFFFFFFL) | (((long) pos.z & 0xFFFFFFFFL) << 32);
+		return ((long) pos.chunkXPos & 0xFFFFFFFFL) | (((long) pos.chunkZPos & 0xFFFFFFFFL) << 32);
 	}
 
 }

@@ -11,16 +11,17 @@ import java.util.Map;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
 class WorldgenIntegrationManagerTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -131,7 +132,7 @@ class WorldgenIntegrationManagerTest {
 		rule.add("host_families", new JsonArray());
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		if (withHost) tags.add("forge:stone");
+		if (withHost) tags.add(new JsonPrimitive("forge:stone"));
 		rule.add("host_tags", tags);
 		JsonObject dimensions = new JsonObject();
 		dimensions.add("minecraft:overworld", rule);

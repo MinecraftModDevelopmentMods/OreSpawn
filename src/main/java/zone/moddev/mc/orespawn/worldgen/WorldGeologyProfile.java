@@ -332,7 +332,7 @@ public final class WorldGeologyProfile {
 	}
 
 	private int sectionSize(String key) {
-		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key).size() : 0;
+		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key).entrySet().size() : 0;
 	}
 
 	private boolean nestedBoolean(String section, String key, boolean fallback) {

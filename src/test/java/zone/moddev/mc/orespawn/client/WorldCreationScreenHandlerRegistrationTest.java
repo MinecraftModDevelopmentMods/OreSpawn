@@ -23,7 +23,7 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventBus;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-/** Protects the Forge 1.12-specific static subscriber registration contract. */
+/** Protects the Forge 1.10-specific static subscriber registration contract. */
 class WorldCreationScreenHandlerRegistrationTest {
 	private static int calls;
 
@@ -34,13 +34,13 @@ class WorldCreationScreenHandlerRegistrationTest {
 		instanceRegistration.register(new StaticSubscriber());
 		instanceRegistration.post(new ProbeEvent());
 		assertEquals(0, calls,
-				"Forge 1.12 deliberately skips static subscriber methods on instance registrations");
+				"Forge 1.10 deliberately skips static subscriber methods on instance registrations");
 
 		EventBus classRegistration = new EventBus();
 		classRegistration.register(StaticSubscriber.class);
 		classRegistration.post(new ProbeEvent());
 		assertEquals(1, calls,
-				"Registering the class object must activate Forge 1.12 static subscribers");
+				"Registering the class object must activate Forge 1.10 static subscribers");
 	}
 
 	@Test
@@ -49,7 +49,7 @@ class WorldCreationScreenHandlerRegistrationTest {
 				"orespawn", "client", "ClientSetup.java");
 		String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
 		assertTrue(source.contains("register(WorldCreationScreenHandler.class)"),
-				"The OreSpawn button requires Forge 1.12 class registration for static handlers");
+				"The OreSpawn button requires Forge 1.10 class registration for static handlers");
 		assertFalse(source.contains("register(new WorldCreationScreenHandler())"),
 				"Instance registration silently ignores WorldCreationScreenHandler's static methods");
 	}

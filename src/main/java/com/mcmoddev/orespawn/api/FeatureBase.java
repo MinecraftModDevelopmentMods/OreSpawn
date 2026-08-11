@@ -15,11 +15,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 /** Allocation-light compatibility base retaining both published OS3 ABIs. */
-public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
-	private static final int GENERATION_WRITE_FLAGS = 2 | 16;
+public class FeatureBase {
+	private static final int GENERATION_WRITE_FLAGS = 2;
 	protected Random random;
 	protected static final Vec3i[] offsets_small = offsets(2);
 	protected static final Vec3i[] offsets = offsets(4);
@@ -37,20 +36,21 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	protected boolean spawn(IBlockState ore, World world, BlockPos pos, int dimension,
 			boolean cacheOverflow, ISpawnEntry spawn) {
-		if (!isValidBlock(ore) || spawn == null || !spawn.dimensionAllowed(dimension)
+		if (!world.isBlockLoaded(pos, false) || !isValidBlock(ore) || spawn == null || !spawn.dimensionAllowed(dimension)
 				|| !spawn.biomeAllowed(world.getBiome(pos)) || !spawn.getMatcher().test(world.getBlockState(pos))) {
 			return false;
 		}
 		IBlockState output = spawn.getBlocks().getRandomBlock(random);
-		return output != null && world.setBlockState(pos, output, GENERATION_WRITE_FLAGS);
+		return output != null && world.setBlockState(immutable(pos), output, GENERATION_WRITE_FLAGS);
 	}
 
 	protected boolean spawn(IBlockState ore, World world, BlockPos pos, int dimension,
 			boolean cacheOverflow, List<IBlockState> replacements, BiomeLocation biomes) {
-		if (!isValidBlock(ore) || (biomes != null && !biomes.matches(world.getBiome(pos)))) return false;
+		if (!world.isBlockLoaded(pos, false) || !isValidBlock(ore)
+				|| (biomes != null && !biomes.matches(world.getBiome(pos)))) return false;
 		IBlockState current = world.getBlockState(pos);
 		if (replacements != null && !replacements.isEmpty() && !replacements.contains(current)) return false;
-		return world.setBlockState(pos, ore, GENERATION_WRITE_FLAGS);
+		return world.setBlockState(immutable(pos), ore, GENERATION_WRITE_FLAGS);
 	}
 
 	protected void scramble(int[] values, Random rand) {
@@ -71,8 +71,12 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 
 	protected void spawnMungeInner(Random rand, int quantity, int dimension, Vec3i offset,
 			ISpawnEntry spawn, World world, BlockPos origin) {
-		for (int i = 0; i < quantity; i++) spawn(world.getBlockState(origin.add(offset)), world,
-				origin.add(offset), dimension, false, spawn);
+		for (int i = 0; i < quantity; i++) {
+			BlockPos target = origin.add(offset);
+			if (world.isBlockLoaded(target, false)) {
+				spawn(world.getBlockState(target), world, target, dimension, false, spawn);
+			}
+		}
 	}
 
 	protected void spawnMungeSW(World world, BlockPos origin, int quantity, double variation,
@@ -88,7 +92,9 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 			List<IBlockState> replacements, OreList ores) {
 		for (int i = 0; i < quantity; i++) {
 			com.mcmoddev.orespawn.api.os3.OreBuilder ore = ores.getRandomOre(random);
-			if (ore != null) spawn(ore.getOre(), world, origin, dimension, false, replacements, null);
+			if (ore != null && world.isBlockLoaded(origin, false)) {
+				spawn(ore.getOre(), world, origin, dimension, false, replacements, null);
+			}
 		}
 	}
 
@@ -96,6 +102,11 @@ public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {
 	protected int countItem(int value, boolean small) { return Math.max(0, value); }
 	protected boolean endCheck(boolean reverse, int value, double limit) { return reverse ? value <= limit : value >= limit; }
 	protected int getStart(boolean reverse, double value) { return (int) Math.floor(value); }
+
+	private static BlockPos immutable(BlockPos pos) {
+		return pos instanceof BlockPos.MutableBlockPos
+				? ((BlockPos.MutableBlockPos) pos).toImmutable() : pos;
+	}
 
 	private static Vec3i[] offsets(int radius) {
 		java.util.ArrayList<Vec3i> result = new java.util.ArrayList<>();

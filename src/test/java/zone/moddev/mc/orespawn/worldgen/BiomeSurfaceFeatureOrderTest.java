@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
-/** Locks the explicit Forge 1.12 terrain-event ordering used instead of feature stages. */
+/** Locks the explicit Forge 1.10 terrain-event ordering used instead of feature stages. */
 class BiomeSurfaceFeatureOrderTest {
 	@Test
 	void coordinatorRunsSurfacesBeforeManagedOresAndLeavesStaticBiomeListsAlone() throws Exception {

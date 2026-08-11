@@ -1,6 +1,6 @@
 # Biomes And World Materials
 
-Minecraft 1.12.2 uses Forge 14's static biome registry and set-based
+Minecraft 1.10.2 uses Forge 12's static biome registry and set-based
 `BiomeProvider` contract. OreSpawn adapts those target APIs internally while
 keeping the API-major-1 provider JSON, profile, and save contracts unchanged.
 
@@ -96,7 +96,7 @@ default states contain real fluids.
 
 ## Registration Helper
 
-Forge 14 predates `DeferredRegister`. Declare one OreSpawn registrar during mod
+Forge 12 predates `DeferredRegister`. Declare one OreSpawn registrar during mod
 construction, then use `copyAndRegister` to copy a known biome before applying
 small changes:
 
@@ -138,7 +138,7 @@ not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.
 
 Dimension materials support the ordinary aquifer fluid and replacements for
-vanilla snow and ice. Minecraft 1.12.2 has one exposed generator-fluid field,
+vanilla snow and ice. Minecraft 1.10.2 has one exposed generator-fluid field,
 so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and
 `deep_aquifer_max_y` values remain readable and are preserved in saved profiles,
 but this branch disables their editor controls, warns when a distinct deep

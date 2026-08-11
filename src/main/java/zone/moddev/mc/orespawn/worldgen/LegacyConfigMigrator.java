@@ -27,6 +27,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -229,12 +230,12 @@ final class LegacyConfigMigrator {
 				if (id != null) dimensions.add(id, JsonCopies.copy(rule));
 			}
 		}
-		if (dimensions.size() == 0 && selectors.size() == 0) {
+		if (dimensions.entrySet().size() == 0 && selectors.entrySet().size() == 0) {
 			report.add("Skipped " + name + ": no supported dimension mapping could be inferred.");
 			return null;
 		}
-		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
-		if (selectors.size() > 0) ore.add("dimension_selectors", selectors);
+		if (dimensions.entrySet().size() > 0) ore.add("dimensions", dimensions);
+		if (selectors.entrySet().size() > 0) ore.add("dimension_selectors", selectors);
 		return ore;
 	}
 
@@ -249,9 +250,9 @@ final class LegacyConfigMigrator {
 	private static void addLegacyHosts(JsonElement replaces, JsonObject rule) {
 		JsonArray hosts = new JsonArray();
 		if (replaces == null || (replaces.isJsonPrimitive() && "default".equals(replaces.getAsString()))) {
-			hosts.add("minecraft:stone");
-			hosts.add("minecraft:netherrack");
-			hosts.add("minecraft:end_stone");
+			hosts.add(new JsonPrimitive("minecraft:stone"));
+			hosts.add(new JsonPrimitive("minecraft:netherrack"));
+			hosts.add(new JsonPrimitive("minecraft:end_stone"));
 		} else if (replaces.isJsonArray()) {
 			for (JsonElement element : replaces.getAsJsonArray()) {
 				if (!element.isJsonObject()) continue;
@@ -260,7 +261,7 @@ final class LegacyConfigMigrator {
 				String name = legacyBlockName(oldName);
 				if (!name.isEmpty() && !name.startsWith("ore:")) {
 					int metadata = legacyMetadata(oldName, string(old, "state", ""), old);
-					if (metadata == 0) hosts.add(name);
+					if (metadata == 0) hosts.add(new JsonPrimitive(name));
 					else {
 						JsonObject host = new JsonObject();
 						host.addProperty("block", name);
@@ -291,8 +292,8 @@ final class LegacyConfigMigrator {
 		JsonArray dictionary = target.has(dictionaryKey) ? target.getAsJsonArray(dictionaryKey) : new JsonArray();
 		for (JsonElement value : source.getAsJsonArray(sourceKey)) {
 			String text = value.getAsString();
-			if (text.indexOf(':') >= 0) ids.add(text);
-			else dictionary.add(text.toUpperCase(Locale.ROOT));
+			if (text.indexOf(':') >= 0) ids.add(new JsonPrimitive(text));
+			else dictionary.add(new JsonPrimitive(text.toUpperCase(Locale.ROOT)));
 		}
 		if (ids.size() > 0) target.add(idsKey, ids);
 		if (dictionary.size() > 0) target.add(dictionaryKey, dictionary);

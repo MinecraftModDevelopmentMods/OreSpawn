@@ -14,12 +14,12 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
 
 /**
- * Forge 1.12 biome registration helpers for provider mods. The registrar keeps
+ * Forge 1.10 biome registration helpers for provider mods. The registrar keeps
  * the same deferred declaration semantics as later OreSpawn ports while using
- * Forge 14 registry events and {@link Biome.BiomeProperties}.
+ * Forge 12 registry events and the target's {@link Biome} properties builder.
  */
 public final class OreSpawnBiomes {
 	private OreSpawnBiomes() {
@@ -64,7 +64,7 @@ public final class OreSpawnBiomes {
 		Biome.BiomeProperties properties = new Biome.BiomeProperties(name)
 				.setBaseHeight(source.getBaseHeight())
 				.setHeightVariation(source.getHeightVariation())
-				.setTemperature(source.getDefaultTemperature())
+				.setTemperature(source.getTemperature())
 				.setRainfall(source.getRainfall())
 				.setWaterColor(source.getWaterColor());
 		if (!source.canRain()) properties.setRainDisabled();
@@ -159,7 +159,7 @@ public final class OreSpawnBiomes {
 		void copyContents(Biome source) {
 			topBlock = source.topBlock;
 			fillerBlock = source.fillerBlock;
-			decorator = copyDecorator(source.decorator);
+			theBiomeDecorator = getModdedBiomeDecorator(copyDecorator(source.theBiomeDecorator));
 			for (EnumCreatureType type : EnumCreatureType.values()) {
 				getSpawnableList(type).clear();
 				getSpawnableList(type).addAll(source.getSpawnableList(type));
@@ -170,12 +170,12 @@ public final class OreSpawnBiomes {
 			BiomeDecorator copy = new BiomeDecorator();
 			copy.clayGen = source.clayGen; copy.sandGen = source.sandGen;
 			copy.gravelGen = source.gravelGen; copy.dirtGen = source.dirtGen;
-			copy.gravelOreGen = source.gravelOreGen; copy.graniteGen = source.graniteGen;
+			copy.gravelAsSandGen = source.gravelAsSandGen; copy.graniteGen = source.graniteGen;
 			copy.dioriteGen = source.dioriteGen; copy.andesiteGen = source.andesiteGen;
 			copy.coalGen = source.coalGen; copy.ironGen = source.ironGen;
 			copy.goldGen = source.goldGen; copy.redstoneGen = source.redstoneGen;
 			copy.diamondGen = source.diamondGen; copy.lapisGen = source.lapisGen;
-			copy.flowerGen = source.flowerGen; copy.mushroomBrownGen = source.mushroomBrownGen;
+			copy.yellowFlowerGen = source.yellowFlowerGen; copy.mushroomBrownGen = source.mushroomBrownGen;
 			copy.mushroomRedGen = source.mushroomRedGen; copy.bigMushroomGen = source.bigMushroomGen;
 			copy.reedGen = source.reedGen; copy.cactusGen = source.cactusGen;
 			copy.waterlilyGen = source.waterlilyGen;
@@ -184,10 +184,10 @@ public final class OreSpawnBiomes {
 			copy.flowersPerChunk = source.flowersPerChunk; copy.grassPerChunk = source.grassPerChunk;
 			copy.deadBushPerChunk = source.deadBushPerChunk; copy.mushroomsPerChunk = source.mushroomsPerChunk;
 			copy.reedsPerChunk = source.reedsPerChunk; copy.cactiPerChunk = source.cactiPerChunk;
-			copy.gravelPatchesPerChunk = source.gravelPatchesPerChunk;
-			copy.sandPatchesPerChunk = source.sandPatchesPerChunk;
+			copy.sandPerChunk2 = source.sandPerChunk2;
+			copy.sandPerChunk = source.sandPerChunk;
 			copy.clayPerChunk = source.clayPerChunk; copy.bigMushroomsPerChunk = source.bigMushroomsPerChunk;
-			copy.generateFalls = source.generateFalls;
+			copy.generateLakes = source.generateLakes;
 			return copy;
 		}
 	}

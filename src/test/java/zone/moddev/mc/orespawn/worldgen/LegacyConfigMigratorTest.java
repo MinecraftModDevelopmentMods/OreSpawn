@@ -17,6 +17,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -36,7 +37,7 @@ class LegacyConfigMigratorTest {
 
 		assertNotNull(migrated);
 		JsonObject ores = migrated.getAsJsonObject("ores");
-		assertEquals(11, ores.size());
+		assertEquals(11, ores.entrySet().size());
 		int selectorRules = 0;
 		for (String id : JsonCopies.keys(ores)) {
 			JsonObject ore = ores.getAsJsonObject(id);
@@ -80,7 +81,7 @@ class LegacyConfigMigratorTest {
 				temporary.resolve("orespawn-worldgen.json"), defaults);
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
 		JsonObject placement = rule(ore(migratedOres, "clamped", "test_ore"));
-		assertEquals(2, migratedOres.size());
+		assertEquals(2, migratedOres.entrySet().size());
 		assertEquals(255, placement.get("max_y").getAsInt());
 		assertEquals(20, placement.get("min_quantity").getAsInt());
 		assertEquals(64, placement.get("max_quantity").getAsInt());
@@ -118,7 +119,7 @@ class LegacyConfigMigratorTest {
 						? java.util.Arrays.asList("basemetals:ore/copper") : null);
 
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
-		assertEquals(1, migratedOres.size());
+		assertEquals(1, migratedOres.entrySet().size());
 		assertTrue(migratedOres.has("basemetals:ore/copper"));
 		JsonObject migratedCopper = migratedOres.getAsJsonObject("basemetals:ore/copper");
 		assertFalse(migratedCopper.get("enabled").getAsBoolean());
@@ -149,7 +150,7 @@ class LegacyConfigMigratorTest {
 				temporary.resolve("orespawn-worldgen.json"), defaults,
 				(owner, output) -> java.util.Arrays.asList(
 						"orespawn:legacy/iron_ore", "orespawn:legacy/another_iron"));
-		assertEquals(2, migrated.getAsJsonObject("ores").size());
+		assertEquals(2, migrated.getAsJsonObject("ores").entrySet().size());
 		assertTrue(migrated.getAsJsonObject("ores").has("orespawn:legacy/iron_ore"));
 		assertFalse(migrated.getAsJsonObject("ores").has("orespawn:legacy/orespawn/iron_ore"));
 		assertTrue(read(temporary.resolve("orespawn-migration/migration-report.txt"))
@@ -244,7 +245,7 @@ class LegacyConfigMigratorTest {
 		spawn.addProperty("feature", "default");
 		spawn.addProperty("replaces", "default");
 		JsonArray dimensions = new JsonArray();
-		if (dimension != null) dimensions.add(dimension);
+		if (dimension != null) dimensions.add(new JsonPrimitive(dimension));
 		spawn.add("dimensions", dimensions);
 		JsonObject parameters = new JsonObject();
 		parameters.addProperty("size", size);

@@ -65,7 +65,7 @@ public final class FlatBedrockFeature {
 			changed |= flattenTop(chunk, current.layers, current.netherReplacement);
 		}
 		if (changed && chunk instanceof net.minecraft.world.chunk.Chunk) {
-			((net.minecraft.world.chunk.Chunk) chunk).markDirty();
+			ChunkAccessCompat.markChanged(chunk);
 		}
 		return changed;
 	}
@@ -77,8 +77,8 @@ public final class FlatBedrockFeature {
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
 				for (int offset = 0; offset < BEDROCK_NOISE_DEPTH; offset++) {
-					cursor.setPos(chunk.getPos().getXStart() + x, minY + offset,
-							chunk.getPos().getZStart() + z);
+					cursor.setPos(ChunkAccessCompat.position(chunk).getXStart() + x, minY + offset,
+							ChunkAccessCompat.position(chunk).getZStart() + z);
 					IBlockState old = chunk.getBlockState(cursor);
 					IBlockState next = offset < layers ? Blocks.BEDROCK.getDefaultState()
 							: old.getBlock() == Blocks.BEDROCK ? replacement : old;
@@ -99,8 +99,8 @@ public final class FlatBedrockFeature {
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
 				for (int offset = 0; offset < BEDROCK_NOISE_DEPTH; offset++) {
-					cursor.setPos(chunk.getPos().getXStart() + x, maxY - offset,
-							chunk.getPos().getZStart() + z);
+					cursor.setPos(ChunkAccessCompat.position(chunk).getXStart() + x, maxY - offset,
+							ChunkAccessCompat.position(chunk).getZStart() + z);
 					IBlockState old = chunk.getBlockState(cursor);
 					IBlockState next = offset < layers ? Blocks.BEDROCK.getDefaultState()
 							: old.getBlock() == Blocks.BEDROCK ? replacement : old;

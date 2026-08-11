@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import zone.moddev.mc.orespawn.worldgen.OreHeightDistribution;
 import zone.moddev.mc.orespawn.worldgen.OrePattern;
 import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
@@ -170,7 +171,7 @@ final class GeologyEditorSession {
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id == null || assigned.contains(id.toString()) || isWorldgenAliasSource(id.toString())
-					|| (!mod.isEmpty() && !mod.equals(id.getNamespace()))
+					|| (!mod.isEmpty() && !mod.equals(id.getResourceDomain()))
 					|| (!query.isEmpty() && !id.toString().toLowerCase(Locale.ROOT).contains(query))
 					|| !isSelectable(block, showAll)) {
 				continue;
@@ -212,8 +213,8 @@ final class GeologyEditorSession {
 		TreeSet<String> namespaces = new TreeSet<>();
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-			if (id != null && block != Blocks.AIR && Item.getItemFromBlock(block) != Items.AIR) {
-				namespaces.add(id.getNamespace());
+			if (id != null && block != Blocks.AIR && Item.getItemFromBlock(block) != null) {
+				namespaces.add(id.getResourceDomain());
 			}
 		}
 		List<String> result = new ArrayList<>();
@@ -303,7 +304,7 @@ final class GeologyEditorSession {
 		dimension.add("biome_ids", new JsonArray());
 		dimension.add("biome_namespaces", new JsonArray());
 		JsonArray hosts = new JsonArray();
-		hosts.add("minecraft:stone");
+		hosts.add(new JsonPrimitive("minecraft:stone"));
 		dimension.add("host_blocks", hosts);
 		dimension.add("host_tags", new JsonArray());
 		section("terrain_dimensions").add("minecraft:overworld", dimension);
@@ -318,7 +319,7 @@ final class GeologyEditorSession {
 		JsonObject ore = new JsonObject();
 		ore.addProperty("enabled", true);
 		ResourceLocation blockId = new ResourceLocation(canonicalId);
-		ore.addProperty("source_mod", blockId.getNamespace());
+		ore.addProperty("source_mod", blockId.getResourceDomain());
 		JsonObject dimensions = new JsonObject();
 		JsonObject overworld = defaultOreDimension();
 		dimensions.add("minecraft:overworld", overworld);
@@ -454,7 +455,7 @@ final class GeologyEditorSession {
 		if (palette == null) return;
 		JsonObject biomes = object(palette, "biomes");
 		biomes.remove(biomeId);
-		if (biomes.size() == 0) palette.addProperty("enabled", false);
+		if (biomes.entrySet().size() == 0) palette.addProperty("enabled", false);
 	}
 
 	String dimensionMaterialsId(String dimensionId) {
@@ -506,7 +507,7 @@ final class GeologyEditorSession {
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id == null || block == Blocks.AIR
-					|| (!fluidOnly && Item.getItemFromBlock(block) == Items.AIR)
+					|| (!fluidOnly && Item.getItemFromBlock(block) == null)
 					|| (fluidOnly && !isFluidBlock(block))
 					|| (!fluidOnly && block.hasTileEntity(block.getDefaultState()))
 					|| (!query.isEmpty() && !id.toString().contains(query))) continue;
@@ -553,7 +554,7 @@ final class GeologyEditorSession {
 					entry.getValue().getAsJsonObject(), "block", ""))) return entry.getKey();
 		}
 		ResourceLocation fluid = new ResourceLocation(canonicalId);
-		String baseId = "orespawn:fluid_deposit/" + fluid.getNamespace() + "/" + fluid.getPath();
+		String baseId = "orespawn:fluid_deposit/" + fluid.getResourceDomain() + "/" + fluid.getResourcePath();
 		String ruleId = baseId;
 		for (int suffix = 2; section("fluid_deposits").has(ruleId); suffix++) {
 			ruleId = baseId + "_" + suffix;
@@ -584,12 +585,12 @@ final class GeologyEditorSession {
 		rule.addProperty("min_solid_shell", 1);
 		JsonArray families = new JsonArray();
 		if (terrainActive) {
-			for (RockFamily family : RockFamily.values()) families.add(family.configName);
+			for (RockFamily family : RockFamily.values()) families.add(new JsonPrimitive(family.configName));
 		}
 		rule.add("host_families", families);
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		rule.add("host_tags", tags);
 		rule.add("biome_ids", new JsonArray());
 		rule.add("excluded_biome_ids", new JsonArray());
@@ -764,7 +765,7 @@ final class GeologyEditorSession {
 					? ore.getAsJsonObject("dimensions") : new JsonObject();
 			JsonObject selectors = ore.has("dimension_selectors") && ore.get("dimension_selectors").isJsonObject()
 					? ore.getAsJsonObject("dimension_selectors") : new JsonObject();
-			if (dimensions.size() == 0 && selectors.size() == 0) {
+			if (dimensions.entrySet().size() == 0 && selectors.entrySet().size() == 0) {
 				errors.add("Ore has no dimension rules: " + entry.getKey());
 				continue;
 			}
@@ -854,7 +855,7 @@ final class GeologyEditorSession {
 			}
 			if (!bool(deposit, "enabled", true)) continue;
 			if (!deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()
-					|| deposit.getAsJsonObject("dimensions").size() == 0) {
+					|| deposit.getAsJsonObject("dimensions").entrySet().size() == 0) {
 				errors.add("Fluid deposit has no dimension rules: " + entry.getKey());
 				continue;
 			}
@@ -908,7 +909,7 @@ final class GeologyEditorSession {
 			if (!bool(palette, "enabled", true)) continue;
 			JsonObject biomes = palette.has("biomes") && palette.get("biomes").isJsonObject()
 					? palette.getAsJsonObject("biomes") : new JsonObject();
-			if (biomes.size() == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
+			if (biomes.entrySet().size() == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
 			for (Entry<String, JsonElement> biome : biomes.entrySet()) {
 				if (!validResource(biome.getKey())
 						|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null
@@ -960,7 +961,7 @@ final class GeologyEditorSession {
 				: string(rule, "pattern", "vein");
 		ResourceLocation id = value.indexOf(':') >= 0 ? new ResourceLocation(value)
 				: new ResourceLocation("orespawn", value);
-		OrePattern.fromConfigName(id.getPath());
+		OrePattern.fromConfigName(id.getResourcePath());
 	}
 
 	private static void validateRuleGeomes(List<String> errors, JsonObject rules, JsonObject geomes, String label) {
@@ -1041,17 +1042,17 @@ final class GeologyEditorSession {
 		dimension.addProperty("node_size", 4);
 		JsonArray families = new JsonArray();
 		for (RockFamily family : RockFamily.values()) {
-			families.add(family.configName);
+			families.add(new JsonPrimitive(family.configName));
 		}
 		dimension.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		dimension.add("host_tags", tags);
 		return dimension;
 	}
 
 	private static boolean isSelectable(Block block, boolean showAll) {
-		if (block == Blocks.AIR || Item.getItemFromBlock(block) == Items.AIR || isFluidBlock(block)) {
+		if (block == Blocks.AIR || Item.getItemFromBlock(block) == null || isFluidBlock(block)) {
 			return false;
 		}
 		if (showAll) {

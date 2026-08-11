@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.util.text.TextComponentTranslation;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
-/** Protects Minecraft 1.12's pre-flattening block-name translation contract. */
+/** Protects Minecraft 1.10's pre-flattening block-name translation contract. */
 class LegacyBlockTranslationTest {
 	private static final List<String> BLOCK_LABEL_SOURCES = Arrays.asList(
 			"FluidBlockPickerScreen.java",
@@ -27,7 +27,7 @@ class LegacyBlockTranslationTest {
 
 	@BeforeAll
 	static void bootstrapVanilla() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -44,7 +44,7 @@ class LegacyBlockTranslationTest {
 		}
 
 		assertEquals(java.util.Collections.emptyList(), unsuffixed,
-				"Minecraft 1.12 block labels require getTranslationKey() + \".name\"");
+				"Minecraft 1.10 block labels require getTranslationKey() + \".name\"");
 	}
 
 	@Test

@@ -9,6 +9,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -21,7 +22,7 @@ public final class BiomeSurfaceFeature {
 	}
 
 	public static void registerConfiguredFeature() {
-		// Forge 1.12 invokes this pass from OreSpawnWorldGenerator.
+		// Forge 1.10 invokes this pass from OreSpawnWorldGenerator.
 	}
 
 	boolean generate(World world, Chunk chunk, Random random) {
@@ -29,8 +30,9 @@ public final class BiomeSurfaceFeature {
 		if (config == null || !config.hasSurfaces()) return false;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean changed = false;
-		int minX = chunk.getPos().getXStart();
-		int minZ = chunk.getPos().getZStart();
+		ChunkPos chunkPos = ChunkAccessCompat.position(chunk);
+		int minX = chunkPos.getXStart();
+		int minZ = chunkPos.getZStart();
 		boolean ceilingDimension = WorldIds.NETHER.equals(WorldIds.dimension(world));
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
@@ -49,7 +51,7 @@ public final class BiomeSurfaceFeature {
 				if (ceilingY >= 0) changed |= applyCeiling(chunk, world, config, cursor, x, z, ceilingY);
 			}
 		}
-		if (changed) chunk.markDirty();
+		if (changed) ChunkAccessCompat.markChanged(chunk);
 		return changed;
 	}
 

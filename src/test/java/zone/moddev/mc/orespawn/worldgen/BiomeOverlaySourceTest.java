@@ -18,7 +18,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeProvider;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
 class BiomeOverlaySourceTest {
 	private static Biome source;
@@ -26,7 +26,7 @@ class BiomeOverlaySourceTest {
 
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
 		source = biome("source", 0.7F, 0.8F, false);
 		output = biome("output", 1.35F, 0.15F, true);
 	}

@@ -134,7 +134,7 @@ Dimension-material rules may set `default_fluid`, `deep_aquifer_fluid`,
 `deep_aquifer_max_y`, `snow_block`, and `ice_block`. Fluid IDs must resolve to
 blocks with non-empty fluid states. These substitutions are opt-in; a dimension
 with no matching rule retains its native generator and weather materials.
-Minecraft 1.12.2 exposes one generator fluid, so this branch applies
+Minecraft 1.10.2 exposes one generator fluid, so this branch applies
 `default_fluid` only. It retains `deep_aquifer_fluid` and
 `deep_aquifer_max_y` in provider and world profiles for cross-version
 portability, but the editor keeps those controls disabled and generation does
@@ -151,7 +151,7 @@ Each enabled ore dimension uses:
 
 | Field | Range/default | Meaning |
 |---|---|---|
-| `min_y`, `max_y` | 0-255 in the 1.12.2 editor | Inclusive placement range; metadata block states remain separate from height |
+| `min_y`, `max_y` | 0-255 in the 1.10.2 editor | Inclusive placement range; metadata block states remain separate from height |
 | `frequency` | 0-64 | Expected attempts per chunk |
 | `quantity` | 1-64 | Fixed block budget for each attempt |
 | `min_quantity`, `max_quantity` | 1-64 | Inclusive random block-budget range; both fields are required |
@@ -170,7 +170,7 @@ Hosts may be plain registry IDs or weighted objects such as
 `geomes`, biome include/exclude IDs, and biome-dictionary include/exclude arrays
 further narrow placement.
 
-On Minecraft 1.12.2, a plain block ID accepts every metadata state belonging to
+On Minecraft 1.10.2, a plain block ID accepts every metadata state belonging to
 that block. To accept ordinary stone only, use
 `{"block":"minecraft:stone","metadata":0}` in `host_blocks`; omitting
 `metadata` also permits granite, diorite, and andesite states stored under the

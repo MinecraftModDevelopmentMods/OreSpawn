@@ -87,7 +87,7 @@ public final class FluidDepositFeature {
 		if (deposits.length == 0) return false;
 
 		GenerationScratch scratch = GENERATION_SCRATCH.get();
-		ChunkPos chunkPos = chunk.getPos();
+		ChunkPos chunkPos = ChunkAccessCompat.position(chunk);
 		int centerX = chunkPos.getXStart() + 8;
 		int centerZ = chunkPos.getZStart() + 8;
 		int surfaceY = chunk.getHeightValue(8, 8) - 1;
@@ -113,7 +113,7 @@ public final class FluidDepositFeature {
 			}
 		}
 		if (changed && chunk instanceof net.minecraft.world.chunk.Chunk) {
-			((net.minecraft.world.chunk.Chunk) chunk).markDirty();
+			ChunkAccessCompat.markChanged(chunk);
 		}
 		return changed;
 	}
@@ -133,9 +133,9 @@ public final class FluidDepositFeature {
 				0 + verticalRadius + deposit.minSolidShell);
 		if (maxCenterY < minCenterY) return false;
 
-		int centerX = chunk.getPos().getXStart() + dx;
+		int centerX = ChunkAccessCompat.position(chunk).getXStart() + dx;
 		int centerY = randomBetween(random, minCenterY, maxCenterY);
-		int centerZ = chunk.getPos().getZStart() + dz;
+		int centerZ = ChunkAccessCompat.position(chunk).getZStart() + dz;
 		int lobes = randomBetween(random, 1, deposit.maxLobes);
 		boolean changed = false;
 		for (int lobe = 0; lobe < lobes; lobe++) {
@@ -159,8 +159,8 @@ public final class FluidDepositFeature {
 	private static boolean placeLobe(World world, Chunk chunk, BakedDeposit deposit, int geome,
 			BakedGeomeConfig config, BlockPos.MutableBlockPos cursor,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius) {
-		int chunkMinX = chunk.getPos().getXStart();
-		int chunkMinZ = chunk.getPos().getZStart();
+		int chunkMinX = ChunkAccessCompat.position(chunk).getXStart();
+		int chunkMinZ = ChunkAccessCompat.position(chunk).getZStart();
 		int minX = Math.max(chunkMinX, centerX - radius);
 		int maxX = Math.min(chunkMinX + CHUNK_WIDTH - 1, centerX + radius);
 		int minY = Math.max(0, centerY - verticalRadius);
@@ -274,8 +274,8 @@ public final class FluidDepositFeature {
 	private static boolean insideLobe(Chunk chunk, BakedDeposit deposit,
 			int centerX, int centerY, int centerZ, int radius, int verticalRadius,
 			int x, int y, int z, double inverseRadiusSquared, double inverseVerticalRadiusSquared) {
-		int chunkMinX = chunk.getPos().getXStart();
-		int chunkMinZ = chunk.getPos().getZStart();
+		int chunkMinX = ChunkAccessCompat.position(chunk).getXStart();
+		int chunkMinZ = ChunkAccessCompat.position(chunk).getZStart();
 		if (x < chunkMinX || x >= chunkMinX + CHUNK_WIDTH
 				|| z < chunkMinZ || z >= chunkMinZ + CHUNK_WIDTH
 				|| y < 0 || y >= 256) return false;
@@ -373,7 +373,7 @@ public final class FluidDepositFeature {
 		double[] geomeWeights = new double[geomeCount];
 		java.util.Arrays.fill(geomeWeights, 1.0D);
 		boolean usesGeomeWeights = config != null && rule.has("geomes")
-				&& rule.get("geomes").isJsonObject() && rule.getAsJsonObject("geomes").size() > 0;
+				&& rule.get("geomes").isJsonObject() && rule.getAsJsonObject("geomes").entrySet().size() > 0;
 		if (usesGeomeWeights) {
 			for (Map.Entry<String, JsonElement> entry : rule.getAsJsonObject("geomes").entrySet()) {
 				int index = config.geomeIndex(entry.getKey());
@@ -424,7 +424,7 @@ public final class FluidDepositFeature {
 
 	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		String path = tag.getPath();
+		String path = tag.getResourcePath();
 		if ("stone".equals(path) || "base_stone_overworld".equals(path)) result.add(Blocks.STONE);
 		if ("netherrack".equals(path) || "base_stone_nether".equals(path)) result.add(Blocks.NETHERRACK);
 		for (ItemStack stack : OreDictionary.getOres(path, false)) {
@@ -445,7 +445,7 @@ public final class FluidDepositFeature {
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					for (Biome biome : net.minecraftforge.common.BiomeDictionary.getBiomes(
+					for (Biome biome : net.minecraftforge.common.BiomeDictionary.getBiomesForType(
 							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString()))) {
 						ResourceLocation id = WorldIds.biome(biome);
 						if (id != null) result.add(id);

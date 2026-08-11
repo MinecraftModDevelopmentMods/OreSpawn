@@ -26,7 +26,7 @@ class ClientButtonTextTest {
 	private static final Path CLIENT_SOURCE = Paths.get(
 			"src", "main", "java", "zone", "moddev", "mc", "orespawn", "client");
 	private static final Path ENGLISH = Paths.get(
-			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.lang");
+			"src", "main", "resources", "assets", "orespawn", "lang", "en_US.lang");
 	private static final Pattern LITERAL_TRANSLATION = Pattern.compile(
 			"new\\s+TextComponentTranslation\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
 	private static final Set<String> MINECRAFT_1_14_KEYS = new HashSet<>(Arrays.asList(
@@ -62,6 +62,6 @@ class ClientButtonTextTest {
 		}
 
 		assertTrue(missing.isEmpty(),
-				"Client labels must exist in OreSpawn or Minecraft 1.12: " + missing);
+				"Client labels must exist in OreSpawn or Minecraft 1.10: " + missing);
 	}
 }

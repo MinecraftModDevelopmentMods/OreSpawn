@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
@@ -130,12 +131,12 @@ final class OreEntryScreen extends OreSpawnScreen {
 		rule.addProperty("node_size", 4);
 		if ("minecraft:the_end".equals(id)) {
 			JsonArray blocks = new JsonArray();
-			blocks.add("minecraft:end_stone");
+			blocks.add(new JsonPrimitive("minecraft:end_stone"));
 			rule.add("host_blocks", blocks);
 		} else {
 			JsonArray tags = new JsonArray();
-			tags.add("minecraft:the_nether".equals(id)
-					? "forge:netherrack" : "forge:stone");
+			tags.add(new JsonPrimitive("minecraft:the_nether".equals(id)
+					? "forge:netherrack" : "forge:stone"));
 			rule.add("host_tags", tags);
 		}
 		return rule;

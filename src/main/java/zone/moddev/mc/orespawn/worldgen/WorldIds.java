@@ -6,7 +6,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-/** Static-registry identity bridge for the pre-flattening Forge 1.12 runtime. */
+/** Static-registry identity bridge for the pre-flattening Forge 1.10 runtime. */
 public final class WorldIds {
 	static final ResourceLocation OVERWORLD = id("overworld");
 	static final ResourceLocation NETHER = id("the_nether");

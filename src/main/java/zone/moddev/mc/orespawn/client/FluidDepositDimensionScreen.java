@@ -8,6 +8,7 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -237,7 +238,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 			rule.addProperty("min_solid_cover", parsedCover);
 			rule.addProperty("min_solid_shell", parsedShell);
 			JsonArray familyValues = new JsonArray();
-			for (RockFamily family : families) familyValues.add(family.configName);
+			for (RockFamily family : families) familyValues.add(new JsonPrimitive(family.configName));
 			rule.add("host_families", familyValues);
 			rule.add("host_blocks", blocks);
 			rule.add("host_tags", tags);
@@ -287,13 +288,13 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 
 	private static JsonArray ids(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(new ResourceLocation(value).toString());
+		for (String value : split(text)) result.add(new JsonPrimitive(new ResourceLocation(value).toString()));
 		return result;
 	}
 
 	private static JsonArray strings(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(value);
+		for (String value : split(text)) result.add(new JsonPrimitive(value));
 		return result;
 	}
 

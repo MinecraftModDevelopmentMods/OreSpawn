@@ -22,8 +22,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.RegistryBuilder;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {
@@ -31,7 +31,7 @@ public final class OreSpawnPatterns {
 			new RegistryBuilder<OrePatternType>()
 					.setName(OreSpawnPatternRegistry.REGISTRY_NAME)
 					.setType(OrePatternType.class)
-					.disableSaving()
+					.setIDRange(0, 4095)
 					.create();
 	private static final Map<ResourceLocation, Supplier<OrePatternType>> TYPES = new LinkedHashMap<>();
 	private static boolean attached;
@@ -88,7 +88,7 @@ public final class OreSpawnPatterns {
 					? rule.getAsJsonObject("pattern") : null;
 			ResourceLocation id = patternId(pattern == null
 					? string(rule, "pattern", "vein") : string(pattern, "type", ""));
-			return OreSpawn.MODID.equals(id.getNamespace());
+			return OreSpawn.MODID.equals(id.getResourceDomain());
 		} catch (RuntimeException e) {
 			return false;
 		}

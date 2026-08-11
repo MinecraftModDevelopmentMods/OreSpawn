@@ -56,7 +56,7 @@ public class Geology {
 	}
 
 	public void replaceStoneInChunk(World world, Chunk chunk, BakedTerrainDimension terrain) {
-		ChunkPos chunkPos = chunk.getPos();
+		ChunkPos chunkPos = ChunkAccessCompat.position(chunk);
 		int xOffset = chunkPos.getXStart();
 		int zOffset = chunkPos.getZStart();
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
@@ -92,7 +92,7 @@ public class Geology {
 		}
 
 		if (changed) {
-			chunk.markDirty();
+			ChunkAccessCompat.markChanged(chunk);
 		}
 	}
 

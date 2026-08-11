@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +16,7 @@ class FluidDepositFeatureTest {
 	void explicitBiomeFiltersBakeAsStaticRegistryIds() {
 		JsonObject rule = new JsonObject();
 		JsonArray ids = new JsonArray();
-		ids.add("minecraft:cold_ocean");
+		ids.add(new JsonPrimitive("minecraft:cold_ocean"));
 		rule.add("biome_ids", ids);
 
 		ResourceLocation expected = new ResourceLocation("minecraft", "cold_ocean");

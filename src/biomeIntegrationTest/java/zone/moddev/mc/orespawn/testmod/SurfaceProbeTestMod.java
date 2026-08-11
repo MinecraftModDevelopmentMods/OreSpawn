@@ -49,8 +49,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeDecorator;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.ChunkGeneratorFlat;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.gen.ChunkProviderFlat;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
@@ -68,9 +68,9 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
-/** Independent Forge 1.12 provider-surface and exact-biome regression fixture. */
+/** Independent Forge 1.10 provider-surface and exact-biome regression fixture. */
 @Mod(modid = SurfaceProbeTestMod.MODID, name = "OreSpawn Surface Probe",
-		version = "1.0.0", acceptedMinecraftVersions = "[1.12.2]",
+		version = "1.0.0", acceptedMinecraftVersions = "[1.10.2]",
 		dependencies = "required-after:orespawn@[4.0.6,5.0.0)")
 public final class SurfaceProbeTestMod {
 	static final String MODID = "surfaceprobe";
@@ -131,10 +131,10 @@ public final class SurfaceProbeTestMod {
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void registerBiomes(RegistryEvent.Register<Biome> event) {
-		surfaceA.get().decorator = new ProbeDecorator();
-		surfaceB.get().decorator = new ProbeDecorator();
-		BiomeDictionary.addTypes(surfaceA.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
-		BiomeDictionary.addTypes(surfaceB.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
+		surfaceA.get().theBiomeDecorator = new ProbeDecorator();
+		surfaceB.get().theBiomeDecorator = new ProbeDecorator();
+		BiomeDictionary.registerBiomeType(surfaceA.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
+		BiomeDictionary.registerBiomeType(surfaceB.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
 	}
 
 	@SubscribeEvent
@@ -150,8 +150,8 @@ public final class SurfaceProbeTestMod {
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public void placeControlledTerrain(DecorateBiomeEvent.Pre event) {
 		World world = event.getWorld();
-		int chunkX = event.getChunkPos().x;
-		int chunkZ = event.getChunkPos().z;
+		int chunkX = event.getPos().getX() >> 4;
+		int chunkZ = event.getPos().getZ() >> 4;
 		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
 				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
 				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
@@ -165,8 +165,8 @@ public final class SurfaceProbeTestMod {
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void verifySurfaceStage(DecorateBiomeEvent.Pre event) {
 		World world = event.getWorld();
-		int chunkX = event.getChunkPos().x;
-		int chunkZ = event.getChunkPos().z;
+		int chunkX = event.getPos().getX() >> 4;
+		int chunkZ = event.getPos().getZ() >> 4;
 		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
 				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
 				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
@@ -256,7 +256,7 @@ public final class SurfaceProbeTestMod {
 		}
 		verifyPatterns();
 		MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-		WorldServer overworld = server.getWorld(0);
+		WorldServer overworld = server.worldServerForDimension(0);
 		if (overworld == null || overworld.getSeed() != 0L) {
 			throw new IllegalStateException("surfaceprobe requires seed token zsjpxah (hash zero)");
 		}
@@ -288,13 +288,13 @@ public final class SurfaceProbeTestMod {
 	}
 
 	private static WorldServer requireWorld(MinecraftServer server, int dimension) {
-		WorldServer world = server.getWorld(dimension);
+		WorldServer world = server.worldServerForDimension(dimension);
 		if (world == null) {
 			DimensionManager.initDimension(dimension);
 			world = DimensionManager.getWorld(dimension);
 		}
 		if (world == null) throw new IllegalStateException("Missing dimension " + dimension);
-		if (world.getChunkProvider().chunkGenerator instanceof ChunkGeneratorFlat) {
+		if (world.getChunkProvider().chunkGenerator instanceof ChunkProviderFlat) {
 			throw new IllegalStateException("surfaceprobe requires normal-noise dimension " + dimension);
 		}
 		return world;
@@ -322,7 +322,7 @@ public final class SurfaceProbeTestMod {
 						Material material = material(biomeId, roofed);
 						float temperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
 						float rainfall = BIOME_A.equals(biomeId) ? 0.15F : 0.8F;
-						if (Float.compare(biome.getDefaultTemperature(), temperature) != 0
+						if (Float.compare(biome.getTemperature(), temperature) != 0
 								|| Float.compare(biome.getRainfall(), rainfall) != 0) {
 							throw new IllegalStateException("Climate mismatch for " + biomeId + " at " + cursor);
 						}
@@ -484,7 +484,7 @@ public final class SurfaceProbeTestMod {
 		try {
 			Files.createDirectories(path.getParent());
 			try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-				properties.store(writer, "OreSpawn Forge 1.12 surface integration");
+				properties.store(writer, "OreSpawn Forge 1.10 surface integration");
 			}
 		} catch (IOException exception) {
 			throw new IllegalStateException("Could not write " + path, exception);
@@ -521,7 +521,7 @@ public final class SurfaceProbeTestMod {
 						chunk.setBlockState(pos.setPos(x, y, z), Blocks.STONE.getDefaultState());
 				}
 			}
-			chunk.markDirty();
+			chunk.setChunkModified();
 		}
 
 		private static void placeSentinels(World world, int minX, int minZ) {
@@ -552,9 +552,8 @@ public final class SurfaceProbeTestMod {
 	private static final class ProbeDecorator extends BiomeDecorator {
 		@Override
 		public void decorate(World world, Random random, Biome biome, BlockPos pos) {
-			net.minecraft.util.math.ChunkPos chunkPos = new net.minecraft.util.math.ChunkPos(pos);
-			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, chunkPos));
-			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, chunkPos));
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, pos));
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, pos));
 		}
 	}
 

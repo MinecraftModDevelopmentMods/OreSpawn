@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
@@ -124,9 +125,9 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		rule.add("host_families", new JsonArray());
 		JsonArray blocks = new JsonArray();
 		JsonArray tags = new JsonArray();
-		if ("minecraft:the_end".equals(id)) blocks.add("minecraft:end_stone");
-		else tags.add("minecraft:the_nether".equals(id)
-				? "forge:netherrack" : "forge:stone");
+		if ("minecraft:the_end".equals(id)) blocks.add(new JsonPrimitive("minecraft:end_stone"));
+		else tags.add(new JsonPrimitive("minecraft:the_nether".equals(id)
+				? "forge:netherrack" : "forge:stone"));
 		rule.add("host_blocks", blocks);
 		rule.add("host_tags", tags);
 		rule.add("biome_ids", new JsonArray());

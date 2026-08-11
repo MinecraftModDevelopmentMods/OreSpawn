@@ -29,7 +29,7 @@ public final class StoneReplacer {
 	}
 
 	public static void registerConfiguredFeature() {
-		// Forge 1.12 invokes this pass from OreSpawnWorldGenerator.
+		// Forge 1.10 invokes this pass from OreSpawnWorldGenerator.
 	}
 
 	boolean generate(World world, Chunk chunk, Random random) {

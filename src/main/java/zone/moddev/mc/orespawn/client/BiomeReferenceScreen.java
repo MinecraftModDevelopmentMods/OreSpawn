@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.TextComponentString;
@@ -89,7 +90,7 @@ final class BiomeReferenceScreen extends OreSpawnScreen {
 		Set<String> selected = selected();
 		if (!selected.add(id)) selected.remove(id);
 		JsonArray array = new JsonArray();
-		selected.stream().sorted().forEach(array::add);
+		selected.stream().sorted().forEach(value -> array.add(new JsonPrimitive(value)));
 		placement.add(key, array);
 	}
 

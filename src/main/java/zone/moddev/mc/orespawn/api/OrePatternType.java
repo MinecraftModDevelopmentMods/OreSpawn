@@ -8,7 +8,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.fml.common.registry.IForgeRegistryEntry;
 
 /**
  * Forge-registered ore pattern type. Its codec is evaluated once while a

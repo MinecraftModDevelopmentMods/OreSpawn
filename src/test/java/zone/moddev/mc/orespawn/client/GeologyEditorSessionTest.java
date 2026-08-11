@@ -11,14 +11,15 @@ import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
 class GeologyEditorSessionTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -42,7 +43,7 @@ class GeologyEditorSessionTest {
 
 		assertTrue(session.configureDefaultVanillaStrata());
 		assertTrue(session.hasTerrainRules());
-		assertEquals(4, session.section("rocks").size());
+		assertEquals(4, session.section("rocks").entrySet().size());
 		assertFalse(session.section("rocks").has("minecraft:calcite"));
 		assertFalse(session.section("rocks").has("minecraft:dripstone_block"));
 		assertEquals("sedimentary", session.rock("minecraft:stone").get("family").getAsString());
@@ -60,7 +61,7 @@ class GeologyEditorSessionTest {
 				zone.moddev.mc.orespawn.worldgen.RockFamily.SEDIMENTARY);
 
 		assertFalse(session.configureDefaultVanillaStrata());
-		assertEquals(1, session.section("rocks").size());
+		assertEquals(1, session.section("rocks").entrySet().size());
 		assertTrue(session.section("rocks").has("minecraft:coal_block"));
 	}
 
@@ -114,7 +115,7 @@ class GeologyEditorSessionTest {
 		rule.addProperty("min_quantity", 4);
 		rule.addProperty("max_quantity", 11);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		rule.add("host_tags", tags);
 		JsonObject selectors = new JsonObject();
 		selectors.add("orespawn:all_except_nether_end", rule);
@@ -141,7 +142,7 @@ class GeologyEditorSessionTest {
 		assertEquals(4, overworld.getAsJsonArray("host_families").size());
 		assertFalse(session.availableFluidBlockIds("").contains("minecraft:water"));
 		assertEquals(id, session.assignFluidDeposit("minecraft:water"));
-		assertEquals(1, session.section("fluid_deposits").size());
+		assertEquals(1, session.section("fluid_deposits").entrySet().size());
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
 	}

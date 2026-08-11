@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Test;
 class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
 	private static final Set<String> EXPECTED_LOCALES = ImmutableSet.of(
-			"de_au.lang", "de_de.lang", "en_ca.lang", "en_en.lang",
-			"en_gb.lang", "en_pt.lang", "en_us.lang", "es_es.lang",
-			"es_mx.lang", "fr_ca.lang", "fr_fr.lang", "ja_jp.lang",
-			"ko_kr.lang", "pt_br.lang", "ru_ru.lang", "zh_cn.lang");
+			"de_AU.lang", "de_DE.lang", "en_CA.lang", "en_EN.lang",
+			"en_GB.lang", "en_PT.lang", "en_US.lang", "es_ES.lang",
+			"es_MX.lang", "fr_CA.lang", "fr_FR.lang", "ja_JP.lang",
+			"ko_KR.lang", "pt_BR.lang", "ru_RU.lang", "zh_CN.lang");
 	/**
 	 * Brand names, format-only values, canonical engine/pattern names, and words
 	 * whose spelling is already valid in at least one shipped target language.
@@ -82,7 +82,7 @@ class LocalizationParityTest {
 
 	@Test
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
-		JsonObject english = read(LANG_DIR.resolve("en_us.lang"));
+		JsonObject english = read(LANG_DIR.resolve("en_US.lang"));
 		Set<String> englishKeys = JsonCopies.keys(english);
 		assertEquals(357, englishKeys.size(),
 				"The target locale contract changed; review every shipped translation");
@@ -94,10 +94,11 @@ class LocalizationParityTest {
 					.filter(path -> path.getFileName().toString().endsWith(".lang"))
 					.sorted()::iterator) {
 				String locale = file.getFileName().toString();
+				String localeKey = locale.toLowerCase(Locale.ROOT);
 				localeFiles.add(locale);
 				JsonObject translations = read(file);
 
-				assertEquals(englishKeys, JsonCopies.keys(translations), locale + " must match en_us keys exactly");
+				assertEquals(englishKeys, JsonCopies.keys(translations), locale + " must match en_US keys exactly");
 				for (String key : englishKeys) {
 					JsonElement translated = translations.get(key);
 					assertTrue(translated.isJsonPrimitive() && translated.getAsJsonPrimitive().isString(),
@@ -109,12 +110,12 @@ class LocalizationParityTest {
 					String value = translated.getAsString();
 					Set<String> intentionalLocales = INTENTIONAL_ENGLISH_VALUES
 							.getOrDefault(key, ImmutableSet.of());
-					if (!locale.startsWith("en_") && !intentionalLocales.contains(locale)) {
+					if (!localeKey.startsWith("en_") && !intentionalLocales.contains(localeKey)) {
 						assertFalse(value.equals(english.get(key).getAsString()),
 								locale + " still uses the English fallback for " + key);
 					}
-					if (!locale.startsWith("en_") && value.equals(english.get(key).getAsString())) {
-						observedIntentionalEnglishValues.add(key + "\n" + locale);
+					if (!localeKey.startsWith("en_") && value.equals(english.get(key).getAsString())) {
+						observedIntentionalEnglishValues.add(key + "\n" + localeKey);
 					}
 					for (String marker : MOJIBAKE_MARKERS) {
 						assertFalse(value.contains(marker), locale + " contains broken UTF-8 text for " + key);

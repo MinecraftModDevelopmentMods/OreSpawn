@@ -11,6 +11,6 @@
     "credits": "cyano and the Minecraft Mod Development community",
     "logoFile": "",
     "screenshots": [],
-    "dependencies": ["required-after:forge@[14.23.5.2859,)"]
+    "dependencies": ["required-after:forge@[12.18.3.2511,)"]
   }
 ]

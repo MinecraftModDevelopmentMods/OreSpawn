@@ -57,6 +57,16 @@ class OreSpawnOreGenerationTest {
 	}
 
 	@Test
+	void managedWritesDoNotLeakReusablePositionsIntoForgeTickData() throws Exception {
+		String source = new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
+				"moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),
+				StandardCharsets.UTF_8);
+		assertTrue(source.contains("world.setBlockState(cursor.toImmutable(), output, GENERATION_WRITE_FLAGS)"),
+				"Forge 1.10 may retain write positions for scheduled ticks");
+		assertFalse(source.contains("world.setBlockState(cursor, output, GENERATION_WRITE_FLAGS)"));
+	}
+
+	@Test
 	void fixedQuantityDoesNotConsumeRandomState() {
 		CountingRandom random = new CountingRandom(0);
 		assertEquals(8, OreSpawnOreGeneration.sampleQuantity(random, 8, 8));

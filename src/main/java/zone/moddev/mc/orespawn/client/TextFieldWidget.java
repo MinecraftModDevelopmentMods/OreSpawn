@@ -6,7 +6,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.util.text.ITextComponent;
 
-/** GuiButton-compatible host for Forge 14's native {@link GuiTextField}. */
+/** GuiButton-compatible host for Forge 12's native {@link GuiTextField}. */
 class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	private final GuiTextField field;
 
@@ -20,8 +20,7 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	}
 
 	@Override
-	public void drawButton(net.minecraft.client.Minecraft minecraft, int mouseX, int mouseY,
-			float partialTicks) {
+	public void drawButton(net.minecraft.client.Minecraft minecraft, int mouseX, int mouseY) {
 		field.setVisible(visible);
 		field.setEnabled(enabled);
 		if (visible) field.drawTextBox();
@@ -29,7 +28,10 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 
 	@Override
 	public boolean mousePressed(net.minecraft.client.Minecraft minecraft, int mouseX, int mouseY) {
-		return visible && enabled && field.mouseClicked(mouseX, mouseY, 0);
+		if (!visible || !enabled) return false;
+		field.mouseClicked(mouseX, mouseY, 0);
+		return mouseX >= xPosition && mouseX < xPosition + width
+				&& mouseY >= yPosition && mouseY < yPosition + height;
 	}
 
 	boolean keyTyped(char character, int keyCode) {

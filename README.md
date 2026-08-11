@@ -1,20 +1,25 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.12.2.
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.10.2.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-Its deprecated OS3 compatibility layer imports OreSpawn 3 configuration and
-keeps existing OreSpawn 3 consumer jars working while translating their rules
-into the OreSpawn 4 scheduler. It preserves ranged legacy block budgets,
+Its deprecated compatibility layer imports OreSpawn 1 and OreSpawn 3
+configuration and keeps existing legacy consumer jars working while translating
+their rules into the OreSpawn 4 scheduler. It preserves ranged legacy block budgets,
 metadata block states, exclusive legacy height ceilings, and the historical
 "all dimensions except Nether and End" policy used by mods such as Base
-Metals. OreSpawn never schedules both the original OS3 generator and its OS4
+Metals. OreSpawn never schedules both an original legacy generator and its OS4
 translation.
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
+
+Minecraft 1.10 loads legacy language resources using `ll_CC.lang` names (for
+example, `en_US.lang`). OreSpawn intentionally uses that target-native casing;
+renaming these files to the lowercase convention from newer releases prevents
+the translations from loading.
 
 ## What Happens When It Is Installed?
 
@@ -42,7 +47,7 @@ Important files:
 | `config/orespawn-worldgen.json` | Defaults for newly created worlds |
 | `<world>/serverconfig/orespawn-worldgen.json` | Complete settings snapshot for one world |
 | `config/<modid>-orespawn.json` | Optional modpack override for one provider |
-| `config/orespawn-migration/migration-report.txt` | Deterministic OS3 import report and required actions |
+| `config/orespawn-migration/migration-report.txt` | Deterministic OS1/OS3 import report and required actions |
 | `config/orespawn-guide/README.md` | Guide exported automatically on first load |
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
@@ -57,7 +62,7 @@ same provider mods on the server.
 Mods can provide declarative rules in either of these ways:
 
 - package `assets/<modid>/orespawn/provider.json` in the mod jar;
-- call `OreSpawnApi.enqueue(WorldgenProvider)` during normal Forge 1.12
+- call `OreSpawnApi.enqueue(WorldgenProvider)` during normal Forge 1.10
   initialization, before post-initialization freezes provider discovery.
 
 Modpacks can override a provider with `config/<modid>-orespawn.json`. A present
@@ -86,7 +91,8 @@ Use Java 8 from the repository root (the local validation JDK is 1.8.0_221):
 
 ```powershell
 .\gradlew.bat clean build javadoc --no-daemon
-.\gradlew.bat genEclipseRuns eclipse --no-daemon
+.\gradlew.bat setupDecompWorkspace --no-daemon
+.\gradlew.bat eclipse --no-daemon
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
@@ -98,10 +104,14 @@ survive, validates provider-rock vanilla springs and an external ore-pattern
 registration, then reopens and checks the exact saved world. The fixture is
 not included in OreSpawn's published jars.
 
-Run both `genEclipseRuns` and `eclipse` after importing or refreshing this
-ForgeGradle 3 project in Eclipse. This branch uses the Gradle 4.9 wrapper,
-Forge 14.23.5.2859, the `stable_39` MCP mappings, and pack format 3. Published
-jars are SRG-reobfuscated for the Forge 1.12 runtime.
+Run both `setupDecompWorkspace` and `eclipse` after importing or refreshing this
+ForgeGradle 2.2 project in Eclipse. This branch uses the Gradle 4.9 wrapper,
+Forge 12.18.3.2511, the `stable_29` MCP mappings, and pack format 2. Published
+jars are SRG-reobfuscated for the Forge 1.10 runtime.
+
+The publication contains five artifacts: the reobfuscated runtime jar, a
+compiled `api` classifier with API 1 plus the supported OS1/OS3 facades, a
+deobfuscated `deobf` development jar, sources, and Javadocs.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

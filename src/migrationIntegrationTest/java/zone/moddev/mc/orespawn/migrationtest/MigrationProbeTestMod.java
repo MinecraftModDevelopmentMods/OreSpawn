@@ -27,6 +27,8 @@ import zone.moddev.mc.orespawn.worldgen.OreRetrogenManager;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -38,6 +40,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.structure.StructureBoundingBox;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.ForgeChunkManager.Ticket;
@@ -62,6 +65,7 @@ public final class MigrationProbeTestMod {
 	private static final int MIN_RESERVED_CHUNK = 16;
 	private static final int MAX_RESERVED_CHUNK = 20;
 	private static final String BASE_METALS_FRESH_INSTALL = "basemetals-fresh-install";
+	private static final String BASE_METALS_24_FRESH_INSTALL = "basemetals-24-fresh-install";
 
 	private MinecraftServer server;
 	private String phase;
@@ -91,8 +95,14 @@ public final class MigrationProbeTestMod {
 			throw new IllegalStateException("Missing migration family/phase");
 		}
 		for (int dimension : new int[] { 0, -1, 1 }) {
-			if (dimension != 0) DimensionManager.keepDimensionLoaded(dimension, true);
+			if (dimension != 0 && DimensionManager.getWorld(dimension) == null) DimensionManager.initDimension(dimension);
 			WorldServer world = requireWorld(server, dimension);
+			world.getGameRules().setOrCreateGameRule("doMobSpawning", "false");
+			world.getGameRules().setOrCreateGameRule("doFireTick", "false");
+			world.getGameRules().setOrCreateGameRule("randomTickSpeed", "0");
+			for (Entity entity : new ArrayList<Entity>(world.loadedEntityList)) {
+				if (!(entity instanceof EntityPlayer)) entity.setDead();
+			}
 			forceRegion(world, MIN_SOURCE_CHUNK, MAX_SOURCE_CHUNK);
 			forceRegion(world, MIN_RESERVED_CHUNK - 1, MAX_RESERVED_CHUNK + 1);
 			loadRegion(world, MIN_SOURCE_CHUNK, MAX_SOURCE_CHUNK);
@@ -104,18 +114,23 @@ public final class MigrationProbeTestMod {
 				throw new IllegalStateException("Immediate OS3 source audit failed", failure);
 			}
 		}
+		for (int dimension : new int[] { 0, -1, 1 }) {
+			clearPendingTicks(requireWorld(server, dimension), MIN_SOURCE_CHUNK - 1,
+					MAX_SOURCE_CHUNK + 1);
+		}
 		queuedAtStart = OreRetrogenManager.queuedCount();
 		for (int dimension : new int[] { 0, -1, 1 }) {
-			loadRegion(requireWorld(server, dimension), MIN_RESERVED_CHUNK - 1,
-					MAX_RESERVED_CHUNK + 1);
+			WorldServer world = requireWorld(server, dimension);
+			loadRegion(world, MIN_RESERVED_CHUNK - 1, MAX_RESERVED_CHUNK + 1);
+			clearPendingTicks(world, MIN_RESERVED_CHUNK - 1, MAX_RESERVED_CHUNK + 1);
 		}
 	}
 
 	@SubscribeEvent
 	public void chunkDataLoad(ChunkDataEvent.Load event) {
 		if (!(event.getWorld() instanceof WorldServer)) return;
-		int chunkX = event.getChunk().getPos().x;
-		int chunkZ = event.getChunk().getPos().z;
+		int chunkX = event.getChunk().xPosition;
+		int chunkZ = event.getChunk().zPosition;
 		if (chunkX < MIN_SOURCE_CHUNK || chunkX > MAX_SOURCE_CHUNK
 				|| chunkZ < MIN_SOURCE_CHUNK || chunkZ > MAX_SOURCE_CHUNK) return;
 		String key = ((WorldServer) event.getWorld()).provider.getDimension() + ":" + chunkX + ":" + chunkZ;
@@ -127,7 +142,9 @@ public final class MigrationProbeTestMod {
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void serverTick(TickEvent.ServerTickEvent event) {
 		if (complete || server == null || event.phase != TickEvent.Phase.END) return;
-		if (OreRetrogenManager.queuedCount() != 0 || ++settledTicks < 100) return;
+		// Give retrogen and normal save activity enough time to finish before the
+		// semantic snapshot.
+		if (OreRetrogenManager.queuedCount() != 0 || ++settledTicks < 400) return;
 		complete = true;
 		try {
 			finish();
@@ -152,6 +169,7 @@ public final class MigrationProbeTestMod {
 
 		Properties audit = auditWorld();
 		if (isBaseMetalsFreshInstallFixture()) validateBaseMetalsFreshInstall(root, audit);
+		if (isBaseMetals24FreshInstallFixture()) validateBaseMetals24FreshInstall(root, audit);
 		Path freshAudit = root.resolve("orespawn4-migration-fresh-audit.properties");
 		if ("fresh".equals(phase)) {
 			write(freshAudit, audit, "OreSpawn 4 migration fresh semantic audit");
@@ -167,10 +185,10 @@ public final class MigrationProbeTestMod {
 						+ "; unmarked=" + unmarkedSourceLoads.size() + "; queued=" + queuedAtStart);
 			}
 		}
-		if (isBaseMetalsFreshInstallFixture()) verifyFreshInstallHashes(root, values);
+		if (isAnyBaseMetalsFreshInstallFixture()) verifyFreshInstallHashes(root, values);
 
 		values.setProperty("family", family);
-		values.setProperty("seed", Long.toString(server.getWorld(0).getSeed()));
+		values.setProperty("seed", Long.toString(server.worldServerForDimension(0).getSeed()));
 		values.setProperty("source_chunks", MIN_SOURCE_CHUNK + ".." + MAX_SOURCE_CHUNK);
 		values.setProperty("reserved_chunks", MIN_RESERVED_CHUNK + ".." + MAX_RESERVED_CHUNK);
 		values.setProperty("retrogen_queued_" + phase, Integer.toString(queuedAtStart));
@@ -181,10 +199,14 @@ public final class MigrationProbeTestMod {
 		server.saveAllWorlds(false);
 		for (Ticket ticket : tickets) ForgeChunkManager.releaseTicket(ticket);
 		tickets.clear();
-		DimensionManager.keepDimensionLoaded(-1, false);
-		DimensionManager.keepDimensionLoaded(1, false);
 		server.saveAllWorlds(false);
 		server.initiateShutdown();
+	}
+
+	private static void clearPendingTicks(WorldServer world, int minimumChunk, int maximumChunk) {
+		world.getPendingBlockUpdates(new StructureBoundingBox(minimumChunk * 16, 0,
+				minimumChunk * 16, (maximumChunk + 1) * 16 - 1, world.getHeight() - 1,
+				(maximumChunk + 1) * 16 - 1), true);
 	}
 
 	private boolean isRetrogenFixture() {
@@ -195,8 +217,16 @@ public final class MigrationProbeTestMod {
 		return BASE_METALS_FRESH_INSTALL.equals(family);
 	}
 
+	private boolean isBaseMetals24FreshInstallFixture() {
+		return BASE_METALS_24_FRESH_INSTALL.equals(family);
+	}
+
+	private boolean isAnyBaseMetalsFreshInstallFixture() {
+		return isBaseMetalsFreshInstallFixture() || isBaseMetals24FreshInstallFixture();
+	}
+
 	private Properties reloadComparison(Properties source) {
-		if (!isBaseMetalsFreshInstallFixture()) return source;
+		if (!isAnyBaseMetalsFreshInstallFixture()) return source;
 		Properties stable = new Properties();
 		for (String key : source.stringPropertyNames()) {
 			// A newly generated vanilla world can finish water/lava conversion while
@@ -235,8 +265,8 @@ public final class MigrationProbeTestMod {
 				{ "nickel_ore", "0", "orespawn:all_except_nether_end", "32", "95", "1.0" },
 				{ "platinum_ore", "0", "orespawn:all_except_nether_end", "1", "31", "0.125" }
 		};
-		if (ores.size() != expected.length) {
-			throw new IllegalStateException("Expected 11 Base Metals rules, found " + ores.size());
+		if (ores.entrySet().size() != expected.length) {
+			throw new IllegalStateException("Expected 11 Base Metals rules, found " + ores.entrySet().size());
 		}
 		for (String[] rule : expected) {
 			String oreName = rule[0];
@@ -297,15 +327,97 @@ public final class MigrationProbeTestMod {
 		}
 	}
 
+	private void validateBaseMetals24FreshInstall(Path worldRoot, Properties audit) throws IOException {
+		Path config = worldRoot.getParent().resolve("config");
+		Path os1Source = config.resolve("orespawn/basemetals.json");
+		if (!Files.isRegularFile(os1Source)) {
+			throw new IllegalStateException("Base Metals 2.4 did not create its OS1 configuration during pre-initialization");
+		}
+		JsonObject provider = readJson(config.resolve("basemetals-orespawn.json"));
+		if (provider.get("schema_version").getAsInt() != 4
+				|| !"basemetals".equals(provider.get("provider_modid").getAsString())) {
+			throw new IllegalStateException("Base Metals 2.4 OS1 migration produced invalid provider metadata");
+		}
+		JsonObject ores = provider.getAsJsonObject("ores");
+		String[] names = { "copper", "silver", "tin", "lead", "zinc", "mercury", "nickel",
+				"platinum", "coldiron", "adamantine", "starsteel" };
+		if (ores.entrySet().size() != names.length) {
+			throw new IllegalStateException("Expected 11 Base Metals 2.4 OS1 rules, found " + ores.entrySet().size());
+		}
+		Set<String> found = new HashSet<>();
+		for (Map.Entry<String, JsonElement> entry : ores.entrySet()) {
+			JsonObject ore = entry.getValue().getAsJsonObject();
+			String block = ore.get("block").getAsString();
+			if (!block.startsWith("basemetals:") || !block.endsWith("_ore")) {
+				throw new IllegalStateException("Unexpected Base Metals 2.4 migrated output " + block);
+			}
+			String name = block.substring("basemetals:".length(), block.length() - "_ore".length());
+			found.add(name);
+			int expectedDimension = ("coldiron".equals(name) || "adamantine".equals(name)) ? -1
+					: "starsteel".equals(name) ? 1 : 0;
+			JsonObject placements = ore.getAsJsonObject("dimensions");
+			String placementKey = expectedDimension == 0 ? "minecraft:overworld"
+					: expectedDimension == -1 ? "minecraft:the_nether" : "minecraft:the_end";
+			JsonObject placement = placements == null ? null : placements.getAsJsonObject(placementKey);
+			if (placement == null) throw new IllegalStateException("Missing Base Metals 2.4 placement for " + block);
+			int minimum = placement.get("min_y").getAsInt();
+			int maximum = placement.get("max_y").getAsInt();
+			long total = 0L;
+			for (String region : new String[] { "source", "reserved" }) {
+				for (int dimension : new int[] { 0, -1, 1 }) {
+					String prefix = region + "." + dimension;
+					long count = Long.parseLong(audit.getProperty(prefix + ".block." + block + "@0", "0"));
+					if (dimension != expectedDimension && count != 0L) {
+						throw new IllegalStateException(block + " generated in dimension " + dimension);
+					}
+					total += count;
+					if (count > 0L) {
+						int actualMinimum = Integer.parseInt(audit.getProperty(prefix + ".ore_min_y." + block + "@0"));
+						int actualMaximum = Integer.parseInt(audit.getProperty(prefix + ".ore_max_y." + block + "@0"));
+						if (actualMinimum < minimum || actualMaximum > maximum) {
+							throw new IllegalStateException(block + " generated outside its migrated Y range");
+						}
+					}
+				}
+			}
+			if (total == 0L) throw new IllegalStateException("No fresh-world generation found for " + block);
+		}
+		for (String name : names) {
+			if (!found.contains(name)) throw new IllegalStateException("Missing Base Metals 2.4 migrated rule " + name);
+		}
+		JsonObject report = readJson(config.resolve("orespawn-os3-migration-report.json"));
+		boolean sourceRecorded = false;
+		boolean translated = false;
+		for (JsonElement row : report.getAsJsonArray("entries")) {
+			String value = row.getAsString();
+			if (value.startsWith("os1_config_source=") && value.endsWith("config\\orespawn\\basemetals.json")) {
+				sourceRecorded = true;
+			}
+			if ("provider_translated=basemetals:owner=basemetals:ores=11".equals(value)) translated = true;
+			if (value.contains("_failed=") || value.contains("_rejected=")) {
+				throw new IllegalStateException("Base Metals 2.4 migration report contains failure: " + value);
+			}
+		}
+		if (!sourceRecorded || !translated || !report.get("idempotent").getAsBoolean()) {
+			throw new IllegalStateException("Base Metals 2.4 OS1 migration report is incomplete");
+		}
+	}
+
 	private void verifyFreshInstallHashes(Path worldRoot, Properties marker) throws IOException {
 		Path config = worldRoot.getParent().resolve("config");
-		Path[] files = {
-				config.resolve("basemetals-orespawn.json"),
-				config.resolve("orespawn-os3-migration-report.json"),
-				config.resolve("orespawn-worldgen.json"),
-				worldRoot.resolve("serverconfig/orespawn-worldgen.json")
-		};
-		String[] names = { "provider", "report", "global_profile", "world_profile" };
+		List<Path> fileList = new ArrayList<>();
+		fileList.add(config.resolve("basemetals-orespawn.json"));
+		fileList.add(config.resolve("orespawn-os3-migration-report.json"));
+		fileList.add(config.resolve("orespawn-worldgen.json"));
+		fileList.add(worldRoot.resolve("serverconfig/orespawn-worldgen.json"));
+		List<String> nameList = new ArrayList<>();
+		Collections.addAll(nameList, "provider", "report", "global_profile", "world_profile");
+		if (isBaseMetals24FreshInstallFixture()) {
+			fileList.add(config.resolve("orespawn/basemetals.json"));
+			nameList.add("os1_source");
+		}
+		Path[] files = fileList.toArray(new Path[fileList.size()]);
+		String[] names = nameList.toArray(new String[nameList.size()]);
 		for (int index = 0; index < files.length; index++) {
 			String hash = sha256(files[index]);
 			String key = "fresh_basemetals_" + names[index] + "_sha256";
@@ -357,7 +469,7 @@ public final class MigrationProbeTestMod {
 		Properties result = new Properties();
 		result.setProperty("format", "1");
 		result.setProperty("family", family);
-		result.setProperty("seed", Long.toString(server.getWorld(0).getSeed()));
+		result.setProperty("seed", Long.toString(server.worldServerForDimension(0).getSeed()));
 		for (int dimension : new int[] { 0, -1, 1 }) {
 			WorldServer world = requireWorld(server, dimension);
 			auditRegion(result, "source." + dimension, world, MIN_SOURCE_CHUNK, MAX_SOURCE_CHUNK);
@@ -456,10 +568,10 @@ public final class MigrationProbeTestMod {
 			TileEntityChest chest = (TileEntityChest) tile;
 			for (int slot = 0; slot < chest.getSizeInventory(); slot++) {
 				ItemStack stack = chest.getStackInSlot(slot);
-				if (stack.isEmpty()) continue;
+				if (stack == null || stack.stackSize <= 0) continue;
 				ResourceLocation id = stack.getItem().getRegistryName();
 				value.append('|').append(slot).append(':').append(id).append('@')
-						.append(stack.getMetadata()).append('x').append(stack.getCount());
+						.append(stack.getMetadata()).append('x').append(stack.stackSize);
 			}
 		}
 		return value.toString();
@@ -493,8 +605,8 @@ public final class MigrationProbeTestMod {
 			if (!key.startsWith("registry.block.") && !key.startsWith("registry.item.")) continue;
 			String registryName = key.substring(key.indexOf('.', 9) + 1);
 			ResourceLocation id = new ResourceLocation(registryName);
-			if (!"minecraft".equals(id.getNamespace()) && !"basemetals".equals(id.getNamespace())
-					&& !"mineralogy".equals(id.getNamespace())) continue;
+			if (!"minecraft".equals(id.getResourceDomain()) && !"basemetals".equals(id.getResourceDomain())
+					&& !"mineralogy".equals(id.getResourceDomain())) continue;
 			int numeric = key.startsWith("registry.block.")
 					? Block.getIdFromBlock(ForgeRegistries.BLOCKS.getValue(id))
 					: Item.getIdFromItem(ForgeRegistries.ITEMS.getValue(id));
@@ -520,7 +632,7 @@ public final class MigrationProbeTestMod {
 					.getTileEntity(chestPosition);
 			if (!(tile instanceof TileEntityChest)) throw new IllegalStateException("Missing fixture chest " + dimension);
 			ItemStack stack = ((TileEntityChest) tile).getStackInSlot(0);
-			if (stack.getItem() != Item.getItemFromBlock(Blocks.STONE) || stack.getCount() != 32
+			if (stack.getItem() != Item.getItemFromBlock(Blocks.STONE) || stack.stackSize != 32
 					|| stack.getMetadata() != 1) {
 				throw new IllegalStateException("Fixture inventory changed in dimension " + dimension);
 			}
@@ -553,7 +665,7 @@ public final class MigrationProbeTestMod {
 	}
 
 	private static WorldServer requireWorld(MinecraftServer server, int dimension) {
-		WorldServer world = server.getWorld(dimension);
+		WorldServer world = server.worldServerForDimension(dimension);
 		if (world == null) {
 			DimensionManager.initDimension(dimension);
 			world = DimensionManager.getWorld(dimension);

@@ -97,7 +97,7 @@ class DocumentationJsonTest {
 
 	private static void validateObject(JsonObject schema, JsonObject value, Document document,
 			String path, boolean probe) throws Exception {
-		if (schema.has("minProperties")) require(value.size() >= schema.get("minProperties").getAsInt(), path + " is empty");
+		if (schema.has("minProperties")) require(value.entrySet().size() >= schema.get("minProperties").getAsInt(), path + " is empty");
 		if (schema.has("required")) {
 			for (JsonElement required : schema.getAsJsonArray("required")) {
 				require(value.has(required.getAsString()), path + " missing " + required.getAsString());

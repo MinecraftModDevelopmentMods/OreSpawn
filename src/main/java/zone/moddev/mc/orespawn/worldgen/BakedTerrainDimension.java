@@ -28,7 +28,7 @@ final class BakedTerrainDimension {
 	boolean acceptsBiome(ResourceLocation biomeId) {
 		return biomeIds.isEmpty() && biomeNamespaces.isEmpty()
 				|| biomeId != null && (biomeIds.contains(biomeId)
-						|| biomeNamespaces.contains(biomeId.getNamespace()));
+						|| biomeNamespaces.contains(biomeId.getResourceDomain()));
 	}
 
 	boolean hasBiomeFilter() {

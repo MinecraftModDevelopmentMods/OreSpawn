@@ -99,11 +99,11 @@ final class OreSpawnScreenLayout {
 			return;
 		}
 		for (ExplainedWidget explanation : explanations) {
-			if (explanation.widget.visible && mouseX >= explanation.widget.x
-					&& mouseX < explanation.widget.x + explanation.widget.width
-					&& mouseY >= explanation.widget.y
-					&& mouseY < explanation.widget.y + explanation.widget.height) {
-				FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+			if (explanation.widget.visible && mouseX >= explanation.widget.xPosition
+					&& mouseX < explanation.widget.xPosition + explanation.widget.width
+					&& mouseY >= explanation.widget.yPosition
+					&& mouseY < explanation.widget.yPosition + explanation.widget.height) {
+				FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
 				String text = explanation.translation
 						? new TextComponentTranslation(explanation.text).getFormattedText()
 						: explanation.text;

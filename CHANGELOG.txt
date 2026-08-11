@@ -1,36 +1,39 @@
 Version 4.0.6
 
-* Port OreSpawn 4.0.6 to Minecraft 1.12.2 and Forge 14.23.5.2859 using Java 8.
-* Add a deprecated OS3 binary/configuration compatibility bridge for existing
-  3.2.2 and 3.3.1 consumers, translating plugins and registrations into one
+* Port OreSpawn 4.0.6 to Minecraft 1.10.2 and Forge 12.18.3.2511 using Java 8.
+* Add deprecated OS1 and OS3 binary/configuration compatibility bridges for
+  OreSpawn 1.1 and 3.2.2 consumers, translating plugins and registrations into one
   deduplicated OS4 scheduler with atomic backups and an idempotent report.
-* Preserve 1.12 metadata block states, legacy dimension/biome selectors,
+* Preserve 1.10 metadata block states, legacy dimension/biome selectors,
   weighted outputs, retrogen flags, vanilla suppression, and flat bedrock.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
 * Preserve exact custom-biome rules and stagger close Stable Layers geome boundaries.
-* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.12.2.
+* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.10.2.
 * Apply vanilla-ore suppression at Forge's final standard event priority so
   later ordinary mod listeners cannot re-enable claimed vanilla ore features.
 * Keep air-exposure inspection inside the active chunk so edge candidates do
   not load neighbouring chunks or depend on neighbour-generation order.
 * Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
-  Forge 1.12 terrain events and one deduplicated IWorldGenerator fallback.
-* Register the early surface/geology coordinator on Forge 1.12's actual event
+  Forge 1.10 terrain events and one deduplicated IWorldGenerator fallback.
+* Register the early surface/geology coordinator on Forge 1.10's actual event
   bus so it runs before later structures and vegetation while remaining safe
   across the Nether's duplicate decoration-pre events.
-* Retain the OreSpawn biome registrar and deferred handles on Forge 1.12 registry events.
+* Retain the OreSpawn biome registrar and deferred handles on Forge 1.10 registry events.
 * Preserve vanilla springs in provider rocks through Forge's native terrain hooks.
-* Restore reliable 1.12.2 editor backgrounds, tooltip clearing, and translated cycle-button captions.
+* Restore reliable 1.10.2 editor backgrounds, tooltip clearing, translated cycle-button captions,
+  and safe OreSpawn world-settings navigation.
+* Package translations under Minecraft 1.10's required `ll_CC.lang` filename casing so editor
+  captions load instead of displaying raw language keys.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
 
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
-* Verify both biome-registration helpers and the Forge 1.12 registrar lifecycle
-* Confirm Minecraft 1.12.2 ResourceLocation documentation and ForgeGradle 3 workflow
+* Verify both biome-registration helpers and the Forge 1.10 registrar lifecycle
+* Confirm Minecraft 1.10.2 ResourceLocation documentation and ForgeGradle 2.2 workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1

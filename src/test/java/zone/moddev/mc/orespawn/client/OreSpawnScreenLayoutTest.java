@@ -34,7 +34,7 @@ class OreSpawnScreenLayoutTest {
 			int background = source.indexOf("renderBackground();", render);
 			int widgets = source.indexOf("super.render(mouseX, mouseY, partialTick);", render);
 			String name = screen.getFileName().toString();
-			assertTrue(render >= 0, name + " must own its 1.12.2 render pass");
+			assertTrue(render >= 0, name + " must own its 1.10.2 render pass");
 			assertTrue(background > render, name + " must clear the previous frame");
 			assertTrue(widgets > background, name + " must clear before drawing widgets and tooltips");
 		}

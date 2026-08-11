@@ -41,8 +41,8 @@ public final class WorldMaterialWeather {
 			if (!(playerBase instanceof EntityPlayerMP)) continue;
 			EntityPlayerMP player = (EntityPlayerMP) playerBase;
 			ChunkPos pos = new ChunkPos(player.getPosition());
-			if (level.getChunkProvider().chunkExists(pos.x, pos.z)) {
-				convertChunk(level.getChunkProvider().provideChunk(pos.x, pos.z), materials);
+			if (level.getChunkProvider().chunkExists(pos.chunkXPos, pos.chunkZPos)) {
+				convertChunk(level.getChunkProvider().provideChunk(pos.chunkXPos, pos.chunkZPos), materials);
 			}
 		}
 	}
@@ -50,8 +50,8 @@ public final class WorldMaterialWeather {
 	private static void convertChunk(Chunk chunk, DimensionMaterials materials) {
 		if (materials.snow == null && materials.ice == null) return;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-		int minX = chunk.getPos().getXStart();
-		int minZ = chunk.getPos().getZStart();
+		int minX = ChunkAccessCompat.position(chunk).getXStart();
+		int minZ = ChunkAccessCompat.position(chunk).getZStart();
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int top = chunk.getHeightValue(localX, localZ) - 1;

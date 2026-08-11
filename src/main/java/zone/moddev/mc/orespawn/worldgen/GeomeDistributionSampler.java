@@ -203,9 +203,8 @@ public final class GeomeDistributionSampler {
 		if (biomeId == null || "minecraft:the_void".equals(biomeId.toString())) {
 			return false;
 		}
-		return biome != null && !BiomeDictionary.hasType(biome, Type.NETHER)
-				&& !BiomeDictionary.hasType(biome, Type.END)
-				&& !BiomeDictionary.hasType(biome, Type.VOID);
+		return biome != null && !BiomeDictionary.isBiomeOfType(biome, Type.NETHER)
+				&& !BiomeDictionary.isBiomeOfType(biome, Type.END);
 	}
 
 	private static void appendBiomeAudit(StringBuilder report, GeomeGeology geology,
@@ -216,7 +215,7 @@ public final class GeomeDistributionSampler {
 		int biomeIndex = 0;
 		for (Entry<String, Biome> entry : biomes.entrySet()) {
 			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
-			add(namespaceCounts, biomeId.getNamespace());
+			add(namespaceCounts, biomeId.getResourceDomain());
 			if (!config.hasDistinctBiomeWeights(entry.getValue())) {
 				neutralBiomes.add(entry.getKey());
 			}
@@ -240,7 +239,7 @@ public final class GeomeDistributionSampler {
 			}
 			report.append("  ").append(entry.getKey())
 					.append(" types=").append(biomeTypes(biomeId))
-					.append(" temperature=").append(format(entry.getValue().getDefaultTemperature()))
+					.append(" temperature=").append(format(entry.getValue().getTemperature()))
 					.append(" downfall=").append(format(entry.getValue().getRainfall()))
 					.append(" dominant=").append(config.dominantBiomeWeight(entry.getValue()))
 					.append(" weights=").append(config.describeBiomeWeights(entry.getValue()))
@@ -264,8 +263,8 @@ public final class GeomeDistributionSampler {
 	private static String biomeTypes(ResourceLocation biomeId) {
 		List<String> names = new ArrayList<>();
 		Biome biome = ForgeRegistries.BIOMES.getValue(biomeId);
-		for (Type type : biome == null ? Collections.<Type>emptySet() : BiomeDictionary.getTypes(biome)) {
-			names.add(type.getName());
+		for (Type type : biome == null ? new Type[0] : BiomeDictionary.getTypesForBiome(biome)) {
+			names.add(type.name());
 		}
 		Collections.sort(names);
 		return names.toString();

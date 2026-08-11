@@ -19,7 +19,7 @@ class TooltipAlignmentTest {
 	private static final Path CLIENT_DIR = Paths.get("src", "main", "java", "zone", "moddev", "mc",
 			"orespawn", "client");
 	private static final Path ENGLISH = Paths.get("src", "main", "resources", "assets", "orespawn",
-			"lang", "en_us.lang");
+			"lang", "en_US.lang");
 	private static final List<String> DETAILED_SCREENS = Arrays.asList(
 			"BiomePlacementScreen.java",
 			"BiomeWorldMaterialsScreen.java",
@@ -180,7 +180,7 @@ class TooltipAlignmentTest {
 			for (Path sourceFile : (Iterable<Path>) files.filter(path -> path.toString().endsWith("GuiScreen.java"))::iterator) {
 				String source = read(sourceFile);
 				assertFalse(source.contains(".withTooltip("), sourceFile.getFileName()
-						+ " must use OreSpawnScreenLayout.explain because GuiScreen does not render CycleButton tooltips in 1.12.2");
+						+ " must use OreSpawnScreenLayout.explain because GuiScreen does not render CycleButton tooltips in 1.10.2");
 			}
 		}
 	}
@@ -189,7 +189,7 @@ class TooltipAlignmentTest {
 	void everyDetailedControlTooltipHasEnglishText() throws Exception {
 		JsonObject english = zone.moddev.mc.orespawn.test.LangTestFiles.read(ENGLISH);
 		for (String key : REQUIRED_TOOLTIPS) {
-			assertTrue(english.has(key), key + " is missing from en_us.lang");
+			assertTrue(english.has(key), key + " is missing from en_US.lang");
 			assertFalse(english.get(key).getAsString().trim().isEmpty(), key + " has no help text");
 		}
 	}

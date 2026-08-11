@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
-/** Extends Forge 1.12's native ore-host predicate with baked provider rocks. */
+/** Extends Forge 1.10's native ore-host predicate with baked provider rocks. */
 public final class VanillaSpringCompatibility {
 	private static volatile Set<Block> providerRocks = Collections.emptySet();
 
@@ -70,6 +70,11 @@ public final class VanillaSpringCompatibility {
 	}
 
 	static boolean generate(Block fluid, World world, java.util.Random random, BlockPos pos) {
+		// Never query an unloaded neighbour while the current chunk is populating.
+		// That would cascade generation across an edge before Forge is ready.
+		if (!loaded(world, pos) || !loaded(world, pos.up()) || !loaded(world, pos.down())
+				|| !loaded(world, pos.west()) || !loaded(world, pos.east())
+				|| !loaded(world, pos.north()) || !loaded(world, pos.south())) return false;
 		if (!accepts(world, pos.up(), world.getBlockState(pos.up()))
 				|| !accepts(world, pos.down(), world.getBlockState(pos.down()))) return false;
 		IBlockState current = world.getBlockState(pos);
@@ -86,5 +91,9 @@ public final class VanillaSpringCompatibility {
 			world.immediateBlockTick(pos, state, random);
 		}
 		return true;
+	}
+
+	private static boolean loaded(World world, BlockPos pos) {
+		return world.isBlockLoaded(pos, false);
 	}
 }

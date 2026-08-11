@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -228,14 +229,14 @@ public final class WorldgenProvider {
 
 		private void requireOwned(Collection<ResourceLocation> ids, String type) {
 			for (ResourceLocation id : ids) {
-				if (!modId.equals(id.getNamespace())) {
+				if (!modId.equals(id.getResourceDomain())) {
 					throw new IllegalStateException("Provider " + modId + " does not own " + type + " " + id);
 				}
 			}
 		}
 
 		private ResourceLocation ownedId(String kind, ResourceLocation output) {
-			return new ResourceLocation(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
+			return new ResourceLocation(modId, kind + "/" + output.getResourceDomain() + "/" + output.getResourcePath());
 		}
 	}
 
@@ -406,7 +407,7 @@ public final class WorldgenProvider {
 			for (Entry<OreDimensionSelector, OreDimensionDefinition> entry : dimensionSelectors.entrySet()) {
 				selectors.add(entry.getKey().id().toString(), entry.getValue().toJson());
 			}
-			if (selectors.size() > 0) json.add("dimension_selectors", selectors);
+			if (selectors.entrySet().size() > 0) json.add("dimension_selectors", selectors);
 			return json;
 		}
 
@@ -609,7 +610,7 @@ public final class WorldgenProvider {
 			json.addProperty("vertical_spread", verticalSpread);
 			json.addProperty("node_size", nodeSize);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) { families.add(family.configName()); }
+			for (GeologyFamily family : hostFamilies) { families.add(new JsonPrimitive(family.configName())); }
 			json.add("host_families", families);
 			json.add("geomes", weights(geomes));
 			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
@@ -845,7 +846,7 @@ public final class WorldgenProvider {
 			json.addProperty("min_solid_cover", minSolidCover);
 			json.addProperty("min_solid_shell", minSolidShell);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) families.add(family.configName());
+			for (GeologyFamily family : hostFamilies) families.add(new JsonPrimitive(family.configName()));
 			json.add("host_families", families);
 			json.add("host_blocks", ids(hostBlocks));
 			json.add("host_tags", ids(hostTags));
@@ -1012,7 +1013,7 @@ public final class WorldgenProvider {
 			json.addProperty("enabled", enabled);
 			json.add("biome_ids", ids(biomeIds));
 			JsonArray namespaces = new JsonArray();
-			for (String namespace : biomeNamespaces) { namespaces.add(namespace); }
+			for (String namespace : biomeNamespaces) { namespaces.add(new JsonPrimitive(namespace)); }
 			json.add("biome_namespaces", namespaces);
 			json.add("host_blocks", ids(hostBlocks));
 			json.add("host_tags", ids(hostTags));
@@ -1239,7 +1240,7 @@ public final class WorldgenProvider {
 			json.addProperty("name_key", nameKey);
 			json.addProperty("description_key", descriptionKey);
 			JsonArray mods = new JsonArray();
-			for (String mod : requiredMods) { mods.add(mod); }
+			for (String mod : requiredMods) { mods.add(new JsonPrimitive(mod)); }
 			json.add("required_mods", mods);
 			json.addProperty("auto_select", autoSelect);
 			json.addProperty("auto_select_priority", autoSelectPriority);
@@ -1257,7 +1258,7 @@ public final class WorldgenProvider {
 			private final JsonObject profile = new JsonObject();
 			private Builder(ResourceLocation id) {
 				this.id = Objects.requireNonNull(id, "id");
-				nameKey = "orespawn.template." + id.getNamespace() + "." + id.getPath();
+				nameKey = "orespawn.template." + id.getResourceDomain() + "." + id.getResourcePath();
 				descriptionKey = nameKey + ".description";
 			}
 			public Builder translationKeys(String name, String description) { nameKey = name; descriptionKey = description; return this; }
@@ -1312,7 +1313,7 @@ public final class WorldgenProvider {
 
 	private static JsonArray ids(Collection<ResourceLocation> values) {
 		JsonArray json = new JsonArray();
-		for (ResourceLocation value : values) { json.add(value.toString()); }
+		for (ResourceLocation value : values) { json.add(new JsonPrimitive(value.toString())); }
 		return json;
 	}
 
@@ -1658,7 +1659,7 @@ public final class WorldgenProvider {
 
 	private static JsonArray strings(Collection<String> values) {
 		JsonArray json = new JsonArray();
-		for (String value : values) { json.add(value); }
+		for (String value : values) { json.add(new JsonPrimitive(value)); }
 		return json;
 	}
 
@@ -1668,7 +1669,7 @@ public final class WorldgenProvider {
 		for (ResourceLocation value : values) {
 			Double weight = weights.get(value);
 			if (weight == null || weight.doubleValue() == 1.0D) {
-				json.add(value.toString());
+				json.add(new JsonPrimitive(value.toString()));
 			} else {
 				JsonObject entry = new JsonObject();
 				entry.addProperty(idKey, value.toString());
@@ -1695,7 +1696,7 @@ public final class WorldgenProvider {
 	private static String requireModId(String value) {
 		Objects.requireNonNull(value, "modId");
 		ResourceLocation probe = new ResourceLocation(value, "provider");
-		if (!probe.getNamespace().equals(value)) {
+		if (!probe.getResourceDomain().equals(value)) {
 			throw new IllegalArgumentException("Invalid mod ID: " + value);
 		}
 		return value;

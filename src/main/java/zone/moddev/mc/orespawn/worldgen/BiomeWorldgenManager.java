@@ -25,8 +25,8 @@ import net.minecraft.world.biome.BiomeProvider;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.world.gen.ChunkGeneratorOverworld;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.gen.ChunkProviderOverworld;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
@@ -38,7 +38,7 @@ final class BiomeWorldgenManager {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceLocation, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
-	private static final Map<ChunkGeneratorOverworld, IBlockState> ORIGINAL_DEFAULT_FLUIDS =
+	private static final Map<ChunkProviderOverworld, IBlockState> ORIGINAL_DEFAULT_FLUIDS =
 			new IdentityHashMap<>();
 	private static final Set<ResourceLocation> WARNED_DEEP_FLUID_DIMENSIONS =
 			new LinkedHashSet<>();
@@ -47,7 +47,7 @@ final class BiomeWorldgenManager {
 	}
 
 	static void registerBiomeSourceCodec() {
-		// Minecraft 1.12 biome providers are not codec-serialized.
+		// Minecraft 1.10 biome providers are not codec-serialized.
 	}
 
 	static synchronized void apply(MinecraftServer server, WorldGeologyProfile profile) {
@@ -91,7 +91,7 @@ final class BiomeWorldgenManager {
 
 	static synchronized void clear() {
 		BiomeFeatureInstaller.restoreAll();
-		for (Entry<ChunkGeneratorOverworld, IBlockState> entry : ORIGINAL_DEFAULT_FLUIDS.entrySet()) {
+		for (Entry<ChunkProviderOverworld, IBlockState> entry : ORIGINAL_DEFAULT_FLUIDS.entrySet()) {
 			setDefaultFluid(entry.getKey(), entry.getValue());
 		}
 		ORIGINAL_DEFAULT_FLUIDS.clear();
@@ -191,7 +191,7 @@ final class BiomeWorldgenManager {
 			ResourceLocation sourceId = source.getKey();
 			if (!scopeMatches(scope, included, excluded, sourceId)) continue;
 			Biome biome = source.getValue();
-			float temperature = biome.getDefaultTemperature();
+			float temperature = biome.getTemperature();
 			float downfall = biome.getRainfall();
 			int count = 0;
 			for (BakedBiomeWorldgen.Entry candidate : entries) {
@@ -218,7 +218,7 @@ final class BiomeWorldgenManager {
 
 	private static boolean scopeMatches(int scope, Set<String> included,
 			Set<String> excluded, ResourceLocation source) {
-		String namespace = source.getNamespace();
+		String namespace = source.getResourceDomain();
 		if (excluded.contains(namespace)) return false;
 		if (scope == 1) return "minecraft".equals(namespace);
 		if (scope == 2) return included.contains(namespace);
@@ -274,15 +274,15 @@ final class BiomeWorldgenManager {
 
 	private static void installAquiferMaterials(WorldServer level, DimensionMaterials materials) {
 		IChunkGenerator raw = level.getChunkProvider().chunkGenerator;
-		if (!(raw instanceof ChunkGeneratorOverworld)) {
+		if (!(raw instanceof ChunkProviderOverworld)) {
 			if (materials != null && materials.defaultFluid != null
 					&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
-				LOGGER.warn("Dimension '{}' requests a generator fluid override that Forge 1.12 does not expose; preserving the profile value",
+				LOGGER.warn("Dimension '{}' requests a generator fluid override that Forge 1.10 does not expose; preserving the profile value",
 						WorldIds.dimension(level));
 			}
 			return;
 		}
-		ChunkGeneratorOverworld generator = (ChunkGeneratorOverworld) raw;
+		ChunkProviderOverworld generator = (ChunkProviderOverworld) raw;
 		IBlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
 				ignored -> generator.oceanBlock);
 		IBlockState selected = materials != null && materials.defaultFluid != null
@@ -292,12 +292,12 @@ final class BiomeWorldgenManager {
 				&& !materials.deepFluid.equals(selected)
 				&& materials.deepFluidMaxY >= 0
 				&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
-			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.12.2 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
+			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.10.2 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
 					WorldIds.dimension(level), materials.deepFluidMaxY);
 		}
 	}
 
-	private static void setDefaultFluid(ChunkGeneratorOverworld generator, IBlockState fluid) {
+	private static void setDefaultFluid(ChunkProviderOverworld generator, IBlockState fluid) {
 		generator.oceanBlock = fluid;
 	}
 

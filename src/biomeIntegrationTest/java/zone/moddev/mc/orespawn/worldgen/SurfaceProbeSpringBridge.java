@@ -7,7 +7,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldServer;
 
-/** Test-only package bridge for the Forge 1.12 spring compatibility path. */
+/** Test-only package bridge for the Forge 1.10 spring compatibility path. */
 public final class SurfaceProbeSpringBridge {
 	private SurfaceProbeSpringBridge() {
 	}

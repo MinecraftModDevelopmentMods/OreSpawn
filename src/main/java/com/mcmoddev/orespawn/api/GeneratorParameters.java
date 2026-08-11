@@ -26,7 +26,7 @@ public class GeneratorParameters {
 			this.parameters.add(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue());
 		}
 
-		this.chunk = new ChunkPos(chunkPos.x, chunkPos.z);
+		this.chunk = new ChunkPos(chunkPos.chunkXPos, chunkPos.chunkZPos);
 		this.ores = oreList;
 		this.replacements = ImmutableList.copyOf(replacementBlocks);
 		this.biomes = biomes;

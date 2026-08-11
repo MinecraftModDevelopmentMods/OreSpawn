@@ -13,12 +13,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
 class VanillaSpringCompatibilityTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
 	}
 
 	@AfterEach
@@ -50,17 +50,34 @@ class VanillaSpringCompatibilityTest {
 	}
 
 	@Test
-	void managedWorldgenWritesSuppressObserverDrivenChunkPopulation() throws Exception {
+	void springChecksEveryNeighbourIsLoadedBeforeReadingItsState() throws Exception {
+		String source = source();
+		int loadedGuard = source.indexOf("if (!loaded(world, pos)");
+		int firstRead = source.indexOf("world.getBlockState(pos.up())");
+		assertTrue(loadedGuard >= 0, "spring generation must have an explicit loaded-neighbour guard");
+		assertTrue(firstRead > loadedGuard,
+				"spring generation must reject unloaded chunk edges before any adjacent block read");
+		assertTrue(source.contains("loaded(world, pos.west())"));
+		assertTrue(source.contains("loaded(world, pos.east())"));
+		assertTrue(source.contains("loaded(world, pos.north())"));
+		assertTrue(source.contains("loaded(world, pos.south())"));
+	}
+
+	@Test
+	void managedWorldgenWritesUseForge110NoNeighbourUpdateFlag() throws Exception {
 		String oreGeneration = new String(Files.readAllBytes(Paths.get("src", "main", "java",
 				"zone", "moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),
 				StandardCharsets.UTF_8);
 		String legacyFeatures = new String(Files.readAllBytes(Paths.get("src", "main", "java",
 				"com", "mcmoddev", "orespawn", "api", "FeatureBase.java")), StandardCharsets.UTF_8);
-		assertTrue(oreGeneration.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
-		assertTrue(oreGeneration.contains("setBlockState(cursor, output, GENERATION_WRITE_FLAGS)"));
-		assertTrue(legacyFeatures.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
-		assertTrue(legacyFeatures.contains("setBlockState(pos, output, GENERATION_WRITE_FLAGS)"));
-		assertTrue(legacyFeatures.contains("setBlockState(pos, ore, GENERATION_WRITE_FLAGS)"));
+		assertTrue(oreGeneration.contains("GENERATION_WRITE_FLAGS = 2;"));
+		assertFalse(oreGeneration.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
+		assertTrue(oreGeneration.contains("setBlockState(cursor.toImmutable(), output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(legacyFeatures.contains("GENERATION_WRITE_FLAGS = 2;"));
+		assertFalse(legacyFeatures.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
+		assertTrue(legacyFeatures.contains("setBlockState(immutable(pos), output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(legacyFeatures.contains("setBlockState(immutable(pos), ore, GENERATION_WRITE_FLAGS)"));
+		assertTrue(legacyFeatures.contains("((BlockPos.MutableBlockPos) pos).toImmutable()"));
 	}
 
 	private static String source() throws java.io.IOException {

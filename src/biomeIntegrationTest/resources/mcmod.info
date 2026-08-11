@@ -4,7 +4,7 @@
     "name": "OreSpawn Surface Integration Test",
     "description": "Test-only provider mod for OreSpawn's surface replacement gate.",
     "version": "1.0.0",
-    "mcversion": "1.12.2",
+    "mcversion": "1.10.2",
     "authorList": ["OreSpawn test fixture"],
     "dependencies": ["required-after:orespawn@[4.0.6,5.0.0)"]
   }

@@ -36,6 +36,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.BiomeLocation;
 import com.mcmoddev.orespawn.api.GeneratorParameters;
 import com.mcmoddev.orespawn.api.IBlockList;
@@ -75,16 +76,14 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
 import zone.moddev.mc.orespawn.worldgen.LegacyOs3ProfileMigration;
 
 /**
@@ -94,18 +93,15 @@ import zone.moddev.mc.orespawn.worldgen.LegacyOs3ProfileMigration;
 public final class LegacyOs3Bridge {
 	private static final Logger LOGGER = LogManager.getLogger("OreSpawn-OS3-Bridge");
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-	private static final IForgeRegistry<IFeature> SAVED_FEATURES =
-			new RegistryBuilder<IFeature>()
-					.setName(new ResourceLocation("orespawn", "feature_registry"))
-					.setType(IFeature.class).setMaxID(4096).create();
-	private static final IForgeRegistry<IReplacementEntry> SAVED_REPLACEMENTS =
-			new RegistryBuilder<IReplacementEntry>()
-					.setName(new ResourceLocation("orespawn", "replacements_registry"))
-					.setType(IReplacementEntry.class).setMaxID(65535).create();
+	private static final Map<ResourceLocation, IFeature> SAVED_FEATURES = new LinkedHashMap<>();
+	private static final Map<ResourceLocation, IReplacementEntry> SAVED_REPLACEMENTS = new LinkedHashMap<>();
 	private static final LegacyApi API = new LegacyApi();
 	private static final FeatureRegistry FEATURES = new FeatureRegistry();
 	private static final List<String> REPORT = new ArrayList<>();
 	private static boolean initialized;
+	private static boolean completed;
+	private static Path configurationDirectory;
+	private static final Map<String, JsonObject> OS1_PROGRAMMATIC = new LinkedHashMap<>();
 
 	static {
 		for (String name : new String[] { "default", "vein", "normal-cloud", "precision",
@@ -123,11 +119,7 @@ public final class LegacyOs3Bridge {
 		ResourceLocation id = validId(name) ? new ResourceLocation(name)
 				: new ResourceLocation("orespawn", safe(name));
 		if (!SAVED_FEATURES.containsKey(id)) {
-			IFeature registryValue = feature.setRegistryName(id);
-			if (registryValue.getRegistryName() == null) {
-				registryValue = new SavedFeatureAlias(feature).setRegistryName(id);
-			}
-			SAVED_FEATURES.register(registryValue);
+			SAVED_FEATURES.put(id, feature);
 		}
 		if (!FEATURES.hasFeature(id.toString())) FEATURES.addFeature(id.toString(), feature);
 		if (!name.contains(":") && !FEATURES.hasFeature(name)) FEATURES.addFeature(name, feature);
@@ -136,7 +128,7 @@ public final class LegacyOs3Bridge {
 	private static void registerSavedReplacement(IReplacementEntry replacement) {
 		if (replacement != null && replacement.getRegistryName() != null
 				&& !SAVED_REPLACEMENTS.containsKey(replacement.getRegistryName())) {
-			SAVED_REPLACEMENTS.register(replacement);
+			SAVED_REPLACEMENTS.put(replacement.getRegistryName(), replacement);
 		}
 	}
 
@@ -173,9 +165,45 @@ public final class LegacyOs3Bridge {
 		registerSavedReplacement(new LegacyReplacementEntry("orespawn:default",
 				Arrays.asList(Blocks.STONE.getDefaultState(), Blocks.NETHERRACK.getDefaultState(),
 						Blocks.END_STONE.getDefaultState())));
-		Path config = event.getModConfigurationDirectory().toPath();
+		configurationDirectory = event.getModConfigurationDirectory().toPath();
 		scanPlugins(event.getAsmData());
-		migrateConfigDirectory(config);
+	}
+
+	/**
+	 * Finishes legacy discovery after every mod has had its pre-initialization
+	 * callback. Older Base Metals versions create their OS1 configuration during
+	 * pre-initialization, so scanning any earlier would silently miss a clean
+	 * install on its first launch.
+	 */
+	public static synchronized void completeInitialization() {
+		if (completed || configurationDirectory == null) return;
+		completed = true;
+		migrateConfigDirectory(configurationDirectory);
+	}
+
+	/** Registers a single OreSpawn 1.x declaration with the OS4 scheduler. */
+	public static synchronized void registerOs1Spawn(String owner, String name, JsonObject spawn) {
+		String safeOwner = validModId(owner) ? owner : "legacy";
+		JsonObject source = OS1_PROGRAMMATIC.computeIfAbsent(safeOwner, ignored -> {
+			JsonObject value = new JsonObject();
+			value.addProperty("version", "1.0");
+			value.add("spawns", new JsonObject());
+			return value;
+		});
+		object(source, "spawns").add(name, new JsonParser().parse(spawn.toString()));
+	}
+
+	/** Records an OreSpawn 1.x file created by a legacy consumer. */
+	public static synchronized void registerOs1Config(Path path) throws IOException {
+		if (path == null) return;
+		try (InputStream input = Files.newInputStream(path)) {
+			JsonObject source = readObject(input);
+			if (!hasOs1Config(source)) throw new IOException("Not an OreSpawn 1.x dimensions file: " + path);
+			String file = path.getFileName() == null ? "legacy" : path.getFileName().toString();
+			String owner = safe(file.replaceFirst("\\.json$", ""));
+			OS1_PROGRAMMATIC.put(owner, convertOs1Source(owner, source));
+			REPORT.add("os1_config_registered=" + path.toAbsolutePath());
+		}
 	}
 
 	public static void generate(Random random, int chunkX, int chunkZ, World world,
@@ -269,8 +297,11 @@ public final class LegacyOs3Bridge {
 
 	private static void migrateConfigDirectory(Path configDirectory) {
 		Path legacyDirectory = configDirectory.resolve("orespawn3");
-		Path bridgeMarker = configDirectory.resolve(".orespawn-os3-bridge-migrated");
-		if (!hasLegacyConfig(legacyDirectory) && API.embedded.isEmpty() && !API.hasProgrammaticRegistrations()) {
+		Path os1Directory = configDirectory.resolve("orespawn");
+		Path bridgeMarker = configDirectory.resolve(".orespawn-legacy-bridge-migrated");
+		if (!hasLegacyConfig(legacyDirectory) && !hasLegacyConfig(os1Directory)
+				&& API.embedded.isEmpty() && !API.hasProgrammaticRegistrations()
+				&& OS1_PROGRAMMATIC.isEmpty()) {
 			return;
 		}
 		LegacyFlags flags = LegacyFlags.read(configDirectory.resolve("orespawn.cfg"));
@@ -289,6 +320,9 @@ public final class LegacyOs3Bridge {
 			return;
 		}
 		Map<String, JsonObject> sources = new LinkedHashMap<>();
+		for (Map.Entry<String, JsonObject> source : OS1_PROGRAMMATIC.entrySet()) {
+			mergeLegacySource(sources, source.getKey(), source.getValue());
+		}
 		for (Map.Entry<String, JsonObject> source : programmaticSources.entrySet()) {
 			mergeLegacySource(sources, source.getKey(), source.getValue());
 		}
@@ -310,6 +344,28 @@ public final class LegacyOs3Bridge {
 				}
 			} catch (IOException failure) {
 				REPORT.add("config_scan_failed=" + failure.getClass().getSimpleName());
+			}
+		}
+		if (Files.isDirectory(os1Directory)) {
+			try (DirectoryStream<Path> files = Files.newDirectoryStream(os1Directory, "*.json")) {
+				List<Path> sorted = new ArrayList<>(); for (Path file : files) sorted.add(file);
+				sorted.sort((left, right) -> left.getFileName().toString().compareTo(right.getFileName().toString()));
+				for (Path file : sorted) {
+					String modId = file.getFileName().toString().replaceFirst("\\.json$", "");
+					try (InputStream input = Files.newInputStream(file)) {
+						JsonObject source = readObject(input);
+						if (hasOs1Config(source)) {
+							mergeLegacySource(sources, modId, convertOs1Source(modId, source));
+							REPORT.add("os1_config_source=" + file.toAbsolutePath());
+						} else {
+							REPORT.add("os1_config_rejected=" + file.getFileName() + ":missing_dimensions");
+						}
+					} catch (IOException | RuntimeException failure) {
+						REPORT.add("os1_config_rejected=" + file.getFileName() + ":" + failure.getClass().getSimpleName());
+					}
+				}
+			} catch (IOException failure) {
+				REPORT.add("os1_config_scan_failed=" + failure.getClass().getSimpleName());
 			}
 		}
 
@@ -348,6 +404,112 @@ public final class LegacyOs3Bridge {
 			REPORT.add("migration_marker_failed=" + failure.getClass().getSimpleName());
 			LOGGER.error("Could not mark OS3 provider migration complete", failure);
 		}
+	}
+
+	static JsonObject translateOs1ForTests(String owner, JsonObject source) {
+		return convertOs1Source(owner, source);
+	}
+
+	private static boolean hasOs1Config(JsonObject source) {
+		return source != null && source.has("dimensions") && source.get("dimensions").isJsonArray();
+	}
+
+	/** Converts the OreSpawn 1.x per-dimension format into the bridge's OS3-like
+	 * intermediate representation. Keeping one final translator guarantees that
+	 * OS1, OS3 embedded resources and programmatic registrations share one OS4
+	 * scheduler and can never independently generate the same declaration. */
+	private static JsonObject convertOs1Source(String owner, JsonObject source) {
+		JsonObject converted = new JsonObject();
+		converted.addProperty("version", "1.0");
+		JsonObject spawns = new JsonObject(); converted.add("spawns", spawns);
+		Set<Integer> explicit = new LinkedHashSet<>();
+		for (JsonElement element : array(source, "dimensions")) {
+			if (!element.isJsonObject()) continue;
+			JsonElement value = element.getAsJsonObject().get("dimension");
+			if (value != null && !value.isJsonNull() && !(value.isJsonPrimitive()
+					&& value.getAsJsonPrimitive().isString() && "+".equals(value.getAsString()))) {
+				try { explicit.add(value.getAsInt()); }
+				catch (RuntimeException failure) { REPORT.add("os1_dimension_ignored=" + value); }
+			}
+		}
+		int ordinal = 0;
+		for (JsonElement element : array(source, "dimensions")) {
+			if (!element.isJsonObject()) continue;
+			JsonObject dimension = element.getAsJsonObject();
+			JsonElement configured = dimension.get("dimension");
+			Set<Integer> dimensions = new LinkedHashSet<>();
+			if (configured != null && configured.isJsonPrimitive()
+					&& configured.getAsJsonPrimitive().isString() && "+".equals(configured.getAsString())) {
+				Integer[] registered = DimensionManager.getStaticDimensionIDs();
+				Arrays.sort(registered);
+				for (Integer id : registered) if (!explicit.contains(id)) dimensions.add(id);
+				REPORT.add("os1_plus_dimensions=" + owner + ":" + dimensions);
+			} else if (configured != null) {
+				try { dimensions.add(configured.getAsInt()); }
+				catch (RuntimeException failure) { REPORT.add("os1_dimension_ignored=" + configured); }
+			}
+			for (JsonElement oreElement : array(dimension, "ores")) {
+				if (!oreElement.isJsonObject()) continue;
+				JsonObject old = oreElement.getAsJsonObject();
+				String output = text(old, "blockID", "");
+				if (!validId(output)) {
+					REPORT.add("os1_spawn_ignored=" + owner + ":invalid_output:" + output);
+					continue;
+				}
+				JsonObject spawn = new JsonObject(); spawn.addProperty("enabled", true);
+				spawn.addProperty("feature", "default"); spawn.addProperty("replaces", "default");
+				JsonArray blocks = new JsonArray(); JsonObject block = new JsonObject();
+				block.addProperty("name", output); block.addProperty("chance", 100);
+				if (old.has("blockMeta")) block.addProperty("metadata", old.get("blockMeta").getAsInt());
+				blocks.add(block); spawn.add("blocks", blocks);
+				JsonObject parameters = new JsonObject();
+				parameters.addProperty("size", integer(old, "size", 8));
+				parameters.addProperty("variation", integer(old, "variation", 0));
+				parameters.addProperty("frequency", decimal(old, "frequency", 0.5D));
+				parameters.addProperty("minHeight", integer(old, "minHeight", 0));
+				// OS1's maximum was exclusive; the shared translator deliberately
+				// converts it to OS4's inclusive max_y exactly once.
+				parameters.addProperty("maxHeight", integer(old, "maxHeight", 256));
+				spawn.add("parameters", parameters);
+				JsonArray selectedDimensions = new JsonArray();
+				for (Integer id : dimensions) selectedDimensions.add(new JsonPrimitive(id));
+				spawn.add("dimensions", selectedDimensions);
+				spawn.add("biomes", convertOs1Biomes(old.get("biomes"), owner, output));
+				String base = safe(output.replace(':', '_'));
+				String name = base + "_" + ordinal++;
+				while (spawns.has(name)) name = base + "_" + ordinal++;
+				spawns.add(name, spawn);
+			}
+		}
+		return converted;
+	}
+
+	private static JsonObject convertOs1Biomes(JsonElement source, String owner, String output) {
+		JsonObject result = new JsonObject(); JsonArray includes = new JsonArray();
+		result.add("includes", includes);
+		if (source == null || !source.isJsonArray() || source.getAsJsonArray().size() == 0) return result;
+		for (JsonElement value : source.getAsJsonArray()) {
+			Biome biome = null;
+			if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
+				biome = Biome.getBiome(value.getAsInt());
+			} else {
+				String requested = value.getAsString();
+				if (validId(requested)) biome = ForgeRegistries.BIOMES.getValue(new ResourceLocation(requested));
+				if (biome == null) for (Map.Entry<ResourceLocation, Biome> entry : ForgeRegistries.BIOMES.getEntries()) {
+					if (entry.getKey().getResourcePath().equalsIgnoreCase(requested)
+							|| entry.getValue().getBiomeName().equalsIgnoreCase(requested)) { biome = entry.getValue(); break; }
+				}
+			}
+			ResourceLocation id = biome == null ? null : biome.getRegistryName();
+			if (id != null) includes.add(new JsonPrimitive(id.toString()));
+			else REPORT.add("os1_biome_unresolved=" + owner + ":" + output + ":" + value);
+		}
+		if (includes.size() == 0) {
+			// A non-empty but entirely unresolved restriction must match nothing,
+			// never broaden into an unrestricted rule.
+			includes.add(new JsonPrimitive("orespawn:unresolved_legacy_biome"));
+		}
+		return result;
 	}
 
 	private static void mergeLegacySource(Map<String, JsonObject> sources, String owner, JsonObject incoming) {
@@ -412,7 +574,7 @@ public final class LegacyOs3Bridge {
 				ores.add(new ResourceLocation(providerModId, path).toString(), migrated);
 			}
 		}
-		REPORT.add("provider_translated=" + sourceId + ":owner=" + providerModId + ":ores=" + ores.size());
+		REPORT.add("provider_translated=" + sourceId + ":owner=" + providerModId + ":ores=" + ores.entrySet().size());
 		return provider;
 	}
 
@@ -428,7 +590,7 @@ public final class LegacyOs3Bridge {
 		ore.addProperty("native_generation", false);
 		ore.addProperty("retrogen", bool(spawn, "retrogen", false));
 		copyMetadata(first, ore);
-		if (flags.replaceVanilla && "minecraft".equals(new ResourceLocation(output).getNamespace())) {
+		if (flags.replaceVanilla && "minecraft".equals(new ResourceLocation(output).getResourceDomain())) {
 			ore.addProperty("suppress_vanilla", true);
 		}
 		JsonArray outputs = new JsonArray();
@@ -453,9 +615,9 @@ public final class LegacyOs3Bridge {
 				dimensions.add(dimensionId(dimension), placement);
 			}
 		}
-		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
-		if (selectors.size() > 0) ore.add("dimension_selectors", selectors);
-		if (dimensions.size() == 0 && selectors.size() == 0) {
+		if (dimensions.entrySet().size() > 0) ore.add("dimensions", dimensions);
+		if (selectors.entrySet().size() > 0) ore.add("dimension_selectors", selectors);
+		if (dimensions.entrySet().size() == 0 && selectors.entrySet().size() == 0) {
 			REPORT.add("spawn_ignored=" + modId + ":" + name + ":no_dimensions"); return null;
 		}
 		if (bool(spawn, "retrogen", false)) REPORT.add("retrogen_requested=" + modId + ":" + name);
@@ -502,7 +664,8 @@ public final class LegacyOs3Bridge {
 		}
 		hosts = uniqueHosts(hosts);
 		if (hosts.size() == 0) {
-			hosts.add("minecraft:stone"); hosts.add("minecraft:netherrack"); hosts.add("minecraft:end_stone");
+			hosts.add(new JsonPrimitive("minecraft:stone")); hosts.add(new JsonPrimitive("minecraft:netherrack"));
+			hosts.add(new JsonPrimitive("minecraft:end_stone"));
 		}
 		result.add("host_blocks", hosts);
 		result.add("host_tags", new JsonArray()); result.add("host_families", new JsonArray());
@@ -633,7 +796,8 @@ public final class LegacyOs3Bridge {
 		if (source == null || !source.isJsonArray()) return;
 		for (JsonElement value : source.getAsJsonArray()) {
 			String text = value.getAsString();
-			if (validId(text)) ids.add(text); else if (text.matches("[A-Za-z0-9_]+")) dictionary.add(text.toUpperCase(java.util.Locale.ROOT));
+			if (validId(text)) ids.add(new JsonPrimitive(text));
+			else if (text.matches("[A-Za-z0-9_]+")) dictionary.add(new JsonPrimitive(text.toUpperCase(java.util.Locale.ROOT)));
 			else REPORT.add("biome_selector_ignored=" + text);
 		}
 	}
@@ -706,7 +870,8 @@ public final class LegacyOs3Bridge {
 		JsonArray result = new JsonArray();
 		if (!replacements.has(name) || !replacements.get(name).isJsonArray()) {
 			if ("default".equals(name)) {
-				result.add("minecraft:stone"); result.add("minecraft:netherrack"); result.add("minecraft:end_stone");
+				result.add(new JsonPrimitive("minecraft:stone")); result.add(new JsonPrimitive("minecraft:netherrack"));
+				result.add(new JsonPrimitive("minecraft:end_stone"));
 			}
 			return result;
 		}
@@ -732,7 +897,7 @@ public final class LegacyOs3Bridge {
 		else if ("minecraft:andesite".equals(block)) { block = "minecraft:stone"; explicit = 5; }
 		if (!validId(block)) return;
 		int value = explicit >= 0 ? explicit : metadata(block, serializedState);
-		if (value == 0) result.add(block);
+		if (value == 0) result.add(new JsonPrimitive(block));
 		else { JsonObject host = new JsonObject(); host.addProperty("block", block); host.addProperty("metadata", clamp(value, 0, 15)); result.add(host); }
 	}
 
@@ -746,8 +911,8 @@ public final class LegacyOs3Bridge {
 			for (ItemStack stack : OreDictionary.getOres(oreName, false)) {
 				Block block = Block.getBlockFromItem(stack.getItem());
 				ResourceLocation id = block == null ? null : block.getRegistryName();
-				if (id != null && "mineralogy".equals(id.getNamespace()) && known.add(id.toString())) {
-					result.add(id.toString());
+				if (id != null && "mineralogy".equals(id.getResourceDomain()) && known.add(id.toString())) {
+					result.add(new JsonPrimitive(id.toString()));
 				}
 			}
 		}
@@ -794,7 +959,7 @@ public final class LegacyOs3Bridge {
 	private static void writeReport(Path destination) {
 		try {
 			JsonObject report = new JsonObject(); report.addProperty("format", 1); report.addProperty("idempotent", true);
-			JsonArray rows = new JsonArray(); for (String row : REPORT) rows.add(row); report.add("entries", rows);
+			JsonArray rows = new JsonArray(); for (String row : REPORT) rows.add(new JsonPrimitive(row)); report.add("entries", rows);
 			writeAtomicIfChanged(destination, report);
 		} catch (IOException failure) { LOGGER.error("Could not write OS3 migration report", failure); }
 	}
@@ -1251,8 +1416,8 @@ public final class LegacyOs3Bridge {
 			JsonObject result = new JsonObject();
 			result.addProperty("accept_all", all);
 			result.addProperty("overworld_only", overworldOnly);
-			JsonArray ids = new JsonArray(); for (Integer id : allowed) ids.add(id); result.add("includes", ids);
-			JsonArray excluded = new JsonArray(); for (Integer id : denied) excluded.add(id); result.add("excludes", excluded);
+			JsonArray ids = new JsonArray(); for (Integer id : allowed) ids.add(new JsonPrimitive(id)); result.add("includes", ids);
+			JsonArray excluded = new JsonArray(); for (Integer id : denied) excluded.add(new JsonPrimitive(id)); result.add("excludes", excluded);
 			return result;
 		}
 	}
@@ -1284,18 +1449,18 @@ public final class LegacyOs3Bridge {
 		@Override public JsonElement serialize() {
 			JsonObject result = new JsonObject();
 			JsonArray includes = new JsonArray();
-			for (Biome biome : included) if (biome.getRegistryName() != null) includes.add(biome.getRegistryName().toString());
-			for (String type : includedTypes) includes.add(type);
+			for (Biome biome : included) if (biome.getRegistryName() != null) includes.add(new JsonPrimitive(biome.getRegistryName().toString()));
+			for (String type : includedTypes) includes.add(new JsonPrimitive(type));
 			JsonArray excludes = new JsonArray();
-			for (Biome biome : excluded) if (biome.getRegistryName() != null) excludes.add(biome.getRegistryName().toString());
-			for (String type : excludedTypes) excludes.add(type);
+			for (Biome biome : excluded) if (biome.getRegistryName() != null) excludes.add(new JsonPrimitive(biome.getRegistryName().toString()));
+			for (String type : excludedTypes) excludes.add(new JsonPrimitive(type));
 			result.add("includes", includes);
 			result.add("excludes", excludes);
 			return result;
 		}
 		private static boolean matchesType(Biome biome, Set<String> names) {
 			for (String name : names) {
-				if (net.minecraftforge.common.BiomeDictionary.hasType(biome,
+				if (net.minecraftforge.common.BiomeDictionary.isBiomeOfType(biome,
 						net.minecraftforge.common.BiomeDictionary.Type.getType(name))) return true;
 			}
 			return false;
@@ -1314,18 +1479,20 @@ public final class LegacyOs3Bridge {
 		@Override public void setParameter(String key, float value) { parameters.addProperty(key, value); }
 	}
 
-	private static final class LegacyReplacementEntry extends IForgeRegistryEntry.Impl<IReplacementEntry> implements IReplacementEntry {
+	private static final class LegacyReplacementEntry implements IReplacementEntry {
 		private final OreSpawnBlockMatcher matcher; private final List<IBlockState> entries;
+		private ResourceLocation registryName;
 		LegacyReplacementEntry(String name, List<IBlockState> entries) {
 			this.entries = Collections.unmodifiableList(new ArrayList<>(entries)); this.matcher = new OreSpawnBlockMatcher(entries);
 			if (validId(name)) setRegistryName(new ResourceLocation(name)); else setRegistryName(new ResourceLocation("legacy", safe(name)));
 		}
+		@Override public IReplacementEntry setRegistryName(ResourceLocation name) { this.registryName = name; return this; }
+		@Override public ResourceLocation getRegistryName() { return registryName; }
 		@Override public OreSpawnBlockMatcher getMatcher() { return matcher; }
 		@Override public List<IBlockState> getEntries() { return entries; }
 	}
 
-	private static final class SavedFeature extends IForgeRegistryEntry.Impl<IFeature>
-			implements IFeature {
+	private static final class SavedFeature implements IFeature {
 		@Override public void generate(World world, IChunkGenerator generator,
 				IChunkProvider provider, GeneratorParameters parameters) { }
 		@Override public void generate(World world, IChunkGenerator generator,
@@ -1334,8 +1501,7 @@ public final class LegacyOs3Bridge {
 		@Override public JsonObject getDefaultParameters() { return new JsonObject(); }
 	}
 
-	private static final class SavedFeatureAlias extends IForgeRegistryEntry.Impl<IFeature>
-			implements IFeature {
+	private static final class SavedFeatureAlias implements IFeature {
 		private final IFeature delegate;
 		SavedFeatureAlias(IFeature delegate) { this.delegate = delegate; }
 		@Override public void generate(World world, IChunkGenerator generator,
@@ -1396,17 +1562,17 @@ public final class LegacyOs3Bridge {
 			result.addProperty("replaces", replacement == null || replacement.getRegistryName() == null
 					? "default" : replacement.getRegistryName().toString());
 			JsonArray dimensionIds = new JsonArray();
-			if (!dimensionList.all) for (Integer id : dimensionList.allowed) dimensionIds.add(id);
+			if (!dimensionList.all) for (Integer id : dimensionList.allowed) dimensionIds.add(new JsonPrimitive(id));
 			result.add("dimensions", dimensionIds);
 			JsonObject biomeFilter = new JsonObject();
 			JsonArray included = new JsonArray();
 			JsonArray excluded = new JsonArray();
 			if (biomes instanceof LegacyBiomeLocation) {
 				LegacyBiomeLocation location = (LegacyBiomeLocation) biomes;
-				for (Biome biome : location.included) if (biome.getRegistryName() != null) included.add(biome.getRegistryName().toString());
-				for (String type : location.includedTypes) included.add(type);
-				for (Biome biome : location.excluded) if (biome.getRegistryName() != null) excluded.add(biome.getRegistryName().toString());
-				for (String type : location.excludedTypes) excluded.add(type);
+				for (Biome biome : location.included) if (biome.getRegistryName() != null) included.add(new JsonPrimitive(biome.getRegistryName().toString()));
+				for (String type : location.includedTypes) included.add(new JsonPrimitive(type));
+				for (Biome biome : location.excluded) if (biome.getRegistryName() != null) excluded.add(new JsonPrimitive(biome.getRegistryName().toString()));
+				for (String type : location.excludedTypes) excluded.add(new JsonPrimitive(type));
 			}
 			biomeFilter.add("includes", included);
 			biomeFilter.add("excludes", excluded);
@@ -1461,7 +1627,7 @@ public final class LegacyOs3Bridge {
 						try { result.bedrockLayers = clamp(Integer.parseInt(value), 1, 4); }
 						catch (NumberFormatException ignored) { REPORT.add("legacy_flag_clamped=Bedrock Thickness:" + value); }
 					} else if ("nonstandard_spawn_blocks".equals(key)) {
-						for (String host : value.split(",")) if (!host.trim().isEmpty()) result.nonstandardHosts.add(host.trim());
+						for (String host : value.split("[;,]")) if (!host.trim().isEmpty()) result.nonstandardHosts.add(host.trim());
 					} else if ("ignore_missing_blocks".equals(key)) {
 						REPORT.add("legacy_flag_preserved=ignore_missing_blocks:" + value);
 					}
@@ -1661,7 +1827,7 @@ public final class LegacyOs3Bridge {
 				return null;
 			}
 			JsonArray result = new JsonArray();
-			for (Integer id : selected) result.add(id);
+			for (Integer id : selected) result.add(new JsonPrimitive(id));
 			return result;
 		}
 	}

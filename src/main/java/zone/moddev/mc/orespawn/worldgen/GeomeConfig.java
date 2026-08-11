@@ -29,6 +29,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.OreGenerationSettings;
@@ -360,7 +361,7 @@ public final class GeomeConfig {
 
 	private static void addTerrainHostTags(Set<Block> target, JsonElement element) {
 		for (ResourceLocation id : resourceLocations(element)) {
-			String path = id.getPath();
+			String path = id.getResourcePath();
 			if ("stone".equals(path) || "base_stone_overworld".equals(path)) target.add(Blocks.STONE);
 			if ("netherrack".equals(path) || "base_stone_nether".equals(path)) target.add(Blocks.NETHERRACK);
 			for (ItemStack stack : OreDictionary.getOres(path, false)) {
@@ -627,8 +628,8 @@ public final class GeomeConfig {
 		}
 
 		if (rocks.isEmpty() && WorldIds.OVERWORLD.equals(dimension)) {
-			boolean passive = rockRoot.size() == 0
-					&& getObject(root, "terrain_dimensions", defaultTerrainDimensions()).size() == 0;
+			boolean passive = rockRoot.entrySet().size() == 0
+					&& getObject(root, "terrain_dimensions", defaultTerrainDimensions()).entrySet().size() == 0;
 			if (passive) {
 				LOGGER.info("No OreSpawn terrain provider is active; using an internal vanilla-stone sampler fallback");
 			} else {
@@ -1109,8 +1110,8 @@ public final class GeomeConfig {
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
 				for (BiomeDictionary.Type type : biome == null
-						? Collections.<BiomeDictionary.Type>emptySet() : BiomeDictionary.getTypes(biome)) {
-					merge(weights, dictionaryRules.get(type.getName()));
+						? new BiomeDictionary.Type[0] : BiomeDictionary.getTypesForBiome(biome)) {
+					merge(weights, dictionaryRules.get(type.name()));
 				}
 			}
 			applyBiomeHeuristic(weights, geomeIndexes, biomeId, biome);
@@ -1140,12 +1141,12 @@ public final class GeomeConfig {
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, Biome biome) {
 		applyBiomeHeuristic(weights, geomeIndexes, biomeId,
-				biome.getDefaultTemperature(), biome.getRainfall());
+				biome.getTemperature(), biome.getRainfall());
 	}
 
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, float temperature, float downfall) {
-		String biomeName = biomeId == null ? "" : biomeId.getPath();
+		String biomeName = biomeId == null ? "" : biomeId.getResourcePath();
 
 		if (biomeName.contains("ocean") || biomeName.contains("river") || biomeName.contains("beach")
 				|| biomeName.contains("shore") || biomeName.contains("coast")
@@ -1430,8 +1431,8 @@ public final class GeomeConfig {
 		bedrock.addProperty("retrogen", false);
 		bedrock.addProperty("layers", 1);
 		JsonArray bedrockDimensions = new JsonArray();
-		bedrockDimensions.add("minecraft:overworld");
-		bedrockDimensions.add("minecraft:the_nether");
+		bedrockDimensions.add(new JsonPrimitive("minecraft:overworld"));
+		bedrockDimensions.add(new JsonPrimitive("minecraft:the_nether"));
 		bedrock.add("dimensions", bedrockDimensions);
 		root.add("flat_bedrock", bedrock);
 		return root;
@@ -1457,7 +1458,7 @@ public final class GeomeConfig {
 		overworld.add("biome_ids", new JsonArray());
 		overworld.add("biome_namespaces", new JsonArray());
 		JsonArray hosts = new JsonArray();
-		hosts.add("minecraft:stone");
+		hosts.add(new JsonPrimitive("minecraft:stone"));
 		overworld.add("host_blocks", hosts);
 		overworld.add("host_tags", new JsonArray());
 		dimensions.add("minecraft:overworld", overworld);
@@ -1516,13 +1517,13 @@ public final class GeomeConfig {
 		ore.addProperty("block", "minecraft:gold_ore");
 		JsonObject rule = oreRule(32, 79, 20.0D, 9, OrePattern.VEIN, 8, 4, 4);
 		JsonArray families = new JsonArray();
-		for (RockFamily family : RockFamily.values()) families.add(family.configName);
+		for (RockFamily family : RockFamily.values()) families.add(new JsonPrimitive(family.configName));
 		rule.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		rule.add("host_tags", tags);
 		JsonArray biomes = new JsonArray();
-		biomes.add("MESA");
+		biomes.add(new JsonPrimitive("MESA"));
 		rule.add("biome_dictionary", biomes);
 		ore.getAsJsonObject("dimensions").add("minecraft:overworld", rule);
 		ores.add("orespawn:vanilla_gold_badlands", ore);
@@ -1536,11 +1537,11 @@ public final class GeomeConfig {
 		rule.addProperty("height_distribution", OreHeightDistribution.UNIFORM.configName);
 		JsonArray families = new JsonArray();
 		for (RockFamily family : RockFamily.values()) {
-			families.add(family.configName);
+			families.add(new JsonPrimitive(family.configName));
 		}
 		rule.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		rule.add("host_tags", tags);
 		ore.getAsJsonObject("dimensions").add("minecraft:overworld", rule);
 		ores.add("minecraft:" + id, ore);
@@ -1551,7 +1552,7 @@ public final class GeomeConfig {
 		JsonObject ore = vanillaOre(id);
 		JsonObject rule = oreRule(minY, maxY, frequency, quantity, pattern, spread, verticalSpread, nodeSize);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:netherrack");
+		tags.add(new JsonPrimitive("forge:netherrack"));
 		rule.add("host_tags", tags);
 		ore.getAsJsonObject("dimensions").add("minecraft:the_nether", rule);
 		ores.add("minecraft:" + id, ore);
@@ -1618,11 +1619,11 @@ public final class GeomeConfig {
 		overworld.addProperty("node_size", 4);
 		JsonArray families = new JsonArray();
 		for (RockFamily family : RockFamily.values()) {
-			families.add(family.configName);
+			families.add(new JsonPrimitive(family.configName));
 		}
 		overworld.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		tags.add(new JsonPrimitive("forge:stone"));
 		overworld.add("host_tags", tags);
 		dimensions.add("minecraft:overworld", overworld);
 		ore.add("dimensions", dimensions);

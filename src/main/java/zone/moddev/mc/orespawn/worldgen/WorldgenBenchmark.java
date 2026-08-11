@@ -36,7 +36,7 @@ public final class WorldgenBenchmark {
 	}
 
 	public static void register() {
-		// Lifecycle calls are wired by OreSpawn on Forge 1.12.
+		// Lifecycle calls are wired by OreSpawn on Forge 1.10.
 	}
 
 	public static boolean isVanillaBaseline() {
@@ -66,7 +66,7 @@ public final class WorldgenBenchmark {
 		if (!ENABLED) return;
 		String dimensionName = System.getProperty("orespawn.worldgenBenchmarkDimension", "overworld")
 				.trim().toLowerCase(Locale.ROOT);
-		WorldServer level = event.getServer().getWorld(benchmarkDimension(dimensionName));
+		WorldServer level = event.getServer().worldServerForDimension(benchmarkDimension(dimensionName));
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
@@ -130,10 +130,10 @@ public final class WorldgenBenchmark {
 		if (id == null) {
 			throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 		}
-		if (!"legacy".equals(id.getNamespace()) || !id.getPath().startsWith("dimension_")) {
+		if (!"legacy".equals(id.getResourceDomain()) || !id.getResourcePath().startsWith("dimension_")) {
 			throw new IllegalArgumentException("Unknown benchmark dimension: " + configured);
 		}
-		try { return Integer.parseInt(id.getPath().substring("dimension_".length())); }
+		try { return Integer.parseInt(id.getResourcePath().substring("dimension_".length())); }
 		catch (NumberFormatException e) { throw new IllegalArgumentException("Unknown benchmark dimension: " + configured); }
 	}
 
@@ -160,7 +160,7 @@ public final class WorldgenBenchmark {
 		BlockPos located = null;
 		double bestDistance = Double.POSITIVE_INFINITY;
 		for (Biome biome : net.minecraftforge.fml.common.registry.ForgeRegistries.BIOMES.getValues()) {
-			if (!BiomeDictionary.hasType(biome, type)) continue;
+			if (!BiomeDictionary.isBiomeOfType(biome, type)) continue;
 			BlockPos candidate = level.provider.getBiomeProvider()
 					.findBiomePosition(origin.getX(), origin.getZ(), 16384,
 							java.util.Collections.singletonList(biome), level.rand);
@@ -200,8 +200,8 @@ public final class WorldgenBenchmark {
 		for (int chunkZ = centerZ - radius; chunkZ <= centerZ + radius; chunkZ++) {
 			for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
 				Chunk chunk = level.getChunkProvider().provideChunk(chunkX, chunkZ);
-				int minX = chunk.getPos().getXStart();
-				int minZ = chunk.getPos().getZStart();
+				int minX = ChunkAccessCompat.position(chunk).getXStart();
+				int minZ = ChunkAccessCompat.position(chunk).getZStart();
 				for (int localX = 0; localX < 16; localX++) {
 					for (int localZ = 0; localZ < 16; localZ++) {
 						cursor.setPos(minX + localX, 0, minZ + localZ);

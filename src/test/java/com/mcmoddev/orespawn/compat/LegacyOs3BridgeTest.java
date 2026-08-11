@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.mcmoddev.orespawn.api.IFeature;
 import com.mcmoddev.orespawn.api.os3.BiomeBuilder;
 import com.mcmoddev.orespawn.api.os3.BuilderLogic;
@@ -33,14 +34,58 @@ import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
 class LegacyOs3BridgeTest {
 	@TempDir Path temporary;
 
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge12TestBootstrap.registerVanilla();
+	}
+
+	@Test
+	void translatesOs1MetadataFractionalFrequencyExclusiveHeightAndPlusDimensions() throws Exception {
+		JsonObject source = new JsonParser().parse("{\"dimensions\":["
+				+ "{\"dimension\":-1,\"ores\":[{\"blockID\":\"minecraft:quartz_ore\",\"size\":4,\"frequency\":2,\"minHeight\":8,\"maxHeight\":120}]},"
+				+ "{\"dimension\":\"+\",\"ores\":[{\"blockID\":\"minecraft:stone\",\"blockMeta\":3,\"size\":9,\"variation\":2,\"frequency\":0.25,\"minHeight\":7,\"maxHeight\":64,\"biomes\":[\"Plains\"]}]}]}"
+				).getAsJsonObject();
+		JsonObject intermediate = LegacyOs3Bridge.translateOs1ForTests("minecraft", source);
+		JsonObject plus = null;
+		for (Map.Entry<String, com.google.gson.JsonElement> entry : intermediate.getAsJsonObject("spawns").entrySet()) {
+			JsonObject candidate = entry.getValue().getAsJsonObject();
+			if (candidate.getAsJsonArray("blocks").get(0).getAsJsonObject().get("name").getAsString().equals("minecraft:stone")) plus = candidate;
+		}
+		assertNotNull(plus);
+		assertEquals(3, plus.getAsJsonArray("blocks").get(0).getAsJsonObject().get("metadata").getAsInt());
+		assertEquals(0.25D, plus.getAsJsonObject("parameters").get("frequency").getAsDouble());
+		assertFalse(plus.getAsJsonArray("dimensions").toString().contains("-1"));
+
+		Path config = temporary.resolve("orespawn.cfg");
+		Files.write(config, new byte[0]);
+		JsonObject provider = LegacyOs3Bridge.translateForTests("minecraft", intermediate,
+				temporary.resolve("orespawn3"), config);
+		JsonObject placement = null;
+		for (Map.Entry<String, com.google.gson.JsonElement> ore : provider.getAsJsonObject("ores").entrySet()) {
+			JsonObject value = ore.getValue().getAsJsonObject();
+			if (value.get("block").getAsString().equals("minecraft:stone")) {
+				placement = value.getAsJsonObject("dimensions").entrySet().iterator().next().getValue().getAsJsonObject();
+			}
+		}
+		assertNotNull(placement);
+		assertEquals(63, placement.get("max_y").getAsInt(), "OS1 maxHeight is exclusive");
+		assertEquals(0.25D, placement.get("frequency").getAsDouble());
+		assertEquals("minecraft:plains", placement.getAsJsonArray("biome_ids").get(0).getAsString());
+	}
+
+	@Test
+	void unresolvedOs1BiomeRestrictionNeverBroadensToAllBiomes() {
+		JsonObject source = new JsonParser().parse("{\"dimensions\":[{\"dimension\":0,\"ores\":["
+				+ "{\"blockID\":\"minecraft:iron_ore\",\"biomes\":[\"Definitely Missing\"]}]}]}").getAsJsonObject();
+		JsonObject converted = LegacyOs3Bridge.translateOs1ForTests("minecraft", source);
+		JsonObject spawn = converted.getAsJsonObject("spawns").entrySet().iterator().next().getValue().getAsJsonObject();
+		assertEquals("orespawn:unresolved_legacy_biome",
+				spawn.getAsJsonObject("biomes").getAsJsonArray("includes").get(0).getAsString());
 	}
 
 	@Test
@@ -61,10 +106,10 @@ class LegacyOs3BridgeTest {
 			JsonObject spawn = new JsonObject(); spawn.addProperty("enabled", index != 4);
 			spawn.addProperty("retrogen", index == 1); spawn.addProperty("feature", patterns[index]);
 			spawn.addProperty("replaces", index == 0 ? "granite_only" : "default");
-			JsonArray dimensions = new JsonArray(); dimensions.add(index == 2 ? -1 : index == 3 ? 1 : 0);
+			JsonArray dimensions = new JsonArray(); dimensions.add(new JsonPrimitive(index == 2 ? -1 : index == 3 ? 1 : 0));
 			spawn.add("dimensions", dimensions);
 			JsonObject biomes = new JsonObject(); JsonArray includes = new JsonArray();
-			includes.add(index == 0 ? "minecraft:plains" : "FOREST"); biomes.add("includes", includes); spawn.add("biomes", biomes);
+			includes.add(new JsonPrimitive(index == 0 ? "minecraft:plains" : "FOREST")); biomes.add("includes", includes); spawn.add("biomes", biomes);
 			JsonObject parameters = new JsonObject(); parameters.addProperty("frequency", index == 0 ? 0.375D : 50.0D);
 			parameters.addProperty("size", 9); parameters.addProperty("variation", 2);
 			parameters.addProperty("attemptsMin", 2); parameters.addProperty("attemptsMax", 2);
@@ -78,7 +123,7 @@ class LegacyOs3BridgeTest {
 		}
 
 		JsonObject provider = LegacyOs3Bridge.translateForTests("orespawn", source, legacy, config);
-		assertEquals(6, provider.getAsJsonObject("ores").size());
+		assertEquals(6, provider.getAsJsonObject("ores").entrySet().size());
 		for (int index = 0; index < patterns.length; index++) {
 			JsonObject ore = provider.getAsJsonObject("ores").getAsJsonObject("orespawn:legacy/pattern_" + index);
 			assertEquals(index == 4, !ore.get("enabled").getAsBoolean());

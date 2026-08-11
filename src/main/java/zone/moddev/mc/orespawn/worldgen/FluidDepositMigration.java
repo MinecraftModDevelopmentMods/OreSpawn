@@ -4,6 +4,7 @@ import zone.moddev.mc.orespawn.util.JsonCopies;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -33,8 +34,8 @@ final class FluidDepositMigration {
 			JsonObject oil = root.getAsJsonObject("oil");
 			ResourceLocation block = resource(string(oil, "block", "minecraft:air"));
 			if (block != null && !"minecraft:air".equals(block.toString())) {
-				ResourceLocation ruleId = new ResourceLocation(block.getNamespace(),
-						"fluid_deposit/" + block.getPath());
+				ResourceLocation ruleId = new ResourceLocation(block.getResourceDomain(),
+						"fluid_deposit/" + block.getResourcePath());
 				if (!deposits.has(ruleId.toString())) {
 					deposits.add(ruleId.toString(), legacyRule(block, oil));
 					changed = true;
@@ -64,14 +65,14 @@ final class FluidDepositMigration {
 		copyNumber(oil, overworld, "max_lobes", 4);
 		copyNumber(oil, overworld, "min_solid_cover", 2);
 		JsonArray families = new JsonArray();
-		families.add("sedimentary");
+		families.add(new JsonPrimitive("sedimentary"));
 		overworld.add("host_families", families);
 		overworld.add("host_blocks", new JsonArray());
 		overworld.add("host_tags", new JsonArray());
 		overworld.add("biome_ids", new JsonArray());
 		overworld.add("excluded_biome_ids", new JsonArray());
 		JsonArray dictionary = new JsonArray();
-		dictionary.add("OCEAN");
+		dictionary.add(new JsonPrimitive("OCEAN"));
 		overworld.add("biome_dictionary", dictionary);
 		overworld.add("excluded_biome_dictionary", new JsonArray());
 		overworld.add("geomes", new JsonObject());
