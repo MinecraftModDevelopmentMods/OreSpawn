@@ -11,6 +11,11 @@ class Button extends net.minecraft.client.gui.GuiButton {
 		this(x, y, width, height, message.getFormattedText(), onPress);
 	}
 
+	Button(int id, int x, int y, int width, int height, ITextComponent message,
+			IPressable onPress) {
+		this(id, x, y, width, height, message.getFormattedText(), onPress, null);
+	}
+
 	Button(int x, int y, int width, int height, String message, IPressable onPress) {
 		this(x, y, width, height, message, onPress, null);
 	}
@@ -22,7 +27,12 @@ class Button extends net.minecraft.client.gui.GuiButton {
 
 	Button(int x, int y, int width, int height, String message, IPressable onPress,
 			Tooltip tooltip) {
-		super(0, x, y, width, height, message);
+		this(0, x, y, width, height, message, onPress, tooltip);
+	}
+
+	private Button(int id, int x, int y, int width, int height, String message,
+			IPressable onPress, Tooltip tooltip) {
+		super(id, x, y, width, height, message);
 		this.onPress = onPress;
 		this.tooltip = tooltip;
 	}
