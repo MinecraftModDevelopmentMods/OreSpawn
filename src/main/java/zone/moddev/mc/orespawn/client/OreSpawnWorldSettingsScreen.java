@@ -354,7 +354,7 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 			JsonObjectAccess access = new JsonObjectAccess(session.fluidDeposit(ids.get(0)));
 			ResourceLocation blockId = access.resource("block");
 			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
-			if (block != null) return new TextComponentTranslation(block.getTranslationKey());
+			if (block != null) return DialogTexts.blockName(block);
 		}
 		return new TextComponentTranslation("option.orespawn.fluid_deposits");
 	}

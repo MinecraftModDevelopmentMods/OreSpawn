@@ -69,7 +69,7 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
 					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return new TextComponentTranslation(block.getTranslationKey());
+			if (block != null) return DialogTexts.blockName(block);
 		} catch (RuntimeException ignored) { }
 		return new TextComponentString(id);
 	}

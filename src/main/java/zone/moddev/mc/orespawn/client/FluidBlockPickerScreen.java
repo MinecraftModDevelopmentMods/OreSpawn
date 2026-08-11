@@ -77,7 +77,7 @@ final class FluidBlockPickerScreen extends OreSpawnScreen {
 	private ITextComponent fluidName(String id) {
 		try {
 			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
-			return block == null ? new TextComponentString(id) : new TextComponentTranslation(block.getTranslationKey());
+			return DialogTexts.blockName(block, id);
 		} catch (RuntimeException ignored) {
 			return new TextComponentString(id);
 		}
