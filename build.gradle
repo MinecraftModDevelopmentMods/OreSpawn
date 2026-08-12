@@ -54,6 +54,7 @@ dependencies {
     testCompile 'org.junit.jupiter:junit-jupiter-params:5.10.2'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testRuntime 'org.junit.platform:junit-platform-launcher:1.10.2'
+    testCompile files("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
 }
 
 tasks.withType(JavaCompile) {
@@ -206,6 +207,68 @@ if (project.hasProperty('migrationRunDir')) {
         }
     }
 }
+
+def legacyMineralogyMigrationRunDirectory = file("${buildDir}/legacy-mineralogy-migration-run")
+def legacyMineralogyMigrationArchive = file("${rootDir}/../migration-fixtures/sources/worlds/sylvester-era-trio-source-v2.zip")
+
+task prepareLegacyMineralogyMigrationRun(dependsOn: migrationIntegrationTestModJar) {
+    doLast {
+        delete legacyMineralogyMigrationRunDirectory
+        copy { from zipTree(legacyMineralogyMigrationArchive); into legacyMineralogyMigrationRunDirectory }
+        File mods = new File(legacyMineralogyMigrationRunDirectory, 'mods')
+        mods.mkdirs()
+        copy {
+            from file("${rootDir}/../migration-fixtures/sources/artifacts/BaseMetals_1.10.2-2.4.0.11.jar")
+            from file("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
+            from migrationIntegrationTestModJar.archivePath
+            into mods
+        }
+        new File(legacyMineralogyMigrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def configureLegacyMineralogyMigrationProcess = { JavaExec process, String phase ->
+    process.group = 'verification'
+    process.dependsOn { runServer.taskDependencies.getDependencies(runServer) }
+    process.main = runServer.main
+    process.args runServer.args
+    process.workingDir legacyMineralogyMigrationRunDirectory
+    process.systemProperty 'orespawn.migrationFamily', 'legacy-mineralogy-cyano'
+    process.systemProperty 'orespawn.migrationPhase', phase
+    process.doFirst { process.classpath = runServer.classpath }
+    process.doLast {
+        File marker = new File(legacyMineralogyMigrationRunDirectory,
+                'world/orespawn4-migration-probe.properties')
+        if (!marker.isFile()) throw new GradleException("Legacy Mineralogy migration did not produce ${marker}")
+        Properties values = new Properties(); marker.withInputStream { values.load(it) }
+        if (values.getProperty("${phase}_complete") != 'true') {
+            throw new GradleException("Legacy Mineralogy migration ${phase} phase did not complete")
+        }
+    }
+}
+
+task legacyMineralogyMigrationFresh(type: JavaExec, dependsOn: prepareLegacyMineralogyMigrationRun)
+configureLegacyMineralogyMigrationProcess(legacyMineralogyMigrationFresh, 'fresh')
+
+task legacyMineralogyMigrationReload(type: JavaExec, dependsOn: legacyMineralogyMigrationFresh)
+configureLegacyMineralogyMigrationProcess(legacyMineralogyMigrationReload, 'reload')
+
+task legacyMineralogyMigrationTest(dependsOn: legacyMineralogyMigrationReload) {
+    group = 'verification'
+    description = 'Proves an existing Mineralogy 3 world is pinned to Cyano settings across reload.'
+    doLast {
+        File marker = new File(legacyMineralogyMigrationRunDirectory,
+                'world/orespawn4-migration-probe.properties')
+        Properties values = new Properties(); marker.withInputStream { values.load(it) }
+        ['fresh_complete', 'reload_complete', 'legacy_mineralogy_config_sha256',
+                'legacy_mineralogy_world_profile_sha256'].each { key ->
+            if (!values.getProperty(key)) throw new GradleException("Missing legacy Mineralogy evidence ${key}")
+        }
+        logger.lifecycle('Existing Mineralogy 3 world retained Cyano profile and exact config/profile hashes across reload')
+    }
+}
+
+check.dependsOn legacyMineralogyMigrationTest
 
 def legacyFixtureArtifacts = file("${rootDir}/../migration-fixtures/sources/artifacts")
 def os1AbiFixtureClasses = file("${buildDir}/legacy-abi/os1/classes")

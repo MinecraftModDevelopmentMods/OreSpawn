@@ -28,9 +28,16 @@ class LegacyOs3ProfileMigrationTest {
 		assertTrue(root.get("suppress_all_ore_features").getAsBoolean());
 		assertEquals(1, root.getAsJsonObject("retrogen").get("revision").getAsInt());
 		assertEquals(3, root.getAsJsonObject("flat_bedrock").get("layers").getAsInt());
+		Path report = temporary.resolve("orespawn-upgrade-report.txt");
+		byte[] firstReport = Files.readAllBytes(report);
+		String reportText = new String(firstReport, StandardCharsets.UTF_8);
+		assertTrue(reportText.contains("Legacy OreSpawn settings were imported"));
+		assertTrue(reportText.contains("Manage vanilla ores: true"));
+		assertTrue(reportText.contains("Original legacy configuration files are retained unchanged"));
 		assertEquals(LegacyOs3ProfileMigration.Result.ALREADY_MIGRATED,
 				LegacyOs3ProfileMigration.apply(temporary, false, false, false, false, false, false, 1));
 		assertArrayEquals(first, Files.readAllBytes(profile));
+		assertArrayEquals(firstReport, Files.readAllBytes(report));
 	}
 
 	@Test

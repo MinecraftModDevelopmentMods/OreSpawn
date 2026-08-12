@@ -53,8 +53,33 @@ public final class LegacyOs3ProfileMigration {
 			if (!Files.exists(backup)) Files.copy(destination, backup);
 		}
 		atomicWrite(destination, bytes);
+		writeInitialUpgradeReport(configDirectory, manageVanilla, suppressAll,
+				retrogen, forceRetrogen, flatBedrock, retrogenBedrock,
+				Math.max(1, Math.min(4, bedrockLayers)));
 		atomicWrite(marker, ("profile_schema=6" + System.lineSeparator()).getBytes(StandardCharsets.UTF_8));
 		return Result.WRITTEN;
+	}
+
+	private static void writeInitialUpgradeReport(Path configDirectory,
+			boolean manageVanilla, boolean suppressAll, boolean retrogen,
+			boolean forceRetrogen, boolean flatBedrock, boolean retrogenBedrock,
+			int bedrockLayers) throws IOException {
+		String newline = System.lineSeparator();
+		String text = "OreSpawn 4.0.6 Upgrade Report" + newline
+				+ "================================" + newline + newline
+				+ "RESULT: Legacy OreSpawn settings were imported into the OS4 profile." + newline
+				+ "- Manage vanilla ores: " + manageVanilla + newline
+				+ "- Suppress all ore features: " + suppressAll + newline
+				+ "- Retrogen enabled: " + retrogen + newline
+				+ "- Force retrogen: " + forceRetrogen + newline
+				+ "- Flat bedrock enabled: " + flatBedrock + newline
+				+ "- Flat bedrock retrogen: " + retrogenBedrock + newline
+				+ "- Flat bedrock layers: " + bedrockLayers + newline + newline
+				+ "The detailed OS3/OS1 rule translation is recorded in "
+				+ "orespawn-os3-migration-report.json." + newline
+				+ "Original legacy configuration files are retained unchanged." + newline;
+		atomicWrite(configDirectory.resolve("orespawn-upgrade-report.txt"),
+				text.getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static JsonObject readExisting(Path path) throws IOException {

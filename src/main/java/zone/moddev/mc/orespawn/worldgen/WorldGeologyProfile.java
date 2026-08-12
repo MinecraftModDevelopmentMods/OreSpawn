@@ -3,6 +3,9 @@ package zone.moddev.mc.orespawn.worldgen;
 import zone.moddev.mc.orespawn.util.JsonCopies;
 
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import com.google.gson.JsonElement;
@@ -275,6 +278,25 @@ public final class WorldGeologyProfile {
 
 	public int cyanoLayerThickness() {
 		return nestedInt("cyano", "rock_layer_thickness", 8, 1, 255);
+	}
+
+	public boolean cyanoRealisticCoalLayers() {
+		return nestedBoolean("cyano", "realistic_coal_layers", false);
+	}
+
+	boolean hasCyanoRockOrder(String key) {
+		return root.has("cyano") && root.get("cyano").isJsonObject()
+				&& root.getAsJsonObject("cyano").has(key)
+				&& root.getAsJsonObject("cyano").get(key).isJsonArray();
+	}
+
+	List<String> cyanoRockOrder(String key) {
+		if (!hasCyanoRockOrder(key)) return Collections.emptyList();
+		List<String> result = new ArrayList<>();
+		for (JsonElement element : root.getAsJsonObject("cyano").getAsJsonArray(key)) {
+			if (element.isJsonPrimitive()) result.add(element.getAsString());
+		}
+		return Collections.unmodifiableList(result);
 	}
 
 	private static JsonObject recommendedFormationJson() {

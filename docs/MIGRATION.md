@@ -39,6 +39,42 @@ use stable provider identities when their outputs match uniquely. Mineralogy
 3 replacement rocks are accepted as ore hosts, but Mineralogy remains the
 authoritative geology engine when that legacy stack is installed.
 
+## Mineralogy 3 Geology Handoff
+
+An existing world must not silently switch from Mineralogy 3's Cyano geology
+to Sky merely because a newer Mineralogy delegates its geology to OreSpawn 4.
+When a generated world has no OreSpawn world profile yet and its saved Forge
+mod list records Mineralogy 3 or earlier, OreSpawn creates the first world
+profile in `legacy` mode before world generation begins.
+
+The migration reads `config/mineralogy.cfg` without changing it and snapshots:
+
+- `GEOME_SIZE`, `ROCK_LAYER_NOISE`, and `ROCK_LAYER_THICKNESS`;
+- `REALISTIC_COAL_LAYERS`;
+- the exact historical igneous, metamorphic, and sedimentary list order;
+- every family whitelist and blacklist, including duplicate-list behavior.
+
+If the instance configuration was not copied with the world, OreSpawn uses the
+published Mineralogy 3 defaults and records that the file was absent. The
+result is stored in `<world>/serverconfig/orespawn-worldgen.json`, so later
+changes to instance configuration or provider defaults cannot alter that
+world. An existing OS4 world profile is never overwritten. New worlds still
+use the installed provider's recommendation, normally Sky. A player may choose
+Sky for an upgraded world explicitly, but new chunks will then intentionally
+use a different geology layout.
+
+Every consumed legacy configuration produces a human-readable report:
+
+- `config/orespawn-upgrade-report.txt` summarizes OS3/OS1 sources, translated
+  providers, preserved global flags, and entries requiring review. The existing
+  `orespawn-os3-migration-report.json` remains the machine-readable detail.
+- `<world>/serverconfig/orespawn-upgrade-report.txt` records the detected
+  Mineralogy version, source configuration, selected Cyano values, exact rock
+  order, registration warnings, and the decision to preserve existing chunks.
+
+Reports contain no timestamp and are byte-stable on reload. Legacy source files
+remain unchanged.
+
 ## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now

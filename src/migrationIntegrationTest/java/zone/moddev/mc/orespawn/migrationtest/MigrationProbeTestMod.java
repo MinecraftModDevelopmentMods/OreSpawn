@@ -170,6 +170,7 @@ public final class MigrationProbeTestMod {
 		Properties audit = auditWorld();
 		if (isBaseMetalsFreshInstallFixture()) validateBaseMetalsFreshInstall(root, audit);
 		if (isBaseMetals24FreshInstallFixture()) validateBaseMetals24FreshInstall(root, audit);
+		if (isLegacyMineralogyCyanoFixture()) validateLegacyMineralogyCyano(root, values);
 		Path freshAudit = root.resolve("orespawn4-migration-fresh-audit.properties");
 		if ("fresh".equals(phase)) {
 			write(freshAudit, audit, "OreSpawn 4 migration fresh semantic audit");
@@ -223,6 +224,60 @@ public final class MigrationProbeTestMod {
 
 	private boolean isAnyBaseMetalsFreshInstallFixture() {
 		return isBaseMetalsFreshInstallFixture() || isBaseMetals24FreshInstallFixture();
+	}
+
+	private boolean isLegacyMineralogyCyanoFixture() {
+		return "legacy-mineralogy-cyano".equals(family);
+	}
+
+	private void validateLegacyMineralogyCyano(Path worldRoot, Properties marker) throws IOException {
+		Path config = worldRoot.getParent().resolve("config/mineralogy.cfg");
+		Path profile = worldRoot.resolve("serverconfig/orespawn-worldgen.json");
+		JsonObject root = readJson(profile);
+		JsonObject cyano = root.getAsJsonObject("cyano");
+		if (!"legacy".equals(root.get("geology_mode").getAsString()) || cyano == null
+				|| cyano.get("geome_size").getAsInt() != 100
+				|| Double.compare(cyano.get("rock_layer_noise").getAsDouble(), 32.0D) != 0
+				|| cyano.get("rock_layer_thickness").getAsInt() != 8
+				|| !cyano.get("realistic_coal_layers").getAsBoolean()
+				|| !cyano.get("legacy_config_found").getAsBoolean()
+				|| !cyano.get("migrated_from").getAsString().startsWith("mineralogy-3.")) {
+			throw new IllegalStateException("Existing Mineralogy 3 world was not pinned to its Cyano settings");
+		}
+		assertRockOrder(cyano.getAsJsonArray("igneous_rocks"), 13,
+				"mineralogy:diabase", "mineralogy:pumice");
+		assertRockOrder(cyano.getAsJsonArray("metamorphic_rocks"), 8,
+				"mineralogy:hornfels", "mineralogy:amphibolite");
+		JsonArray sedimentary = cyano.getAsJsonArray("sedimentary_rocks");
+		assertRockOrder(sedimentary, 12, "mineralogy:siltstone", "mineralogy:rock_salt");
+		if (!"minecraft:sandstone".equals(sedimentary.get(6).getAsString())
+				|| !"minecraft:coal_ore".equals(sedimentary.get(7).getAsString())
+				|| !"mineralogy:chert".equals(sedimentary.get(8).getAsString())) {
+			throw new IllegalStateException("Realistic coal was not retained at the historical sedimentary index");
+		}
+
+		for (String[] file : new String[][] {
+				{ "legacy_mineralogy_config_sha256", config.toString() },
+				{ "legacy_os3_upgrade_report_sha256",
+						worldRoot.getParent().resolve("config/orespawn-upgrade-report.txt").toString() },
+				{ "legacy_mineralogy_world_profile_sha256", profile.toString() },
+				{ "legacy_mineralogy_upgrade_report_sha256",
+						worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt").toString() } }) {
+			String hash = sha256(java.nio.file.Paths.get(file[1]));
+			if ("fresh".equals(phase)) marker.setProperty(file[0], hash);
+			else if (!hash.equals(marker.getProperty(file[0]))) {
+				throw new IllegalStateException("Legacy Mineralogy migration changed on reload: " + file[1]);
+			}
+		}
+	}
+
+	private static void assertRockOrder(JsonArray rocks, int expectedSize,
+			String first, String last) {
+		if (rocks == null || rocks.size() != expectedSize
+				|| !first.equals(rocks.get(0).getAsString())
+				|| !last.equals(rocks.get(rocks.size() - 1).getAsString())) {
+			throw new IllegalStateException("Unexpected legacy Mineralogy rock order: " + rocks);
+		}
 	}
 
 	private Properties reloadComparison(Properties source) {

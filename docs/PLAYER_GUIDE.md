@@ -88,6 +88,17 @@ Changes normally affect only chunks generated afterward. Existing terrain is
 not rewritten. Ore and flat-bedrock retrogen must be enabled deliberately;
 rock strata are never retro-generated.
 
+Existing Mineralogy 3 worlds are automatically pinned to **Cyano (Legacy)**
+when their first OreSpawn 4 world profile is created. OreSpawn copies the old
+Mineralogy layer settings into that world before generating new chunks, so
+later provider defaults cannot switch the engine. New worlds use the installed
+provider's recommended engine. Changing an upgraded world to **Sky** remains
+an explicit choice and may produce visibly different geology in new chunks.
+After upgrading, read `config/orespawn-upgrade-report.txt` and
+`<world>/serverconfig/orespawn-upgrade-report.txt`. They confirm which old
+OreSpawn and Mineralogy files were found, which values were preserved, and any
+items that need manual review. The original files are not changed.
+
 For a dedicated server, copy the whole world including that file and install
 the same mods. Alternatively, place a prepared global profile at
 `config/orespawn-worldgen.json` before creating a new server world.

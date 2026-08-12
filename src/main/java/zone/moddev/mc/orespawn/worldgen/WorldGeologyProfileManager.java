@@ -24,6 +24,7 @@ import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraft.world.WorldServer;
 
@@ -133,15 +134,26 @@ public final class WorldGeologyProfileManager {
 				LOGGER.info("Merged new OreSpawn worldgen-provider definitions into '{}'", profilePath);
 			}
 		} else {
-			pending = consumePendingProfile();
 			boolean generatedWorld = hasGeneratedOverworldChunks(worldRoot);
+			pending = consumePendingProfile();
 			String source;
-			if (pending != null) {
+			if (generatedWorld) {
+				// Existing chunks take precedence over any stale Create World session.
+				// A legacy save must never switch engines merely because a client menu
+				// left a pending selection behind before the server was opened.
+				WorldGeologyProfile legacyMineralogy = LegacyMineralogyProfileMigration.migrateIfNeeded(
+						worldRoot, Loader.instance().getConfigDir().toPath(),
+						GeomeConfig.globalBaseProfile());
+				if (legacyMineralogy != null) {
+					profile = legacyMineralogy;
+					source = "Mineralogy 3 Cyano settings (existing world)";
+				} else {
+					profile = GeomeConfig.globalBaseProfile();
+					source = "instance (existing world)";
+				}
+			} else if (pending != null) {
 				profile = pending;
 				source = "Create World";
-			} else if (generatedWorld) {
-				profile = GeomeConfig.globalBaseProfile();
-				source = "instance (existing world)";
 			} else {
 				profile = fallback.copy();
 				source = "installed-pack fresh-world";

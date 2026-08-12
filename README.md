@@ -53,6 +53,18 @@ Important files:
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
 
+When an existing Forge 1.10 world records Mineralogy 3 in `level.dat` and has
+no OreSpawn 4 world profile yet, OreSpawn automatically snapshots that world's
+Cyano geology contract. It reads the retained `config/mineralogy.cfg` when
+available, preserves the exact ordered rock families and realistic-coal choice,
+and writes `geology_mode: legacy` before any new chunks generate. New worlds
+still use the installed provider's recommended engine. Switching an upgraded
+world to Sky is an explicit choice and can create a visible old/new chunk seam.
+OreSpawn also writes `config/orespawn-upgrade-report.txt` for legacy OS rules
+and `<world>/serverconfig/orespawn-upgrade-report.txt` for the Mineralogy
+handoff, so owners can see exactly which sources, settings, and rock lists were
+preserved and whether anything needs review.
+
 To move a configured single-player world to a dedicated server, copy the
 world's `serverconfig/orespawn-worldgen.json` with the world and install the
 same provider mods on the server.

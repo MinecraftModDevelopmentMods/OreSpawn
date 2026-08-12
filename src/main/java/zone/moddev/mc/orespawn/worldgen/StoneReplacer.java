@@ -60,8 +60,7 @@ public final class StoneReplacer {
 				if (current == null || current.seed != seed || current.mode != mode) {
 					WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 					current = mode == GeologyMode.LEGACY
-							? new CachedGeology(seed, mode, new Geology(seed, profile.cyanoGeomeSize(),
-									profile.cyanoRockLayerNoise(), profile.cyanoLayerThickness(), config), null)
+							? new CachedGeology(seed, mode, new Geology(seed, profile, config), null)
 							: new CachedGeology(seed, mode, null, new GeomeGeology(seed, config));
 					geologyByDimension.put(dimension, current);
 				}
