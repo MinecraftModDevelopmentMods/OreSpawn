@@ -88,6 +88,20 @@ Changes normally affect only chunks generated afterward. Existing terrain is
 not rewritten. Ore and flat-bedrock retrogen must be enabled deliberately;
 rock strata are never retro-generated.
 
+For an existing Mineralogy 1.10 or 1.12 world, OreSpawn automatically keeps
+the matching **Cyano (Legacy)** layout when it creates that world's first OS4
+profile. The old layer sizes, rock lists, enabled state, and applicable coal
+setting are copied into the world before new chunks generate. A carried 1.10
+config and a native 1.12 config are handled separately, even if an upgrade has
+left both generations of keys in the file. Fresh worlds still use the current
+recommended engine.
+
+After upgrading, review `config/orespawn-upgrade-report.txt` and
+`<world>/serverconfig/orespawn-upgrade-report.txt`. They explain which legacy
+files were consumed, which settings were preserved, and any registry names or
+rules needing attention. Changing an upgraded world to Sky is deliberate and
+can make newly generated chunks look different from old ones.
+
 For a dedicated server, copy the whole world including that file and install
 the same mods. Alternatively, place a prepared global profile at
 `config/orespawn-worldgen.json` before creating a new server world.

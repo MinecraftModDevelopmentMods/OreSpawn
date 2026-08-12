@@ -6,6 +6,11 @@ Version 4.0.6
   deduplicated OS4 scheduler with atomic backups and an idempotent report.
 * Preserve 1.12 metadata block states, legacy dimension/biome selectors,
   weighted outputs, retrogen flags, vanilla suppression, and flat bedrock.
+* Keep existing Mineralogy 3 worlds on the matching Cyano engine contract,
+  distinguishing carried 1.10 configurations from native 1.12 configurations,
+  exact rock order, disabled geology, family lists, and realistic coal behavior.
+* Write deterministic human-readable upgrade reports for consumed OS3 and
+  Mineralogy configuration alongside the detailed machine-readable report.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
@@ -15,6 +20,8 @@ Version 4.0.6
   later ordinary mod listeners cannot re-enable claimed vanilla ore features.
 * Keep air-exposure inspection inside the active chunk so edge candidates do
   not load neighbouring chunks or depend on neighbour-generation order.
+* Place dynamic fluid deposits through Forge's world-write path so scheduled
+  liquid ticks cannot retain OreSpawn's reusable generation cursor.
 * Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
   Forge 1.12 terrain events and one deduplicated IWorldGenerator fallback.
 * Register the early surface/geology coordinator on Forge 1.12's actual event
