@@ -20,6 +20,8 @@ Version 4.0.6
   later ordinary mod listeners cannot re-enable claimed vanilla ore features.
 * Keep air-exposure inspection inside the active chunk so edge candidates do
   not load neighbouring chunks or depend on neighbour-generation order.
+* Place dynamic fluid deposits through Forge's immutable world-write path so
+  scheduled liquid ticks cannot retain a reusable generation cursor.
 * Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
   Forge 1.10 terrain events and one deduplicated IWorldGenerator fallback.
 * Register the early surface/geology coordinator on Forge 1.10's actual event

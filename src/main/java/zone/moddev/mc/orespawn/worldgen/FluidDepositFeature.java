@@ -41,6 +41,7 @@ public final class FluidDepositFeature {
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final FluidDepositFeature FEATURE = new FluidDepositFeature();
 	private static final int CHUNK_WIDTH = 16;
+	private static final int GENERATION_WRITE_FLAGS = 2;
 	private static final BakedDeposit[] NO_DEPOSITS = new BakedDeposit[0];
 	private static final Map<ResourceLocation, BakedDeposit[]> EMPTY_DIMENSIONS = Collections.emptyMap();
 	private static final Object CLASSIFIER_LOCK = new Object();
@@ -196,8 +197,8 @@ public final class FluidDepositFeature {
 						cursor.setPos(x, y, z);
 						// Output was validated while baking; keep a final runtime guard for registry oddities.
 						if (deposit.output.getBlock() != Blocks.AIR && isFluidBlock(deposit.output)) {
-							chunk.setBlockState(cursor, deposit.output);
-							changed = true;
+							changed |= world.setBlockState(cursor.toImmutable(), deposit.output,
+									GENERATION_WRITE_FLAGS);
 						}
 					}
 				}

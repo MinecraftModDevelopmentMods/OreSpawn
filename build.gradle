@@ -144,6 +144,14 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
         if (result.getProperty('reload_verified') != 'true') {
             throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
+        if (!(result.getProperty('dynamic_fluid_placements') ?: '0').isInteger()
+                || result.getProperty('dynamic_fluid_placements').toInteger() <= 0) {
+            throw new GradleException("Dynamic fluid-deposit probe did not place any blocks: ${marker}")
+        }
+        File latest = new File(surfaceIntegrationRunDirectory, 'logs/latest.log')
+        if (!latest.isFile() || latest.text.contains('Tried to assign a mutable BlockPos')) {
+            throw new GradleException("Surface integration leaked a mutable position into tick data: ${latest}")
+        }
         logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
                 result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
     }
