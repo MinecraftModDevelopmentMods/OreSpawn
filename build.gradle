@@ -76,9 +76,6 @@ dependencies {
     testCompile 'org.junit.jupiter:junit-jupiter-params:5.10.2'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testRuntime 'org.junit.platform:junit-platform-launcher:1.10.2'
-    // Published legacy engines are test-only oracles. They are never packaged.
-    testCompile files("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
-    testCompile files("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar")
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -161,6 +158,13 @@ javadoc {
 
 test {
     useJUnitPlatform()
+    // The parity test opens each published engine in its own URLClassLoader.
+    // Keeping these jars out of Gradle configurations also keeps Forge's
+    // ordinary Eclipse launch from discovering two Mineralogy mods.
+    systemProperty 'orespawn.mineralogy110Oracle',
+            file('../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar').absolutePath
+    systemProperty 'orespawn.mineralogy112Oracle',
+            file('../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar').absolutePath
 }
 
 // Runtime processes are not green merely because they exit with code zero.
@@ -638,6 +642,23 @@ task syncForge14EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 				throw new GradleException("ForgeGradle generated an unexpected ${runName} launcher")
 			}
 			text = text.replace('value="${MC_VERSION}"', "value=\"${minecraft_version}\"")
+			String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+			String excludeTestAttribute =
+					"<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
+			if (text.contains("key=\"${excludeTestKey}\"")) {
+				text = text.replaceFirst(
+						/<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+						excludeTestAttribute)
+			} else {
+				int launchHeaderEnd = text.indexOf('\n', text.indexOf('<launchConfiguration'))
+				if (launchHeaderEnd < 0) {
+					throw new GradleException("Malformed Eclipse Java launch configuration: ${launch}")
+				}
+				String lineSeparator = text.contains('\r\n') ? '\r\n' : '\n'
+				text = "${text.substring(0, launchHeaderEnd + 1)}" +
+						"  ${excludeTestAttribute}${lineSeparator}" +
+						text.substring(launchHeaderEnd + 1)
+			}
 			launch.setText(text, 'UTF-8')
 		}
         File serverLaunch = file('runServer.launch')
@@ -675,6 +696,12 @@ task syncForge14EclipseClasspath(dependsOn: forge14RuntimeJar) {
             throw new GradleException("Eclipse classpath does not contain mapped Forge 14 runtime: ${mappedPath}")
         }
         text = text.replace(mappedEntry, "kind=\"lib\" path=\"${runtimePath}\"")
+        for (String forbidden : ['Mineralogy-1.10.2-3.3.8.26.jar',
+                'Mineralogy-1.12.2-3.8.0.53.jar']) {
+            if (text.contains(forbidden)) {
+                throw new GradleException("Test-only Mineralogy oracle leaked into Eclipse classpath: ${forbidden}")
+            }
+        }
         classpathFile.setText(text, 'UTF-8')
     }
 }

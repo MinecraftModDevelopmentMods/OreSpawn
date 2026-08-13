@@ -2,8 +2,16 @@ package zone.moddev.mc.orespawn.worldgen;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,92 +29,93 @@ class LegacyMineralogyGeologyParityTest {
 	}
 
 	@Test
-	void carried110SamplerMatchesPublishedMineralogyExactly() {
-		List<Block> originalIgneous = new ArrayList<>(cyano.mineralogy.Mineralogy.igneousStones);
-		List<Block> originalMetamorphic = new ArrayList<>(cyano.mineralogy.Mineralogy.metamorphicStones);
-		List<Block> originalSedimentary = new ArrayList<>(cyano.mineralogy.Mineralogy.sedimentaryStones);
-		int originalThickness = cyano.mineralogy.Mineralogy.GEOM_LAYER_THICKNESS;
-		try {
-			Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
-			Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
-			Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE };
-			reset(cyano.mineralogy.Mineralogy.igneousStones, igneous);
-			reset(cyano.mineralogy.Mineralogy.metamorphicStones, metamorphic);
-			reset(cyano.mineralogy.Mineralogy.sedimentaryStones, sedimentary);
-			cyano.mineralogy.Mineralogy.GEOM_LAYER_THICKNESS = 11;
+	void carried110SamplerMatchesPublishedMineralogyExactly() throws Exception {
+		try (PublishedMineralogy published = PublishedMineralogy.open(
+				"orespawn.mineralogy110Oracle", "cyano.mineralogy.worldgen.Geology")) {
+			Class<?> mineralogy = published.load("cyano.mineralogy.Mineralogy");
+			List<Block> igneousList = published.blockList(mineralogy, "igneousStones");
+			List<Block> metamorphicList = published.blockList(mineralogy, "metamorphicStones");
+			List<Block> sedimentaryList = published.blockList(mineralogy, "sedimentaryStones");
+			List<Block> originalIgneous = new ArrayList<>(igneousList);
+			List<Block> originalMetamorphic = new ArrayList<>(metamorphicList);
+			List<Block> originalSedimentary = new ArrayList<>(sedimentaryList);
+			Field thickness = mineralogy.getField("GEOM_LAYER_THICKNESS");
+			int originalThickness = thickness.getInt(null);
+			try {
+				Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
+				Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
+				Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE };
+				reset(igneousList, igneous);
+				reset(metamorphicList, metamorphic);
+				reset(sedimentaryList, sedimentary);
+				thickness.setInt(null, 11);
 
-			for (long seed : seeds()) {
-				cyano.mineralogy.worldgen.Geology published =
-						new cyano.mineralogy.worldgen.Geology(seed, 144.0D, 41.5D, true);
-				Geology os4 = new Geology(seed, 144.0D, 41.5D, 11, true,
-						states(igneous), states(metamorphic), states(sedimentary));
-				assertSamplerParity(seed, published, os4);
+				for (long seed : seeds()) {
+					PublishedSampler sampler = published.newSampler(
+							new Class<?>[] { long.class, double.class, double.class, boolean.class },
+							seed, 144.0D, 41.5D, true);
+					Geology os4 = new Geology(seed, 144.0D, 41.5D, 11, true,
+							states(igneous), states(metamorphic), states(sedimentary));
+					assertSamplerParity("1.10 Cyano", seed, sampler, os4);
+				}
+			} finally {
+				reset(igneousList, originalIgneous.toArray(new Block[0]));
+				reset(metamorphicList, originalMetamorphic.toArray(new Block[0]));
+				reset(sedimentaryList, originalSedimentary.toArray(new Block[0]));
+				thickness.setInt(null, originalThickness);
 			}
-		} finally {
-			reset(cyano.mineralogy.Mineralogy.igneousStones,
-					originalIgneous.toArray(new Block[0]));
-			reset(cyano.mineralogy.Mineralogy.metamorphicStones,
-					originalMetamorphic.toArray(new Block[0]));
-			reset(cyano.mineralogy.Mineralogy.sedimentaryStones,
-					originalSedimentary.toArray(new Block[0]));
-			cyano.mineralogy.Mineralogy.GEOM_LAYER_THICKNESS = originalThickness;
 		}
 	}
 
 	@Test
 	void native112SamplerMatchesPublishedMineralogyExactly() throws Exception {
-		List<Block> igneousList = com.mcmoddev.mineralogy.init.MineralogyRegistry.igneousStones;
-		List<Block> metamorphicList = com.mcmoddev.mineralogy.init.MineralogyRegistry.metamorphicStones;
-		List<Block> sedimentaryList = com.mcmoddev.mineralogy.init.MineralogyRegistry.sedimentaryStones;
-		List<Block> originalIgneous = new ArrayList<>(igneousList);
-		List<Block> originalMetamorphic = new ArrayList<>(metamorphicList);
-		List<Block> originalSedimentary = new ArrayList<>(sedimentaryList);
-		Field thickness = com.mcmoddev.mineralogy.MineralogyConfig.class
-				.getDeclaredField("geomLayerThickness");
-		thickness.setAccessible(true);
-		int originalThickness = thickness.getInt(null);
-		try {
-			Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
-			Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
-			Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE,
-					Blocks.SANDSTONE };
-			reset(igneousList, igneous);
-			reset(metamorphicList, metamorphic);
-			reset(sedimentaryList, sedimentary);
-			thickness.setInt(null, 9);
+		try (PublishedMineralogy published = PublishedMineralogy.open(
+				"orespawn.mineralogy112Oracle", "com.mcmoddev.mineralogy.worldgen.Geology")) {
+			Class<?> registry = published.load("com.mcmoddev.mineralogy.init.MineralogyRegistry");
+			List<Block> igneousList = published.blockList(registry, "igneousStones");
+			List<Block> metamorphicList = published.blockList(registry, "metamorphicStones");
+			List<Block> sedimentaryList = published.blockList(registry, "sedimentaryStones");
+			List<Block> originalIgneous = new ArrayList<>(igneousList);
+			List<Block> originalMetamorphic = new ArrayList<>(metamorphicList);
+			List<Block> originalSedimentary = new ArrayList<>(sedimentaryList);
+			Class<?> config = published.load("com.mcmoddev.mineralogy.MineralogyConfig");
+			Field thickness = config.getDeclaredField("geomLayerThickness");
+			thickness.setAccessible(true);
+			int originalThickness = thickness.getInt(null);
+			try {
+				Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
+				Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
+				Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE,
+						Blocks.SANDSTONE };
+				reset(igneousList, igneous);
+				reset(metamorphicList, metamorphic);
+				reset(sedimentaryList, sedimentary);
+				thickness.setInt(null, 9);
 
-			for (long seed : seeds()) {
-				com.mcmoddev.mineralogy.worldgen.Geology published =
-						new com.mcmoddev.mineralogy.worldgen.Geology(seed, 128.0D, 37.25D);
-				Geology os4 = new Geology(seed, 128.0D, 37.25D, 9, false,
-						states(igneous), states(metamorphic), states(sedimentary));
-				for (int x : coordinates()) {
-					for (int z : coordinates()) {
-						for (int y = 0; y < 256; y += 7) {
-							assertEquals(published.getStoneAt(x, y, z), os4.getStoneAt(x, y, z),
-									"1.12 Cyano mismatch seed=" + seed + " x=" + x
-									+ " y=" + y + " z=" + z);
-						}
-						assertArrayEquals(published.getStoneColumn(x, z, 256),
-								os4.getStoneColumn(x, z, 256));
-					}
+				for (long seed : seeds()) {
+					PublishedSampler sampler = published.newSampler(
+							new Class<?>[] { long.class, double.class, double.class },
+							seed, 128.0D, 37.25D);
+					Geology os4 = new Geology(seed, 128.0D, 37.25D, 9, false,
+							states(igneous), states(metamorphic), states(sedimentary));
+					assertSamplerParity("1.12 Cyano", seed, sampler, os4);
 				}
+			} finally {
+				reset(igneousList, originalIgneous.toArray(new Block[0]));
+				reset(metamorphicList, originalMetamorphic.toArray(new Block[0]));
+				reset(sedimentaryList, originalSedimentary.toArray(new Block[0]));
+				thickness.setInt(null, originalThickness);
 			}
-		} finally {
-			reset(igneousList, originalIgneous.toArray(new Block[0]));
-			reset(metamorphicList, originalMetamorphic.toArray(new Block[0]));
-			reset(sedimentaryList, originalSedimentary.toArray(new Block[0]));
-			thickness.setInt(null, originalThickness);
 		}
 	}
 
-	private static void assertSamplerParity(long seed,
-			cyano.mineralogy.worldgen.Geology published, Geology os4) {
+	private static void assertSamplerParity(String label, long seed,
+			PublishedSampler published, Geology os4) throws Exception {
 		for (int x : coordinates()) {
 			for (int z : coordinates()) {
 				for (int y = 0; y < 256; y += 7) {
 					assertEquals(published.getStoneAt(x, y, z), os4.getStoneAt(x, y, z),
-							"1.10 Cyano mismatch seed=" + seed + " x=" + x
+							label + " mismatch seed=" + seed + " x=" + x
 							+ " y=" + y + " z=" + z);
 				}
 				assertArrayEquals(published.getStoneColumn(x, z, 256),
@@ -132,5 +141,74 @@ class LegacyMineralogyGeologyParityTest {
 		IBlockState[] states = new IBlockState[blocks.length];
 		for (int i = 0; i < blocks.length; i++) states[i] = blocks[i].getDefaultState();
 		return states;
+	}
+
+	private static final class PublishedMineralogy implements AutoCloseable {
+		private final URLClassLoader loader;
+		private final Class<?> geologyClass;
+
+		private PublishedMineralogy(URLClassLoader loader, Class<?> geologyClass) {
+			this.loader = loader;
+			this.geologyClass = geologyClass;
+		}
+
+		static PublishedMineralogy open(String property, String geologyClassName) throws Exception {
+			String configuredPath = System.getProperty(property);
+			assertTrue(configuredPath != null && !configuredPath.trim().isEmpty(),
+					"Missing published Mineralogy oracle system property: " + property);
+			Path jar = Paths.get(configuredPath);
+			assertTrue(Files.isRegularFile(jar), "Published Mineralogy oracle is missing: " + jar);
+			URLClassLoader loader = new URLClassLoader(new URL[] { jar.toUri().toURL() },
+					LegacyMineralogyGeologyParityTest.class.getClassLoader());
+			try {
+				return new PublishedMineralogy(loader,
+						Class.forName(geologyClassName, true, loader));
+			} catch (Throwable failure) {
+				loader.close();
+				throw failure;
+			}
+		}
+
+		Class<?> load(String name) throws ClassNotFoundException {
+			return Class.forName(name, true, loader);
+		}
+
+		@SuppressWarnings("unchecked")
+		List<Block> blockList(Class<?> owner, String fieldName) throws Exception {
+			return (List<Block>) owner.getField(fieldName).get(null);
+		}
+
+		PublishedSampler newSampler(Class<?>[] parameterTypes, Object... arguments)
+				throws Exception {
+			Constructor<?> constructor = geologyClass.getConstructor(parameterTypes);
+			return new PublishedSampler(constructor.newInstance(arguments),
+					geologyClass.getMethod("getStoneAt", int.class, int.class, int.class),
+					geologyClass.getMethod("getStoneColumn", int.class, int.class, int.class));
+		}
+
+		@Override
+		public void close() throws Exception {
+			loader.close();
+		}
+	}
+
+	private static final class PublishedSampler {
+		private final Object delegate;
+		private final Method getStoneAt;
+		private final Method getStoneColumn;
+
+		private PublishedSampler(Object delegate, Method getStoneAt, Method getStoneColumn) {
+			this.delegate = delegate;
+			this.getStoneAt = getStoneAt;
+			this.getStoneColumn = getStoneColumn;
+		}
+
+		Block getStoneAt(int x, int y, int z) throws Exception {
+			return (Block) getStoneAt.invoke(delegate, x, y, z);
+		}
+
+		Block[] getStoneColumn(int x, int z, int height) throws Exception {
+			return (Block[]) getStoneColumn.invoke(delegate, x, z, height);
+		}
 	}
 }
