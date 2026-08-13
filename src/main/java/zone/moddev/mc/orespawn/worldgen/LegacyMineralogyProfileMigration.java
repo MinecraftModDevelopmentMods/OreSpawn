@@ -23,10 +23,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -267,7 +268,7 @@ final class LegacyMineralogyProfileMigration {
         for (List<String> family : families) {
             for (String idText : family) {
                 try {
-                    ResourceLocation id = ResourceLocation.parse(idText);
+                    Identifier id = Identifier.parse(idText);
                     if (!ForgeRegistries.BLOCKS.containsKey(id)) missing.add(id.toString());
                 } catch (RuntimeException e) {
                     missing.add(idText + " (invalid registry name)");
@@ -313,7 +314,7 @@ final class LegacyMineralogyProfileMigration {
             Path levelDat = worldRoot.resolve(fileName);
             if (!Files.isRegularFile(levelDat)) continue;
             try (FileInputStream input = new FileInputStream(levelDat.toFile())) {
-                CompoundNBT root = CompressedStreamTools.readCompressed(input);
+                CompoundTag root = NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
                 MineralogyIdentity identity = identity(root, fileName);
                 if (identity != null) return identity.legacy ? identity : null;
             } catch (IOException | RuntimeException e) {
@@ -323,15 +324,15 @@ final class LegacyMineralogyProfileMigration {
         return null;
     }
 
-    private static MineralogyIdentity identity(CompoundNBT root, String sourceFile) {
+    private static MineralogyIdentity identity(CompoundTag root, String sourceFile) {
         for (ModListPath path : MOD_LIST_PATHS) {
-            CompoundNBT container = root.getCompound(path.compound);
-            ListNBT mods = container.getList(path.list, 10);
+            CompoundTag container = root.getCompoundOrEmpty(path.compound);
+            ListTag mods = container.getListOrEmpty(path.list);
             for (int i = 0; i < mods.size(); i++) {
-                CompoundNBT mod = mods.getCompound(i);
-                String id = firstNonBlank(mod.getString("ModId"), mod.getString("modid"));
+                CompoundTag mod = mods.getCompoundOrEmpty(i);
+                String id = firstNonBlank(mod.getStringOr("ModId", ""), mod.getStringOr("modid", ""));
                 if (!"mineralogy".equalsIgnoreCase(id)) continue;
-                String version = firstNonBlank(mod.getString("ModVersion"), mod.getString("version")).trim();
+                String version = firstNonBlank(mod.getStringOr("ModVersion", ""), mod.getStringOr("version", "")).trim();
                 return new MineralogyIdentity(version.isEmpty() ? "legacy" : version,
                         sourceFile + " (" + path.compound + "/" + path.list + ")",
                         isLegacyVersion(version));
@@ -479,7 +480,7 @@ final class LegacyMineralogyProfileMigration {
     private static void addConfiguredId(List<String> result, String raw) {
         String value = unquote(raw.trim());
         if (value.isEmpty()) return;
-        try { result.add(ResourceLocation.parse(value).toString()); }
+        try { result.add(Identifier.parse(value).toString()); }
         catch (RuntimeException e) {
             LOGGER.warn("Ignoring invalid legacy Mineralogy rock registry name '{}'", value);
         }

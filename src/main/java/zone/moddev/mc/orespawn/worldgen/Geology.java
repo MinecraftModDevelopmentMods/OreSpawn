@@ -170,11 +170,11 @@ public class Geology {
 		List<BlockState> states = new ArrayList<>();
 		for (String idText : profile.cyanoRockOrder(key)) {
 			try {
-				ResourceLocation id = ResourceLocation.parse(idText);
+				Identifier id = Identifier.parse(idText);
 				Block block = ForgeRegistries.BLOCKS.containsKey(id)
 						? ForgeRegistries.BLOCKS.getValue(id) : null;
 				if (block != null && block != Blocks.AIR) {
-					states.add(block.getDefaultState());
+					states.add(block.defaultBlockState());
 				} else {
 					LOGGER.warn("Legacy Mineralogy rock '{}' is not registered and will be omitted", id);
 				}
