@@ -82,7 +82,9 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 		net.minecraft.util.RegistryKey<World> dimension = world.getLevel().dimension();
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(dimension);
 		BakedGeomeConfig config = GeomeConfig.baked(dimension);
-		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null) {
+		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
+		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null
+				|| (profile.hasLegacyMineralogySnapshot() && !profile.cyanoEnabled())) {
 			return false;
 		}
 
@@ -122,8 +124,7 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 				if (current == null || current.seed != seed || current.mode != mode) {
 					WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 					current = mode == GeologyMode.LEGACY
-							? new CachedGeology(seed, mode, new Geology(seed, profile.cyanoGeomeSize(),
-									profile.cyanoRockLayerNoise(), profile.cyanoLayerThickness(), config), null)
+							? new CachedGeology(seed, mode, new Geology(seed, profile, config), null)
 							: new CachedGeology(seed, mode, null, new GeomeGeology(seed, config));
 					geologyByDimension.put(dimension, current);
 				}
