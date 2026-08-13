@@ -35,6 +35,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -82,6 +83,7 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID, "surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID, "exact_biome");
 	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID, "rock/spring_host");
+	private static final ProbeLiquid DEPOSIT_FLUID = new ProbeLiquid();
 	private static final BlockPos SPRING_POS = new BlockPos(1128, 32, 1128);
 	private static final int MIN_CHUNK = 63;
 	private static final int MAX_CHUNK = 65;
@@ -138,6 +140,11 @@ public final class SurfaceProbeTestMod {
 	}
 
 	@SubscribeEvent
+	public void registerBlocks(RegistryEvent.Register<Block> event) {
+		event.getRegistry().register(DEPOSIT_FLUID);
+	}
+
+	@SubscribeEvent
 	public void registerPatterns(RegistryEvent.Register<OrePatternType> event) {
 		event.getRegistry().register(EXTERNAL_PATTERN);
 	}
@@ -181,6 +188,9 @@ public final class SurfaceProbeTestMod {
 	public void init(FMLInitializationEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addGeology(provider);
+		provider.fluidDeposit(new ResourceLocation(MODID, "fluid_deposit/dynamic_tick_probe"),
+				id(DEPOSIT_FLUID), deposit -> deposit.dimension(OVERWORLD,
+						dimension -> dimension.hostBlock(id(Blocks.STONE))));
 		// This stable palette id makes seed zero select both fixture biomes on
 		// opposite sides of the 1,024-block Tiny-region boundary.
 		addPalette(provider, "end_palette_1", END, false);
@@ -269,7 +279,18 @@ public final class SurfaceProbeTestMod {
 		results.put("end", audit(requireWorld(server, 1), false));
 		results.put("nether", audit(requireWorld(server, -1), true));
 		ResourceLocation spring = auditSpring(overworld, phase);
+		int dynamicFluidPlacements = DEPOSIT_FLUID.placements();
+		if ("fresh".equals(phase) && dynamicFluidPlacements <= 0) {
+			throw new IllegalStateException("OreSpawn did not place the dynamic fluid-deposit probe");
+		}
+		if ("reload".equals(phase) && dynamicFluidPlacements != 0) {
+			throw new IllegalStateException("Reload generated new dynamic fluid deposits: "
+					+ dynamicFluidPlacements);
+		}
 		Properties current = properties(overworld.getSeed(), results, spring);
+		current.setProperty("dynamic_fluid_placements", "fresh".equals(phase)
+				? Integer.toString(dynamicFluidPlacements)
+				: previous.getProperty("dynamic_fluid_placements"));
 		if (previous == null) {
 			write(marker, current);
 		} else {
@@ -546,6 +567,27 @@ public final class SurfaceProbeTestMod {
 		final Block top, filler, underwater, ceiling;
 		Material(Block top, Block filler, Block underwater, Block ceiling) {
 			this.top = top; this.filler = filler; this.underwater = underwater; this.ceiling = ceiling;
+		}
+	}
+
+	/** Distinguishable dynamic liquid exercising vanilla's scheduled-tick retention path. */
+	private static final class ProbeLiquid extends BlockDynamicLiquid {
+		private int placements;
+
+		ProbeLiquid() {
+			super(net.minecraft.block.material.Material.LAVA);
+			setRegistryName(MODID, "dynamic_tick_probe");
+			setTranslationKey(MODID + ".dynamic_tick_probe");
+		}
+
+		@Override
+		public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
+			placements++;
+			super.onBlockAdded(world, pos, state);
+		}
+
+		int placements() {
+			return placements;
 		}
 	}
 

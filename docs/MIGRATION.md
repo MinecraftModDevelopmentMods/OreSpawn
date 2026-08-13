@@ -27,6 +27,46 @@ use stable provider identities when their outputs match uniquely. Mineralogy
 3 replacement rocks are accepted as ore hosts, but Mineralogy remains the
 authoritative geology engine when that legacy stack is installed.
 
+## Mineralogy 1.10 And 1.12 Geology Handoff
+
+An existing world must not silently switch geology engines when Mineralogy is
+updated to integrate with OreSpawn 4. If a generated world has no OreSpawn
+world profile and its saved Forge mod list records Mineralogy 3 or earlier,
+OreSpawn creates the first world profile in `legacy` mode before generating
+new chunks.
+
+Mineralogy 1.10 and 1.12 used similar configuration files but not identical
+contracts. OreSpawn therefore selects a lineage from the Mineralogy version in
+`level.dat` (or the recoverable `level.dat_old`) and then consumes:
+
+- `GEOME_SIZE`, `ROCK_LAYER_NOISE`, and `ROCK_LAYER_THICKNESS` in both lines;
+- every family whitelist and blacklist with the exact historical rock order;
+- `REALISTIC_COAL_LAYERS` only for the 1.10 lineage;
+- `PLACE_MINERALOGY_ROCK` only for native 1.12, including preserving `false`.
+
+A carried 1.10 file can become hybrid after Mineralogy 1.12 normalizes its own
+Forge configuration. In that case the saved world version takes precedence:
+1.10 retains its realistic-coal behavior and does not invent a later enable
+flag, while 1.12 respects its native enable flag and does not enable realistic
+coal. If the config was not copied, the published defaults for the selected
+lineage are recorded instead. An existing OS4 profile is never overwritten.
+Fresh worlds do not select legacy mode merely because a legacy config is still
+installed.
+
+The snapshot is stored at `<world>/serverconfig/orespawn-worldgen.json` and a
+human-readable explanation is written to
+`<world>/serverconfig/orespawn-upgrade-report.txt`. The report has no timestamp
+and is byte-stable across reload. OreSpawn does not rewrite the source
+Mineralogy config or generated chunks during this handoff; the installed
+Mineralogy version may independently normalize its own Forge config. Moving an
+upgraded world to Sky later remains possible as an explicit choice, with an
+expected old/new chunk seam.
+
+Legacy OreSpawn conversion also writes `config/orespawn-upgrade-report.txt`.
+It summarizes consumed resources, translated providers, preserved global
+flags, and warnings; `config/orespawn-os3-migration-report.json` remains the
+deterministic machine-readable detail.
+
 ## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now

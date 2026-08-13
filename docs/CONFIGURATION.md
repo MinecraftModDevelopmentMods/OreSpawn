@@ -92,7 +92,18 @@ named presets and as defaults for new Custom settings.
 
 Cyano settings use `cyano.geome_size` (4-32767),
 `cyano.rock_layer_noise` (1-32767), and `cyano.rock_layer_thickness` (1-255).
-They are ignored by Sky.
+Migrated Mineralogy worlds also store `cyano.enabled`, the exact ordered
+`cyano.igneous_rocks`, `cyano.metamorphic_rocks`, and
+`cyano.sedimentary_rocks` arrays, plus `cyano.realistic_coal_layers` for the
+Mineralogy 1.10 lineage. Native Mineralogy 1.12 did not have realistic coal;
+its `PLACE_MINERALOGY_ROCK=false` is preserved as `cyano.enabled=false`.
+These values and the old family white/blacklists are snapshotted per world and
+are ignored by Sky.
+
+The resulting values and missing registry IDs are recorded in
+`<world>/serverconfig/orespawn-upgrade-report.txt`. OS3 rule and global-switch
+imports are summarized in `config/orespawn-upgrade-report.txt` and retained in
+machine-readable form at `config/orespawn-os3-migration-report.json`.
 
 ## Rocks And Geomes
 

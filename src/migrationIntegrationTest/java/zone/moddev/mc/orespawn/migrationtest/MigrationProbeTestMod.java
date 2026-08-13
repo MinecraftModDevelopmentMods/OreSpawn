@@ -152,6 +152,7 @@ public final class MigrationProbeTestMod {
 
 		Properties audit = auditWorld();
 		if (isBaseMetalsFreshInstallFixture()) validateBaseMetalsFreshInstall(root, audit);
+		if (isLegacyMineralogyFixture()) validateLegacyMineralogy(root, values);
 		Path freshAudit = root.resolve("orespawn4-migration-fresh-audit.properties");
 		if ("fresh".equals(phase)) {
 			write(freshAudit, audit, "OreSpawn 4 migration fresh semantic audit");
@@ -193,6 +194,83 @@ public final class MigrationProbeTestMod {
 
 	private boolean isBaseMetalsFreshInstallFixture() {
 		return BASE_METALS_FRESH_INSTALL.equals(family);
+	}
+
+	private boolean isLegacyMineralogyFixture() {
+		return "legacy-mineralogy-110".equals(family)
+				|| "legacy-mineralogy-112".equals(family)
+				|| "current-112-stack-postfix".equals(family);
+	}
+
+	private void validateLegacyMineralogy(Path worldRoot, Properties marker) throws IOException {
+		boolean lineage110 = "legacy-mineralogy-110".equals(family);
+		boolean current112Stack = "current-112-stack-postfix".equals(family);
+		Path config = worldRoot.getParent().resolve("config/mineralogy.cfg");
+		Path profile = worldRoot.resolve("serverconfig/orespawn-worldgen.json");
+		Path report = worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt");
+		JsonObject root = readJson(profile);
+		JsonObject cyano = root.getAsJsonObject("cyano");
+		String expectedLineage = lineage110 ? "Mineralogy 1.10" : "Mineralogy 1.12";
+		boolean expectedEnabled = lineage110 || current112Stack;
+		boolean expectedCoal = lineage110;
+		int expectedGeomeSize = current112Stack ? 100 : lineage110 ? 144 : 128;
+		double expectedNoise = current112Stack ? 32.0D : lineage110 ? 41.5D : 37.25D;
+		int expectedThickness = current112Stack ? 8 : lineage110 ? 11 : 9;
+		if (!"legacy".equals(root.get("geology_mode").getAsString()) || cyano == null
+				|| !expectedLineage.equals(cyano.get("legacy_lineage").getAsString())
+				|| cyano.get("enabled").getAsBoolean() != expectedEnabled
+				|| cyano.get("realistic_coal_layers").getAsBoolean() != expectedCoal
+				|| cyano.get("geome_size").getAsInt() != expectedGeomeSize
+				|| Double.compare(cyano.get("rock_layer_noise").getAsDouble(),
+						expectedNoise) != 0
+				|| cyano.get("rock_layer_thickness").getAsInt() != expectedThickness
+				|| !cyano.get("legacy_config_found").getAsBoolean()) {
+			throw new IllegalStateException("Existing " + expectedLineage
+					+ " world was not pinned to its exact Cyano settings: " + cyano);
+		}
+		JsonArray igneous = cyano.getAsJsonArray("igneous_rocks");
+		JsonArray sedimentary = cyano.getAsJsonArray("sedimentary_rocks");
+		assertRockOrder(igneous, 13,
+				lineage110 ? "mineralogy:diabase" : "mineralogy:andesite",
+				"mineralogy:pumice");
+		if (lineage110) {
+			if (sedimentary.size() != 12
+					|| !"minecraft:coal_ore".equals(sedimentary.get(7).getAsString())) {
+				throw new IllegalStateException("Mineralogy 1.10 realistic coal order was not retained");
+			}
+		} else {
+			if (sedimentary.size() != 12
+					|| !"mineralogy:rock_salt".equals(sedimentary.get(10).getAsString())
+					|| !"mineralogy:rock_salt".equals(sedimentary.get(11).getAsString())) {
+				throw new IllegalStateException("Mineralogy 1.12 duplicate rock-salt order was not retained");
+			}
+		}
+		String reportText = new String(Files.readAllBytes(report), StandardCharsets.UTF_8);
+		if (!reportText.contains("Selected config lineage: " + expectedLineage)
+				|| !reportText.contains("Geology enabled: " + expectedEnabled)
+				|| !reportText.contains("OreSpawn did not rewrite the source Mineralogy configuration or existing chunks")) {
+			throw new IllegalStateException("Legacy Mineralogy human report is incomplete: " + report);
+		}
+
+		for (String[] file : new String[][] {
+				{ "legacy_mineralogy_config_sha256", config.toString() },
+				{ "legacy_mineralogy_world_profile_sha256", profile.toString() },
+				{ "legacy_mineralogy_upgrade_report_sha256", report.toString() } }) {
+			String hash = sha256(java.nio.file.Paths.get(file[1]));
+			if ("fresh".equals(phase)) marker.setProperty(file[0], hash);
+			else if (!hash.equals(marker.getProperty(file[0]))) {
+				throw new IllegalStateException("Legacy Mineralogy migration changed on reload: " + file[1]);
+			}
+		}
+	}
+
+	private static void assertRockOrder(JsonArray rocks, int expectedSize,
+			String first, String last) {
+		if (rocks == null || rocks.size() != expectedSize
+				|| !first.equals(rocks.get(0).getAsString())
+				|| !last.equals(rocks.get(rocks.size() - 1).getAsString())) {
+			throw new IllegalStateException("Unexpected legacy Mineralogy rock order: " + rocks);
+		}
 	}
 
 	private Properties reloadComparison(Properties source) {
@@ -295,6 +373,14 @@ public final class MigrationProbeTestMod {
 				"provider_written=basemetals-orespawn.json" }) {
 			if (!entries.contains(required)) throw new IllegalStateException("Missing migration evidence: " + required);
 		}
+		Path humanReport = config.resolve("orespawn-upgrade-report.txt");
+		String humanReportText = new String(Files.readAllBytes(humanReport), StandardCharsets.UTF_8);
+		if (!humanReportText.contains("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.")
+				|| !humanReportText.contains("Original legacy configuration files were retained unchanged.")
+				|| !humanReportText.contains("Unique items requiring review: 0")
+				|| !humanReportText.contains("WARNINGS: None reported during translation.")) {
+			throw new IllegalStateException("Base Metals human upgrade report is incomplete: " + humanReport);
+		}
 	}
 
 	private void verifyFreshInstallHashes(Path worldRoot, Properties marker) throws IOException {
@@ -302,10 +388,11 @@ public final class MigrationProbeTestMod {
 		Path[] files = {
 				config.resolve("basemetals-orespawn.json"),
 				config.resolve("orespawn-os3-migration-report.json"),
+				config.resolve("orespawn-upgrade-report.txt"),
 				config.resolve("orespawn-worldgen.json"),
 				worldRoot.resolve("serverconfig/orespawn-worldgen.json")
 		};
-		String[] names = { "provider", "report", "global_profile", "world_profile" };
+		String[] names = { "provider", "report", "human_report", "global_profile", "world_profile" };
 		for (int index = 0; index < files.length; index++) {
 			String hash = sha256(files[index]);
 			String key = "fresh_basemetals_" + names[index] + "_sha256";

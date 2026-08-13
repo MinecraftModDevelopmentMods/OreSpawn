@@ -158,7 +158,91 @@ javadoc {
 
 test {
     useJUnitPlatform()
+    // The parity test opens each published engine in its own URLClassLoader.
+    // Keeping these jars out of Gradle configurations also keeps Forge's
+    // ordinary Eclipse launch from discovering two Mineralogy mods.
+    systemProperty 'orespawn.mineralogy110Oracle',
+            file('../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar').absolutePath
+    systemProperty 'orespawn.mineralogy112Oracle',
+            file('../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar').absolutePath
 }
+
+// Runtime processes are not green merely because they exit with code zero.
+// Forge 14 can log a fatal worldgen/callback error and still shut down cleanly.
+def acceptedForge14LogNoise = [
+        ~/Apache Maven library folder was not in the format expected/,
+        ~/\[FML\]: Full: .*maven-artifact-/,
+        ~/\[FML\]: Trimmed: .*maven-artifact/,
+        ~/FML appears to be missing any signature data/,
+        ~/Unable to read a class file correctly/,
+        ~/There was a problem reading the entry (?:META-INF\/versions\/9\/)?module-info\.class .*probably a corrupt zip/
+]
+
+def assertRuntimeLogsClean = { File runDirectory, String context ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        def crashes = fileTree(crashDirectory) { include '**/*' }.files.findAll { it.isFile() }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (!logsDirectory.isDirectory()) return
+    def failures = []
+    fileTree(logsDirectory) { include '**/*.log'; include '**/*.txt' }.files.each { File log ->
+        int lineNumber = 0
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean knownNoise = acceptedForge14LogNoise.any { line =~ it }
+            boolean fatalText = (line.contains('Encountered an unexpected exception')
+                    || line.contains('Exception stopping the server')
+                    || line.contains('Migration audit failed')
+                    || line.contains('java.lang.Error:')
+                    || line.contains('NoSuchMethodError')
+                    || line.contains('NoClassDefFoundError')
+                    || line.contains('ExceptionInInitializerError')
+                    || line.contains('Tried to assign a mutable BlockPos'))
+            if ((unexpectedSeverity && !knownNoise) || fatalText) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+task runtimeLogScannerTest {
+    group = 'verification'
+    description = 'Proves runtime log validation accepts documented Forge noise and rejects real failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs'); logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[main/ERROR] [FML]: FML appears to be missing any signature data. This is not a good thing\n'
+                + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-rejection-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-error-severity-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        delete probe
+    }
+}
+
+check.dependsOn runtimeLogScannerTest
 
 def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
 task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
@@ -295,9 +379,13 @@ surfaceIntegrationFreshProcess.doLast {
     if (!marker.isFile()) {
         throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
     }
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration fresh phase')
 }
 def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
 useForge14Runtime(surfaceIntegrationReloadProcess)
+surfaceIntegrationReloadProcess.doLast {
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration reload phase')
+}
 
 task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
     group = 'verification'
@@ -375,10 +463,7 @@ if (project.hasProperty('migrationRunDir')) {
 				throw new GradleException("Migration ${phase} phase did not complete: ${marker}")
 			}
 			def latest = new File(migrationRunDirectory, 'logs/latest.log')
-			if (latest.isFile() && (latest.text.contains('Migration audit failed')
-					|| latest.text.contains('Encountered an unexpected exception'))) {
-				throw new GradleException("Migration ${phase} phase logged a server failure: ${latest}")
-			}
+			assertRuntimeLogsClean(migrationRunDirectory, "migration ${phase} phase")
 			if (latest.isFile()
 					&& (project.findProperty('migrationAllowMissingMappings') ?: 'false') == 'true') {
 				def protectedMissing = latest.text =~ /(?m)^(?:Missing (?:basemetals|orespawn):|\s+(?:basemetals|mmdlib|orespawn):)/
@@ -390,6 +475,98 @@ if (project.hasProperty('migrationRunDir')) {
     }
     useForge14Runtime(migrationIntegrationProcess)
 }
+
+// Two sealed existing-world upgrades exercise the distinct Mineralogy configs
+// that can reach Forge 1.12: a carried 1.10 file and the native 1.12 file.
+def legacyMineralogyArchive = file("${rootDir}/../migration-fixtures/sources/worlds/os3-331-default-source.zip")
+def legacyMineralogyJar = file("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar")
+def legacyMineralogyGates = []
+[
+        '110': [version: '3.3.8.26', config: '''\
+world-gen {
+    I:GEOME_SIZE=144
+    B:REALISTIC_COAL_LAYERS=true
+    S:ROCK_LAYER_NOISE=41.5
+    I:ROCK_LAYER_THICKNESS=11
+}
+'''],
+        '112': [version: '3.8.0.53', config: '''\
+world-gen {
+    B:PLACE_MINERALOGY_ROCK=false
+    I:GEOME_SIZE=128
+    S:ROCK_LAYER_NOISE=37.25
+    I:ROCK_LAYER_THICKNESS=9
+}
+''']
+].each { String lineage, Map fixture ->
+    String label = lineage == '110' ? '110' : '112'
+    File runDirectory = file("${buildDir}/legacy-mineralogy-${lineage}-run")
+    File mainOutput = file("${buildDir}/legacy-mineralogy-${lineage}-fixture/orespawn-main")
+    def prepareTask = task("prepareLegacyMineralogy${label}Run",
+            dependsOn: migrationIntegrationTestModJar) {
+        doLast {
+            if (!legacyMineralogyArchive.isFile() || !legacyMineralogyJar.isFile()) {
+                throw new GradleException('Sealed legacy Mineralogy fixtures are missing')
+            }
+            delete runDirectory
+            delete mainOutput
+            copy { from zipTree(legacyMineralogyArchive); into runDirectory }
+            mainOutput.mkdirs()
+            copy { from sourceSets.main.output; into mainOutput }
+            File mods = new File(runDirectory, 'mods'); mods.mkdirs()
+            copy { from migrationIntegrationTestModJar.archivePath; from legacyMineralogyJar; into mods }
+            File config = new File(runDirectory, 'config/mineralogy.cfg')
+            config.parentFile.mkdirs(); config.setText(fixture.config as String, 'UTF-8')
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            project.javaexec {
+                main = 'zone.moddev.mc.orespawn.migrationtest.LegacyMineralogyMetadataFixture'
+                classpath = files(migrationIntegrationClasses, sourceSets.main.runtimeClasspath)
+                args new File(runDirectory, 'world').absolutePath, fixture.version
+            }
+        }
+    }
+
+    def createLegacyMineralogyProcess = { String phase, Object dependency ->
+        def process = task("legacyMineralogy${label}${phase.capitalize()}", type: JavaExec,
+                dependsOn: [dependency, 'createSrgToMcp']) {
+            group = 'verification'
+            main = 'net.minecraftforge.legacydev.MainServer'
+            classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
+            workingDir runDirectory
+            environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
+            environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
+            environment 'MOD_CLASSES', mainOutput.absolutePath
+            environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'orespawn.migrationFamily', "legacy-mineralogy-${lineage}"
+            systemProperty 'orespawn.migrationPhase', phase
+            args '--nogui'
+            doLast {
+                File marker = new File(runDirectory, 'world/orespawn4-migration-probe.properties')
+                if (!marker.isFile()) {
+                    throw new GradleException("Legacy Mineralogy ${lineage} ${phase} marker is missing")
+                }
+                Properties values = new Properties(); marker.withInputStream { values.load(it) }
+                if (values.getProperty("${phase}_complete") != 'true') {
+                    throw new GradleException("Legacy Mineralogy ${lineage} ${phase} did not complete")
+                }
+                assertRuntimeLogsClean(runDirectory, "legacy Mineralogy ${lineage} ${phase} phase")
+            }
+        }
+        useForge14Runtime(process)
+        process
+    }
+
+    def freshTask = createLegacyMineralogyProcess('fresh', prepareTask)
+    def reloadTask = createLegacyMineralogyProcess('reload', freshTask)
+    def gate = task("legacyMineralogy${label}MigrationTest", dependsOn: reloadTask) {
+        group = 'verification'
+        description = "Proves Mineralogy ${lineage} settings remain exact across an OreSpawn 4 upgrade and reload."
+    }
+    legacyMineralogyGates.add(gate)
+}
+
+check.dependsOn legacyMineralogyGates
 
 if (project.hasProperty('os3AbiFixtureJar')) {
     def os3AbiFixture = file(project.property('os3AbiFixtureJar'))
@@ -439,10 +616,7 @@ max-tick-time=-1
                 throw new GradleException("Published OS3 API fixture did not pass: ${marker}")
             }
             File latest = new File(os3AbiRunDirectory, 'logs/latest.log')
-            if (latest.isFile() && (latest.text.contains('Encountered an unexpected exception')
-                    || latest.text.contains('Exception stopping the server'))) {
-                throw new GradleException("Published OS3 API fixture logged a server failure: ${latest}")
-            }
+            assertRuntimeLogsClean(os3AbiRunDirectory, 'published OS3 API fixture')
         }
     }
     useForge14Runtime(os3AbiCompatibilityProcess)
@@ -468,6 +642,23 @@ task syncForge14EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 				throw new GradleException("ForgeGradle generated an unexpected ${runName} launcher")
 			}
 			text = text.replace('value="${MC_VERSION}"', "value=\"${minecraft_version}\"")
+			String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
+			String excludeTestAttribute =
+					"<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
+			if (text.contains("key=\"${excludeTestKey}\"")) {
+				text = text.replaceFirst(
+						/<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
+						excludeTestAttribute)
+			} else {
+				int launchHeaderEnd = text.indexOf('\n', text.indexOf('<launchConfiguration'))
+				if (launchHeaderEnd < 0) {
+					throw new GradleException("Malformed Eclipse Java launch configuration: ${launch}")
+				}
+				String lineSeparator = text.contains('\r\n') ? '\r\n' : '\n'
+				text = "${text.substring(0, launchHeaderEnd + 1)}" +
+						"  ${excludeTestAttribute}${lineSeparator}" +
+						text.substring(launchHeaderEnd + 1)
+			}
 			launch.setText(text, 'UTF-8')
 		}
         File serverLaunch = file('runServer.launch')
@@ -505,6 +696,12 @@ task syncForge14EclipseClasspath(dependsOn: forge14RuntimeJar) {
             throw new GradleException("Eclipse classpath does not contain mapped Forge 14 runtime: ${mappedPath}")
         }
         text = text.replace(mappedEntry, "kind=\"lib\" path=\"${runtimePath}\"")
+        for (String forbidden : ['Mineralogy-1.10.2-3.3.8.26.jar',
+                'Mineralogy-1.12.2-3.8.0.53.jar']) {
+            if (text.contains(forbidden)) {
+                throw new GradleException("Test-only Mineralogy oracle leaked into Eclipse classpath: ${forbidden}")
+            }
+        }
         classpathFile.setText(text, 'UTF-8')
     }
 }

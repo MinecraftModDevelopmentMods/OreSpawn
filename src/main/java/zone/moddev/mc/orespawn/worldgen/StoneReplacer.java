@@ -36,7 +36,9 @@ public final class StoneReplacer {
 		ResourceLocation dimension = WorldIds.dimension(world);
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(dimension);
 		BakedGeomeConfig config = GeomeConfig.baked(dimension);
-		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null) {
+		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
+		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null
+				|| (profile.geologyMode() == GeologyMode.LEGACY && !profile.cyanoEnabled())) {
 			return false;
 		}
 
@@ -60,8 +62,7 @@ public final class StoneReplacer {
 				if (current == null || current.seed != seed || current.mode != mode) {
 					WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 					current = mode == GeologyMode.LEGACY
-							? new CachedGeology(seed, mode, new Geology(seed, profile.cyanoGeomeSize(),
-									profile.cyanoRockLayerNoise(), profile.cyanoLayerThickness(), config), null)
+							? new CachedGeology(seed, mode, new Geology(seed, profile, config), null)
 							: new CachedGeology(seed, mode, null, new GeomeGeology(seed, config));
 					geologyByDimension.put(dimension, current);
 				}
