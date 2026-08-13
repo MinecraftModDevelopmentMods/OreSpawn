@@ -115,7 +115,7 @@ public class Geology {
 					if (terrain.isReplaceable(current)
 							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE)) {
 						BlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
-						if (!GeomeGeology.changes(current, replacement)) continue;
+						if (current.equals(replacement)) continue;
 						chunk.setBlockState(cursor, replacement, false);
 						changed = true;
 					}
@@ -171,10 +171,9 @@ public class Geology {
 		for (String idText : profile.cyanoRockOrder(key)) {
 			try {
 				ResourceLocation id = new ResourceLocation(idText);
-				Block block = ForgeRegistries.BLOCKS.containsKey(id)
-						? ForgeRegistries.BLOCKS.getValue(id) : null;
+				Block block = ForgeRegistries.BLOCKS.getValue(id);
 				if (block != null && block != Blocks.AIR) {
-					states.add(block.getDefaultState());
+					states.add(block.defaultBlockState());
 				} else {
 					LOGGER.warn("Legacy Mineralogy rock '{}' is not registered and will be omitted", id);
 				}
