@@ -96,6 +96,7 @@ final class LegacyConfigMigrator {
 		report.add("Original files were retained unchanged. Review registry IDs and biome/dimension warnings before deleting them.");
 		if (!write(target, migrated)) return null;
 		writeReport(config, report);
+		writeUpgradeReport(config, imported, report);
 		LOGGER.info("Migrated {} legacy OreSpawn definitions into '{}'", imported, target);
 		return migrated;
 	}
@@ -353,6 +354,44 @@ final class LegacyConfigMigrator {
 			Files.write(directory.resolve("migration-report.txt"), lines, StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			LOGGER.warn("Could not write OreSpawn migration report", e);
+		}
+	}
+
+	private static void writeUpgradeReport(Path config, int imported, List<String> detail) {
+		List<String> lines = new ArrayList<>();
+		lines.add("OreSpawn 4.0.6 Upgrade Report");
+		lines.add("================================");
+		lines.add("");
+		lines.add("RESULT: Legacy OreSpawn settings were imported into the OS4 profile.");
+		lines.add("- Spawn definitions imported: " + imported);
+		lines.add("- Detailed translation report: "
+				+ config.resolve("orespawn-migration/migration-report.txt").toAbsolutePath());
+		for (String entry : detail) {
+			if (entry.startsWith("Warning:") || entry.startsWith("Skipped")
+					|| entry.startsWith("Clamped")) lines.add("- " + entry);
+		}
+		lines.add("");
+		lines.add("Original legacy configuration files were retained unchanged.");
+		writeTextAtomically(config.resolve("orespawn-upgrade-report.txt"), lines);
+	}
+
+	private static void writeTextAtomically(Path path, List<String> lines) {
+		Path temporary = path.resolveSibling(path.getFileName().toString() + ".tmp");
+		try {
+			Files.createDirectories(path.getParent());
+			byte[] bytes = (String.join(System.lineSeparator(), lines) + System.lineSeparator())
+					.getBytes(StandardCharsets.UTF_8);
+			if (Files.isRegularFile(path) && Arrays.equals(Files.readAllBytes(path), bytes)) return;
+			Files.write(temporary, bytes);
+			try {
+				Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE,
+						StandardCopyOption.REPLACE_EXISTING);
+			} catch (AtomicMoveNotSupportedException e) {
+				Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
+			LOGGER.warn("Could not write OreSpawn upgrade report '{}'", path, e);
 		}
 	}
 
