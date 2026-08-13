@@ -216,4 +216,8 @@ class LegacyConfigMigratorTest {
 		return ore.getAsJsonObject("dimensions").entrySet().iterator().next()
 				.getValue().getAsJsonObject();
 	}
+
+	private static String read(Path path) throws IOException {
+		return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+	}
 }
