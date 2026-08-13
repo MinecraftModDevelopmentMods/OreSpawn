@@ -36,7 +36,7 @@ import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 class LegacyMineralogyProfileMigrationTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
-        Bootstrap.register();
+        Bootstrap.bootStrap();
     }
 
     @Test
@@ -97,9 +97,9 @@ class LegacyMineralogyProfileMigrationTest {
     }
 
     @Test
-    void publishedMineralogy501TomlPreservesEngineNumbersAndAllLists(@TempDir Path root)
+    void publishedMineralogy520TomlPreservesEngineNumbersAndAllLists(@TempDir Path root)
             throws Exception {
-        Path world = existingWorld(root, "fml", "LoadingModList", "5.0.1");
+        Path world = existingWorld(root, "fml", "LoadingModList", "5.2.0");
         Path config = config(root, "mineralogy-common.toml",
                 "[options]\n"
                 + "PLACE_MINERALOGY_ROCK = true\n"
@@ -246,7 +246,7 @@ class LegacyMineralogyProfileMigrationTest {
         cyano.addProperty("migrated_from", "test");
         root.add("cyano", cyano);
         BlockState[] resolved = Geology.resolveRockOrder(base.withRoot(root),
-                "sedimentary_rocks", new BlockState[] { Blocks.BEDROCK.getDefaultState() });
+                "sedimentary_rocks", new BlockState[] { Blocks.BEDROCK.defaultBlockState() });
         assertEquals(3, resolved.length);
         assertEquals(Blocks.SANDSTONE, resolved[0].getBlock());
         assertEquals(Blocks.COAL_ORE, resolved[1].getBlock());
@@ -257,7 +257,7 @@ class LegacyMineralogyProfileMigrationTest {
         missingCyano.add("igneous_rocks", array("missingmod:removed_rock"));
         missingCyano.addProperty("migrated_from", "test");
         missingRoot.add("cyano", missingCyano);
-        BlockState[] fallback = { Blocks.OBSIDIAN.getDefaultState() };
+        BlockState[] fallback = { Blocks.OBSIDIAN.defaultBlockState() };
         assertEquals(Blocks.OBSIDIAN, Geology.resolveRockOrder(base.withRoot(missingRoot),
                 "igneous_rocks", fallback)[0].getBlock());
     }
