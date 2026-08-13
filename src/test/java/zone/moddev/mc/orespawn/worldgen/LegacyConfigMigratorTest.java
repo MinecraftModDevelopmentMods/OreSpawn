@@ -57,6 +57,9 @@ class LegacyConfigMigratorTest {
 		assertTrue(ore(ores, "starsteel_ore").getAsJsonObject("dimensions").has("minecraft:the_end"));
 		assertEquals(127, rule(ore(ores, "coldiron_ore")).get("max_y").getAsInt());
 		assertEquals(0.125D, rule(ore(ores, "platinum_ore")).get("frequency").getAsDouble());
+		String upgradeReport = read(temporary.resolve("orespawn-upgrade-report.txt"));
+		assertTrue(upgradeReport.contains("Spawn definitions imported: 11"));
+		assertTrue(upgradeReport.contains("Original legacy configuration files were retained unchanged"));
 	}
 
 	@Test
