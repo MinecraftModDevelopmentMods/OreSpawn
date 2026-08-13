@@ -200,6 +200,133 @@ javadoc {
 
 test {
     useJUnitPlatform()
+    // Loaded only through an isolated URLClassLoader by the parity test. This
+    // is deliberately not a Gradle dependency and cannot leak into Eclipse or
+    // a published OreSpawn jar.
+    File mineralogy5Oracle = file('../../MinecraftMineralogy 114-new/MinecraftMineralogy/build/libs/Mineralogy-1.14.4-5.0.1.jar')
+    if (mineralogy5Oracle.isFile()) {
+        systemProperty 'orespawn.mineralogy5Oracle', mineralogy5Oracle.absolutePath
+    }
+}
+
+// A Forge process is not green merely because it returns exit code zero. The
+// loader can log a worldgen/linkage failure and still shut down normally.
+def acceptedForge28LogNoise = [
+        ~/FML appears to be missing any signature data/,
+        ~/Found multiple arguments for option fml\.mcVersion/,
+        ~/Found multiple arguments for option fml\.forgeVersion/,
+        ~/\/FATAL\] \[net\.minecraftforge\.common\.ForgeConfig\/CORE\]: Forge config just got changed on the file system!$/,
+        ~/\/FATAL\] \[net\.minecraftforge\.fml\.packs\.ModFileResourcePack\/\]: Failed to clean up tempdir /
+]
+
+def runtimeCrashSnapshot = { File runDirectory ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (!crashDirectory.isDirectory()) return [] as Set
+    return fileTree(crashDirectory) { include '**/*' }.files
+            .findAll { it.isFile() }.collect { it.absolutePath } as Set
+}
+
+def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrashes ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        def crashes = fileTree(crashDirectory) { include '**/*' }.files
+                .findAll { it.isFile() && !priorCrashes.contains(it.absolutePath) }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (!logsDirectory.isDirectory()) return
+    def failures = []
+    [new File(logsDirectory, 'latest.log'), new File(logsDirectory, 'debug.log')]
+            .findAll { it.isFile() }.each { File log ->
+        int lineNumber = 0
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean knownNoise = acceptedForge28LogNoise.any { line =~ it }
+            boolean fatalText = line.contains('Encountered an unexpected exception') ||
+                    line.contains('Exception stopping the server') ||
+                    line.contains('Migration audit failed') ||
+                    line.contains('java.lang.Error:') ||
+                    line.contains('NoSuchMethodError') ||
+                    line.contains('NoClassDefFoundError') ||
+                    line.contains('ExceptionInInitializerError') ||
+                    line.contains('Tried to assign a mutable BlockPos') ||
+                    line.contains('causing cascading worldgen lag')
+            if ((unexpectedSeverity && !knownNoise) || fatalText) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+task runtimeLogScannerTest {
+    group = 'verification'
+    description = 'Proves runtime log validation accepts documented Forge noise and rejects real failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs'); logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[main/ERROR] [FML]: FML appears to be missing any signature data\n'
+                + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe', [] as Set)
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-mutable-position-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/DEBUG] [FML]: Minecraft loaded a new chunk while populating another, causing cascading worldgen lag.\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-cascading-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted cascading worldgen')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-severity-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        delete probe
+    }
+}
+
+check.dependsOn runtimeLogScannerTest
+
+task verifyMineralogyOracleIsolation {
+    group = 'verification'
+    description = 'Prevents published Mineralogy engines from leaking into Gradle configurations or ordinary Eclipse launches.'
+    doLast {
+        configurations.each { configuration ->
+            if (configuration.canBeResolved &&
+                    configuration.files.any { it.name ==~ /Mineralogy-.*\.jar/ }) {
+                throw new GradleException("Mineralogy oracle leaked into Gradle configuration ${configuration.name}")
+            }
+        }
+    }
+}
+
+check.dependsOn verifyMineralogyOracleIsolation
+
+['runClient', 'runServer', 'runData'].each { String taskName ->
+    tasks.matching { it.name == taskName }.all { JavaExec runTask ->
+        doFirst {
+            new File(runTask.workingDir, 'mods').mkdirs()
+            runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
+        }
+        doLast {
+            assertRuntimeLogsClean(runTask.workingDir, taskName,
+                    runTask.ext.oreSpawnCrashSnapshot as Set)
+        }
+    }
 }
 
 def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
@@ -291,8 +418,14 @@ surfaceIntegrationFreshProcess.doLast {
     if (!marker.isFile()) {
         throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
     }
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+            'surface integration fresh phase', [] as Set)
 }
 def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
+surfaceIntegrationReloadProcess.doLast {
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+            'surface integration reload phase', [] as Set)
+}
 
 task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
     group = 'verification'
@@ -341,6 +474,11 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
 					/<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
 					java.util.regex.Matcher.quoteReplacement(
 							"<mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>"))
+			if (!text.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+				text = text.replace('</launchConfiguration>',
+						'    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE" value="true"/>\r\n' +
+						'</launchConfiguration>')
+			}
 			launch.setText(text, 'UTF-8')
 		}
         ['Fresh', 'Reload'].each { String phase ->
@@ -364,6 +502,22 @@ task syncForge28EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
         }
     }
 }
+
+task verifyForge28EclipseLaunchIsolation {
+    group = 'verification'
+    doLast {
+        ['runClient.launch', 'runServer.launch', 'runData.launch'].each { String launchName ->
+            File launch = file(launchName)
+            String launchText = launch.getText('UTF-8')
+            if (launchText.contains('Mineralogy-') ||
+                    !launchText.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+                throw new GradleException("Ordinary Eclipse launch is not isolated from test oracles: ${launch}")
+            }
+        }
+    }
+}
+
+syncForge28EclipseLaunches.finalizedBy verifyForge28EclipseLaunchIsolation
 
 tasks.matching { it.name == 'genEclipseRuns' }.all {
     finalizedBy syncForge28EclipseLaunches
