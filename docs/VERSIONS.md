@@ -1,6 +1,6 @@
 # Mod Versioning Policy
 
-This document defines how versions are assigned to MMD mods. 
+This document defines how versions are assigned to MMD mods.
 It separates the version of the mod from the Minecraft version that the mod supports.
 
 ## Version format
