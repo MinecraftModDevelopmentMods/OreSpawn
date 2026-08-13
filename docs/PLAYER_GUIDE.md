@@ -94,3 +94,20 @@ the same mods. Alternatively, place a prepared global profile at
 
 The server console commands `/orespawn status`, `/orespawn reload`, and
 `/orespawn dump-biomes` help pack authors diagnose active providers and IDs.
+
+### Upgrading a Mineralogy world
+
+If the world was already generated with Mineralogy 1.10, 1.12, or 5.x and has
+no OreSpawn world profile yet, OreSpawn reads the Mineralogy version saved in
+the world and the matching old configuration. It preserves the selected
+engine, numeric settings, rock order, and lists rather than silently applying
+new-world defaults. Look for:
+
+```text
+<world>/serverconfig/orespawn-upgrade-report.txt
+```
+
+The report explains what was detected and retained, including any missing rock
+IDs or fallback values. OreSpawn leaves the old configuration and generated
+chunks untouched. A fresh world does not inherit this behavior merely because
+an old Mineralogy config is still present in the instance.
