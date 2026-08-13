@@ -23,10 +23,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
@@ -308,7 +308,7 @@ final class LegacyMineralogyProfileMigration {
             Path levelDat = worldRoot.resolve(fileName);
             if (!Files.isRegularFile(levelDat)) continue;
             try (FileInputStream input = new FileInputStream(levelDat.toFile())) {
-                CompoundNBT root = CompressedStreamTools.readCompressed(input);
+                CompoundTag root = NbtIo.readCompressed(input);
                 MineralogyIdentity identity = identity(root, fileName);
                 if (identity != null) return identity.legacy ? identity : null;
             } catch (IOException | RuntimeException e) {
@@ -318,12 +318,12 @@ final class LegacyMineralogyProfileMigration {
         return null;
     }
 
-    private static MineralogyIdentity identity(CompoundNBT root, String sourceFile) {
+    private static MineralogyIdentity identity(CompoundTag root, String sourceFile) {
         for (ModListPath path : MOD_LIST_PATHS) {
-            CompoundNBT container = root.getCompound(path.compound);
-            ListNBT mods = container.getList(path.list, 10);
+            CompoundTag container = root.getCompound(path.compound);
+            ListTag mods = container.getList(path.list, 10);
             for (int i = 0; i < mods.size(); i++) {
-                CompoundNBT mod = mods.getCompound(i);
+                CompoundTag mod = mods.getCompound(i);
                 String id = firstNonBlank(mod.getString("ModId"), mod.getString("modid"));
                 if (!"mineralogy".equalsIgnoreCase(id)) continue;
                 String version = firstNonBlank(mod.getString("ModVersion"), mod.getString("version")).trim();

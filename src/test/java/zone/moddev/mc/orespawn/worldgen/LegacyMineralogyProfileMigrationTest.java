@@ -20,12 +20,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.registry.Bootstrap;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,8 @@ import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 class LegacyMineralogyProfileMigrationTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
-        Bootstrap.register();
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
     }
 
     @Test
@@ -97,9 +99,9 @@ class LegacyMineralogyProfileMigrationTest {
     }
 
     @Test
-    void publishedMineralogy501TomlPreservesEngineNumbersAndAllLists(@TempDir Path root)
+    void publishedMineralogy530TomlPreservesEngineNumbersAndAllLists(@TempDir Path root)
             throws Exception {
-        Path world = existingWorld(root, "fml", "LoadingModList", "5.0.1");
+        Path world = existingWorld(root, "fml", "LoadingModList", "5.3.0");
         Path config = config(root, "mineralogy-common.toml",
                 "[options]\n"
                 + "PLACE_MINERALOGY_ROCK = true\n"
@@ -246,7 +248,7 @@ class LegacyMineralogyProfileMigrationTest {
         cyano.addProperty("migrated_from", "test");
         root.add("cyano", cyano);
         BlockState[] resolved = Geology.resolveRockOrder(base.withRoot(root),
-                "sedimentary_rocks", new BlockState[] { Blocks.BEDROCK.getDefaultState() });
+                "sedimentary_rocks", new BlockState[] { Blocks.BEDROCK.defaultBlockState() });
         assertEquals(3, resolved.length);
         assertEquals(Blocks.SANDSTONE, resolved[0].getBlock());
         assertEquals(Blocks.COAL_ORE, resolved[1].getBlock());
@@ -257,7 +259,7 @@ class LegacyMineralogyProfileMigrationTest {
         missingCyano.add("igneous_rocks", array("missingmod:removed_rock"));
         missingCyano.addProperty("migrated_from", "test");
         missingRoot.add("cyano", missingCyano);
-        BlockState[] fallback = { Blocks.OBSIDIAN.getDefaultState() };
+        BlockState[] fallback = { Blocks.OBSIDIAN.defaultBlockState() };
         assertEquals(Blocks.OBSIDIAN, Geology.resolveRockOrder(base.withRoot(missingRoot),
                 "igneous_rocks", fallback)[0].getBlock());
     }
@@ -285,17 +287,17 @@ class LegacyMineralogyProfileMigrationTest {
 
     private static void writeLevelDat(Path world, String compound, String list,
             String version) throws IOException {
-        CompoundNBT root = new CompoundNBT();
-        CompoundNBT fml = new CompoundNBT();
-        ListNBT mods = new ListNBT();
-        CompoundNBT mod = new CompoundNBT();
+        CompoundTag root = new CompoundTag();
+        CompoundTag fml = new CompoundTag();
+        ListTag mods = new ListTag();
+        CompoundTag mod = new CompoundTag();
         mod.putString("ModId", "mineralogy");
         mod.putString("ModVersion", version);
         mods.add(mod);
         fml.put(list, mods);
         root.put(compound, fml);
         try (FileOutputStream output = new FileOutputStream(world.resolve("level.dat").toFile())) {
-            CompressedStreamTools.writeCompressed(root, output);
+            NbtIo.writeCompressed(root, output);
         }
     }
 
