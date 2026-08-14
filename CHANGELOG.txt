@@ -1,9 +1,10 @@
-Version 4.0.6
+Version 4.0.6.115021
 
+* Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
 * Preserve generated worlds made with Mineralogy 1.10, 1.12, or 5.x by reading their saved mod metadata and exact legacy configuration before creating the OreSpawn world profile.
 * Write human-readable, idempotent upgrade reports for legacy OreSpawn and Mineralogy imports while retaining source files and existing chunks unchanged.
 * Audit automated runtime logs and dynamic-fluid generation so logged worldgen failures cannot pass merely because the process exits normally.
-* Port OreSpawn 4.0.6 to Minecraft 1.15.2 and Forge 31.2.57 using Java 8.
+* Port OreSpawn 4.0.6.115021 to Minecraft 1.15.2 and Forge 31.2.57 using Java 8.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
