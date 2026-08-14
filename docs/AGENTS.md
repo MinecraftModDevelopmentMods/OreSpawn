@@ -11,5 +11,5 @@ Use the focused guides for implementation details:
 - [BIOMES.md](BIOMES.md) and [DIMENSIONS.md](DIMENSIONS.md) for world integration;
 - [TEMPLATES.md](TEMPLATES.md) for selectable world styles;
 - [CONFIGURATION.md](CONFIGURATION.md) for configuration behavior;
-- [VERSIONS.md](VERSIONS.md) for the shared mod versioning and branch-release convention;
+- [VERSIONS.md](VERSIONS.md) for the shared four-component target-qualified versioning and branch-release convention;
 - [README.md](README.md) for schemas, examples, and the complete documentation index.
