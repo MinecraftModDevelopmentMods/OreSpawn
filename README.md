@@ -39,9 +39,19 @@ Important files:
 | `<world>/serverconfig/orespawn-worldgen.json` | Complete settings snapshot for one world |
 | `config/<modid>-orespawn.json` | Optional modpack override for one provider |
 | `config/orespawn-guide/README.md` | Guide exported automatically on first load |
+| `config/orespawn-upgrade-report.txt` | Human summary produced when legacy OreSpawn rules are imported |
+| `<world>/serverconfig/orespawn-upgrade-report.txt` | Human summary produced when a generated legacy Mineralogy world is pinned to its saved settings |
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
+metadata but no OreSpawn world profile, OreSpawn reads the matching published
+configuration contract and records the exact engine, numeric settings, rock
+order, and white/blacklists in the new world profile. Saved-world identity
+wins over stale files in the installation. A fresh world is never reclassified
+merely because an old `mineralogy.cfg` or `mineralogy-common.toml` remains in
+the instance.
 
 To move a configured single-player world to a dedicated server, copy the
 world's `serverconfig/orespawn-worldgen.json` with the world and install the
