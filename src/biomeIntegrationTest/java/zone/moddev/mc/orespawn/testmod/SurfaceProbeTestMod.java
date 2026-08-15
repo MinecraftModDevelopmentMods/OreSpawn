@@ -102,6 +102,7 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
+	private static final ResourceLocation DYNAMIC_FLUID = new ResourceLocation(MODID + ":fluid/dynamic_water");
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn:stable_craton"), new ResourceLocation("orespawn:mountain_belt"),
 			new ResourceLocation("orespawn:volcanic_arc"), new ResourceLocation("orespawn:sedimentary_basin"),
@@ -176,6 +177,16 @@ public final class SurfaceProbeTestMod {
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addDynamicBiomeGeology(provider);
+		provider.fluidDeposit(DYNAMIC_FLUID, blockId(Blocks.WATER), deposit -> deposit
+				.dimension(OPEN_ID, placement -> placement
+						.yRange(16, 24)
+						.attempts(12.0D)
+						.radius(1, 1)
+						.verticalRadius(1, 1)
+						.maxLobes(1)
+						.minSolidCover(1)
+						.minSolidShell(1)
+						.hostBlock(blockId(Blocks.DIORITE))));
 		addPalette(provider, "open_palette_0", OPEN_ID, false);
 		addPalette(provider, "roofed_palette_0", ROOFED_ID, true);
 		provider.dimensionMaterials(new ResourceLocation(MODID + ":materials/nether"), ROOFED_ID,
@@ -215,6 +226,7 @@ public final class SurfaceProbeTestMod {
 			throw new IllegalStateException("Could not read the test-owned End geology profile", exception);
 		}
 		try {
+			root.addProperty("place_fluid_deposits", true);
 			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
 			if (terrain == null) {
 				terrain = new JsonObject();
@@ -428,21 +440,21 @@ public final class SurfaceProbeTestMod {
 					+ ", sentinels=" + sentinels + ", geology=" + geology
 					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop);
 		}
-		long aquiferFluid = roofed ? auditDefaultFluid(level) : 0L;
+		long aquiferFluid = roofed ? 0L : auditDynamicFluid(level);
 		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
 				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid);
 	}
 
-	private static long auditDefaultFluid(ServerWorld level) {
+	private static long auditDynamicFluid(ServerWorld level) {
 		BlockPos.Mutable pos = new BlockPos.Mutable();
 		long water = 0L;
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
-			for (int chunkX = FLUID_PROBE_MIN_CHUNK_X; chunkX <= FLUID_PROBE_MAX_CHUNK_X; chunkX++) {
+			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
 				level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
 				Chunk chunk = level.getChunk(chunkX, chunkZ);
 				for (int x = chunk.getPos().getMinBlockX(); x <= chunk.getPos().getMaxBlockX(); x++) {
 					for (int z = chunk.getPos().getMinBlockZ(); z <= chunk.getPos().getMaxBlockZ(); z++) {
-						for (int y = 0; y <= 63; y++) {
+						for (int y = 12; y <= 30; y++) {
 							if (chunk.getBlockState(pos.set(x, y, z)).is(Blocks.WATER)) water++;
 						}
 					}
@@ -450,7 +462,7 @@ public final class SurfaceProbeTestMod {
 			}
 		}
 		if (water == 0L) {
-			throw new IllegalStateException("Minecraft 1.17.1 default-fluid override produced no water in the fixed untouched Nether probe strip");
+			throw new IllegalStateException("Forge 36 dynamic fluid deposit produced no covered flowing-water blocks");
 		}
 		return water;
 	}
@@ -642,7 +654,7 @@ public final class SurfaceProbeTestMod {
 					chunk.setBlockState(pos.set(x, groundY - depth, z), Blocks.DIRT.defaultBlockState(), false);
 				}
 				if (!roofed) {
-					for (int depth = 6; depth <= 8; depth++) {
+					for (int depth = 6; depth <= 60 && groundY - depth >= 1; depth++) {
 						chunk.setBlockState(pos.set(x, groundY - depth, z), Blocks.END_STONE.defaultBlockState(), false);
 					}
 				}
