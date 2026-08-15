@@ -314,6 +314,55 @@ class WorldGeologyProfileTest {
 	}
 
 	@Test
+	void os404GlobalOnlyProfilePreservesCustomValuesAndProviderDefinitions() {
+		JsonObject global = completeGlobalFixture();
+		global.getAsJsonObject("formations").addProperty("edge_irregularity", "custom");
+		global.getAsJsonObject("formations").getAsJsonObject("custom")
+				.addProperty("edge_amplitude", 37.25D);
+		JsonObject provider = new JsonObject();
+		provider.addProperty("provider_revision", 44);
+		global.getAsJsonObject("providers").add("example:rocks", provider);
+
+		JsonObject result = WorldGeologyProfile.fromGlobalConfig(global,
+				GeologyMode.GEOME, false).toJson();
+
+		assertEquals(37.25D, result.getAsJsonObject("formations")
+				.getAsJsonObject("custom").get("edge_amplitude").getAsDouble());
+		assertEquals(44, result.getAsJsonObject("providers")
+				.getAsJsonObject("example:rocks").get("provider_revision").getAsInt());
+	}
+
+	@Test
+	void os404WorldProfileWinsOverGlobalAndReloadsByteStable(@TempDir Path temporaryDirectory)
+			throws IOException {
+		JsonObject global = completeGlobalFixture();
+		global.getAsJsonObject("formations").getAsJsonObject("custom")
+				.addProperty("edge_amplitude", 91.0D);
+		JsonObject world = completeGlobalFixture();
+		world.getAsJsonObject("formations").addProperty("edge_irregularity", "custom");
+		world.getAsJsonObject("formations").getAsJsonObject("custom")
+				.addProperty("edge_amplitude", 23.5D);
+		JsonObject provider = new JsonObject();
+		provider.addProperty("provider_revision", 17);
+		world.getAsJsonObject("providers").add("example:world_provider", provider);
+		Path profilePath = temporaryDirectory.resolve("orespawn-worldgen.json");
+		Files.write(profilePath, world.toString().getBytes(StandardCharsets.UTF_8));
+		WorldGeologyProfile fallback = WorldGeologyProfile.fromGlobalConfig(global,
+				GeologyMode.GEOME, true);
+
+		WorldGeologyProfile first = WorldGeologyProfileManager.readProfile(profilePath, fallback);
+		byte[] persisted = Files.readAllBytes(profilePath);
+		WorldGeologyProfile second = WorldGeologyProfileManager.readProfile(profilePath, fallback);
+
+		assertEquals(23.5D, first.toJson().getAsJsonObject("formations")
+				.getAsJsonObject("custom").get("edge_amplitude").getAsDouble());
+		assertEquals(17, first.toJson().getAsJsonObject("providers")
+				.getAsJsonObject("example:world_provider").get("provider_revision").getAsInt());
+		assertEquals(first.toJson(), second.toJson());
+		assertTrue(Arrays.equals(persisted, Files.readAllBytes(profilePath)));
+	}
+
+	@Test
 	void oreDefaultsUpgradeCanonicalPluralPatternNames() {
 		JsonObject original = oreDefaultsFixture(12.0D);
 		JsonObject rule = original.getAsJsonObject("ores").getAsJsonObject("minecraft:coal_ore")
