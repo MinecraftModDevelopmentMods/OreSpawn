@@ -27,6 +27,7 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraft.server.level.ServerLevel;
 
 import org.apache.logging.log4j.LogManager;
@@ -135,15 +136,22 @@ public final class WorldGeologyProfileManager {
 				LOGGER.info("Merged new OreSpawn worldgen-provider definitions into '{}'", profilePath);
 			}
 		} else {
-			pending = consumePendingProfile();
 			boolean generatedWorld = hasGeneratedOverworldChunks(worldRoot);
+			pending = consumePendingProfile();
 			String source;
-			if (pending != null) {
+			if (generatedWorld) {
+				WorldGeologyProfile legacyMineralogy = LegacyMineralogyProfileMigration.migrateIfNeeded(
+						worldRoot, FMLPaths.CONFIGDIR.get(), GeomeConfig.globalBaseProfile());
+				if (legacyMineralogy != null) {
+					profile = legacyMineralogy;
+					source = "legacy Mineralogy settings (existing world)";
+				} else {
+					profile = GeomeConfig.globalBaseProfile();
+					source = "instance (existing world)";
+				}
+			} else if (pending != null) {
 				profile = pending;
 				source = "Create World";
-			} else if (generatedWorld) {
-				profile = GeomeConfig.globalBaseProfile();
-				source = "instance (existing world)";
 			} else {
 				profile = fallback.copy();
 				source = "installed-pack fresh-world";
