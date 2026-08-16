@@ -17,6 +17,14 @@ packaged or API providers, provider override files, the global configuration,
 the selected template, and Create World edits. The result is saved with the
 world. Restart after editing JSON by hand.
 
+An existing generated world follows a stricter safety order. Its existing
+`serverconfig/orespawn-worldgen.json` always wins. If none exists, saved legacy
+Mineralogy mod metadata may select the matching 1.10, 1.12, or 5.x config
+contract before the world profile is first written. Installed-pack defaults,
+Create World choices, and unrelated stale legacy files cannot override that
+saved-world identity. See `MIGRATION.md` and the generated per-world upgrade
+report for the exact decision.
+
 ## Top-Level Fields
 
 | Field | Values | Meaning |
@@ -75,9 +83,30 @@ When a control is `custom`, its value comes from `formations.custom`:
 | `edge_octaves` | 1-8 | Number of boundary-detail scales |
 | `continuity` | 0-1 | Proportion of formations retaining global identity |
 
+For Stable Layers, the Edge Detail presets use these
+`wavelength / amplitude / octaves` values:
+
+| Preset | Edge detail |
+|---|---:|
+| Tiny | `48 / 4 / 1` |
+| Small | `64 / 12 / 2` |
+| Average | `96 / 24 / 3` |
+| Large | `128 / 48 / 4` |
+| Huge | `192 / 96 / 5` |
+
+Average is calibrated to retain visible variation at later layer contacts.
+Custom profiles keep their explicit values; these numbers are only used by the
+named presets and as defaults for new Custom settings.
+
 Cyano settings use `cyano.geome_size` (4-32767),
 `cyano.rock_layer_noise` (1-32767), and `cyano.rock_layer_thickness` (1-255).
 They are ignored by Sky.
+
+Profiles created from a legacy Mineralogy world also retain
+`cyano.enabled`, `cyano.realistic_coal_layers`, the three effective
+`*_rocks` arrays, the six original `*_whitelist`/`*_blacklist` arrays, and
+source/version fields. These are migration snapshots, not new settings that a
+fresh pack needs to author.
 
 ## Rocks And Geomes
 
@@ -90,6 +119,10 @@ weight by province. A weight of zero prevents selection in that context.
 Geomes contain a non-negative `base` weight and non-negative weights for each
 rock family. Biome and biome-dictionary maps multiply those geome weights.
 Missing optional-mod biome IDs are ignored during baking.
+Exact biome-ID maps remain effective when the target uses a dynamic biome
+registry. With Stable Layers, a close contest between two geomes transitions
+at a deterministic position per layer so the whole underground column does
+not change on one sheer plane.
 
 Terrain dimensions require `enabled`, `host_blocks`, and `host_tags`.
 `biome_ids` and `biome_namespaces` can narrow a custom dimension. The Overworld

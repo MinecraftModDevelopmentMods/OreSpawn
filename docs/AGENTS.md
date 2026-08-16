@@ -1,6 +1,7 @@
 # OreSpawn Documentation Map
 
-This index is for navigating the documentation to learn how to integrate with and to use OreSpawn with a mod or modpack.
+This index is for navigating the documentation to learn how to integrate with
+and use OreSpawn with a mod or modpack.
 Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 Use the focused guides for implementation details:
@@ -11,4 +12,6 @@ Use the focused guides for implementation details:
 - [BIOMES.md](BIOMES.md) and [DIMENSIONS.md](DIMENSIONS.md) for world integration;
 - [TEMPLATES.md](TEMPLATES.md) for selectable world styles;
 - [CONFIGURATION.md](CONFIGURATION.md) for configuration behavior;
+- [VERSIONS.md](VERSIONS.md) for the shared four-component target-qualified
+  versioning and branch-release convention;
 - [README.md](README.md) for schemas, examples, and the complete documentation index.

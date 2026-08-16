@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.resources.Identifier;
-import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class BakedGeomeConfig {
 	static final int MIN_Y = -64;
@@ -48,7 +47,7 @@ public final class BakedGeomeConfig {
 
 	BakedGeomeConfig(GeomeDefinition[] geomes, double geomeScale, double biomeInfluence,
 			double regionalNoiseInfluence, double boundaryNoiseInfluence, Map<Biome, double[]> biomeWeights,
-			RockEntry[] rocks, FormationSettings formations) {
+			Map<Identifier, double[]> biomeWeightsById, RockEntry[] rocks, FormationSettings formations) {
 		this.geomes = geomes;
 		this.geomeScale = geomeScale;
 		this.biomeInfluence = biomeInfluence;
@@ -57,9 +56,9 @@ public final class BakedGeomeConfig {
 		this.formations = formations;
 		this.familyDiversitySlots = formations.familyDiversitySlots();
 		this.biomeWeights = new IdentityHashMap<>(biomeWeights);
-		this.biomeWeightsById = new HashMap<>();
+		this.biomeWeightsById = new HashMap<>(biomeWeightsById);
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
-			Identifier biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(entry.getKey());
+			Identifier biomeId = BiomeRegistryAccess.id(entry.getKey());
 			if (biomeId != null) {
 				biomeWeightsById.put(biomeId, entry.getValue());
 			}
@@ -106,6 +105,23 @@ public final class BakedGeomeConfig {
 			}
 		}
 
+		return bestIndex;
+	}
+
+	int scoreGeomes(Biome biome, Identifier biomeId, double[] regionalNoiseAndScores, double boundaryNoise) {
+		double[] weights = biomeWeightsFor(biome, biomeId);
+		double bestScore = Double.NEGATIVE_INFINITY;
+		int bestIndex = 0;
+		for (int i = 0; i < geomes.length; i++) {
+			double boundary = ((i & 1) == 0 ? boundaryNoise : -boundaryNoise) * boundaryNoiseInfluence;
+			double score = geomes[i].baseWeight + (weights[i] * biomeInfluence)
+					+ (regionalNoiseAndScores[i] * regionalNoiseInfluence) + boundary;
+			regionalNoiseAndScores[i] = score;
+			if (score > bestScore) {
+				bestScore = score;
+				bestIndex = i;
+			}
+		}
 		return bestIndex;
 	}
 
@@ -213,7 +229,7 @@ public final class BakedGeomeConfig {
 		double[] weights = biomeWeights.get(biome);
 		String source = "identity";
 		if (weights == null) {
-			Identifier biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			Identifier biomeId = BiomeRegistryAccess.id(biome);
 			weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
 			source = "registry-id";
 		}
@@ -232,7 +248,7 @@ public final class BakedGeomeConfig {
 	}
 
 	String dominantBiomeWeight(Biome biome) {
-		double[] weights = biomeWeightsFor(biome, zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome));
+		double[] weights = biomeWeightsFor(biome, BiomeRegistryAccess.id(biome));
 		int best = 0;
 		for (int i = 1; i < weights.length; i++) {
 			if (weights[i] > weights[best]) {
@@ -243,7 +259,7 @@ public final class BakedGeomeConfig {
 	}
 
 	boolean hasDistinctBiomeWeights(Biome biome) {
-		double[] weights = biomeWeightsFor(biome, zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome));
+		double[] weights = biomeWeightsFor(biome, BiomeRegistryAccess.id(biome));
 		double first = weights[0];
 		for (int i = 1; i < weights.length; i++) {
 			if (Math.abs(weights[i] - first) > 0.000001D) {

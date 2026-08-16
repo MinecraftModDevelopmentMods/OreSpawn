@@ -198,10 +198,11 @@ bounded ore or bedrock retrogen is enabled.
 6. Confirm the provider appears in `/orespawn status`.
 7. Test a new world; profile edits do not rewrite already generated terrain.
 
-OreSpawn's own standard `check` lifecycle includes a consumer-style biome
-integration test. It loads a separate test provider and datapack biome, proves
-the provider is active, verifies biome selection, climate and configured
-surface blocks in non-flat terrain, then reopens and rechecks the same saved
-world. Run `gradlew check` (or `gradlew build`, which includes it) before
-publishing any change to biome registration, palettes, surfaces or profile
-persistence.
+OreSpawn's own standard `check` lifecycle includes a consumer-style surface
+integration test. A separate test provider creates independently marked
+Grass/Dirt, underwater, filler, and roof columns in open and ceiling
+normal-noise dimensions. The gate verifies biome and chunk edges, late tree,
+vegetation, structure and chest sentinels, the roof underside, and exact save
+reload behavior. Run `gradlew check` (or `gradlew build`, which includes it)
+before publishing any change to biome registration, palettes, surfaces,
+feature ordering, height handling, or profile persistence.
