@@ -14,13 +14,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GameTestMainUtil.class)
 abstract class GameTestMainUtilMixin {
 	@Inject(method = "createOrResetDir", at = @At("HEAD"), cancellable = true, remap = false)
-	private static void cakeworldprobe$preserveReloadUniverse(String universePath,
+	private static void surfaceprobe$preserveReloadUniverse(String universePath,
 			CallbackInfo callback) {
-		if (!"reload".equals(System.getProperty("cakeworld.biomeIntegrationPhase"))) return;
+		if (!"reload".equals(System.getProperty("surfaceprobe.integrationPhase"))) return;
 		Path universe = Path.of(universePath);
 		if (!Files.isDirectory(universe)) {
 			throw new IllegalStateException(
-					"Biome integration reload universe is missing: " + universe);
+					"Surface integration reload universe is missing: " + universe);
 		}
 		callback.cancel();
 	}
