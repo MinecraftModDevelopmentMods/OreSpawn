@@ -201,6 +201,7 @@ tasks.withType(JavaCompile).configureEach {
 tasks.named('javadoc', Javadoc).configure {
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
+    options.addBooleanOption('-no-fonts', true)
 }
 
 tasks.named('test', Test).configure {
