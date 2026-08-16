@@ -5,6 +5,7 @@ Version 4.0.6
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
 * Honour exact biome-to-geome weights on dynamic biome registries.
 * Stagger close Stable Layers geome transitions by layer instead of changing a whole rock column at one boundary.
+* Recalibrate Stable Layers edge-detail presets so Average retains natural variation at later rock contacts.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 3.3.1
