@@ -206,6 +206,167 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    // Unit tests inspect target files relative to the checkout, but they do
+    // not need NeoForge's rolling runtime files. A console-only logger keeps
+    // them from contending with Eclipse/client logs in this working directory.
+    systemProperty 'log4j.configurationFile', file('src/test/resources/log4j2-test.xml').absolutePath
+    // Loaded only through an isolated URLClassLoader by the parity test. This
+    // is deliberately not a Gradle dependency and cannot leak into Eclipse or
+    // a published OreSpawn jar.
+    File mineralogy5Oracle = file('../../MinecraftMineralogy 118/MinecraftMineralogy/build/libs/Mineralogy-1.18.2-5.4.0.jar')
+    if (mineralogy5Oracle.isFile()) {
+        systemProperty 'orespawn.mineralogy5Oracle', mineralogy5Oracle.absolutePath
+    }
+}
+
+// Several registry-focused tests initialize the real global config singleton.
+// Keep that target-native coverage without creating or changing a developer's
+// checkout config as a side effect of `test` or `build`.
+def unitTestWorldgenConfig = file('config/orespawn-worldgen.json')
+def unitTestWorldgenConfigWasPresent = false
+byte[] unitTestWorldgenConfigBytes = null
+tasks.named('test', Test).configure {
+    doFirst {
+        unitTestWorldgenConfigWasPresent = unitTestWorldgenConfig.isFile()
+        unitTestWorldgenConfigBytes = unitTestWorldgenConfigWasPresent
+                ? unitTestWorldgenConfig.bytes : null
+    }
+}
+def preserveDeveloperWorldgenConfig = tasks.register('preserveDeveloperWorldgenConfig') {
+    doLast {
+        if (unitTestWorldgenConfigWasPresent) {
+            byte[] after = unitTestWorldgenConfig.isFile() ? unitTestWorldgenConfig.bytes : null
+            if (after == null || !java.util.Arrays.equals(unitTestWorldgenConfigBytes, after)) {
+                unitTestWorldgenConfig.parentFile.mkdirs()
+                unitTestWorldgenConfig.bytes = unitTestWorldgenConfigBytes
+                throw new GradleException('Unit tests changed config/orespawn-worldgen.json; the original was restored')
+            }
+        } else if (unitTestWorldgenConfig.isFile()) {
+            delete unitTestWorldgenConfig
+        }
+    }
+}
+tasks.named('test') {
+    finalizedBy preserveDeveloperWorldgenConfig
+}
+
+// A NeoForge process is not green merely because it returns exit code zero.
+// The loader can log a worldgen/linkage failure and still shut down normally.
+// No ERROR/FATAL line has been accepted as harmless on NeoForge 26.2; add an
+// exception only after reproducing it in the matching loader control.
+def acceptedNeoForge262LogNoise = []
+
+def runtimeCrashSnapshot = { File runDirectory ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (!crashDirectory.isDirectory()) return [] as Set
+    return fileTree(crashDirectory) { include '**/*' }.files
+            .findAll { it.isFile() }.collect { it.absolutePath } as Set
+}
+
+def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrashes ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        def crashes = fileTree(crashDirectory) { include '**/*' }.files
+                .findAll { it.isFile() && !priorCrashes.contains(it.absolutePath) }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (!logsDirectory.isDirectory()) return
+    def failures = []
+    [new File(logsDirectory, 'latest.log'), new File(logsDirectory, 'debug.log')]
+            .findAll { it.isFile() }.each { File log ->
+        int lineNumber = 0
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean knownNoise = acceptedNeoForge262LogNoise.any { line =~ it }
+            boolean fatalText = line.contains('Encountered an unexpected exception') ||
+                    line.contains('Exception stopping the server') ||
+                    line.contains('Migration audit failed') ||
+                    line.contains('java.lang.Error:') ||
+                    line.contains('NoSuchMethodError') ||
+                    line.contains('NoClassDefFoundError') ||
+                    line.contains('ExceptionInInitializerError') ||
+                    line.contains('Tried to assign a mutable BlockPos') ||
+                    line.contains('causing cascading worldgen lag')
+            if ((unexpectedSeverity && !knownNoise) || fatalText) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+tasks.register('runtimeLogScannerTest') {
+    group = 'verification'
+    description = 'Proves runtime log validation rejects real NeoForge failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs'); logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[Server thread/INFO] [neoforge]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-clean-log-probe', [] as Set)
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-mutable-position-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/DEBUG] [neoforge]: Minecraft loaded a new chunk while populating another, causing cascading worldgen lag.\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-cascading-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted cascading worldgen')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-severity-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        delete probe
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'runtimeLogScannerTest'
+}
+
+tasks.register('verifyMineralogyOracleIsolation') {
+    group = 'verification'
+    description = 'Prevents published Mineralogy engines from leaking into Gradle configurations or ordinary Eclipse launches.'
+    doLast {
+        configurations.each { configuration ->
+            if (configuration.canBeResolved &&
+                    configuration.files.any { it.name ==~ /Mineralogy-.*\.jar/ }) {
+                throw new GradleException("Mineralogy oracle leaked into Gradle configuration ${configuration.name}")
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyMineralogyOracleIsolation'
+}
+
+['runClient', 'runServer', 'runGameTestServer', 'runClientData'].each { String taskName ->
+    tasks.matching { it.name == taskName }.configureEach { JavaExec runTask ->
+        doFirst {
+            new File(runTask.workingDir, 'mods').mkdirs()
+            runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
+        }
+        doLast {
+            assertRuntimeLogsClean(runTask.workingDir, taskName,
+                    runTask.ext.oreSpawnCrashSnapshot as Set)
+        }
+    }
 }
 
 def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
@@ -249,6 +410,15 @@ tasks.configureEach {
         dependsOn prepareSurfaceIntegrationTest
     } else if (name == 'runSurfaceIntegrationReload') {
         dependsOn 'runSurfaceIntegrationFresh'
+    }
+    if (name == 'runSurfaceIntegrationFresh' || name == 'runSurfaceIntegrationReload') {
+        doFirst {
+            ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(workingDir)
+        }
+        doLast {
+            assertRuntimeLogsClean(workingDir, "NeoForge 26.2 ${name}",
+                    ext.oreSpawnCrashSnapshot as Set)
+        }
     }
 }
 
