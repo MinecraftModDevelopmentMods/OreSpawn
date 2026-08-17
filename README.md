@@ -5,6 +5,10 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
+This branch builds target-qualified version `4.0.6.110021`: the OreSpawn 4.0.6
+feature set for Minecraft 1.10.2 and Forge. See the
+[versioning policy](docs/VERSIONS.md) for the encoding and release convention.
+
 Its deprecated compatibility layer imports OreSpawn 1 and OreSpawn 3
 configuration and keeps existing legacy consumer jars working while translating
 their rules into the OreSpawn 4 scheduler. It preserves ranged legacy block budgets,
@@ -92,6 +96,7 @@ Start with:
 - [Provider JSON guide](docs/PROVIDERS.md)
 - [Java API guide](docs/API.md)
 - [Biome and world-material guide](docs/BIOMES.md)
+- [Versioning and release policy](docs/VERSIONS.md)
 - [Schemas and examples](docs/README.md)
 
 The full documentation bundle is packaged under `META-INF/orespawn/docs/` and
@@ -99,7 +104,7 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 8 from the repository root (the local validation JDK is 1.8.0_221):
+Use a Java 8 JDK from the repository root:
 
 ```powershell
 .\gradlew.bat clean build javadoc --no-daemon

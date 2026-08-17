@@ -19,7 +19,7 @@ public class OreSpawn {
 	public static OreSpawn INSTANCE;
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = "4.0.6";
+	public static final String VERSION = "4.0.6.110021";
 	public static final List<Path> oreSpawnConfigFiles = new ArrayList<>();
 	public static final List<String> additionalStoneBlocks = new ArrayList<>();
 	public static boolean disableVanillaOreGen;
