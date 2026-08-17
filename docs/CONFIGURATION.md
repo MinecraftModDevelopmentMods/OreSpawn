@@ -90,6 +90,10 @@ weight by province. A weight of zero prevents selection in that context.
 Geomes contain a non-negative `base` weight and non-negative weights for each
 rock family. Biome and biome-dictionary maps multiply those geome weights.
 Missing optional-mod biome IDs are ignored during baking.
+Exact biome-ID maps remain effective when the target uses a dynamic biome
+registry. With Stable Layers, a close contest between two geomes transitions
+at a deterministic position per layer so the whole underground column does
+not change on one sheer plane.
 
 Terrain dimensions require `enabled`, `host_blocks`, and `host_tags`.
 `biome_ids` and `biome_namespaces` can narrow a custom dimension. The Overworld
