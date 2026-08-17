@@ -8,18 +8,19 @@
     "water_fog_color": 329011
   },
   "features": [
+    ["surfaceprobe:terrain_setup"],
+    [],
+    [],
+    [],
+    ["surfaceprobe:structure_sentinels"],
     [],
     [],
     [],
     [],
-    [],
-    [],
-    [],
-    [],
-    [],
+    ["surfaceprobe:vegetation_sentinels"],
     []
   ],
-  "has_precipitation": false,
+  "has_precipitation": true,
   "spawn_costs": {},
   "spawners": {
     "ambient": [],

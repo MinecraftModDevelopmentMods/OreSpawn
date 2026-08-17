@@ -84,9 +84,11 @@ Use Java 21 from the repository root:
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
-that lifecycle packages a test-only provider mod, loads its custom biome in
-normal noise terrain, and verifies both fresh generation and reopening the
-same saved world. The fixture is not included in OreSpawn's published jars.
+that lifecycle packages a test-only provider mod and verifies exposed,
+underwater, filler, and ceiling surfaces in open and ceiling normal-noise
+dimensions. It also proves later vegetation, structures, and block entities
+survive, then reopens and checks the exact saved world. The fixture is not
+included in OreSpawn's published jars.
 
 Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
 Eclipse model and run configurations through the `eclipse` task; this branch
