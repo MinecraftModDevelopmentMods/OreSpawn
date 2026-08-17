@@ -1,3 +1,18 @@
+Version 4.0.6.121112
+
+* Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
+* Preserve generated worlds made with Mineralogy 1.10, 1.12, or 5.x by reading their saved mod metadata and exact legacy configuration before creating the OreSpawn world profile.
+* Write human-readable, idempotent upgrade reports for legacy OreSpawn and Mineralogy imports while retaining source files and existing chunks unchanged.
+* Audit automated runtime logs and dynamic-fluid generation so logged worldgen failures cannot pass merely because the process exits normally.
+* Qualify existing OreSpawn 4.0.5 global and per-world profiles without changing explicit Custom values or provider definitions.
+* Fix provider top and filler materials being generated one block below exposed ground.
+* Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
+* Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
+* Honour exact biome-to-geome weights on dynamic biome registries.
+* Stagger close Stable Layers geome transitions by layer instead of changing a whole rock column at one boundary.
+* Recalibrate Stable Layers edge-detail presets so Average retains natural variation at later rock contacts.
+* Existing chunks are not rewritten; the correction applies while generating new chunks.
+
 Version 4.0.5
 
 * Complete native translations for every shipped non-English locale
