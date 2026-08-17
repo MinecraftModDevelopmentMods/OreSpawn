@@ -1,6 +1,7 @@
-Version 4.0.6
+Version 4.0.6.112021
 
-* Port OreSpawn 4.0.6 to Minecraft 1.12.2 and Forge 14.23.5.2859 using Java 8.
+* Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
+* Port OreSpawn 4.0.6.112021 to Minecraft 1.12.2 and Forge 14.23.5.2859 using Java 8.
 * Add a deprecated OS3 binary/configuration compatibility bridge for existing
   3.2.2 and 3.3.1 consumers, translating plugins and registrations into one
   deduplicated OS4 scheduler with atomic backups and an idempotent report.

@@ -17,6 +17,7 @@ Choose the guide that matches what you are doing:
 - [Dimensions](DIMENSIONS.md)
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+- [Versioning and release identities](VERSIONS.md)
 - [Compact instructions for coding agents](AGENTS.md)
 
 Validated examples are in `examples/`; JSON Schemas are in `schemas/`.
