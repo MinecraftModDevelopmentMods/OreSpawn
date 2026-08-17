@@ -13,6 +13,37 @@ legacy-ID behaviour.
 
 Migration is non-destructive. OreSpawn writes `config/orespawn-worldgen.json`
 only when that target does not already exist and retains every source file.
+When legacy OreSpawn rules are translated, a concise player-facing summary is
+also written atomically to `config/orespawn-upgrade-report.txt`; the existing
+detailed rule report remains at `config/orespawn-migration/migration-report.txt`.
+
+## Existing Mineralogy Worlds
+
+An already-generated world without an OreSpawn per-world profile is inspected
+before OreSpawn chooses any installed-pack or Create World default. OreSpawn
+uses saved mod metadata from `level.dat`, with a valid `level.dat_old` as a
+fallback, to distinguish these published contracts:
+
+- Mineralogy 1.10.2 `3.3.8.26` and its `mineralogy.cfg`;
+- Mineralogy 1.12.2 `3.8.0.53` and its distinct `mineralogy.cfg`;
+- Mineralogy 5.0.1 through 5.4.0 and `mineralogy-common.toml`.
+
+The resulting world profile preserves enablement, selected legacy/geome
+engine, geome size, layer noise and thickness, realistic-coal behavior where
+supported, exact effective rock order (including historical duplicates), and
+all six white/blacklists. Saved-world identity chooses the lineage even when a
+different stale config is present. Missing or malformed values use that
+lineage's published defaults and are reported rather than silently broadening
+the world configuration.
+
+The human-readable result is written atomically to
+`<world>/serverconfig/orespawn-upgrade-report.txt`. It identifies the saved
+version and metadata source, config source, selected engine and lineage,
+effective settings and outputs, missing IDs, fallbacks, and warnings. Source
+configuration and existing chunks are not rewritten. Once
+`orespawn-worldgen.json` exists it is authoritative and the import is not run
+again. A fresh world containing stale legacy files remains on its explicit
+OreSpawn/Create World settings.
 
 When `config/mineralogy-geomes.json` exists, OreSpawn imports the Mineralogy 6
 profile directly, updates its schema marker, and records `migrated_from`.
