@@ -140,7 +140,8 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		int centerZ = chunkPos.getMinBlockZ() + 8;
 		int geome = -1;
 		if (Level.OVERWORLD.equals(dimension)) {
-			geome = classifier(worldSeed).classifyColumn(biome.value(), centerX, centerZ,
+			ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
+			geome = classifier(worldSeed).classifyColumn(biome.value(), biomeId, centerX, centerZ,
 					scratch.geomeValues(geomeConfig.geomeCount()));
 		}
 
@@ -489,7 +490,7 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				Biome biome = id == null ? null : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.get(id);
+				Biome biome = id == null ? null : BiomeRegistryAccess.get(id);
 				if (biome != null) result.add(biome);
 			}
 		}
