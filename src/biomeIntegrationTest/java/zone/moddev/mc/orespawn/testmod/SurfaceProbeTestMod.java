@@ -382,7 +382,7 @@ public final class SurfaceProbeTestMod {
 			}
 		}
 		if (water == 0L) {
-			throw new IllegalStateException("NeoForge 21.11 dynamic fluid deposit produced no covered flowing-water blocks");
+			throw new IllegalStateException("NeoForge 21.1 dynamic fluid deposit produced no covered flowing-water blocks");
 		}
 		return water;
 	}
