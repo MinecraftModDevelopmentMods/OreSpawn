@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -287,11 +288,14 @@ public final class GeomeConfig {
 			return null;
 		}
 		Map<Biome, double[]> biomeWeights = bakeBiomeWeights(geomeIndexes, biomeRules, dictionaryRules);
+		Map<ResourceLocation, double[]> biomeWeightsById = bakeBiomeIdentifierWeights(geomeIndexes, biomeRules);
 
-		LOGGER.info("Baked OreSpawn geome config for '{}' with {} geomes, {} rock entries, {} biome profiles, and {} formations",
-				dimension, geomes.length, rocks.length, biomeWeights.size(), formations.algorithm.configName);
+		LOGGER.info("Baked OreSpawn geome config for '{}' with {} geomes, {} rock entries, "
+				+ "{} resolved biome profiles, {} identifier profiles, and {} formations",
+				dimension, geomes.length, rocks.length, biomeWeights.size(), biomeWeightsById.size(),
+				formations.algorithm.configName);
 		return new BakedGeomeConfig(geomes, geomeScale, biomeInfluence, regionalNoiseInfluence,
-				boundaryNoiseInfluence, biomeWeights, rocks, formations);
+				boundaryNoiseInfluence, biomeWeights, biomeWeightsById, rocks, formations);
 	}
 
 	private static JsonObject applyFreshWorldTemplate(JsonObject root) {
@@ -1015,13 +1019,13 @@ public final class GeomeConfig {
 	private static Map<Biome, double[]> bakeBiomeWeights(Map<String, Integer> geomeIndexes,
 			Map<String, double[]> biomeRules, Map<String, double[]> dictionaryRules) {
 		Map<Biome, double[]> result = new IdentityHashMap<>();
-		for (Biome biome : zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.values()) {
+		for (Biome biome : BiomeRegistryAccess.values()) {
 			double[] weights = new double[geomeIndexes.size()];
 			for (int i = 0; i < weights.length; i++) {
 				weights[i] = 1.0D;
 			}
 
-			ResourceLocation biomeId = zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.id(biome);
+			ResourceLocation biomeId = BiomeRegistryAccess.id(biome);
 			if (biomeId != null) {
 				merge(weights, biomeRules.get(biomeId.toString()));
 				for (String type : BiomeTypeCompatibility.types(biome)) {
@@ -1034,11 +1038,33 @@ public final class GeomeConfig {
 		return result;
 	}
 
+	static Map<ResourceLocation, double[]> bakeBiomeIdentifierWeights(Map<String, Integer> geomeIndexes,
+			Map<String, double[]> biomeRules) {
+		Map<ResourceLocation, double[]> result = new LinkedHashMap<>();
+		for (Entry<String, double[]> entry : biomeRules.entrySet()) {
+			try {
+				ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
+				double[] weights = new double[geomeIndexes.size()];
+				Arrays.fill(weights, 1.0D);
+				merge(weights, entry.getValue());
+				applyBiomeHeuristic(weights, geomeIndexes, biomeId, Float.NaN, Float.NaN);
+				result.put(biomeId, weights);
+			} catch (RuntimeException e) {
+				LOGGER.warn("Ignoring invalid OreSpawn biome rule ID '{}'", entry.getKey());
+			}
+		}
+		return result;
+	}
+
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
 			ResourceLocation biomeId, Biome biome) {
+		applyBiomeHeuristic(weights, geomeIndexes, biomeId,
+				biome.getBaseTemperature(), biome.getModifiedClimateSettings().downfall());
+	}
+
+	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
+			ResourceLocation biomeId, float temperature, float downfall) {
 		String biomeName = biomeId == null ? "" : biomeId.getPath();
-		float temperature = biome.getBaseTemperature();
-		float downfall = biome.getModifiedClimateSettings().downfall();
 
 		if (biomeName.contains("ocean") || biomeName.contains("river") || biomeName.contains("beach")
 				|| biomeName.contains("shore") || biomeName.contains("coast")
