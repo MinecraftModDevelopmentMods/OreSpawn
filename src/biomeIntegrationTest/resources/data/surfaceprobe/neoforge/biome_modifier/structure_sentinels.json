@@ -1,0 +1,15 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": [
+    "minecraft:the_end",
+    "minecraft:nether_wastes",
+    "minecraft:soul_sand_valley",
+    "minecraft:crimson_forest",
+    "minecraft:warped_forest",
+    "minecraft:basalt_deltas"
+  ],
+  "features": [
+    "surfaceprobe:structure_sentinels"
+  ],
+  "step": "surface_structures"
+}
