@@ -1,5 +1,8 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -275,6 +278,34 @@ public final class WorldGeologyProfile {
 		return nestedInt("cyano", "rock_layer_thickness", 8, 1, 255);
 	}
 
+	public boolean cyanoEnabled() {
+		return nestedBoolean("cyano", "enabled", true);
+	}
+
+	public boolean cyanoRealisticCoalLayers() {
+		return nestedBoolean("cyano", "realistic_coal_layers", false);
+	}
+
+	public boolean hasLegacyMineralogySnapshot() {
+		return root.has("cyano") && root.get("cyano").isJsonObject()
+				&& root.getAsJsonObject("cyano").has("migrated_from");
+	}
+
+	boolean hasCyanoRockOrder(String key) {
+		return root.has("cyano") && root.get("cyano").isJsonObject()
+				&& root.getAsJsonObject("cyano").has(key)
+				&& root.getAsJsonObject("cyano").get(key).isJsonArray();
+	}
+
+	List<String> cyanoRockOrder(String key) {
+		if (!hasCyanoRockOrder(key)) return Collections.emptyList();
+		List<String> result = new ArrayList<>();
+		for (JsonElement element : root.getAsJsonObject("cyano").getAsJsonArray(key)) {
+			if (element.isJsonPrimitive()) result.add(element.getAsString());
+		}
+		return Collections.unmodifiableList(result);
+	}
+
 	private static JsonObject recommendedFormationJson() {
 		JsonObject formations = new JsonObject();
 		formations.addProperty("algorithm", Algorithm.STABLE_LAYERS.configName());
@@ -289,9 +320,9 @@ public final class WorldGeologyProfile {
 		custom.addProperty("vertical_thickness", 8);
 		custom.addProperty("waviness_wavelength", 256.0D);
 		custom.addProperty("waviness_amplitude", 48.0D);
-		custom.addProperty("edge_wavelength", 64.0D);
-		custom.addProperty("edge_amplitude", 12.0D);
-		custom.addProperty("edge_octaves", 2);
+		custom.addProperty("edge_wavelength", 96.0D);
+		custom.addProperty("edge_amplitude", 24.0D);
+		custom.addProperty("edge_octaves", 3);
 		custom.addProperty("continuity", 0.85D);
 		formations.add("custom", custom);
 		return formations;
