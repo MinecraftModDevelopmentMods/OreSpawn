@@ -100,12 +100,12 @@ runs {
     }
 
     ['Fresh', 'Reload'].each { String phase ->
-        register("biomeIntegration${phase}") {
+        register("surfaceIntegration${phase}") {
             runType 'gameTestServer'
-            workingDirectory layout.buildDirectory.dir('biome-integration-run')
-            systemProperty 'neoforge.enabledGameTestNamespaces', 'cakeworldprobe'
+            workingDirectory layout.buildDirectory.dir('surface-integration-run')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'surfaceprobe'
             systemProperty 'forge.logging.console.level', 'info'
-            systemProperty 'cakeworld.biomeIntegrationPhase', phase.toLowerCase(Locale.ROOT)
+            systemProperty 'surfaceprobe.integrationPhase', phase.toLowerCase(Locale.ROOT)
             modSource project.sourceSets.main
         }
     }
@@ -199,73 +199,72 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
-def biomeIntegrationClasses = layout.buildDirectory.dir('biome-integration-fixture/classes')
-def compileBiomeIntegrationTestMod = tasks.register('compileBiomeIntegrationTestMod', JavaCompile) {
+def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
+def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegrationTestMod', JavaCompile) {
     dependsOn tasks.named('classes')
     source fileTree('src/biomeIntegrationTest/java')
     classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
-    destinationDirectory.set(biomeIntegrationClasses)
+    destinationDirectory.set(surfaceIntegrationClasses)
     javaCompiler.set(javaToolchains.compilerFor {
         languageVersion = JavaLanguageVersion.of(21)
     })
-    options.release = 16
+    options.release = 21
     options.encoding = 'UTF-8'
 }
 
-def biomeIntegrationTestModJar = tasks.register('biomeIntegrationTestModJar', Jar) {
-    dependsOn compileBiomeIntegrationTestMod
-    archiveFileName = 'cakeworldprobe.jar'
-    destinationDirectory = layout.buildDirectory.dir('biome-integration-fixture')
+def surfaceIntegrationTestModJar = tasks.register('surfaceIntegrationTestModJar', Jar) {
+    dependsOn compileSurfaceIntegrationTestMod
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('surface-integration-fixture')
     manifest {
-        attributes 'MixinConfigs': 'cakeworldprobe.mixins.json'
+        attributes 'MixinConfigs': 'surfaceprobe.mixins.json'
     }
-    from biomeIntegrationClasses
+    from surfaceIntegrationClasses
     from 'src/biomeIntegrationTest/resources'
 }
 
-def biomeIntegrationRunDirectory = layout.buildDirectory.dir('biome-integration-run')
-def prepareBiomeIntegrationTest = tasks.register('prepareBiomeIntegrationTest') {
-    dependsOn biomeIntegrationTestModJar
+def surfaceIntegrationRunDirectory = layout.buildDirectory.dir('surface-integration-run')
+def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTest') {
+    dependsOn surfaceIntegrationTestModJar
     doLast {
-        delete biomeIntegrationRunDirectory
+        delete surfaceIntegrationRunDirectory
         copy {
-            from biomeIntegrationTestModJar.flatMap { it.archiveFile }
-            into biomeIntegrationRunDirectory.map { it.dir('mods') }
+            from surfaceIntegrationTestModJar.flatMap { it.archiveFile }
+            into surfaceIntegrationRunDirectory.map { it.dir('mods') }
         }
     }
 }
 
 tasks.configureEach {
-    if (name == 'runBiomeIntegrationFresh') {
-        dependsOn prepareBiomeIntegrationTest
-    } else if (name == 'runBiomeIntegrationReload') {
-        dependsOn 'runBiomeIntegrationFresh'
+    if (name == 'runSurfaceIntegrationFresh') {
+        dependsOn prepareSurfaceIntegrationTest
+    } else if (name == 'runSurfaceIntegrationReload') {
+        dependsOn 'runSurfaceIntegrationFresh'
     }
 }
 
-def biomeIntegrationTest = tasks.register('biomeIntegrationTest') {
+def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
     group = 'verification'
-    description = 'Verifies a provider-owned custom biome in fresh and reloaded normal terrain.'
-    dependsOn 'runBiomeIntegrationReload'
+    description = 'Verifies exposed, underwater, and ceiling provider surfaces across fresh and reloaded normal terrain.'
+    dependsOn 'runSurfaceIntegrationReload'
     doLast {
-        File marker = biomeIntegrationRunDirectory.get().file(
-                'gametestserver/gametestworld/cakeworld-biome-integration.properties').asFile
+        File marker = surfaceIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/surfaceprobe-integration.properties').asFile
         if (!marker.isFile()) {
-            throw new GradleException("Biome integration completion marker is missing: ${marker}")
+            throw new GradleException("Surface integration completion marker is missing: ${marker}")
         }
         Properties result = new Properties()
         marker.withInputStream { result.load(it) }
         if (result.getProperty('reload_verified') != 'true') {
-            throw new GradleException("Biome integration reload was not verified: ${marker}")
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
-        logger.lifecycle('Custom-biome integration verified: {} chunks, {} top blocks, {} filler blocks, fresh + reload',
-                result.getProperty('matching_chunks'), result.getProperty('pink_surface'),
-                result.getProperty('white_filler'))
+        logger.lifecycle('Provider surfaces verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
     }
 }
 
 tasks.named('check') {
-    dependsOn biomeIntegrationTest
+    dependsOn surfaceIntegrationTest
 }
 
 idea {
