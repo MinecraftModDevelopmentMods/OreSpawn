@@ -274,13 +274,13 @@ public final class MigrationProbeTestMod {
 	}
 
 	private Properties reloadComparison(Properties source) {
-		if (!isBaseMetalsFreshInstallFixture()) return source;
+		if (!isBaseMetalsFreshInstallFixture() && !isLegacyMineralogyFixture()) return source;
 		Properties stable = new Properties();
 		for (String key : source.stringPropertyNames()) {
-			// A newly generated vanilla world can finish water/lava conversion while
-			// the first server is saving. Ignore only that unrelated product and the
-			// aggregate hash which contains it; every Base Metals block, range, biome,
-			// tile entity, and all other terrain counts remain exact across reload.
+			// These newly generated vanilla worlds can finish water/lava conversion
+			// while the first server is saving. Ignore only that unrelated product and
+			// its aggregate hash; every managed block, range, biome, tile entity, and
+			// all other terrain counts remain exact across reload.
 			if (key.endsWith(".block_hash") || key.contains(".block.minecraft:obsidian@")
 					|| key.contains(".block.minecraft:cobblestone@")) continue;
 			stable.setProperty(key, source.getProperty(key));
