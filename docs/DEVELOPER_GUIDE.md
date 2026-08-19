@@ -208,3 +208,19 @@ registrar rejects duplicate and late declarations.
 Run `gradlew check` (or `gradlew build`, which includes it)
 before publishing any change to biome registration, palettes, surfaces,
 feature ordering, height handling, or profile persistence.
+
+Before publishing a Forge 1.12.2 jar, also run the packaged-runtime gate with
+the official Minecraft 1.12.2 dedicated-server jar and the libraries installed
+for Forge 14.23.5.2859:
+
+```text
+gradlew packagedForgeRuntimeTest --offline --no-daemon \
+  -PpackagedMinecraftServerJar=<minecraft_server.1.12.2.jar> \
+  -PpackagedForgeLibrariesRoot=<Forge 14 libraries directory>
+```
+
+Unlike ForgeGradle's development launches, this gate places the reobfuscated
+OreSpawn jar in `mods`, starts Forge's real `ServerLaunchWrapper`, generates a
+fresh provider world, and reopens the same save. It deliberately excludes
+mapped Forge jars, `sourceSets.main`, `MOD_CLASSES`, and LegacyDev so packaging
+metadata such as `FMLAT` is tested exactly as players receive it.

@@ -103,11 +103,46 @@ jar {
                 'Implementation-Version'    : version,
                 'Implementation-Vendor'     : 'SkyBlade1978',
                 'Implementation-Timestamp'  : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'OreSpawn-API-Version'       : '1'
+                'OreSpawn-API-Version'       : '1',
+                // Forge 1.12 discovers mod access transformers only through
+                // this manifest attribute. The development configuration
+                // above is not consulted when a packaged jar is loaded.
+                'FMLAT'                      : 'accesstransformer.cfg'
         ])
     }
     finalizedBy 'reobfJar'
 }
+
+task verifyPublishedJarRuntimeContract(dependsOn: 'reobfJar') {
+    group = 'verification'
+    description = 'Verifies the reobfuscated jar advertises and contains its Forge 1.12 access transformer.'
+    doLast {
+        java.util.jar.JarFile published = new java.util.jar.JarFile(jar.archivePath)
+        try {
+            String declared = published.manifest.mainAttributes.getValue('FMLAT')
+            if (declared != 'accesstransformer.cfg') {
+                throw new GradleException("Published jar has invalid FMLAT manifest entry: ${declared}")
+            }
+            java.util.jar.JarEntry transformer = published.getJarEntry('META-INF/accesstransformer.cfg')
+            if (transformer == null) {
+                throw new GradleException('Published jar is missing META-INF/accesstransformer.cfg')
+            }
+            String rules = published.getInputStream(transformer).getText('UTF-8')
+            [
+                    'public-f net.minecraft.world.WorldProvider field_76578_c',
+                    'public-f net.minecraft.world.gen.ChunkGeneratorOverworld field_186001_t'
+            ].each { String required ->
+                if (!rules.readLines().any { String line -> line.trim().startsWith(required) }) {
+                    throw new GradleException("Published access transformer is missing rule: ${required}")
+                }
+            }
+        } finally {
+            published.close()
+        }
+    }
+}
+
+check.dependsOn verifyPublishedJarRuntimeContract
 
 processResources {
     inputs.property 'version', project.version
@@ -188,22 +223,38 @@ def assertRuntimeLogsClean = { File runDirectory, String context ->
     }
 
     File logsDirectory = new File(runDirectory, 'logs')
-    if (!logsDirectory.isDirectory()) return
     def failures = []
-    fileTree(logsDirectory) { include '**/*.log'; include '**/*.txt' }.files.each { File log ->
+    def runtimeLogs = [] as Set
+    if (logsDirectory.isDirectory()) {
+        runtimeLogs.addAll(fileTree(logsDirectory) {
+            include '**/*.log'
+            include '**/*.txt'
+        }.files)
+    }
+    runtimeLogs.addAll(fileTree(runDirectory) {
+        include '*-console.txt'
+    }.files)
+    runtimeLogs.each { File log ->
         int lineNumber = 0
         log.eachLine('UTF-8') { String line ->
             lineNumber++
-            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean unexpectedSeverity = (line ==~ /.*\/(?:ERROR|FATAL)\].*/
+                    || line ==~ /.*\s(?:ERROR|FATAL)\s.*/)
             boolean knownNoise = acceptedForge14LogNoise.any { line =~ it }
+            boolean oreSpawnCascadingLoad = (line.contains('cascading worldgen lag')
+                    && line.contains('OreSpawn loaded a new chunk'))
             boolean fatalText = (line.contains('Encountered an unexpected exception')
                     || line.contains('Exception stopping the server')
                     || line.contains('Migration audit failed')
                     || line.contains('java.lang.Error:')
+                    || line.contains('IllegalAccessError')
+                    || line.contains('NoSuchFieldError')
+                    || line.contains('LinkageError')
                     || line.contains('NoSuchMethodError')
                     || line.contains('NoClassDefFoundError')
                     || line.contains('ExceptionInInitializerError')
-                    || line.contains('Tried to assign a mutable BlockPos'))
+                    || line.contains('Tried to assign a mutable BlockPos')
+                    || oreSpawnCascadingLoad)
             if ((unexpectedSeverity && !knownNoise) || fatalText) {
                 failures.add("${log.name}:${lineNumber}: ${line}")
             }
@@ -238,6 +289,13 @@ task runtimeLogScannerTest {
         try { assertRuntimeLogsClean(probe, 'scanner-error-severity-probe') }
         catch (GradleException expected) { rejected = true }
         if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        new File(probe, 'packaged-forge-fresh-console.txt').setText(
+                '[Server thread/ERROR] [FML]: java.lang.IllegalAccessError: tried to access field net.minecraft.world.WorldProvider.field_76578_c\n',
+                'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-packaged-console-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner ignored a packaged-launch IllegalAccessError')
         delete probe
     }
 }
@@ -259,6 +317,19 @@ task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegratio
     destinationDir = file("${buildDir}/surface-integration-fixture")
     from surfaceIntegrationClasses
     from 'src/biomeIntegrationTest/resources'
+}
+
+// Keep the mapped development fixture separate from the copy transformed for
+// a real packaged Forge runtime.
+task packagedSurfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
+    archiveName = 'surfaceprobe-packaged.jar'
+    destinationDir = file("${buildDir}/surface-integration-fixture")
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+reobf {
+    packagedSurfaceIntegrationTestModJar {}
 }
 
 def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
@@ -403,6 +474,157 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 }
 
 check.dependsOn surfaceIntegrationTest
+
+// Release qualification must also exercise the reobfuscated jar through
+// Forge's real packaged-mod discovery. Supply the official 1.12.2 dedicated
+// server jar and an exact Forge 14 library root; no development output or
+// mapped Forge jar is placed on this process's classpath.
+def packagedForgeRunDirectory = file("${buildDir}/packaged-forge-runtime-run")
+def packagedMinecraftServer = {
+    if (!project.hasProperty('packagedMinecraftServerJar')) {
+        throw new GradleException('packagedMinecraftServerJar is required for packagedForgeRuntimeTest')
+    }
+    File server = file(project.property('packagedMinecraftServerJar'))
+    if (!server.isFile()) {
+        throw new GradleException("Minecraft 1.12.2 server jar is missing: ${server}")
+    }
+    server
+}
+def packagedForgeLibraries = {
+    if (!project.hasProperty('packagedForgeLibrariesRoot')) {
+        throw new GradleException('packagedForgeLibrariesRoot is required for packagedForgeRuntimeTest')
+    }
+    File libraries = file(project.property('packagedForgeLibrariesRoot'))
+    if (!libraries.isDirectory()) {
+        throw new GradleException("Forge 14 library root is missing: ${libraries}")
+    }
+    libraries
+}
+def packagedForgeRuntimeLayout = {
+    File forge = forge14UniversalRuntime()
+    File server = packagedMinecraftServer()
+    File libraries = packagedForgeLibraries()
+    java.util.jar.JarFile runtime = new java.util.jar.JarFile(forge)
+    String declared
+    try {
+        declared = runtime.manifest.mainAttributes.getValue('Class-Path')
+    } finally {
+        runtime.close()
+    }
+    if (declared == null || declared.trim().isEmpty()) {
+        throw new GradleException("Forge 14 runtime has no Class-Path manifest entry: ${forge}")
+    }
+    def dependencies = declared.trim().split(/\s+/).findAll { String entry ->
+        entry != "minecraft_server.${minecraft_version}.jar"
+    }.collect { String entry ->
+        String relative = entry.startsWith('libraries/') ? entry.substring('libraries/'.length()) : entry
+        File dependency = new File(libraries, relative)
+        if (!dependency.isFile()) {
+            throw new GradleException("Forge 14 packaged-runtime dependency is missing: ${dependency}")
+        }
+        [source: dependency, relative: relative]
+    }
+    [forge: forge, server: server, dependencies: dependencies]
+}
+
+task preparePackagedForgeRuntimeTest(dependsOn: [verifyPublishedJarRuntimeContract,
+                                                 'reobfPackagedSurfaceIntegrationTestModJar']) {
+    group = 'verification'
+    doLast {
+        delete packagedForgeRunDirectory
+        def runtime = packagedForgeRuntimeLayout()
+        copy { from runtime.forge; into packagedForgeRunDirectory }
+        copy {
+            from runtime.server
+            into packagedForgeRunDirectory
+            rename { "minecraft_server.${minecraft_version}.jar" }
+        }
+        runtime.dependencies.each { Map dependency ->
+            File destination = new File(packagedForgeRunDirectory,
+                    "libraries/${dependency.relative}").parentFile
+            copy { from dependency.source; into destination }
+        }
+        File mods = new File(packagedForgeRunDirectory, 'mods')
+        mods.mkdirs()
+        copy { from jar.archivePath; into mods }
+        copy { from packagedSurfaceIntegrationTestModJar.archivePath; into mods }
+        new File(packagedForgeRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(packagedForgeRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def createPackagedForgeProcess = { String phase, Object dependency ->
+    ByteArrayOutputStream console = new ByteArrayOutputStream()
+    File consoleFile = new File(packagedForgeRunDirectory,
+            "packaged-forge-${phase.toLowerCase()}-console.txt")
+    task("packagedForgeRuntime${phase}Process", type: Exec, dependsOn: dependency) {
+        group = 'verification'
+        workingDir packagedForgeRunDirectory
+        doFirst {
+            console.reset()
+            File javaExecutable = new File(System.getProperty('java.home'),
+                    "bin/java${System.properties['os.name'].toLowerCase().contains('windows') ? '.exe' : ''}")
+            File forge = new File(packagedForgeRunDirectory, forge14UniversalRuntime().name)
+            commandLine javaExecutable,
+                    '-Dforge.logging.console.level=info',
+                    "-Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}",
+                    '-jar', forge, 'nogui'
+            standardOutput = console
+            errorOutput = console
+        }
+        doLast {
+            consoleFile.setText(console.toString('UTF-8'), 'UTF-8')
+        }
+    }
+}
+
+def packagedForgeFreshProcess = createPackagedForgeProcess('Fresh', preparePackagedForgeRuntimeTest)
+packagedForgeFreshProcess.doLast {
+    File marker = new File(packagedForgeRunDirectory,
+            'surface-integration-world/surfaceprobe-integration.properties')
+    if (!marker.isFile()) {
+        throw new GradleException("Packaged Forge fresh marker is missing: ${marker}")
+    }
+    assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge fresh phase')
+}
+def packagedForgeReloadProcess = createPackagedForgeProcess('Reload', packagedForgeFreshProcess)
+packagedForgeReloadProcess.doLast {
+    assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge reload phase')
+}
+
+task packagedForgeRuntimeTest(dependsOn: packagedForgeReloadProcess) {
+    group = 'verification'
+    description = 'Creates and reloads a world using the reobfuscated OreSpawn jar under the real Forge 14 launcher.'
+    doLast {
+        File marker = new File(packagedForgeRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Packaged Forge reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Packaged Forge jar created and reloaded {} dimensions with {} audited columns each',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+// The packaged launcher needs two machine-local inputs that cannot be checked
+// into the repository. When callers supply them, make the real-runtime gate a
+// mandatory part of check; otherwise the focused jar-contract verification
+// still protects the manifest and embedded access-transformer contract.
+if (project.hasProperty('packagedMinecraftServerJar')
+        && project.hasProperty('packagedForgeLibrariesRoot')) {
+    check.dependsOn packagedForgeRuntimeTest
+}
 
 def migrationIntegrationClasses = file("${buildDir}/migration-integration-fixture/classes")
 task compileMigrationIntegrationTestMod(type: JavaCompile, dependsOn: classes) {

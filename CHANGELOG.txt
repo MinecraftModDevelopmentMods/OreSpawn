@@ -1,3 +1,10 @@
+Version 4.0.7.112021
+
+* Fix Forge 1.12.2 packaged jars not declaring their access transformer, which
+  caused an IllegalAccessError as soon as a world was loaded.
+* Add a release-artifact contract check and a reusable fresh/reload test that
+  launches the reobfuscated jar through the real Forge 14 server runtime.
+
 Version 4.0.6.112021
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
