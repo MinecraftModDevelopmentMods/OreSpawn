@@ -32,6 +32,7 @@ Version 4.0.6.110021
 * Preserve vanilla springs in provider rocks through Forge's native terrain hooks.
 * Restore reliable 1.10.2 editor backgrounds, tooltip clearing, translated cycle-button captions,
   and safe OreSpawn world-settings navigation.
+* Preserve long host-block, host-tag and biome-filter values when reopening the ore and fluid editors.
 * Package translations under Minecraft 1.10's required `ll_CC.lang` filename casing so editor
   captions load instead of displaying raw language keys.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.

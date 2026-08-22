@@ -156,7 +156,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 		int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
 		TextFieldWidget box = new TextFieldWidget(font, groupX + columnWidth - fieldWidth, 90 + (row * 24),
 				fieldWidth, 20, new TextComponentString(key));
-		box.setValue(value); box.setMaxLength(32);
+		box.setMaxLength(32); box.setValue(value);
 		placementWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				placementHelp(key)));
 		return box;
@@ -165,7 +165,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 	private TextFieldWidget hostField(int index, String key, String value) {
 		int x = index == 0 ? left : left + columnWidth + 5;
 		TextFieldWidget box = new TextFieldWidget(font, x, 106, columnWidth, 20, new TextComponentString(key));
-		box.setValue(value); box.setMaxLength(1024);
+		box.setMaxLength(1024); box.setValue(value);
 		hostWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				"tooltip.orespawn." + key));
 		return box;
@@ -175,7 +175,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 		int x = (index & 1) == 0 ? left : left + columnWidth + 5;
 		int y = 106 + ((index / 2) * 44);
 		TextFieldWidget box = new TextFieldWidget(font, x, y, columnWidth, 20, new TextComponentString(key));
-		box.setValue(value); box.setMaxLength(1024);
+		box.setMaxLength(1024); box.setValue(value);
 		biomeWidgets.add(OreSpawnScreenLayout.explain(this, addButton(box),
 				"tooltip.orespawn.fluid." + key));
 		return box;
