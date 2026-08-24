@@ -1,3 +1,10 @@
+Version 4.0.8.110021
+
+* Preserve all eight ore/fluid host, tag, and biome editor fields when saved values exceed Minecraft 1.10.2's default 32-character text limit.
+* Prevent opening and saving an unchanged editor profile from silently replacing long identifiers or comma-separated lists with truncated values.
+* Add reproducible ForgeGradle 7 builds and guarded Maven, CurseForge, and GitHub release automation.
+* Keep API major 1, provider/global/world schemas 4/6/5, registry and profile compatibility, migrations, and world-generation semantics unchanged.
+
 Version 4.0.6.110021
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
@@ -32,6 +39,7 @@ Version 4.0.6.110021
 * Preserve vanilla springs in provider rocks through Forge's native terrain hooks.
 * Restore reliable 1.10.2 editor backgrounds, tooltip clearing, translated cycle-button captions,
   and safe OreSpawn world-settings navigation.
+* Preserve long host-block, host-tag and biome-filter values when reopening the ore and fluid editors.
 * Package translations under Minecraft 1.10's required `ll_CC.lang` filename casing so editor
   captions load instead of displaying raw language keys.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
