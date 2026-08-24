@@ -1241,6 +1241,16 @@ idea {
     }
 }
 
+// ForgeGradle 2 generated these launch names with the removed GradleStart
+// bootstrap. They can survive an in-place Buildship migration and remain the
+// last-run Eclipse configuration even after ForgeGradle 7 generates runClient
+// and runServer. Remove only the exact obsolete launch types; leave any
+// independently maintained launch with the same file name untouched.
+def obsoleteForgeGradle2EclipseLaunches = [
+        'OreSpawn_Client.launch': 'GradleStart',
+        'OreSpawn_Server.launch': 'GradleStartServer'
+]
+
 eclipse {
     classpath {
         downloadSources = true
@@ -1279,6 +1289,18 @@ tasks.register('isolateEclipseProductionRuns') {
     dependsOn tasks.named('configureEclipseBuildship')
 
     doLast {
+        obsoleteForgeGradle2EclipseLaunches.each { String name, String mainClass ->
+            File launch = file(name)
+            if (launch.isFile()) {
+                String contents = launch.getText('UTF-8')
+                String obsoleteMainType =
+                        "org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\""
+                if (contents.contains(obsoleteMainType) && !launch.delete()) {
+                    throw new GradleException("Could not remove obsolete ForgeGradle 2 launch ${name}")
+                }
+            }
+        }
+
         ['runClient.launch', 'runServer.launch'].each { name ->
             File launch = file(name)
             if (!launch.isFile()) {
@@ -1315,6 +1337,14 @@ tasks.register('verifyEclipseProductionClasspath') {
         }.files as List<File>
         if (launchFiles.size() < 2) {
             throw new GradleException('ForgeGradle did not generate ordinary client/server Eclipse launches')
+        }
+        obsoleteForgeGradle2EclipseLaunches.each { String name, String mainClass ->
+            File launch = file(name)
+            if (launch.isFile() && launch.getText('UTF-8').contains(
+                    "org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"")) {
+                throw new GradleException(
+                        "Obsolete ForgeGradle 2 ${mainClass} launch remains at ${name}")
+            }
         }
         List<String> forbidden = [
                 'src/test', 'bin/test', 'build/classes/java/test',
