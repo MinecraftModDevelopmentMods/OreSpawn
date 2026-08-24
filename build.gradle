@@ -158,6 +158,48 @@ repositories {
     }
 }
 
+def legacyFixtureRoot = file("${rootDir}/ci-fixtures")
+def legacyFixtureArtifacts = new File(legacyFixtureRoot, 'artifacts')
+def legacyFixtureWorlds = new File(legacyFixtureRoot, 'worlds')
+def legacyFixtureHashes = [
+        'artifacts/OreSpawn_1.10.2-1.1.0.jar':
+                '91345E4B825AA06E05F470066F467AABA0C7A2804A8DBCA4D3CD1905ED53607C',
+        'artifacts/OreSpawn-1.10.2-3.2.2.104.jar':
+                'D964148C20175E16CCEFAB02AE43A181A50DC08A1D636A77E59CFE8C8EA8D41A',
+        'artifacts/BaseMetals_1.10.2-2.4.0.11.jar':
+                'F919CEF794C73F02758BBD967346DBA0B53F6383153C7E29BD79F211CDA8C319',
+        'artifacts/Mineralogy-1.10.2-3.3.8.26.jar':
+                '88A6237C9A0E2C8891718B68C373E741C78B8494F5E68D8093CA9339F3BC4D87',
+        'worlds/sylvester-era-trio-source-v2.zip':
+                '11FC2FA44C43520AA9B21C29B43203EBFE0A84773D2BDCBB4F3C48C490559B07'
+]
+
+task verifyLegacyFixtures {
+    group = 'verification'
+    description = 'Verifies the sealed ABI and migration corpus used only by isolated tests.'
+    inputs.files legacyFixtureHashes.keySet().collect { new File(legacyFixtureRoot, it) }
+    doLast {
+        legacyFixtureHashes.each { String relativePath, String expectedHash ->
+            File fixture = new File(legacyFixtureRoot, relativePath)
+            if (!fixture.isFile()) {
+                throw new GradleException("Missing sealed legacy fixture: ${fixture}")
+            }
+            MessageDigest digest = MessageDigest.getInstance('SHA-256')
+            fixture.withInputStream { input ->
+                byte[] buffer = new byte[8192]
+                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
+            }
+            String actualHash = digest.digest().encodeHex().toString().toUpperCase()
+            if (actualHash != expectedHash) {
+                throw new GradleException("Legacy fixture hash mismatch for ${relativePath}: "
+                        + "expected ${expectedHash}, found ${actualHash}")
+            }
+        }
+    }
+}
+
 configurations {
     legacyMineralogyOracle
 }
@@ -172,10 +214,11 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
     legacyMineralogyOracle files(
-            "${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
+            new File(legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar'))
 }
 
 tasks.named('compileTestJava', JavaCompile) {
+    dependsOn verifyLegacyFixtures
     classpath += configurations.legacyMineralogyOracle
 }
 tasks.named('test', Test) {
@@ -386,17 +429,19 @@ if (project.hasProperty('migrationRunDir')) {
 }
 
 def legacyMineralogyMigrationRunDirectory = file("${buildDir}/legacy-mineralogy-migration-run")
-def legacyMineralogyMigrationArchive = file("${rootDir}/../migration-fixtures/sources/worlds/sylvester-era-trio-source-v2.zip")
+def legacyMineralogyMigrationArchive = new File(legacyFixtureWorlds,
+        'sylvester-era-trio-source-v2.zip')
 
-task prepareLegacyMineralogyMigrationRun(dependsOn: migrationIntegrationTestModJar) {
+task prepareLegacyMineralogyMigrationRun(dependsOn: [migrationIntegrationTestModJar,
+        verifyLegacyFixtures]) {
     doLast {
         delete legacyMineralogyMigrationRunDirectory
         copy { from zipTree(legacyMineralogyMigrationArchive); into legacyMineralogyMigrationRunDirectory }
         File mods = new File(legacyMineralogyMigrationRunDirectory, 'mods')
         mods.mkdirs()
         copy {
-            from file("${rootDir}/../migration-fixtures/sources/artifacts/BaseMetals_1.10.2-2.4.0.11.jar")
-            from file("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
+            from new File(legacyFixtureArtifacts, 'BaseMetals_1.10.2-2.4.0.11.jar')
+            from new File(legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar')
             from migrationIntegrationTestModJar.archiveFile
             into mods
         }
@@ -444,11 +489,10 @@ task legacyMineralogyMigrationTest(dependsOn: legacyMineralogyMigrationReload) {
 
 check.dependsOn legacyMineralogyMigrationTest
 
-def legacyFixtureArtifacts = file("${rootDir}/../migration-fixtures/sources/artifacts")
 def os1AbiFixtureClasses = file("${buildDir}/legacy-abi/os1/classes")
 def os3AbiFixtureClasses = file("${buildDir}/legacy-abi/os3/classes")
 
-task compileOs1AbiFixture(type: JavaCompile) {
+task compileOs1AbiFixture(type: JavaCompile, dependsOn: verifyLegacyFixtures) {
     source fileTree('src/os1AbiFixture/java')
     classpath = files(sourceSets.main.compileClasspath,
             new File(legacyFixtureArtifacts, 'OreSpawn_1.10.2-1.1.0.jar'))
@@ -463,7 +507,7 @@ task os1AbiFixtureJar(type: Jar, dependsOn: compileOs1AbiFixture) {
     from 'src/os1AbiFixture/resources'
 }
 
-task compileOs3AbiFixture(type: JavaCompile) {
+task compileOs3AbiFixture(type: JavaCompile, dependsOn: verifyLegacyFixtures) {
     source fileTree('src/os3AbiFixture/java')
     classpath = files(sourceSets.main.compileClasspath,
             new File(legacyFixtureArtifacts, 'OreSpawn-1.10.2-3.2.2.104.jar'))
