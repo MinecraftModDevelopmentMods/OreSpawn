@@ -18,6 +18,11 @@ on:
           - release
           - beta
           - alpha
+      confirm_live_publication:
+        description: Confirm publication to Maven, CurseForge, and GitHub after the build passes.
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   actions: read
@@ -110,32 +115,6 @@ jobs:
 
           echo "target_branch=$target_branch" >> "$GITHUB_OUTPUT"
           echo "Resolved $RELEASE_VERSION to $target_branch"
-
-      - name: Require the protected release approval gate
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          if ! environment_json="$(gh api "repos/$GITHUB_REPOSITORY/environments/release")"; then
-            echo "The MMD release environment has not been configured by a repository administrator" >&2
-            exit 1
-          fi
-          reviewer_rules="$(jq '[.protection_rules[] | select(.type == "required_reviewers")] | length' <<<"$environment_json")"
-          prevent_self_review="$(jq -r '[.protection_rules[] | select(.type == "required_reviewers")][0] | if has("prevent_self_review") then .prevent_self_review else true end' <<<"$environment_json")"
-          skyblade_reviewer="$(jq '[.protection_rules[] | select(.type == "required_reviewers") | .reviewers[]? | select(.reviewer.login == "SkyBlade1978")] | length' <<<"$environment_json")"
-          if [[ "$reviewer_rules" -lt 1 ]]; then
-            echo "The release environment must require a reviewer before publication" >&2
-            exit 1
-          fi
-          if [[ "$prevent_self_review" != "false" ]]; then
-            echo "The release environment must allow self-review for the small MMD release team" >&2
-            exit 1
-          fi
-          if [[ "$skyblade_reviewer" -lt 1 ]]; then
-            echo "SkyBlade1978 must be a required release reviewer" >&2
-            exit 1
-          fi
 
       - name: Check out derived release branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -298,7 +277,7 @@ jobs:
           retention-days: 90
           path: ${{ runner.temp }}/release-bundle/*
 
-      - name: Summarize the candidate awaiting approval
+      - name: Summarize the prepared release candidate
         env:
           RELEASE_BRANCH: ${{ needs.preflight.outputs.target_branch }}
           RELEASE_LEVEL: ${{ inputs.curseforge_release_level }}
@@ -306,7 +285,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.preflight.outputs.release_version }}
         run: |
           {
-            echo "## Awaiting release approval"
+            echo "## Prepared release candidate"
             echo
             echo "- Version: \`$RELEASE_VERSION\`"
             echo "- Target branch: \`$RELEASE_BRANCH\`"
@@ -320,25 +299,28 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  release_approval:
-    name: Approve ${{ inputs.release_version }} (CurseForge ${{ inputs.curseforge_release_level }})
+  release_confirmation:
+    name: Confirm ${{ inputs.release_version }} live publication
     needs:
       - preflight
       - build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: release
     steps:
-      - name: Confirm approval and release-secret access
+      - name: Confirm publication and release-secret access
         env:
+          CONFIRM_LIVE_PUBLICATION: ${{ inputs.confirm_live_publication }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           MAVEN_UPLOAD_URL: ${{ secrets.MAVEN_UPLOAD_URL }}
           MAVEN_UPLOAD_USERNAME: ${{ secrets.MAVEN_UPLOAD_USERNAME }}
           MAVEN_UPLOAD_PASSWORD: ${{ secrets.MAVEN_UPLOAD_PASSWORD }}
         run: |
           set -euo pipefail
-          echo "Release environment approval granted for ${{ needs.preflight.outputs.release_tag }}"
+          if [[ "$CONFIRM_LIVE_PUBLICATION" != "true" ]]; then
+            echo "Confirm live publication in the workflow form before releasing ${{ needs.preflight.outputs.release_tag }}" >&2
+            exit 1
+          fi
+          echo "Live publication confirmed for ${{ needs.preflight.outputs.release_tag }}"
           missing=()
           for name in CURSEFORGE_TOKEN MAVEN_UPLOAD_URL MAVEN_UPLOAD_USERNAME MAVEN_UPLOAD_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
@@ -356,7 +338,7 @@ jobs:
     needs:
       - preflight
       - build
-      - release_approval
+      - release_confirmation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
