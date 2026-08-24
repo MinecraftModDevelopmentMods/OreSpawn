@@ -49,9 +49,9 @@ version.
 
 Examples:
 
-| Minecraft | Loader | Target | Full OreSpawn 4.0.6 version |
+| Minecraft | Loader | Target | Example full version |
 | --- | --- | ---: | --- |
-| 1.10.2 | Forge | `110021` | `4.0.6.110021` |
+| 1.10.2 | Forge | `110021` | `4.0.8.110021` |
 | 1.12.2 | Forge | `112021` | `4.0.6.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
