@@ -60,6 +60,7 @@ jobs:
             build/libs/OreSpawn-4.0.8.110021-sources.jar
             build/libs/OreSpawn-4.0.8.110021-javadoc.jar
             build/release/SHA256SUMS
+            CHANGELOG.txt
 
       - name: Upload diagnostics on failure
         if: failure()
