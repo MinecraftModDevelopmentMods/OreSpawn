@@ -6,7 +6,7 @@ on:
       - '*.*.*.*'
 
 permissions:
-  actions: write
+  actions: read
   contents: read
 
 concurrency:
@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dispatch-release:
-    name: Validate tag and start guarded release
+  validate-release-tag:
+    name: Validate tag for manual release confirmation
     if: github.repository == 'MinecraftModDevelopmentMods/OreSpawn'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -27,7 +27,6 @@ jobs:
           fetch-depth: 0
 
       - name: Validate release tag, target metadata, and prior CI
-        id: validate
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -73,17 +72,24 @@ jobs:
             echo "The tagged commit has no successful Build, test, and audit check" >&2
             exit 1
           fi
-          echo "version=$release_version" >> "$GITHUB_OUTPUT"
 
-      - name: Start default-branch release workflow
+      - name: Record the required manual publication step
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.validate.outputs.version }}
+          RELEASE_WORKFLOW_URL: https://github.com/${{ github.repository }}/actions/workflows/deploy-release.yml
         run: |
-          gh workflow run deploy-release.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref master-1.12 \
-            -f mode=publish \
-            -f release_ref="$GITHUB_REF_NAME" \
-            -f curseforge_channel=release \
-            -f confirm_version="$RELEASE_VERSION"
+          {
+            echo "## Release candidate validated"
+            echo
+            echo "Tag \`$GITHUB_REF_NAME\` matches the selected target and has a successful Build, test, and audit check."
+            echo
+            echo "**Nothing has been published.**"
+            echo
+            echo "To continue, open [Deploy OreSpawn release]($RELEASE_WORKFLOW_URL), select **Run workflow**, and enter:"
+            echo
+            echo "- mode: \`publish\`"
+            echo "- release_ref: \`$GITHUB_REF_NAME\`"
+            echo "- curseforge_channel: \`release\`, \`beta\`, or \`alpha\`"
+            echo "- confirm_version: \`$GITHUB_REF_NAME\`"
+            echo
+            echo "The dispatcher builds and audits the immutable bundle before the separate \`release\` environment approval gate."
+          } >> "$GITHUB_STEP_SUMMARY"
