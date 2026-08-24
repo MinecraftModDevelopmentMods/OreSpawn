@@ -161,6 +161,8 @@ repositories {
 def legacyFixtureRoot = file("${rootDir}/ci-fixtures")
 def legacyFixtureArtifacts = new File(legacyFixtureRoot, 'artifacts')
 def legacyFixtureWorlds = new File(legacyFixtureRoot, 'worlds')
+def legacyMineralogyOracleJar = new File(
+        legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar')
 def legacyFixtureHashes = [
         'artifacts/OreSpawn_1.10.2-1.1.0.jar':
                 '91345E4B825AA06E05F470066F467AABA0C7A2804A8DBCA4D3CD1905ED53607C',
@@ -200,10 +202,6 @@ task verifyLegacyFixtures {
     }
 }
 
-configurations {
-    legacyMineralogyOracle
-}
-
 dependencies {
     implementation minecraft.dependency(
             "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
@@ -213,16 +211,48 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
-    legacyMineralogyOracle files(
-            new File(legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar'))
+    // Buildship must see this as a test-scoped dependency so Eclipse can
+    // compile the parity test. The Eclipse launch guard excludes all
+    // test-scoped dependencies from ordinary client/server runs.
+    testImplementation files(legacyMineralogyOracleJar)
 }
 
 tasks.named('compileTestJava', JavaCompile) {
     dependsOn verifyLegacyFixtures
-    classpath += configurations.legacyMineralogyOracle
 }
 tasks.named('test', Test) {
-    classpath += configurations.legacyMineralogyOracle
+    dependsOn verifyLegacyFixtures
+}
+
+tasks.register('verifyLegacyOracleIsolation') {
+    group = 'verification'
+    description = 'Keeps the sealed Mineralogy oracle test-visible but production-invisible.'
+    dependsOn verifyLegacyFixtures
+
+    doLast {
+        File oracle = legacyMineralogyOracleJar.canonicalFile
+        def canonicalFiles = { FileCollection classpath ->
+            classpath.files.collect { it.canonicalFile } as Set<File>
+        }
+        Set<File> testCompileFiles = canonicalFiles(sourceSets.test.compileClasspath)
+        Set<File> testRuntimeFiles = canonicalFiles(sourceSets.test.runtimeClasspath)
+        if (!testCompileFiles.contains(oracle) || !testRuntimeFiles.contains(oracle)) {
+            throw new GradleException('The sealed Mineralogy oracle is missing from the test classpath model')
+        }
+
+        Map<String, FileCollection> productionClasspaths = [
+                mainCompile: sourceSets.main.compileClasspath,
+                mainRuntime: sourceSets.main.runtimeClasspath
+        ]
+        productionClasspaths.each { String name, FileCollection classpath ->
+            if (canonicalFiles(classpath).contains(oracle)) {
+                throw new GradleException("The sealed Mineralogy oracle leaked into ${name}")
+            }
+        }
+    }
+}
+tasks.named('check') {
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
 }
 
 def java8Launcher = javaToolchains.launcherFor {
@@ -1216,7 +1246,7 @@ eclipse {
         downloadSources = true
         downloadJavadoc = true
     }
-    synchronizationTasks 'genEclipseRuns'
+    synchronizationTasks 'isolateEclipseProductionRuns'
 }
 
 tasks.register('configureEclipseBuildship') {
@@ -1270,6 +1300,7 @@ tasks.register('verifyEclipseProductionClasspath') {
     group = 'verification'
     description = 'Verifies that ordinary generated Eclipse launches exclude tests, fixtures, and probe mods.'
     dependsOn tasks.named('isolateEclipseProductionRuns')
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
 
     doLast {
         File buildshipPreferences = file('.settings/org.eclipse.buildship.core.prefs')
