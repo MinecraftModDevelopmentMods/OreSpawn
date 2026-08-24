@@ -1,350 +1,278 @@
-buildscript {
-    repositories {
-        maven { url = 'https://maven.minecraftforge.net/' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
-    }
+import groovy.json.JsonSlurper
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.jar.Manifest
+import java.util.zip.ZipFile
+import org.apache.tools.ant.filters.FixCrLfFilter
+
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.renamer' version '1.1.5'
+    id 'net.minecraftforge.accesstransformers' version '2.0.0'
+    id 'net.minecraftforge.gradle' version '7.0.34'
 }
 
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
+group = project.mod_group
+version = project.mod_version
+base.archivesName = 'OreSpawn'
 
-version = mod_version
-group = mod_group_id
-archivesBaseName = "OreSpawn-${minecraft_version}"
+def versionParts = project.mod_version.toString().tokenize('.')
+if (versionParts.size() != 4 || !versionParts.every { it ==~ /\d+/ }) {
+    throw new GradleException("mod_version must use Major.Minor.Bug.Target numeric form: ${project.mod_version}")
+}
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+def minecraftVersionParts = project.minecraft_version.toString().tokenize('.')
+if (minecraftVersionParts.size() < 2 || minecraftVersionParts.size() > 3
+        || !minecraftVersionParts.every { it ==~ /\d+/ }) {
+    throw new GradleException("minecraft_version must use major.minor or major.minor.patch numeric form: "
+            + project.minecraft_version)
+}
+def minecraftPatch = minecraftVersionParts.size() == 3 ? minecraftVersionParts[2] : '0'
+def expectedTargetVersion = "${minecraftVersionParts[0]}" \
+        + "${minecraftVersionParts[1].padLeft(2, '0')}" \
+        + "${minecraftPatch.padLeft(2, '0')}" \
+        + project.loader_code
+if (versionParts[3] != expectedTargetVersion) {
+    throw new GradleException("mod_version target ${versionParts[3]} does not match "
+            + "Minecraft ${project.minecraft_version} ${project.loader_name} target ${expectedTargetVersion}")
+}
 
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+ext.functional_version = versionParts[0..2].join('.')
+ext.display_version = project.mod_version
+ext.release_tag = project.mod_version
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xmaxerrs', '1000'])
+}
+
+tasks.named('compileTestJava', JavaCompile) {
+    options.compilerArgs.add('-proc:none')
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    workingDir = project.projectDir
+}
+
+tasks.withType(Javadoc).configureEach {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addBooleanOption('notimestamp', true)
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+def archiveTextSuffixes = [
+        '.cfg', '.css', '.html', '.info', '.java', '.js', '.json', '.lang',
+        '.mcmeta', '.md', '.properties', '.txt', '.xml'
+]
+def archiveTextPatterns = archiveTextSuffixes.collect { "**/*${it}".toString() }
+archiveTextPatterns.addAll(['**/element-list', '**/package-list'])
+def normalizeArchiveLineEndings = { details ->
+    details.filter(FixCrLfFilter,
+            eol: FixCrLfFilter.CrLf.newInstance('lf'),
+            eof: FixCrLfFilter.AddAsisRemove.newInstance('asis'))
+}
 
 minecraft {
     mappings channel: project.mapping_channel, version: project.mapping_version
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    accessTransformer = 'META-INF/accesstransformer.cfg'
 
     runs {
-        client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
+        configureEach {
+            workingDir.convention layout.projectDirectory.dir('run')
+            systemProperty 'forge.logging.console.level', 'debug'
         }
-
-        server {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            args '--nogui'
-        }
-
-        surfaceIntegrationFresh {
-            workingDirectory project.file("${buildDir}/surface-integration-run")
-            property 'forge.logging.console.level', 'info'
-            property 'surfaceprobe.integrationPhase', 'fresh'
-            args '--nogui'
-        }
-
-        surfaceIntegrationReload {
-            workingDirectory project.file("${buildDir}/surface-integration-run")
-            property 'forge.logging.console.level', 'info'
-            property 'surfaceprobe.integrationPhase', 'reload'
+        register('client')
+        register('server') {
             args '--nogui'
         }
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-// ForgeGradle 3 resolves its 1.12 mapped dependency during configuration. If
-// `clean` deletes build/fg_cache in the same invocation, compileJava retains a
-// path to a jar that no longer exists. Treat that directory as the target's
-// dependency cache; all OreSpawn classes, resources, jars, reports, fixtures,
-// worlds, and IDE output are still removed by clean.
-clean.setDelete(fileTree(buildDir) {
-    exclude 'fg_cache/**'
-})
+// Forge 1.10 expects each development mod to expose classes and resources from
+// one classpath root. ForgeGradle 7 splits those outputs, so build a separate
+// merged launch root without contaminating either canonical source-set output.
+def forge10DevelopmentOutput = layout.buildDirectory.dir('forge10-development/main')
+def syncForge10DevelopmentResources = tasks.register('syncForge10DevelopmentResources', Sync) {
+    group = 'ide'
+    description = 'Merges processed resources into the Forge 1.10 development launch root.'
+    dependsOn tasks.named('classes')
+    from tasks.named('compileJava', JavaCompile).flatMap { it.destinationDirectory }
+    from sourceSets.main.output.resourcesDir
+    into forge10DevelopmentOutput
+}
+tasks.configureEach {
+    if (name == 'runClient' || name == 'runServer') {
+        dependsOn syncForge10DevelopmentResources
+        doFirst {
+            Set<File> splitMainOutputs = [
+                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
+                    sourceSets.main.output.resourcesDir
+            ] as Set<File>
+            classpath = files(forge10DevelopmentOutput, classpath.filter {
+                !splitMainOutputs.contains(it)
+            })
+        }
+    }
+}
 
 repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Sponge'
+                url = 'https://repo.spongepowered.org/repository/maven-public'
+            }
+        }
+        filter { includeGroupAndSubgroups('org.spongepowered') }
+    }
+
     mavenCentral()
+    maven {
+        name = 'MinecraftLibraries'
+        url = 'https://libraries.minecraft.net/'
+    }
+}
+
+configurations {
+    legacyMineralogyOracle
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation minecraft.dependency(
+            "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
+    compileOnly 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
 
-    testCompile 'org.junit.jupiter:junit-jupiter-api:5.10.2'
-    testCompile 'org.junit.jupiter:junit-jupiter-params:5.10.2'
-    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
-    testRuntime 'org.junit.platform:junit-platform-launcher:1.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
+    legacyMineralogyOracle files(
+            "${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+tasks.named('compileTestJava', JavaCompile) {
+    classpath += configurations.legacyMineralogyOracle
+}
+tasks.named('test', Test) {
+    classpath += configurations.legacyMineralogyOracle
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+def java8Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(8)
 }
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
-
-jar {
-    manifest {
-        attributes([
-                'Specification-Title'       : 'OreSpawn',
-                'Specification-Vendor'      : 'SkyBlade1978',
-                'Specification-Version'     : '1',
-                'Implementation-Title'      : project.name,
-                'Implementation-Version'    : version,
-                'Implementation-Vendor'     : 'SkyBlade1978',
-                'Implementation-Timestamp'  : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'OreSpawn-API-Version'       : '1',
-                // Forge 1.12 discovers mod access transformers only through
-                // this manifest attribute. The development configuration
-                // above is not consulted when a packaged jar is loaded.
-                'FMLAT'                      : 'accesstransformer.cfg'
-        ])
+def configureFromForgeRun = { JavaExec process, String runTaskName ->
+    process.actions.clear()
+    process.dependsOn {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        run.taskDependencies.getDependencies(run)
     }
-    finalizedBy 'reobfJar'
-}
-
-task verifyPublishedJarRuntimeContract(dependsOn: 'reobfJar') {
-    group = 'verification'
-    description = 'Verifies the reobfuscated jar advertises and contains its Forge 1.12 access transformer.'
-    doLast {
-        java.util.jar.JarFile published = new java.util.jar.JarFile(jar.archivePath)
+    process.doLast {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        String runConfigurationName = runTaskName.substring(3).uncapitalize()
+        def runOptions = minecraft.runs.getByName(runConfigurationName)
+        File originalConfiguredWorkingDir = runOptions.workingDir.get().asFile
+        File originalWorkingDir = run.workingDir
+        List<String> originalArgs = new ArrayList<>(run.args)
+        List<String> originalJvmArgs = new ArrayList<>(run.jvmArgs)
+        Map<String, Object> originalSystemProperties = new LinkedHashMap<>(run.systemProperties)
+        Map<String, Object> originalEnvironment = new LinkedHashMap<>(run.environment)
+        FileCollection originalClasspath = files(run.classpath.files)
+        String originalMinHeap = run.minHeapSize
+        String originalMaxHeap = run.maxHeapSize
+        String originalMainClass = run.mainClass.orNull
         try {
-            String declared = published.manifest.mainAttributes.getValue('FMLAT')
-            if (declared != 'accesstransformer.cfg') {
-                throw new GradleException("Published jar has invalid FMLAT manifest entry: ${declared}")
+            File forgeConfig = new File(process.workingDir, 'config/forge.cfg')
+            if (!forgeConfig.isFile()) {
+                forgeConfig.parentFile.mkdirs()
+                forgeConfig.setText('''general {
+    B:disableVersionCheck=true
+}
+
+version_checking {
+    B:Global=false
+}
+''', 'UTF-8')
             }
-            java.util.jar.JarEntry transformer = published.getJarEntry('META-INF/accesstransformer.cfg')
-            if (transformer == null) {
-                throw new GradleException('Published jar is missing META-INF/accesstransformer.cfg')
-            }
-            String rules = published.getInputStream(transformer).getText('UTF-8')
-            [
-                    'public-f net.minecraft.world.WorldProvider field_76578_c',
-                    'public-f net.minecraft.world.gen.ChunkGeneratorOverworld field_186001_t'
-            ].each { String required ->
-                if (!rules.readLines().any { String line -> line.trim().startsWith(required) }) {
-                    throw new GradleException("Published access transformer is missing rule: ${required}")
-                }
-            }
+            runOptions.workingDir.set(process.workingDir)
+            run.workingDir(process.workingDir)
+            run.args(process.args)
+            run.jvmArgs(process.jvmArgs)
+            run.systemProperties(process.systemProperties)
+            run.environment(process.environment)
+            Set<File> splitMainOutputs = [
+                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
+                    sourceSets.main.output.resourcesDir
+            ] as Set<File>
+            run.setClasspath(files(forge10DevelopmentOutput, run.classpath.filter {
+                !splitMainOutputs.contains(it)
+            }))
+            run.exec()
         } finally {
-            published.close()
-        }
-    }
-}
-
-check.dependsOn verifyPublishedJarRuntimeContract
-
-processResources {
-    inputs.property 'version', project.version
-    inputs.property 'minecraft_version', minecraft_version
-    inputs.property 'forge_version_range', forge_version_range
-    inputs.property 'loader_version_range', loader_version_range
-    inputs.property 'minecraft_version_range', minecraft_version_range
-
-    filesMatching('mcmod.info') {
-        expand([
-                version: project.version,
-                mcversion: minecraft_version
-        ])
-    }
-    from('docs/AGENTS.md') {
-        into ''
-        rename { 'AGENTS.md' }
-    }
-    from('docs') {
-        into 'META-INF/orespawn/docs'
-    }
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-            artifact sourcesJar
-            artifact javadocJar
-        }
-    }
-    repositories {
-        maven { url "file:///${project.projectDir}/mcmodsrepo" }
-    }
-}
-
-tasks.withType(JavaCompile) {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-    options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xmaxerrs', '1000']
-}
-
-javadoc {
-    options.encoding = 'UTF-8'
-    options.addStringOption('Xdoclint:none', '-quiet')
-}
-
-test {
-    useJUnitPlatform()
-    // The parity test opens each published engine in its own URLClassLoader.
-    // Keeping these jars out of Gradle configurations also keeps Forge's
-    // ordinary Eclipse launch from discovering two Mineralogy mods.
-    systemProperty 'orespawn.mineralogy110Oracle',
-            file('../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar').absolutePath
-    systemProperty 'orespawn.mineralogy112Oracle',
-            file('../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar').absolutePath
-}
-
-// Runtime processes are not green merely because they exit with code zero.
-// Forge 14 can log a fatal worldgen/callback error and still shut down cleanly.
-def acceptedForge14LogNoise = [
-        ~/Apache Maven library folder was not in the format expected/,
-        ~/\[FML\]: Full: .*maven-artifact-/,
-        ~/\[FML\]: Trimmed: .*maven-artifact/,
-        ~/FML appears to be missing any signature data/,
-        ~/Unable to read a class file correctly/,
-        ~/There was a problem reading the entry (?:META-INF\/versions\/9\/)?module-info\.class .*probably a corrupt zip/
-]
-
-def assertRuntimeLogsClean = { File runDirectory, String context ->
-    File crashDirectory = new File(runDirectory, 'crash-reports')
-    if (crashDirectory.isDirectory()) {
-        def crashes = fileTree(crashDirectory) { include '**/*' }.files.findAll { it.isFile() }
-        if (!crashes.isEmpty()) {
-            throw new GradleException("${context} produced crash report ${crashes.first()}")
-        }
-    }
-
-    File logsDirectory = new File(runDirectory, 'logs')
-    def failures = []
-    def runtimeLogs = [] as Set
-    if (logsDirectory.isDirectory()) {
-        runtimeLogs.addAll(fileTree(logsDirectory) {
-            include '**/*.log'
-            include '**/*.txt'
-        }.files)
-    }
-    runtimeLogs.addAll(fileTree(runDirectory) {
-        include '*-console.txt'
-    }.files)
-    runtimeLogs.each { File log ->
-        int lineNumber = 0
-        log.eachLine('UTF-8') { String line ->
-            lineNumber++
-            boolean unexpectedSeverity = (line ==~ /.*\/(?:ERROR|FATAL)\].*/
-                    || line ==~ /.*\s(?:ERROR|FATAL)\s.*/)
-            boolean knownNoise = acceptedForge14LogNoise.any { line =~ it }
-            boolean oreSpawnCascadingLoad = (line.contains('cascading worldgen lag')
-                    && line.contains('OreSpawn loaded a new chunk'))
-            boolean fatalText = (line.contains('Encountered an unexpected exception')
-                    || line.contains('Exception stopping the server')
-                    || line.contains('Migration audit failed')
-                    || line.contains('java.lang.Error:')
-                    || line.contains('IllegalAccessError')
-                    || line.contains('NoSuchFieldError')
-                    || line.contains('LinkageError')
-                    || line.contains('NoSuchMethodError')
-                    || line.contains('NoClassDefFoundError')
-                    || line.contains('ExceptionInInitializerError')
-                    || line.contains('Tried to assign a mutable BlockPos')
-                    || oreSpawnCascadingLoad)
-            if ((unexpectedSeverity && !knownNoise) || fatalText) {
-                failures.add("${log.name}:${lineNumber}: ${line}")
+            runOptions.workingDir.set(originalConfiguredWorkingDir)
+            run.workingDir(originalWorkingDir)
+            run.setArgs(originalArgs)
+            run.setJvmArgs(originalJvmArgs)
+            run.setSystemProperties(originalSystemProperties)
+            run.setEnvironment(originalEnvironment)
+            run.setClasspath(originalClasspath)
+            run.minHeapSize = originalMinHeap
+            run.maxHeapSize = originalMaxHeap
+            if (originalMainClass == null) {
+                run.mainClass.unset()
+            } else {
+                run.mainClass.set(originalMainClass)
             }
         }
     }
-    if (!failures.isEmpty()) {
-        throw new GradleException("${context} logged unexpected errors:\n"
-                + failures.take(20).join('\n'))
-    }
 }
-
-task runtimeLogScannerTest {
-    group = 'verification'
-    description = 'Proves runtime log validation accepts documented Forge noise and rejects real failures.'
-    doLast {
-        File probe = file("${buildDir}/runtime-log-scanner-test")
-        delete probe
-        File logs = new File(probe, 'logs'); logs.mkdirs()
-        new File(logs, 'latest.log').setText(
-                '[main/ERROR] [FML]: FML appears to be missing any signature data. This is not a good thing\n'
-                + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
-        assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe')
-        new File(logs, 'latest.log').setText(
-                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
-        boolean rejected = false
-        try { assertRuntimeLogsClean(probe, 'scanner-rejection-probe') }
-        catch (GradleException expected) { rejected = true }
-        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
-        new File(logs, 'latest.log').setText(
-                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
-        rejected = false
-        try { assertRuntimeLogsClean(probe, 'scanner-error-severity-probe') }
-        catch (GradleException expected) { rejected = true }
-        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
-        new File(probe, 'packaged-forge-fresh-console.txt').setText(
-                '[Server thread/ERROR] [FML]: java.lang.IllegalAccessError: tried to access field net.minecraft.world.WorldProvider.field_76578_c\n',
-                'UTF-8')
-        rejected = false
-        try { assertRuntimeLogsClean(probe, 'scanner-packaged-console-probe') }
-        catch (GradleException expected) { rejected = true }
-        if (!rejected) throw new GradleException('Runtime log scanner ignored a packaged-launch IllegalAccessError')
-        delete probe
-    }
-}
-
-check.dependsOn runtimeLogScannerTest
 
 def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
 task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
     source fileTree('src/biomeIntegrationTest/java')
     classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
-    destinationDir = surfaceIntegrationClasses
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    destinationDirectory = surfaceIntegrationClasses
     options.encoding = 'UTF-8'
 }
 
 task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
-    archiveName = 'surfaceprobe.jar'
-    destinationDir = file("${buildDir}/surface-integration-fixture")
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = file("${buildDir}/surface-integration-fixture")
     from surfaceIntegrationClasses
     from 'src/biomeIntegrationTest/resources'
-}
-
-// Keep the mapped development fixture separate from the copy transformed for
-// a real packaged Forge runtime.
-task packagedSurfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
-    archiveName = 'surfaceprobe-packaged.jar'
-    destinationDir = file("${buildDir}/surface-integration-fixture")
-    from surfaceIntegrationClasses
-    from 'src/biomeIntegrationTest/resources'
-}
-
-reobf {
-    packagedSurfaceIntegrationTestModJar {}
 }
 
 def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
-def surfaceIntegrationMainOutput = file("${buildDir}/surface-integration-fixture/orespawn-main")
 task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
     doLast {
         delete surfaceIntegrationRunDirectory
-        delete surfaceIntegrationMainOutput
         surfaceIntegrationRunDirectory.mkdirs()
         copy {
-            from sourceSets.main.output
-            into surfaceIntegrationMainOutput
-        }
-        copy {
-            from surfaceIntegrationTestModJar.archivePath
+            from surfaceIntegrationTestModJar.archiveFile
             into new File(surfaceIntegrationRunDirectory, 'mods')
         }
         new File(surfaceIntegrationRunDirectory, 'server.properties').setText('''\
@@ -361,102 +289,24 @@ max-tick-time=-1
     }
 }
 
-def legacyDevRuntime = fileTree(new File(gradle.gradleUserHomeDir,
-        'caches/modules-2/files-2.1/net.minecraftforge/legacydev/0.2.3.1')) {
-    include '**/legacydev-*-fatjar.jar'
-}
-
-// ForgeGradle 3 initially exposes mergetool's three-side compile stub on a
-// completely clean 1.12 build. Its synthetic BUKKIT enum value is not valid in
-// the Forge 14 runtime and makes FML's own channel registration fail. Keep the
-// mapped runtime intact but restore Forge's native two-side Side class in a
-// build-only copy used by integration processes. Nothing from this copy is
-// packaged in OreSpawn's published artifacts.
-def forge14MappedRuntime = {
-    File runtime = sourceSets.main.runtimeClasspath.files.find { File candidate ->
-        candidate.name.startsWith("forge-${minecraft_version}-${forge_version}_mapped_") &&
-                candidate.name.endsWith('.jar')
-    }
-    if (runtime == null) {
-        throw new GradleException('Could not locate the mapped Forge 14 runtime')
-    }
-    runtime
-}
-
-def forge14UniversalRuntime = {
-    File runtime = new File(gradle.gradleUserHomeDir,
-            "caches/forge_gradle/maven_downloader/net/minecraftforge/forge/" +
-            "${minecraft_version}-${forge_version}/" +
-            "forge-${minecraft_version}-${forge_version}-universal.jar")
-    if (!runtime.isFile()) {
-        throw new GradleException("Forge 14 universal runtime is missing: ${runtime}")
-    }
-    runtime
-}
-
-task forge14RuntimeJar(type: Jar, dependsOn: classes) {
-    archiveName = 'forge14-runtime.jar'
-    destinationDir = file("${buildDir}/forge14-runtime")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from({ zipTree(forge14MappedRuntime()) }) {
-        exclude 'net/minecraftforge/fml/relauncher/Side.class'
-    }
-    from({ zipTree(forge14UniversalRuntime()) }) {
-        include 'net/minecraftforge/fml/relauncher/Side.class'
-    }
-}
-
-def useForge14Runtime = { JavaExec process ->
-    process.dependsOn forge14RuntimeJar
-    process.doFirst {
-        File generated = forge14MappedRuntime()
-        def runtime = sourceSets.main.runtimeClasspath.files.findAll { File candidate ->
-            candidate != generated
-        }
-        process.classpath = files(forge14RuntimeJar.archivePath, runtime, legacyDevRuntime)
-    }
-}
-
-// ForgeGradle's ordinary client/server tasks expose the same synthetic
-// three-side compile jar as the integration tasks. Route every development
-// launch through the corrected runtime copy so command-line and Eclipse
-// testing exercise Forge's native CLIENT/SERVER Side enum.
-tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.all { JavaExec process ->
-    useForge14Runtime(process)
-}
-
 def createSurfaceProcess = { String phase, Object dependency ->
-    task("surfaceIntegration${phase}Process", type: JavaExec,
-            dependsOn: [dependency, 'createSrgToMcp']) {
+    task("surfaceIntegration${phase}Process", type: JavaExec, dependsOn: dependency) {
         group = 'verification'
-        main = 'net.minecraftforge.legacydev.MainServer'
-        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
         workingDir surfaceIntegrationRunDirectory
-        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
-        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
-        environment 'MOD_CLASSES', surfaceIntegrationMainOutput.absolutePath
-        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
-        systemProperty 'forge.logging.console.level', 'info'
         systemProperty 'surfaceprobe.integrationPhase', phase.toLowerCase()
-        args '--nogui'
+        configureFromForgeRun(delegate, 'runServer')
     }
 }
 
 def surfaceIntegrationFreshProcess = createSurfaceProcess('Fresh', prepareSurfaceIntegrationTest)
-useForge14Runtime(surfaceIntegrationFreshProcess)
 surfaceIntegrationFreshProcess.doLast {
     File marker = new File(surfaceIntegrationRunDirectory,
             'surface-integration-world/surfaceprobe-integration.properties')
     if (!marker.isFile()) {
         throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
     }
-    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration fresh phase')
 }
 def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
-useForge14Runtime(surfaceIntegrationReloadProcess)
-surfaceIntegrationReloadProcess.doLast {
-    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration reload phase')
-}
 
 task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
     group = 'verification'
@@ -468,6 +318,14 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
         if (result.getProperty('reload_verified') != 'true') {
             throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
+        if (!(result.getProperty('dynamic_fluid_placements') ?: '0').isInteger()
+                || result.getProperty('dynamic_fluid_placements').toInteger() <= 0) {
+            throw new GradleException("Dynamic fluid-deposit probe did not place any blocks: ${marker}")
+        }
+        File latest = new File(surfaceIntegrationRunDirectory, 'logs/latest.log')
+        if (!latest.isFile() || latest.text.contains('Tried to assign a mutable BlockPos')) {
+            throw new GradleException("Surface integration leaked a mutable position into tick data: ${latest}")
+        }
         logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
                 result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
     }
@@ -475,463 +333,933 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 
 check.dependsOn surfaceIntegrationTest
 
-// Release qualification must also exercise the reobfuscated jar through
-// Forge's real packaged-mod discovery. Supply the official 1.12.2 dedicated
-// server jar and an exact Forge 14 library root; no development output or
-// mapped Forge jar is placed on this process's classpath.
-def packagedForgeRunDirectory = file("${buildDir}/packaged-forge-runtime-run")
-def packagedMinecraftServer = {
-    if (!project.hasProperty('packagedMinecraftServerJar')) {
-        throw new GradleException('packagedMinecraftServerJar is required for packagedForgeRuntimeTest')
-    }
-    File server = file(project.property('packagedMinecraftServerJar'))
-    if (!server.isFile()) {
-        throw new GradleException("Minecraft 1.12.2 server jar is missing: ${server}")
-    }
-    server
-}
-def packagedForgeLibraries = {
-    if (!project.hasProperty('packagedForgeLibrariesRoot')) {
-        throw new GradleException('packagedForgeLibrariesRoot is required for packagedForgeRuntimeTest')
-    }
-    File libraries = file(project.property('packagedForgeLibrariesRoot'))
-    if (!libraries.isDirectory()) {
-        throw new GradleException("Forge 14 library root is missing: ${libraries}")
-    }
-    libraries
-}
-def packagedForgeRuntimeLayout = {
-    File forge = forge14UniversalRuntime()
-    File server = packagedMinecraftServer()
-    File libraries = packagedForgeLibraries()
-    java.util.jar.JarFile runtime = new java.util.jar.JarFile(forge)
-    String declared
-    try {
-        declared = runtime.manifest.mainAttributes.getValue('Class-Path')
-    } finally {
-        runtime.close()
-    }
-    if (declared == null || declared.trim().isEmpty()) {
-        throw new GradleException("Forge 14 runtime has no Class-Path manifest entry: ${forge}")
-    }
-    def dependencies = declared.trim().split(/\s+/).findAll { String entry ->
-        entry != "minecraft_server.${minecraft_version}.jar"
-    }.collect { String entry ->
-        String relative = entry.startsWith('libraries/') ? entry.substring('libraries/'.length()) : entry
-        File dependency = new File(libraries, relative)
-        if (!dependency.isFile()) {
-            throw new GradleException("Forge 14 packaged-runtime dependency is missing: ${dependency}")
-        }
-        [source: dependency, relative: relative]
-    }
-    [forge: forge, server: server, dependencies: dependencies]
-}
-
-task preparePackagedForgeRuntimeTest(dependsOn: [verifyPublishedJarRuntimeContract,
-                                                 'reobfPackagedSurfaceIntegrationTestModJar']) {
-    group = 'verification'
-    doLast {
-        delete packagedForgeRunDirectory
-        def runtime = packagedForgeRuntimeLayout()
-        copy { from runtime.forge; into packagedForgeRunDirectory }
-        copy {
-            from runtime.server
-            into packagedForgeRunDirectory
-            rename { "minecraft_server.${minecraft_version}.jar" }
-        }
-        runtime.dependencies.each { Map dependency ->
-            File destination = new File(packagedForgeRunDirectory,
-                    "libraries/${dependency.relative}").parentFile
-            copy { from dependency.source; into destination }
-        }
-        File mods = new File(packagedForgeRunDirectory, 'mods')
-        mods.mkdirs()
-        copy { from jar.archivePath; into mods }
-        copy { from packagedSurfaceIntegrationTestModJar.archivePath; into mods }
-        new File(packagedForgeRunDirectory, 'server.properties').setText('''\
-level-name=surface-integration-world
-level-seed=zsjpxah
-level-type=default
-online-mode=false
-allow-nether=true
-generate-structures=false
-spawn-protection=0
-max-tick-time=-1
-''', 'UTF-8')
-        new File(packagedForgeRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
-    }
-}
-
-def createPackagedForgeProcess = { String phase, Object dependency ->
-    ByteArrayOutputStream console = new ByteArrayOutputStream()
-    File consoleFile = new File(packagedForgeRunDirectory,
-            "packaged-forge-${phase.toLowerCase()}-console.txt")
-    task("packagedForgeRuntime${phase}Process", type: Exec, dependsOn: dependency) {
-        group = 'verification'
-        workingDir packagedForgeRunDirectory
-        doFirst {
-            console.reset()
-            File javaExecutable = new File(System.getProperty('java.home'),
-                    "bin/java${System.properties['os.name'].toLowerCase().contains('windows') ? '.exe' : ''}")
-            File forge = new File(packagedForgeRunDirectory, forge14UniversalRuntime().name)
-            commandLine javaExecutable,
-                    '-Dforge.logging.console.level=info',
-                    "-Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}",
-                    '-jar', forge, 'nogui'
-            standardOutput = console
-            errorOutput = console
-        }
-        doLast {
-            consoleFile.setText(console.toString('UTF-8'), 'UTF-8')
-        }
-    }
-}
-
-def packagedForgeFreshProcess = createPackagedForgeProcess('Fresh', preparePackagedForgeRuntimeTest)
-packagedForgeFreshProcess.doLast {
-    File marker = new File(packagedForgeRunDirectory,
-            'surface-integration-world/surfaceprobe-integration.properties')
-    if (!marker.isFile()) {
-        throw new GradleException("Packaged Forge fresh marker is missing: ${marker}")
-    }
-    assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge fresh phase')
-}
-def packagedForgeReloadProcess = createPackagedForgeProcess('Reload', packagedForgeFreshProcess)
-packagedForgeReloadProcess.doLast {
-    assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge reload phase')
-}
-
-task packagedForgeRuntimeTest(dependsOn: packagedForgeReloadProcess) {
-    group = 'verification'
-    description = 'Creates and reloads a world using the reobfuscated OreSpawn jar under the real Forge 14 launcher.'
-    doLast {
-        File marker = new File(packagedForgeRunDirectory,
-                'surface-integration-world/surfaceprobe-integration.properties')
-        Properties result = new Properties()
-        marker.withInputStream { result.load(it) }
-        if (result.getProperty('reload_verified') != 'true') {
-            throw new GradleException("Packaged Forge reload was not verified: ${marker}")
-        }
-        logger.lifecycle('Packaged Forge jar created and reloaded {} dimensions with {} audited columns each',
-                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
-    }
-}
-
-// The packaged launcher needs two machine-local inputs that cannot be checked
-// into the repository. When callers supply them, make the real-runtime gate a
-// mandatory part of check; otherwise the focused jar-contract verification
-// still protects the manifest and embedded access-transformer contract.
-if (project.hasProperty('packagedMinecraftServerJar')
-        && project.hasProperty('packagedForgeLibrariesRoot')) {
-    check.dependsOn packagedForgeRuntimeTest
-}
-
 def migrationIntegrationClasses = file("${buildDir}/migration-integration-fixture/classes")
 task compileMigrationIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
     source fileTree('src/migrationIntegrationTest/java')
     classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
-    destinationDir = migrationIntegrationClasses
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    destinationDirectory = migrationIntegrationClasses
     options.encoding = 'UTF-8'
 }
 
 task migrationIntegrationTestModJar(type: Jar, dependsOn: compileMigrationIntegrationTestMod) {
-    archiveName = 'migrationprobe.jar'
-    destinationDir = file("${buildDir}/migration-integration-fixture")
+    archiveFileName = 'migrationprobe.jar'
+    destinationDirectory = file("${buildDir}/migration-integration-fixture")
     from migrationIntegrationClasses
     from 'src/migrationIntegrationTest/resources'
 }
 
 if (project.hasProperty('migrationRunDir')) {
     def migrationRunDirectory = file(project.property('migrationRunDir'))
-    def migrationMainOutput = file("${buildDir}/migration-integration-fixture/orespawn-main")
     task prepareMigrationIntegrationRun(dependsOn: migrationIntegrationTestModJar) {
         doLast {
-            delete migrationMainOutput
-            migrationMainOutput.mkdirs()
-            copy { from sourceSets.main.output; into migrationMainOutput }
-            copy { from migrationIntegrationTestModJar.archivePath; into new File(migrationRunDirectory, 'mods') }
+            copy { from migrationIntegrationTestModJar.archiveFile; into new File(migrationRunDirectory, 'mods') }
             new File(migrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            File serverProperties = new File(migrationRunDirectory, 'server.properties')
+            Properties values = new Properties()
+            if (serverProperties.isFile()) serverProperties.withInputStream { values.load(it) }
+            values.setProperty('spawn-animals', 'false')
+            values.setProperty('spawn-monsters', 'false')
+            serverProperties.withOutputStream { values.store(it, 'OreSpawn migration qualification') }
         }
     }
-    task migrationIntegrationProcess(type: JavaExec,
-            dependsOn: [prepareMigrationIntegrationRun, 'createSrgToMcp']) {
+    task migrationIntegrationProcess(type: JavaExec, dependsOn: prepareMigrationIntegrationRun) {
         group = 'verification'
-        main = 'net.minecraftforge.legacydev.MainServer'
-        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
         workingDir migrationRunDirectory
-        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
-        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
-        environment 'MOD_CLASSES', migrationMainOutput.absolutePath
-        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
-        systemProperty 'forge.logging.console.level', 'info'
         systemProperty 'orespawn.migrationFamily', project.findProperty('migrationFamily') ?: 'unspecified'
         systemProperty 'orespawn.migrationPhase', project.findProperty('migrationPhase') ?: 'fresh'
-        if ((project.findProperty('migrationAllowMissingMappings') ?: 'false') == 'true') {
-            systemProperty 'fml.queryResult', 'confirm'
+        configureFromForgeRun(delegate, 'runServer')
+        doLast {
+            String phase = project.findProperty('migrationPhase') ?: 'fresh'
+            File marker = new File(migrationRunDirectory, 'world/orespawn4-migration-probe.properties')
+            if (!marker.isFile()) throw new GradleException("Migration probe did not produce ${marker}")
+            Properties values = new Properties(); marker.withInputStream { values.load(it) }
+            if (values.getProperty("${phase}_complete") != 'true') {
+                throw new GradleException("Migration ${phase} phase did not complete: ${marker}")
+            }
+            File latest = new File(migrationRunDirectory, 'logs/latest.log')
+            if (latest.isFile() && (latest.text.contains('Migration audit failed')
+                    || latest.text.contains('Encountered an unexpected exception'))) {
+                throw new GradleException("Migration ${phase} phase logged a server failure: ${latest}")
+            }
         }
-        args '--nogui'
-		doLast {
-			def phase = project.findProperty('migrationPhase') ?: 'fresh'
-			def marker = new File(migrationRunDirectory,
-					'world/orespawn4-migration-probe.properties')
-			if (!marker.isFile()) {
-				throw new GradleException("Migration probe did not produce ${marker}")
-			}
-			def values = new Properties()
-			marker.withInputStream { values.load(it) }
-			if (values.getProperty("${phase}_complete") != 'true') {
-				throw new GradleException("Migration ${phase} phase did not complete: ${marker}")
-			}
-			def latest = new File(migrationRunDirectory, 'logs/latest.log')
-			assertRuntimeLogsClean(migrationRunDirectory, "migration ${phase} phase")
-			if (latest.isFile()
-					&& (project.findProperty('migrationAllowMissingMappings') ?: 'false') == 'true') {
-				def protectedMissing = latest.text =~ /(?m)^(?:Missing (?:basemetals|orespawn):|\s+(?:basemetals|mmdlib|orespawn):)/
-				if (protectedMissing.find()) {
-					throw new GradleException("Protected Base Metals/OreSpawn mapping is missing: ${protectedMissing.group()}")
-				}
-			}
-		}
     }
-    useForge14Runtime(migrationIntegrationProcess)
 }
 
-// Two sealed existing-world upgrades exercise the distinct Mineralogy configs
-// that can reach Forge 1.12: a carried 1.10 file and the native 1.12 file.
-def legacyMineralogyArchive = file("${rootDir}/../migration-fixtures/sources/worlds/os3-331-default-source.zip")
-def legacyMineralogyJar = file("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.12.2-3.8.0.53.jar")
-def legacyMineralogyGates = []
-[
-        '110': [version: '3.3.8.26', config: '''\
-world-gen {
-    I:GEOME_SIZE=144
-    B:REALISTIC_COAL_LAYERS=true
-    S:ROCK_LAYER_NOISE=41.5
-    I:ROCK_LAYER_THICKNESS=11
+def legacyMineralogyMigrationRunDirectory = file("${buildDir}/legacy-mineralogy-migration-run")
+def legacyMineralogyMigrationArchive = file("${rootDir}/../migration-fixtures/sources/worlds/sylvester-era-trio-source-v2.zip")
+
+task prepareLegacyMineralogyMigrationRun(dependsOn: migrationIntegrationTestModJar) {
+    doLast {
+        delete legacyMineralogyMigrationRunDirectory
+        copy { from zipTree(legacyMineralogyMigrationArchive); into legacyMineralogyMigrationRunDirectory }
+        File mods = new File(legacyMineralogyMigrationRunDirectory, 'mods')
+        mods.mkdirs()
+        copy {
+            from file("${rootDir}/../migration-fixtures/sources/artifacts/BaseMetals_1.10.2-2.4.0.11.jar")
+            from file("${rootDir}/../migration-fixtures/sources/artifacts/Mineralogy-1.10.2-3.3.8.26.jar")
+            from migrationIntegrationTestModJar.archiveFile
+            into mods
+        }
+        new File(legacyMineralogyMigrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
 }
-'''],
-        '112': [version: '3.8.0.53', config: '''\
-world-gen {
-    B:PLACE_MINERALOGY_ROCK=false
-    I:GEOME_SIZE=128
-    S:ROCK_LAYER_NOISE=37.25
-    I:ROCK_LAYER_THICKNESS=9
+
+def configureLegacyMineralogyMigrationProcess = { JavaExec process, String phase ->
+    process.group = 'verification'
+    process.workingDir legacyMineralogyMigrationRunDirectory
+    process.systemProperty 'orespawn.migrationFamily', 'legacy-mineralogy-cyano'
+    process.systemProperty 'orespawn.migrationPhase', phase
+    configureFromForgeRun(process, 'runServer')
+    process.doLast {
+        File marker = new File(legacyMineralogyMigrationRunDirectory,
+                'world/orespawn4-migration-probe.properties')
+        if (!marker.isFile()) throw new GradleException("Legacy Mineralogy migration did not produce ${marker}")
+        Properties values = new Properties(); marker.withInputStream { values.load(it) }
+        if (values.getProperty("${phase}_complete") != 'true') {
+            throw new GradleException("Legacy Mineralogy migration ${phase} phase did not complete")
+        }
+    }
 }
-''']
-].each { String lineage, Map fixture ->
-    String label = lineage == '110' ? '110' : '112'
-    File runDirectory = file("${buildDir}/legacy-mineralogy-${lineage}-run")
-    File mainOutput = file("${buildDir}/legacy-mineralogy-${lineage}-fixture/orespawn-main")
-    def prepareTask = task("prepareLegacyMineralogy${label}Run",
-            dependsOn: migrationIntegrationTestModJar) {
+
+task legacyMineralogyMigrationFresh(type: JavaExec, dependsOn: prepareLegacyMineralogyMigrationRun)
+configureLegacyMineralogyMigrationProcess(legacyMineralogyMigrationFresh, 'fresh')
+
+task legacyMineralogyMigrationReload(type: JavaExec, dependsOn: legacyMineralogyMigrationFresh)
+configureLegacyMineralogyMigrationProcess(legacyMineralogyMigrationReload, 'reload')
+
+task legacyMineralogyMigrationTest(dependsOn: legacyMineralogyMigrationReload) {
+    group = 'verification'
+    description = 'Proves an existing Mineralogy 3 world is pinned to Cyano settings across reload.'
+    doLast {
+        File marker = new File(legacyMineralogyMigrationRunDirectory,
+                'world/orespawn4-migration-probe.properties')
+        Properties values = new Properties(); marker.withInputStream { values.load(it) }
+        ['fresh_complete', 'reload_complete', 'legacy_mineralogy_config_sha256',
+                'legacy_mineralogy_world_profile_sha256'].each { key ->
+            if (!values.getProperty(key)) throw new GradleException("Missing legacy Mineralogy evidence ${key}")
+        }
+        logger.lifecycle('Existing Mineralogy 3 world retained Cyano profile and exact config/profile hashes across reload')
+    }
+}
+
+check.dependsOn legacyMineralogyMigrationTest
+
+def legacyFixtureArtifacts = file("${rootDir}/../migration-fixtures/sources/artifacts")
+def os1AbiFixtureClasses = file("${buildDir}/legacy-abi/os1/classes")
+def os3AbiFixtureClasses = file("${buildDir}/legacy-abi/os3/classes")
+
+task compileOs1AbiFixture(type: JavaCompile) {
+    source fileTree('src/os1AbiFixture/java')
+    classpath = files(sourceSets.main.compileClasspath,
+            new File(legacyFixtureArtifacts, 'OreSpawn_1.10.2-1.1.0.jar'))
+    destinationDirectory = os1AbiFixtureClasses
+    options.encoding = 'UTF-8'
+}
+
+task os1AbiFixtureJar(type: Jar, dependsOn: compileOs1AbiFixture) {
+    archiveFileName = 'os1abiprobe.jar'
+    destinationDirectory = file("${buildDir}/legacy-abi/os1")
+    from os1AbiFixtureClasses
+    from 'src/os1AbiFixture/resources'
+}
+
+task compileOs3AbiFixture(type: JavaCompile) {
+    source fileTree('src/os3AbiFixture/java')
+    classpath = files(sourceSets.main.compileClasspath,
+            new File(legacyFixtureArtifacts, 'OreSpawn-1.10.2-3.2.2.104.jar'))
+    destinationDirectory = os3AbiFixtureClasses
+    options.encoding = 'UTF-8'
+}
+
+task os3AbiFixtureJar(type: Jar, dependsOn: compileOs3AbiFixture) {
+    archiveFileName = 'os3abiprobe.jar'
+    destinationDirectory = file("${buildDir}/legacy-abi/os3")
+    from os3AbiFixtureClasses
+    from 'src/os3AbiFixture/resources'
+}
+
+def configureLegacyAbiProcess = { String generation, Task fixtureJar, String markerName ->
+    File runDirectory = file("${buildDir}/legacy-abi/${generation}/run")
+    Task prepare = tasks.create("prepare${generation.capitalize()}AbiRun", Copy) {
+        dependsOn fixtureJar
+        into new File(runDirectory, 'mods')
+        from fixtureJar.archiveFile
+        doFirst { project.delete(runDirectory) }
         doLast {
-            if (!legacyMineralogyArchive.isFile() || !legacyMineralogyJar.isFile()) {
-                throw new GradleException('Sealed legacy Mineralogy fixtures are missing')
-            }
-            delete runDirectory
-            delete mainOutput
-            copy { from zipTree(legacyMineralogyArchive); into runDirectory }
-            mainOutput.mkdirs()
-            copy { from sourceSets.main.output; into mainOutput }
-            File mods = new File(runDirectory, 'mods'); mods.mkdirs()
-            copy { from migrationIntegrationTestModJar.archivePath; from legacyMineralogyJar; into mods }
-            File config = new File(runDirectory, 'config/mineralogy.cfg')
-            config.parentFile.mkdirs(); config.setText(fixture.config as String, 'UTF-8')
             new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
-            project.javaexec {
-                main = 'zone.moddev.mc.orespawn.migrationtest.LegacyMineralogyMetadataFixture'
-                classpath = files(migrationIntegrationClasses, sourceSets.main.runtimeClasspath)
-                args new File(runDirectory, 'world').absolutePath, fixture.version
-            }
+            new File(runDirectory, 'server.properties').setText(
+                    'eula=true\nonline-mode=false\nlevel-name=world\nlevel-seed=zsjpxah\n' +
+                    'spawn-animals=false\nspawn-monsters=false\n', 'UTF-8')
         }
     }
-
-    def createLegacyMineralogyProcess = { String phase, Object dependency ->
-        def process = task("legacyMineralogy${label}${phase.capitalize()}", type: JavaExec,
-                dependsOn: [dependency, 'createSrgToMcp']) {
-            group = 'verification'
-            main = 'net.minecraftforge.legacydev.MainServer'
-            classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
-            workingDir runDirectory
-            environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
-            environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
-            environment 'MOD_CLASSES', mainOutput.absolutePath
-            environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
-            systemProperty 'forge.logging.console.level', 'info'
-            systemProperty 'orespawn.migrationFamily', "legacy-mineralogy-${lineage}"
-            systemProperty 'orespawn.migrationPhase', phase
-            args '--nogui'
-            doLast {
-                File marker = new File(runDirectory, 'world/orespawn4-migration-probe.properties')
-                if (!marker.isFile()) {
-                    throw new GradleException("Legacy Mineralogy ${lineage} ${phase} marker is missing")
-                }
-                Properties values = new Properties(); marker.withInputStream { values.load(it) }
-                if (values.getProperty("${phase}_complete") != 'true') {
-                    throw new GradleException("Legacy Mineralogy ${lineage} ${phase} did not complete")
-                }
-                assertRuntimeLogsClean(runDirectory, "legacy Mineralogy ${lineage} ${phase} phase")
-            }
-        }
-        useForge14Runtime(process)
-        process
-    }
-
-    def freshTask = createLegacyMineralogyProcess('fresh', prepareTask)
-    def reloadTask = createLegacyMineralogyProcess('reload', freshTask)
-    def gate = task("legacyMineralogy${label}MigrationTest", dependsOn: reloadTask) {
+    tasks.create("${generation}AbiIntegrationProcess", JavaExec) {
         group = 'verification'
-        description = "Proves Mineralogy ${lineage} settings remain exact across an OreSpawn 4 upgrade and reload."
+        dependsOn prepare
+        workingDir runDirectory
+        configureFromForgeRun(delegate, 'runServer')
+        doLast {
+            File marker = new File(runDirectory, "world/${markerName}")
+            if (!marker.isFile() || !marker.text.contains('registered=true')) {
+                throw new GradleException("${generation.toUpperCase()} binary ABI probe did not complete: ${marker}")
+            }
+            File latest = new File(runDirectory, 'logs/latest.log')
+            if (latest.isFile() && latest.text.contains('Encountered an unexpected exception')) {
+                throw new GradleException("${generation.toUpperCase()} binary ABI probe logged a server failure")
+            }
+        }
     }
-    legacyMineralogyGates.add(gate)
 }
 
-check.dependsOn legacyMineralogyGates
+configureLegacyAbiProcess('os1', os1AbiFixtureJar, 'os1-abi-probe.properties')
+configureLegacyAbiProcess('os3', os3AbiFixtureJar, 'os3-abi-probe.properties')
 
-if (project.hasProperty('os3AbiFixtureJar')) {
-    def os3AbiFixture = file(project.property('os3AbiFixtureJar'))
-    def os3AbiRunDirectory = file(project.findProperty('os3AbiRunDir')
-            ?: "${buildDir}/os3-abi-integration-run")
-    def os3AbiMainOutput = file("${buildDir}/os3-abi-integration-fixture/orespawn-main")
-    task prepareOs3AbiCompatibilityRun(dependsOn: classes) {
-        doLast {
-            if (!os3AbiFixture.isFile()) {
-                throw new GradleException("Published-API fixture jar is missing: ${os3AbiFixture}")
-            }
-            delete os3AbiRunDirectory
-            delete os3AbiMainOutput
-            os3AbiRunDirectory.mkdirs()
-            copy { from sourceSets.main.output; into os3AbiMainOutput }
-            copy { from os3AbiFixture; into new File(os3AbiRunDirectory, 'mods') }
-            new File(os3AbiRunDirectory, 'server.properties').setText('''\
-level-name=os3-abi-world
-level-seed=zsjpxah
-level-type=default
-online-mode=false
-allow-nether=true
-generate-structures=false
-spawn-protection=0
-max-tick-time=-1
-''', 'UTF-8')
-            new File(os3AbiRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
-        }
-    }
-    task os3AbiCompatibilityProcess(type: JavaExec,
-            dependsOn: [prepareOs3AbiCompatibilityRun, 'createSrgToMcp']) {
-        group = 'verification'
-        main = 'net.minecraftforge.legacydev.MainServer'
-        classpath = files(sourceSets.main.runtimeClasspath, legacyDevRuntime)
-        workingDir os3AbiRunDirectory
-        environment 'mainClass', 'net.minecraft.launchwrapper.Launch'
-        environment 'MCP_TO_SRG', file("${buildDir}/createSrgToMcp/output.srg").absolutePath
-        environment 'MOD_CLASSES', os3AbiMainOutput.absolutePath
-        environment 'tweakClass', 'net.minecraftforge.fml.common.launcher.FMLServerTweaker'
-        systemProperty 'forge.logging.console.level', 'info'
-        args '--nogui'
-        doLast {
-            String fixtureName = os3AbiFixture.name.toLowerCase(java.util.Locale.ROOT)
-            String fixtureId = fixtureName.contains('322') ? 'os3abi322' : 'os3abi331'
-            File marker = new File(os3AbiRunDirectory, "${fixtureId}-pass.txt")
-            if (!marker.isFile()) {
-                throw new GradleException("Published OS3 API fixture did not pass: ${marker}")
-            }
-            File latest = new File(os3AbiRunDirectory, 'logs/latest.log')
-            assertRuntimeLogsClean(os3AbiRunDirectory, 'published OS3 API fixture')
-        }
-    }
-    useForge14Runtime(os3AbiCompatibilityProcess)
+task legacyAbiIntegrationTest {
+    group = 'verification'
+    dependsOn os1AbiIntegrationProcess, os3AbiIntegrationProcess
 }
 
-task syncForge14EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+check.dependsOn legacyAbiIntegrationTest
+
+def clientIntegrationClasses = file("${buildDir}/client-integration-fixture/classes")
+task compileClientIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = clientIntegrationClasses
+    options.encoding = 'UTF-8'
+}
+
+task clientIntegrationTestModJar(type: Jar, dependsOn: compileClientIntegrationTestMod) {
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = file("${buildDir}/client-integration-fixture")
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+
+def packagedClientProbeJar = renamer.classes(tasks.named('clientIntegrationTestModJar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('client-integration-fixture/clientprobe-reobf.jar')
+}
+
+tasks.register('preparePackagedClientProbe') {
+    group = 'verification'
+    description = 'Builds the reobfuscated client probe used only with a disposable packaged Forge runtime.'
+    dependsOn packagedClientProbeJar
+}
+
+def clientIntegrationRunDirectory = file("${buildDir}/client-integration-run")
+task prepareClientIntegrationTest(dependsOn: clientIntegrationTestModJar) {
+    doLast {
+        delete clientIntegrationRunDirectory
+        clientIntegrationRunDirectory.mkdirs()
+        copy {
+            from clientIntegrationTestModJar.archiveFile
+            into new File(clientIntegrationRunDirectory, 'mods')
+        }
+        new File(clientIntegrationRunDirectory, 'options.txt').setText(
+                'fullscreen:false\nforceUnicodeFont:false\nguiScale:2\n' +
+                'renderDistance:4\nshowSubtitles:false\n', 'UTF-8')
+    }
+}
+
+task clientIntegrationProcess(type: JavaExec, dependsOn: prepareClientIntegrationTest) {
+    group = 'verification'
+    workingDir clientIntegrationRunDirectory
+    systemProperty 'clientprobe.enabled', 'true'
+    configureFromForgeRun(delegate, 'runClient')
+    doLast {
+        File marker = new File(clientIntegrationRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) {
+            throw new GradleException("Client integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties(); marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_rendered') != 'true'
+                || result.getProperty('world_settings_opened') != 'true'
+                || result.getProperty('long_editor_roundtrip') != 'true'
+                || Integer.parseInt(result.getProperty('editor_routes', '0')) < 5) {
+            throw new GradleException("Client integration result is incomplete: ${marker}")
+        }
+        File latest = new File(clientIntegrationRunDirectory, 'logs/fml-client-latest.log')
+        if (latest.isFile() && (latest.text.contains('Encountered an unexpected exception')
+                || latest.text.contains('Reported exception thrown!'))) {
+            throw new GradleException("Client integration logged a runtime failure: ${latest}")
+        }
+        List<String> allowedDevelopmentErrors = [
+                'The binary patch set is missing',
+                'FML appears to be missing any signature data',
+                'Unable to read a class file correctly',
+                'problem reading the entry META-INF/versions/11/'
+        ]
+        List<String> unaccountedErrors = latest.readLines('UTF-8').findAll { line ->
+            (line.contains('/ERROR]') || line.contains('/FATAL]'))
+                    && !allowedDevelopmentErrors.any { line.contains(it) }
+        }
+        if (!unaccountedErrors.isEmpty()) {
+            throw new GradleException("Client integration logged unaccounted errors: ${unaccountedErrors}")
+        }
+        File crashDirectory = new File(clientIntegrationRunDirectory, 'crash-reports')
+        if (crashDirectory.isDirectory() && crashDirectory.listFiles().length > 0) {
+            throw new GradleException("Client integration produced crash reports: ${crashDirectory}")
+        }
+    }
+}
+
+task syncForge12EclipseIntegrationLaunches {
     group = 'ide'
     doLast {
-        String mainOutput = new File(projectDir, 'bin/main').absolutePath
-        String fixtureOutput = surfaceIntegrationClasses.absolutePath
-        String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
-        String fixtureModClasses = "${mainOutput};${mainOutput};${fixtureOutput};${fixtureResources}"
-		['Client', 'Server'].each { String runName ->
-			File launch = file("run${runName}.launch")
-			if (!launch.isFile()) {
-				throw new GradleException("Missing generated Eclipse launch: ${launch}")
-			}
-			String text = launch.getText('UTF-8')
-			String expectedMain = runName == 'Client'
-					? 'net.minecraftforge.legacydev.MainClient'
-					: 'net.minecraftforge.legacydev.MainServer'
-			if (!text.contains("value=\"${expectedMain}\"")) {
-				throw new GradleException("ForgeGradle generated an unexpected ${runName} launcher")
-			}
-			text = text.replace('value="${MC_VERSION}"', "value=\"${minecraft_version}\"")
-			String excludeTestKey = 'org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE'
-			String excludeTestAttribute =
-					"<booleanAttribute key=\"${excludeTestKey}\" value=\"true\"/>"
-			if (text.contains("key=\"${excludeTestKey}\"")) {
-				text = text.replaceFirst(
-						/<booleanAttribute key="org\.eclipse\.jdt\.launching\.ATTR_EXCLUDE_TEST_CODE" value="[^"]*"\/>/,
-						excludeTestAttribute)
-			} else {
-				int launchHeaderEnd = text.indexOf('\n', text.indexOf('<launchConfiguration'))
-				if (launchHeaderEnd < 0) {
-					throw new GradleException("Malformed Eclipse Java launch configuration: ${launch}")
-				}
-				String lineSeparator = text.contains('\r\n') ? '\r\n' : '\n'
-				text = "${text.substring(0, launchHeaderEnd + 1)}" +
-						"  ${excludeTestAttribute}${lineSeparator}" +
-						text.substring(launchHeaderEnd + 1)
-			}
-			launch.setText(text, 'UTF-8')
-		}
-        File serverLaunch = file('runServer.launch')
-        String serverTemplate = serverLaunch.getText('UTF-8')
-        ['Fresh', 'Reload'].each { String phase ->
-            File launch = file("runSurfaceIntegration${phase}.launch")
-            String text = serverTemplate
-            text = text.replace(
-                    '<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dforge.logging.console.level=debug -Dforge.logging.markers=REGISTRIES"/>',
-                    "<stringAttribute key=\"org.eclipse.jdt.launching.VM_ARGUMENTS\" value=\"-Dforge.logging.console.level=info -Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}\"/>")
-            text = text.replace(
-                    "<stringAttribute key=\"org.eclipse.jdt.launching.WORKING_DIRECTORY\" value=\"${file('run').absolutePath}\"/>",
-                    "<stringAttribute key=\"org.eclipse.jdt.launching.WORKING_DIRECTORY\" value=\"${surfaceIntegrationRunDirectory.absolutePath}\"/>")
-            text = text.replaceFirst(
-                    /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
-                    java.util.regex.Matcher.quoteReplacement(
-                            "<mapEntry key=\"MOD_CLASSES\" value=\"${fixtureModClasses}\"/>"))
-            launch.setText(text, 'UTF-8')
+        def writeGradleLaunch = { String fileName, String displayName, String arguments ->
+            File launch = file(fileName)
+            String escapedArguments = arguments
+                    .replace('&', '&amp;')
+                    .replace('"', '&quot;')
+            launch.setText("""<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>
+<launchConfiguration type=\"org.eclipse.ui.externaltools.ProgramLaunchConfigurationType\">
+<stringAttribute key=\"org.eclipse.debug.core.ATTR_REFRESH_SCOPE\" value=\"${'$'}{workspace}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_LOCATION\" value=\"${'$'}{project_loc}\\gradlew.bat\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS\" value=\"${escapedArguments}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY\" value=\"${'$'}{project_loc}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE\" value=\"${'$'}{project}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_NAME\" value=\"${displayName}\"/>
+</launchConfiguration>
+""", 'UTF-8')
         }
+
+        writeGradleLaunch('OreSpawn_Surface_FreshReload.launch',
+                'OreSpawn surface fresh/reload gate',
+                'surfaceIntegrationTest --offline --no-daemon')
+        writeGradleLaunch('OreSpawn_Migration_Fresh.launch',
+                'OreSpawn migration fresh gate',
+                'migrationIntegrationProcess --offline --no-daemon ' +
+                '-PmigrationRunDir=build/eclipse-migration-run ' +
+                '-PmigrationFamily=eclipse-manual -PmigrationPhase=fresh')
+        writeGradleLaunch('OreSpawn_Migration_Reload.launch',
+                'OreSpawn migration reload gate',
+                'migrationIntegrationProcess --offline --no-daemon ' +
+                '-PmigrationRunDir=build/eclipse-migration-run ' +
+                '-PmigrationFamily=eclipse-manual -PmigrationPhase=reload')
+        writeGradleLaunch('OreSpawn_Client_FreshReload.launch',
+                'OreSpawn client world and editor fresh/reload gate',
+                'clientIntegrationProcess --offline --no-daemon')
     }
 }
 
-task syncForge14EclipseClasspath(dependsOn: forge14RuntimeJar) {
-    group = 'ide'
-    doLast {
-        File classpathFile = file('.classpath')
-        if (!classpathFile.isFile()) {
-            throw new GradleException("Missing generated Eclipse classpath: ${classpathFile}")
+tasks.named('genEclipseRuns') {
+    finalizedBy syncForge12EclipseIntegrationLaunches
+}
+
+if (project.hasProperty('benchmarkRunDir')) {
+    def benchmarkRunDirectory = file(project.property('benchmarkRunDir'))
+    task prepareWorldgenBenchmark {
+        doLast {
+            delete benchmarkRunDirectory
+            benchmarkRunDirectory.mkdirs()
+            new File(benchmarkRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(benchmarkRunDirectory, 'server.properties').setText(
+                    'online-mode=false\nlevel-name=world\nlevel-type=default\n' +
+                    "level-seed=${project.findProperty('benchmarkSeed') ?: '-4965128775892001975'}\n" +
+                    'generate-structures=false\nspawn-animals=false\nspawn-monsters=false\n' +
+                    'max-tick-time=-1\n', 'UTF-8')
         }
-        String mappedPath = forge14MappedRuntime().absolutePath.replace('\\', '/')
-        String runtimePath = forge14RuntimeJar.archivePath.absolutePath.replace('\\', '/')
-        String text = classpathFile.getText('UTF-8')
-        String mappedEntry = "kind=\"lib\" path=\"${mappedPath}\""
-        if (!text.contains(mappedEntry)) {
-            throw new GradleException("Eclipse classpath does not contain mapped Forge 14 runtime: ${mappedPath}")
+    }
+task benchmarkIntegrationProcess(type: JavaExec, dependsOn: prepareWorldgenBenchmark) {
+        group = 'verification'
+        workingDir benchmarkRunDirectory
+        systemProperty 'orespawn.worldgenBenchmarkMode', project.findProperty('benchmarkMode') ?: 'sky'
+        systemProperty 'orespawn.worldgenBenchmarkRadius', project.findProperty('benchmarkRadius') ?: '4'
+        systemProperty 'orespawn.worldgenBenchmarkRepetitions', project.findProperty('benchmarkRepetitions') ?: '3'
+        systemProperty 'orespawn.worldgenBenchmarkCenterX', project.findProperty('benchmarkCenterX') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterZ', project.findProperty('benchmarkCenterZ') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterStep', project.findProperty('benchmarkCenterStep') ?: '64'
+        systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
+        systemProperty 'orespawn.worldgenBenchmarkVanillaOres',
+                project.findProperty('benchmarkVanillaOres') ?: 'false'
+        systemProperty 'orespawn.worldgenBenchmarkOreAudit',
+                project.findProperty('benchmarkOreAudit') ?: 'false'
+        if (project.hasProperty('benchmarkBlockAudit')) {
+            systemProperty 'orespawn.worldgenBenchmarkBlockAudit', project.property('benchmarkBlockAudit')
         }
-        text = text.replace(mappedEntry, "kind=\"lib\" path=\"${runtimePath}\"")
-        for (String forbidden : ['Mineralogy-1.10.2-3.3.8.26.jar',
-                'Mineralogy-1.12.2-3.8.0.53.jar']) {
-            if (text.contains(forbidden)) {
-                throw new GradleException("Test-only Mineralogy oracle leaked into Eclipse classpath: ${forbidden}")
+        configureFromForgeRun(delegate, 'runServer')
+        doLast {
+            File latest = new File(benchmarkRunDirectory, 'logs/fml-server-latest.log')
+            String mode = project.findProperty('benchmarkMode') ?: 'sky'
+            if (!latest.isFile() || !latest.text.contains("ORESPAWN_BENCHMARK summary mode=${mode}")) {
+                throw new GradleException("Missing ${mode} worldgen benchmark summary: ${latest}")
+            }
+            if (latest.text.contains('Encountered an unexpected exception')
+                    || latest.text.contains('Tried to assign a mutable BlockPos')) {
+                throw new GradleException("Worldgen benchmark logged a runtime failure: ${latest}")
             }
         }
-        classpathFile.setText(text, 'UTF-8')
     }
 }
 
-tasks.matching { it.name == 'genEclipseRuns' }.all {
-    finalizedBy syncForge14EclipseLaunches
+tasks.named('processResources', ProcessResources) {
+    filteringCharset = 'UTF-8'
+    inputs.property('version', project.version)
+    inputs.property('mcversion', project.minecraft_version)
+
+    filesMatching('mcmod.info') {
+        expand version: project.version, mcversion: project.minecraft_version
+    }
+    from('docs/AGENTS.md') {
+        into ''
+        rename { 'AGENTS.md' }
+    }
+    from('docs') {
+        into 'META-INF/orespawn/docs'
+    }
+    filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
-tasks.matching { it.name == 'eclipse' }.all {
-    finalizedBy syncForge14EclipseClasspath
+tasks.named('jar', Jar) {
+    archiveClassifier = 'deobf'
+    destinationDirectory = layout.buildDirectory.dir('libs-dev')
+    manifest {
+        attributes([
+                'Specification-Title'       : 'OreSpawn',
+                'Specification-Vendor'      : 'SkyBlade1978',
+                'Specification-Version'     : '1',
+                'Implementation-Title'      : base.archivesName.get(),
+                'Implementation-Version'    : project.version,
+                'Implementation-Vendor'     : 'SkyBlade1978',
+                'OreSpawn-API-Version'      : '1',
+                'FMLAT'                     : 'accesstransformer.cfg',
+                'Maven-Artifact'             : "${project.group}:${base.archivesName.get()}:${project.version}",
+                'Built-On-Java'              : '8',
+                'Built-On'                   : "${project.minecraft_version}-${project.forge_version}"
+        ])
+    }
+}
+
+def releaseJar = renamer.classes(tasks.named('jar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    archiveClassifier = null
+    accessTransformers = true
+    output = layout.buildDirectory.file("libs/OreSpawn-${project.version}.jar")
+}
+
+def apiJar = tasks.register('apiJar', Jar) {
+    dependsOn tasks.named('classes')
+    archiveClassifier = 'api'
+    destinationDirectory = layout.buildDirectory.dir('libs-dev')
+    from sourceSets.main.output
+    include 'zone/moddev/mc/orespawn/api/**'
+    include 'com/mcmoddev/orespawn/api/**'
+    include 'com/mojang/serialization/**'
+    include 'cyano/orespawn/**'
+    manifest {
+        attributes([
+                'Implementation-Title'  : 'OreSpawn-api',
+                'Implementation-Version': project.version,
+                'OreSpawn-API-Version'  : '1'
+        ])
+    }
+}
+
+tasks.register('deobfJar') {
+    group = 'build'
+    description = 'Builds the local deobfuscated development jar under build/libs-dev.'
+    dependsOn tasks.named('jar')
+}
+
+tasks.named('sourcesJar', Jar) {
+    filteringCharset = 'UTF-8'
+    includeEmptyDirs = false
+    archiveClassifier = 'sources'
+    filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
+    manifest {
+        attributes([
+                'Maven-Artifact'        : "${project.group}:${base.archivesName.get()}:${project.version}:sources",
+                'Implementation-Title'  : 'OreSpawn-sources',
+                'Implementation-Version': project.version
+        ])
+    }
+}
+
+tasks.named('javadocJar', Jar) {
+    filteringCharset = 'UTF-8'
+    archiveClassifier = 'javadoc'
+    filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
+    manifest {
+        attributes([
+                'Maven-Artifact'        : "${project.group}:${base.archivesName.get()}:${project.version}:javadoc",
+                'Implementation-Title'  : 'OreSpawn-javadoc',
+                'Implementation-Version': project.version
+        ])
+    }
+}
+
+['apiElements', 'runtimeElements'].each { configurationName ->
+    configurations.named(configurationName) {
+        artifacts.clear()
+    }
+    artifacts {
+        add(configurationName, releaseJar)
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn releaseJar
+    dependsOn apiJar
+    dependsOn tasks.named('sourcesJar')
+    dependsOn tasks.named('javadocJar')
+}
+
+def expectedReleaseFiles = providers.provider {
+    def prefix = "${base.archivesName.get()}-${project.version}"
+    [
+            "${prefix}.jar",
+            "${prefix}-sources.jar",
+            "${prefix}-javadoc.jar"
+    ]
+}
+def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
+
+tasks.register('verifyReleaseConfiguration') {
+    group = 'verification'
+    description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
+
+    doLast {
+        if (project.mod_version != '4.0.8.110021') {
+            throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
+        }
+        if (project.minecraft_version != '1.10.2'
+                || project.forge_version != '12.18.3.2511'
+                || project.mapping_channel != 'stable'
+                || project.mapping_version != '29-1.10.2') {
+            throw new GradleException('Unexpected Minecraft, Forge, or mappings target')
+        }
+        if (project.loader_name != 'forge' || project.loader_code != '1'
+                || project.java_version != '8' || project.gradle_java_version != '17') {
+            throw new GradleException('Unexpected dispatcher target metadata')
+        }
+        if (project.group.toString() != 'zone.moddev.mc'
+                || base.archivesName.get() != 'OreSpawn'
+                || project.curseforge_project_id != '245586') {
+            throw new GradleException('Unexpected Maven or CurseForge publication identity')
+        }
+
+        [
+                'src/main/java/zone/moddev/mc/orespawn/OreSpawn.java',
+                'src/main/java/cyano/orespawn/OreSpawn.java',
+                'src/main/java/com/mcmoddev/orespawn/compat/LegacyOs3Bridge.java',
+                'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
+                'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyOs3ProfileMigration.java',
+                'README.md', 'CHANGELOG.txt'
+        ].each { path ->
+            if (!file(path).getText('UTF-8').contains('4.0.8.110021')) {
+                throw new GradleException("Authoritative release location does not contain 4.0.8.110021: ${path}")
+            }
+        }
+        if (!file('docs/API.md').getText('UTF-8').contains('orespawn@[4.0.6,5.0.0)')) {
+            throw new GradleException('Consumer compatibility floor must remain [4.0.6,5.0.0)')
+        }
+        if (!file('src/main/java/zone/moddev/mc/orespawn/api/OreSpawnApi.java')
+                .getText('UTF-8').contains('API_VERSION = 1')) {
+            throw new GradleException('OreSpawn API major must remain 1')
+        }
+        if (!file('src/main/java/zone/moddev/mc/orespawn/worldgen/GeomeConfig.java')
+                .getText('UTF-8').contains('SCHEMA_VERSION = 6')
+                || !file('src/main/java/zone/moddev/mc/orespawn/worldgen/WorldGeologyProfile.java')
+                .getText('UTF-8').contains('SCHEMA_VERSION = 5')) {
+            throw new GradleException('Global/world schema versions must remain 6/5')
+        }
+        def providerSchema = new JsonSlurper().parse(file('docs/schemas/orespawn-provider.schema.json'))
+        if (!(providerSchema.properties.schema_version.enum as List).contains(4)) {
+            throw new GradleException('Provider schema must continue to support schema version 4')
+        }
+    }
+}
+
+tasks.register('verifyReleaseArtifacts') {
+    group = 'verification'
+    description = 'Audits the exact three distributable jars and their release-critical contents.'
+    dependsOn tasks.named('verifyReleaseConfiguration')
+    dependsOn tasks.named('assemble')
+
+    doLast {
+        File libs = layout.buildDirectory.dir('libs').get().asFile
+        List<File> jars = (libs.listFiles() ?: [] as File[])
+                .findAll { it.name.endsWith('.jar') }
+                .sort { it.name }
+        List<String> actual = jars.collect { it.name }
+        List<String> expected = expectedReleaseFiles.get().sort()
+        if (actual != expected) {
+            throw new GradleException("Expected exactly ${expected}, found ${actual}")
+        }
+
+        jars.each { candidate ->
+            if (candidate.length() == 0L) {
+                throw new GradleException("Empty release artifact: ${candidate.name}")
+            }
+            ZipFile candidateZip = new ZipFile(candidate)
+            try {
+                candidateZip.entries().findAll { entry ->
+                    !entry.isDirectory()
+                            && (archiveTextSuffixes.any { entry.name.endsWith(it) }
+                            || entry.name.endsWith('/element-list')
+                            || entry.name.endsWith('/package-list'))
+                }.each { entry ->
+                    boolean containsCarriageReturn = candidateZip.getInputStream(entry).withCloseable { input ->
+                        input.bytes.any { value -> value == 13 }
+                    }
+                    if (containsCarriageReturn) {
+                        throw new GradleException(
+                                "${candidate.name}!/${entry.name} does not use canonical LF line endings")
+                    }
+                }
+                ['src/test/', 'src/biomeIntegrationTest/', 'src/migrationIntegrationTest/',
+                 'src/clientIntegrationTest/', 'src/os1AbiFixture/', 'src/os3AbiFixture/',
+                 'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
+                 'org/junit/', 'org/mockito/', 'net/bytebuddy/'].each { forbidden ->
+                    if (candidateZip.entries().any { it.name.contains(forbidden) }) {
+                        throw new GradleException(
+                                "${candidate.name} contains forbidden entry matching ${forbidden}")
+                    }
+                }
+            } finally {
+                candidateZip.close()
+            }
+        }
+
+        File mainJar = new File(libs, expectedReleaseFiles.get()[0])
+        ZipFile zip = new ZipFile(mainJar)
+        try {
+            List<String> names = zip.entries().collect { it.name }
+            [
+                    'mcmod.info',
+                    'META-INF/accesstransformer.cfg',
+                    'zone/moddev/mc/orespawn/api/OreSpawnApi.class',
+                    'META-INF/orespawn/docs/VERSIONS.md',
+                    'META-INF/orespawn/docs/schemas/orespawn-provider.schema.json',
+                    'META-INF/orespawn/docs/schemas/orespawn-global.schema.json',
+                    'META-INF/orespawn/docs/schemas/orespawn-world.schema.json',
+                    'AGENTS.md'
+            ].each { required ->
+                if (!names.contains(required)) {
+                    throw new GradleException("Release jar is missing ${required}")
+                }
+            }
+
+            String metadata = zip.getInputStream(zip.getEntry('mcmod.info'))
+                    .getText(StandardCharsets.UTF_8.name())
+            def parsed = new JsonSlurper().parseText(metadata)
+            def mod = parsed instanceof List ? parsed.first() : parsed
+            if (mod.modid != 'orespawn' || mod.version != project.mod_version
+                    || mod.mcversion != project.minecraft_version) {
+                throw new GradleException('Packaged mcmod.info version or target is incorrect')
+            }
+
+            String packagedAccessTransformer = zip.getInputStream(
+                    zip.getEntry('META-INF/accesstransformer.cfg'))
+                    .getText(StandardCharsets.UTF_8.name())
+            List<String> packagedAccessTransformerRules = packagedAccessTransformer.readLines()
+                    .collect { it.replaceFirst(/\s*#.*/, '').trim() }
+                    .findAll { !it.isEmpty() }
+            List<String> expectedRuntimeAccessTransformerRules = [
+                    'public-f net.minecraft.world.WorldProvider field_76578_c',
+                    'public-f net.minecraft.world.gen.ChunkProviderOverworld field_186001_t'
+            ]
+            if (packagedAccessTransformerRules != expectedRuntimeAccessTransformerRules) {
+                throw new GradleException('Packaged access transformer was not remapped to the runtime SRG rules')
+            }
+
+            def manifestEntry = zip.getEntry('META-INF/MANIFEST.MF')
+            def manifest = manifestEntry == null ? null
+                    : new Manifest(zip.getInputStream(manifestEntry)).mainAttributes
+            if (manifest == null
+                    || manifest.getValue('Implementation-Version') != project.mod_version
+                    || manifest.getValue('OreSpawn-API-Version') != '1'
+                    || manifest.getValue('FMLAT') != 'accesstransformer.cfg'
+                    || manifest.getValue('Implementation-Timestamp') != null
+                    || manifest.getValue('Timestamp') != null) {
+                throw new GradleException('Release manifest identity/API/FMLAT is incorrect or volatile')
+            }
+
+            zip.entries().findAll { it.name.endsWith('.class') }.each { entry ->
+                byte[] header = new byte[8]
+                zip.getInputStream(entry).withCloseable { input ->
+                    if (input.read(header) != header.length) {
+                        throw new GradleException("Cannot inspect bytecode header for ${entry.name}")
+                    }
+                }
+                int major = ((header[6] & 0xff) << 8) | (header[7] & 0xff)
+                if (major != 52) {
+                    throw new GradleException("${entry.name} uses Java class major ${major}, expected 52")
+                }
+            }
+        } finally {
+            zip.close()
+        }
+
+        File sources = new File(libs, expectedReleaseFiles.get()[1])
+        new ZipFile(sources).withCloseable { sourceZip ->
+            if (sourceZip.getEntry('zone/moddev/mc/orespawn/OreSpawn.java') == null) {
+                throw new GradleException('Sources jar is missing OreSpawn.java')
+            }
+        }
+        File javadocs = new File(libs, expectedReleaseFiles.get()[2])
+        new ZipFile(javadocs).withCloseable { javadocZip ->
+            if (javadocZip.getEntry('index.html') == null) {
+                throw new GradleException('Javadoc jar is missing index.html')
+            }
+        }
+    }
+}
+
+tasks.register('writeReleaseChecksums') {
+    group = 'verification'
+    description = 'Writes SHA-256 checksums for the audited release jars.'
+    dependsOn tasks.named('verifyReleaseArtifacts')
+    def outputFile = layout.buildDirectory.file('release/SHA256SUMS')
+    inputs.files(providers.provider {
+        expectedReleaseFiles.get().collect { name ->
+            layout.buildDirectory.file("libs/${name}").get().asFile
+        }
+    })
+    outputs.file(outputFile)
+
+    doLast {
+        File output = outputFile.get().asFile
+        output.parentFile.mkdirs()
+        File libs = layout.buildDirectory.dir('libs').get().asFile
+        String contents = expectedReleaseFiles.get().sort().collect { name ->
+            MessageDigest digest = MessageDigest.getInstance('SHA-256')
+            new File(libs, name).withInputStream { input ->
+                byte[] buffer = new byte[8192]
+                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
+            }
+            "${digest.digest().encodeHex().toString().toUpperCase()}  ${name}"
+        }.join('\n') + '\n'
+        output.setText(contents, 'UTF-8')
+    }
+}
+
+tasks.register('verifyPreparedReleaseArtifacts') {
+    group = 'verification'
+    description = 'Audits a previously built immutable release bundle before remote Maven publication.'
+
+    doLast {
+        if (!preparedReleaseDir.isPresent()) {
+            throw new GradleException('preparedReleaseDir is required for prepared artifact publication')
+        }
+        File prepared = file(preparedReleaseDir.get())
+        if (!prepared.isDirectory()) {
+            throw new GradleException("Prepared release directory does not exist: ${prepared}")
+        }
+        List<String> expected = expectedReleaseFiles.get().sort()
+        List<File> jars = (prepared.listFiles() ?: [] as File[])
+                .findAll { it.name.endsWith('.jar') }
+                .sort { it.name }
+        if (jars.collect { it.name } != expected || jars.any { it.length() == 0L }) {
+            throw new GradleException("Prepared release must contain exactly the non-empty jars ${expected}")
+        }
+        File checksums = new File(prepared, 'SHA256SUMS')
+        File changelog = new File(prepared, 'CHANGELOG.txt')
+        if (!checksums.isFile() || !changelog.isFile()) {
+            throw new GradleException('Prepared release is missing SHA256SUMS or CHANGELOG.txt')
+        }
+        List<String> actualChecksums = jars.collect { candidate ->
+            MessageDigest digest = MessageDigest.getInstance('SHA-256')
+            candidate.withInputStream { input ->
+                byte[] buffer = new byte[8192]
+                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
+            }
+            "${digest.digest().encodeHex().toString().toUpperCase()}  ${candidate.name}"
+        }.sort()
+        List<String> declaredChecksums = checksums.readLines('UTF-8')
+                .findAll { !it.trim().isEmpty() }
+                .sort()
+        if (actualChecksums != declaredChecksums) {
+            throw new GradleException('Prepared release checksums do not match the immutable jars')
+        }
+    }
+}
+
+def mavenUploadUrl = providers.environmentVariable('MAVEN_UPLOAD_URL')
+        .orElse('https://invalid.invalid/missing-maven-upload-url')
+def mavenUploadUsername = providers.environmentVariable('MAVEN_UPLOAD_USERNAME')
+def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group.toString()
+            artifactId = base.archivesName.get()
+            version = project.version.toString()
+            if (preparedReleaseDir.isPresent()) {
+                File prepared = file(preparedReleaseDir.get())
+                artifact(new File(prepared, expectedReleaseFiles.get()[0]))
+                artifact(new File(prepared, expectedReleaseFiles.get()[1])) {
+                    classifier = 'sources'
+                }
+                artifact(new File(prepared, expectedReleaseFiles.get()[2])) {
+                    classifier = 'javadoc'
+                }
+            } else {
+                artifact(releaseJar)
+                artifact(tasks.named('sourcesJar'))
+                artifact(tasks.named('javadocJar'))
+            }
+            pom {
+                name = 'MMD OreSpawn'
+                description = project.mod_description
+                url = 'https://github.com/MinecraftModDevelopmentMods/OreSpawn'
+                licenses {
+                    license {
+                        name = 'GNU Lesser General Public License, Version 2.1'
+                        url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/MinecraftModDevelopmentMods/OreSpawn.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/MinecraftModDevelopmentMods/OreSpawn.git'
+                    url = 'https://github.com/MinecraftModDevelopmentMods/OreSpawn'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'release'
+            url = uri(mavenUploadUrl.get())
+            credentials {
+                username = mavenUploadUsername.orNull ?: ''
+                password = mavenUploadPassword.orNull ?: ''
+            }
+        }
+    }
+}
+
+tasks.register('validateMavenReleaseCredentials') {
+    group = 'publishing'
+    description = 'Prevents Maven publication from targeting a local or incomplete repository.'
+    doLast {
+        if (!providers.environmentVariable('MAVEN_UPLOAD_URL').isPresent()
+                || !mavenUploadUsername.isPresent()
+                || !mavenUploadPassword.isPresent()) {
+            throw new GradleException(
+                    'MAVEN_UPLOAD_URL, MAVEN_UPLOAD_USERNAME, and MAVEN_UPLOAD_PASSWORD are required')
+        }
+        String target = providers.environmentVariable('MAVEN_UPLOAD_URL').get()
+        if (target.startsWith('file:')) {
+            throw new GradleException('Maven release publication must use a remote repository')
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn tasks.named('validateMavenReleaseCredentials')
+    if (preparedReleaseDir.isPresent()) {
+        dependsOn tasks.named('verifyPreparedReleaseArtifacts')
+    } else {
+        dependsOn tasks.named('verifyReleaseArtifacts')
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+    synchronizationTasks 'genEclipseRuns'
+}
+
+tasks.register('configureEclipseBuildship') {
+    group = 'ide'
+    description = 'Creates the Buildship project preferences used by ForgeGradle 7 imports.'
+    doLast {
+        File preferencesFile = file('.settings/org.eclipse.buildship.core.prefs')
+        Properties preferences = new Properties()
+        Map<String, String> requiredPreferences = [
+                'eclipse.preferences.version'    : '1',
+                'connection.gradle.distribution': 'GRADLE_DISTRIBUTION(WRAPPER)',
+                'connection.gradle.user.home'   : gradle.gradleUserHomeDir.canonicalPath,
+                'connection.project.dir'        : '',
+                'gradle.user.home'               : gradle.gradleUserHomeDir.canonicalPath,
+                'override.workspace.settings'   : 'true'
+        ]
+        requiredPreferences.each { key, value -> preferences.setProperty(key, value) }
+        preferencesFile.parentFile.mkdirs()
+        preferencesFile.withOutputStream {
+            preferences.store(it,
+                    'Generated by configureEclipseBuildship; keep Eclipse and command-line caches aligned.')
+        }
+    }
+}
+
+tasks.register('isolateEclipseProductionRuns') {
+    group = 'ide'
+    description = 'Marks ordinary ForgeGradle 7 Eclipse launches as production-only.'
+    dependsOn tasks.named('genEclipseRuns')
+    dependsOn tasks.named('configureEclipseBuildship')
+
+    doLast {
+        ['runClient.launch', 'runServer.launch'].each { name ->
+            File launch = file(name)
+            if (!launch.isFile()) {
+                throw new GradleException("ForgeGradle did not generate ${name}")
+            }
+            String contents = launch.getText('UTF-8')
+            if (!contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+                String marker = '</launchConfiguration>'
+                String attribute =
+                        '  <booleanAttribute key="org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE" value="true"/>'
+                contents = contents.replace(marker, attribute + '\n' + marker)
+            }
+            launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
+        }
+    }
+}
+
+tasks.register('verifyEclipseProductionClasspath') {
+    group = 'verification'
+    description = 'Verifies that ordinary generated Eclipse launches exclude tests, fixtures, and probe mods.'
+    dependsOn tasks.named('isolateEclipseProductionRuns')
+
+    doLast {
+        File buildshipPreferences = file('.settings/org.eclipse.buildship.core.prefs')
+        if (!buildshipPreferences.isFile()) {
+            throw new GradleException('Missing Eclipse Buildship project preferences')
+        }
+        List<File> launchFiles = fileTree(project.projectDir) {
+            include 'runClient.launch'
+            include 'runServer.launch'
+            include '.eclipse/runClient.launch'
+            include '.eclipse/runServer.launch'
+        }.files as List<File>
+        if (launchFiles.size() < 2) {
+            throw new GradleException('ForgeGradle did not generate ordinary client/server Eclipse launches')
+        }
+        List<String> forbidden = [
+                'src/test', 'bin/test', 'build/classes/java/test',
+                'biomeIntegrationTest', 'migrationIntegrationTest', 'clientIntegrationTest',
+                'os1AbiFixture', 'os3AbiFixture', 'surfaceprobe', 'migrationprobe', 'clientprobe',
+                'junit-', 'opentest4j-', 'junit-platform-', 'Mineralogy-1.10.2-3.3.8.26.jar'
+        ]
+        launchFiles.each { launch ->
+            String contents = launch.getText('UTF-8').replace('\\', '/')
+            List<String> present = forbidden.findAll { contents.contains(it) }
+            if (!present.isEmpty()) {
+                throw new GradleException("${launch.name} exposes test code/dependencies: ${present}")
+            }
+            if (!contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')
+                    || !contents.contains('value="true"')) {
+                throw new GradleException("${launch.name} does not exclude test code")
+            }
+            if (!contents.contains('PROJECT_ATTR" value="OreSpawn"')) {
+                throw new GradleException("${launch.name} targets the wrong Eclipse project")
+            }
+        }
+    }
 }

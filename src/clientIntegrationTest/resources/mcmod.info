@@ -1,0 +1,1 @@
+[{"modid":"clientprobe","name":"OreSpawn Client Probe","description":"Build-only OreSpawn client smoke fixture.","version":"1","mcversion":"1.12.2","authorList":["MMD"],"dependencies":["required-after:orespawn@[4.0.6,5.0.0)"]}]
