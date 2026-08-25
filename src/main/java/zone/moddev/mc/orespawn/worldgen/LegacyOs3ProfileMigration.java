@@ -65,7 +65,7 @@ public final class LegacyOs3ProfileMigration {
 			boolean forceRetrogen, boolean flatBedrock, boolean retrogenBedrock,
 			int bedrockLayers) throws IOException {
 		String newline = System.lineSeparator();
-		String text = "OreSpawn 4.0.7.112021 Upgrade Report" + newline
+		String text = "OreSpawn 4.0.8.112021 Upgrade Report" + newline
 				+ "================================" + newline + newline
 				+ "RESULT: Legacy OreSpawn settings were imported into the OS4 profile." + newline
 				+ "- Manage vanilla ores: " + manageVanilla + newline
