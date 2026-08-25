@@ -1003,6 +1003,20 @@ tasks.named('processResources', ProcessResources) {
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
+def prepareEclipseResources = tasks.register('prepareEclipseResources') {
+    group = 'ide'
+    description = 'Copies Gradle-processed production resources into Eclipse merged output.'
+    dependsOn tasks.named('processResources')
+    doLast {
+        // Do not declare bin/main as a Gradle-owned output. Eclipse owns that
+        // directory and ForgeGradle inspects it while generating launches.
+        project.copy {
+            from(layout.buildDirectory.dir('resources/main'))
+            into(layout.projectDirectory.dir('bin/main'))
+        }
+    }
+}
+
 tasks.named('jar', Jar) {
     archiveClassifier = 'deobf'
     destinationDirectory = layout.buildDirectory.dir('libs-dev')
@@ -1670,9 +1684,10 @@ tasks.register('configureEclipseBuildship') {
 
 tasks.register('isolateEclipseProductionRuns') {
     group = 'ide'
-    description = 'Marks ordinary ForgeGradle 7 Eclipse launches as production-only.'
+    description = 'Normalizes ForgeGradle 7 Eclipse launches and marks ordinary launches as production-only.'
     dependsOn tasks.named('genEclipseRuns')
     dependsOn tasks.named('configureEclipseBuildship')
+    dependsOn prepareEclipseResources
 
     doLast {
         obsoleteForgeGradleEclipseLaunches.each { String name, String mainClass ->
@@ -1685,6 +1700,20 @@ tasks.register('isolateEclipseProductionRuns') {
                     throw new GradleException("Could not remove obsolete ForgeGradle launch ${name}")
                 }
             }
+        }
+
+        // ForgeGradle 7's legacy 1.12 run generator does not know its own
+        // MC_VERSION token. It emits ${MC_VERSION} as an Eclipse variable,
+        // which prevents every generated launch from starting. Store the
+        // target version as a literal environment value instead.
+        fileTree(project.projectDir) {
+            include 'run*.launch'
+        }.files.each { File launch ->
+            String contents = launch.getText('UTF-8')
+            contents = contents.replace(
+                    'key="MC_VERSION" value="${MC_VERSION}"',
+                    "key=\"MC_VERSION\" value=\"${minecraft_version}\"")
+            launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
         }
 
         ['runClient.launch', 'runServer.launch'].each { name ->
@@ -1715,6 +1744,24 @@ tasks.register('verifyEclipseProductionClasspath') {
         if (!buildshipPreferences.isFile()) {
             throw new GradleException('Missing Eclipse Buildship project preferences')
         }
+        File eclipseResources = file('bin/main')
+        [
+                'mcmod.info',
+                'META-INF/orespawn/docs/README.md',
+                'META-INF/orespawn/docs/VERSIONS.md'
+        ].each { relative ->
+            File required = new File(eclipseResources, relative)
+            if (!required.isFile()) {
+                throw new GradleException(
+                        "Eclipse production output is missing processed resource ${relative}")
+            }
+        }
+        String eclipseMetadata = new File(eclipseResources, 'mcmod.info').getText('UTF-8')
+        if (!eclipseMetadata.contains("\"version\": \"${project.version}\"")
+                || !eclipseMetadata.contains(
+                        "\"mcversion\": \"${minecraft_version}\"")) {
+            throw new GradleException('Eclipse mcmod.info retains unexpanded build placeholders')
+        }
         List<File> launchFiles = fileTree(project.projectDir) {
             include 'runClient.launch'
             include 'runServer.launch'
@@ -1723,6 +1770,21 @@ tasks.register('verifyEclipseProductionClasspath') {
         }.files as List<File>
         if (launchFiles.size() < 2) {
             throw new GradleException('ForgeGradle did not generate ordinary client/server Eclipse launches')
+        }
+        List<File> allGeneratedLaunches = fileTree(project.projectDir) {
+            include 'run*.launch'
+        }.files as List<File>
+        allGeneratedLaunches.each { launch ->
+            String contents = launch.getText('UTF-8')
+            if (contents.contains('${MC_VERSION}')) {
+                throw new GradleException(
+                        "${launch.name} retains ForgeGradle's unresolved MC_VERSION token")
+            }
+            if (!contents.contains(
+                    "key=\"MC_VERSION\" value=\"${minecraft_version}\"")) {
+                throw new GradleException(
+                        "${launch.name} does not define literal MC_VERSION=${minecraft_version}")
+            }
         }
         obsoleteForgeGradleEclipseLaunches.each { String name, String mainClass ->
             File launch = file(name)
