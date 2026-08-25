@@ -150,7 +150,7 @@ def configureForge25Run = { JavaExec runTask, String launchTarget ->
     // Forge 25's exploded-directory locator resolves one physical output per
     // mod entry.  Give it a merged, build-owned classes/resources directory,
     // repeated for the target's legacy duplicate-entry discovery contract.
-    runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory};" +
+    runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory}${File.pathSeparator}" +
             "${mod_id}%%${forgeRunModClassesDirectory}"
 }
 tasks.withType(JavaExec).configureEach { JavaExec runTask ->
