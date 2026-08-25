@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 
@@ -57,5 +58,10 @@ abstract class OreSpawnScreen extends GuiScreen {
 		List<String> text = new ArrayList<>();
 		for (ITextComponent line : lines) text.add(line.getFormattedText());
 		drawHoveringText(text, mouseX, mouseY);
+	}
+
+	/** Package-private view used by the separately packaged client qualification fixture. */
+	final List<GuiButton> qualificationButtons() {
+		return buttons;
 	}
 }

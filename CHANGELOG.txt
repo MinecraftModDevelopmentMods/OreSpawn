@@ -1,3 +1,14 @@
+Version 4.0.8.113021
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds, audited release artifacts, SHA-256
+  checksums, Buildship launches, and guarded release automation.
+* Export the complete bundled guide, including the shared version policy, to
+  the player-facing configuration folder.
+* Forge 1.12.2's 4.0.7 packaged access-transformer repair is target-specific
+  and is not applicable to Forge 1.13.2.
+
 Version 4.0.6.113021
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
