@@ -86,10 +86,9 @@ jobs:
             echo
             echo "To continue, open [Deploy OreSpawn release]($RELEASE_WORKFLOW_URL), select **Run workflow**, and enter:"
             echo
-            echo "- mode: \`publish\`"
-            echo "- release_ref: \`$GITHUB_REF_NAME\`"
-            echo "- curseforge_channel: \`release\`, \`beta\`, or \`alpha\`"
-            echo "- confirm_version: \`$GITHUB_REF_NAME\`"
+            echo "- release_version: \`$GITHUB_REF_NAME\`"
+            echo "- curseforge_release_level: \`release\`, \`beta\`, or \`alpha\`"
+            echo "- confirm_live_publication: \`true\`"
             echo
             echo "The dispatcher builds and audits the immutable bundle before the separate \`release\` environment approval gate."
           } >> "$GITHUB_STEP_SUMMARY"
