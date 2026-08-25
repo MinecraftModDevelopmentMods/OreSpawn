@@ -114,7 +114,21 @@ minecraft {
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+def bundledDocumentationDirectory = layout.projectDirectory.dir(
+        'src/generated/resources/META-INF/orespawn/docs')
+def prepareBundledDocumentation = tasks.register('prepareBundledDocumentation', Sync) {
+    group = 'build'
+    description = 'Stages public documentation as a generated production resource tree.'
+    from('docs')
+    into(bundledDocumentationDirectory)
+}
+
+sourceSets.main.resources {
+    // Eclipse rebuilds bin/main from declared resource source folders. Keeping
+    // the generated documentation in the source set prevents a Buildship
+    // refresh from silently removing the guide copied by processResources.
+    srcDir 'src/generated/resources'
+}
 
 def forgeRunModClassesDirectory = file("${buildDir}/forge-run-mod-classes/main")
 def prepareForgeRunModClasses = tasks.register('prepareForgeRunModClasses', Sync) {
@@ -241,6 +255,7 @@ tasks.named('check') {
 }
 
 tasks.named('processResources', ProcessResources) {
+    dependsOn prepareBundledDocumentation
     filteringCharset = 'UTF-8'
     inputs.property('version', project.version)
     inputs.property('minecraft_version', project.minecraft_version)
@@ -260,7 +275,6 @@ tasks.named('processResources', ProcessResources) {
         into ''
         rename { 'AGENTS.md' }
     }
-    from('docs') { into 'META-INF/orespawn/docs' }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
@@ -672,6 +686,7 @@ def releaseJar = renamer.classes(tasks.named('jar', Jar)) {
 }
 
 tasks.named('sourcesJar', Jar) {
+    dependsOn prepareBundledDocumentation
     filteringCharset = 'UTF-8'
     includeEmptyDirs = false
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
@@ -1077,6 +1092,13 @@ tasks.register('verifyEclipseProductionClasspath') {
         if (!legacyLwjglArtifacts.isEmpty()) {
             throw new GradleException(
                     "Forge 1.13 Eclipse classpath contains sealed LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
+        }
+        File eclipseClasspath = file('.classpath')
+        if (!eclipseClasspath.isFile()
+                || !eclipseClasspath.getText('UTF-8').contains(
+                        'path="src/generated/resources"')) {
+            throw new GradleException(
+                    'Eclipse does not expose the generated production-resource source folder')
         }
         [
                 'META-INF/mods.toml',
