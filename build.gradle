@@ -516,9 +516,10 @@ def createSurfaceProcess = { String phase, Object dependency ->
             // Forge 25's launcher (and grossjava9hacks) must run on Java 8 even
             // though Gradle and ForgeGradle 7 themselves run on Java 17.
             File javaExecutable = java8Launcher.get().executablePath.asFile
-            String command = 'call "' + javaExecutable.absolutePath + '" ' +
-                    arguments.collect { '"' + it.toString().replace('"', '""') + '"' }.join(' ')
-            commandLine 'cmd.exe', '/d', '/s', '/c', command
+            // Let Gradle pass the argument vector directly.  Wrapping this in
+            // cmd.exe made the otherwise portable integration gate fail on
+            // the Linux GitHub Actions runner before Minecraft could start.
+            commandLine(([javaExecutable.absolutePath] + arguments) as List<String>)
         }
     }
 }
