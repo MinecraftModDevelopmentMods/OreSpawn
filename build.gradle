@@ -194,7 +194,6 @@ tasks.register('verifyLegacyFixtures') {
 dependencies {
     implementation minecraft.dependency(
             "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
-    compileOnly 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
@@ -1061,6 +1060,24 @@ tasks.register('verifyEclipseProductionClasspath') {
     doLast {
         File prefs = file('.settings/org.eclipse.buildship.core.prefs')
         if (!prefs.isFile()) throw new GradleException('Missing Buildship preferences')
+        Properties buildshipPreferences = new Properties()
+        prefs.withInputStream { buildshipPreferences.load(it) }
+        String expectedGradleHome = gradle.gradleUserHomeDir.canonicalPath
+        if (buildshipPreferences.getProperty('connection.gradle.user.home') != expectedGradleHome
+                || buildshipPreferences.getProperty('gradle.user.home') != expectedGradleHome
+                || buildshipPreferences.getProperty('override.workspace.settings') != 'true') {
+            throw new GradleException(
+                    "Eclipse Buildship must use the validated Gradle home ${expectedGradleHome}")
+        }
+        Set<String> legacyLwjglArtifacts = configurations.compileClasspath.resolvedConfiguration
+                .resolvedArtifacts
+                .findAll { it.moduleVersion.id.group == 'org.lwjgl.lwjgl' }
+                .collect { "${it.moduleVersion.id.group}:${it.name}:${it.moduleVersion.id.version}" }
+                .toSet()
+        if (!legacyLwjglArtifacts.isEmpty()) {
+            throw new GradleException(
+                    "Forge 1.13 Eclipse classpath contains sealed LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
+        }
         [
                 'META-INF/mods.toml',
                 'META-INF/orespawn/docs/README.md',
