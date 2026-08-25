@@ -18,7 +18,7 @@ runtime. In `mods.toml` use a mandatory dependency, for example:
 [[dependencies.examplemod]]
 modId="orespawn"
 mandatory=true
-versionRange="[4.0.0,5.0.0)"
+versionRange="[4.0.6,5.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
