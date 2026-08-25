@@ -1071,6 +1071,7 @@ tasks.register('isolateEclipseProductionRuns') {
 }
 tasks.register('verifyEclipseProductionClasspath') {
     group = 'verification'
+    dependsOn tasks.named('eclipseClasspath')
     dependsOn tasks.named('isolateEclipseProductionRuns')
     dependsOn tasks.named('verifyLegacyOracleIsolation')
     doLast {
