@@ -29,6 +29,8 @@ class ClientButtonTextTest {
 			"src", "main", "resources", "assets", "orespawn", "lang", "en_us.json");
 	private static final Pattern LITERAL_TRANSLATION = Pattern.compile(
 			"new\\s+TextComponentTranslation\\(\\s*\\\"([^\\\"]+)\\\"\\s*[,)]");
+	private static final Pattern VALUE_BEFORE_MAXIMUM = Pattern.compile(
+			"\\.setValue\\([^;\\r\\n]*\\);\\s*\\w+\\.setMaxLength\\(\\d+\\)");
 	private static final Set<String> MINECRAFT_1_14_KEYS = new HashSet<>(Arrays.asList(
 			"gui.cancel", "gui.done", "options.off", "options.on"));
 
@@ -64,5 +66,34 @@ class ClientButtonTextTest {
 
 		assertTrue(missing.isEmpty(),
 				"Client labels must exist in OreSpawn or Minecraft 1.13: " + missing);
+	}
+
+	@Test
+	void textFieldsApplyTheirMaximumBeforeLoadingExistingValues() throws Exception {
+		List<String> unsafeInitializers = new ArrayList<>();
+		try (Stream<Path> files = Files.list(CLIENT_SOURCE)) {
+			for (Path source : (Iterable<Path>) files
+					.filter(path -> path.getFileName().toString().endsWith(".java"))::iterator) {
+				String text = new String(Files.readAllBytes(source), StandardCharsets.UTF_8);
+				if (VALUE_BEFORE_MAXIMUM.matcher(text).find()) {
+					unsafeInitializers.add(source.getFileName().toString());
+				}
+			}
+		}
+
+		assertTrue(unsafeInitializers.isEmpty(),
+				"GuiTextField truncates an existing value before a later maximum is applied: "
+						+ unsafeInitializers);
+	}
+
+	@Test
+	void targetTextFieldRetainsLongExistingValuesWhenConfiguredFirst() {
+		String value = "minecraft:netherrack,minecraft:end_stone,minecraft:stone";
+		TextFieldWidget field = new TextFieldWidget(null, 0, 0, 200, 20, "host_blocks");
+
+		field.setMaxLength(1024);
+		field.setValue(value);
+
+		assertEquals(value, field.getValue());
 	}
 }
