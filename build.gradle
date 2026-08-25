@@ -17,7 +17,7 @@ plugins {
 
 group = project.mod_group
 version = project.mod_version
-base.archivesName = "OreSpawn-${project.minecraft_version}"
+base.archivesName = 'OreSpawn'
 
 def versionParts = project.mod_version.toString().tokenize('.')
 if (versionParts.size() != 4 || !versionParts.every { it ==~ /\d+/ }) {
@@ -738,6 +738,21 @@ tasks.register('verifyReleaseConfiguration') {
                 || project.java_version != '8' || project.gradle_java_version != '17'
                 || project.java_toolchain_version != '8.0.502+7') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
+        }
+        List<String> expectedPublicArtifacts = [
+                'OreSpawn-4.0.8.113021.jar',
+                'OreSpawn-4.0.8.113021-sources.jar',
+                'OreSpawn-4.0.8.113021-javadoc.jar'
+        ]
+        if (base.archivesName.get() != 'OreSpawn'
+                || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
+            throw new GradleException('Public artifacts must use the version-only OreSpawn filename contract')
+        }
+        String ciWorkflow = file('.github/workflows/ci.yml').getText('UTF-8')
+        expectedPublicArtifacts.each { artifactName ->
+            if (!ciWorkflow.contains("build/libs/${artifactName}")) {
+                throw new GradleException("CI does not upload expected public artifact ${artifactName}")
+            }
         }
         [
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyConfigMigrator.java',
