@@ -49,9 +49,10 @@ version.
 
 Examples:
 
-| Minecraft | Loader | Target | Full OreSpawn 4.0.6 version |
+| Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
+| 1.14.4 | Forge | `114041` | `4.0.8.114041` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -138,11 +139,12 @@ same `Major.Minor.Bug` may be shared by functionally equivalent ports.
 
 If a released branch receives a bug fix that other branches do not require,
 only the affected branch's Bug number is incremented. For example, Forge
-1.13.2 may move from `4.0.6.113021` to `4.0.7.113021` while unaffected branches
-remain on their target-qualified 4.0.6 versions.
+1.12.2 moved to `4.0.7.112021` for its packaged access-transformer repair while
+unaffected branches remained on their target-qualified 4.0.6 versions.
 
-If a different branch later receives a separate fix, it uses the next unused
-Bug number, such as `4.0.8`, even if the `4.0.7` fix was not applicable to it.
+If a different branch later receives a shared fix, it uses the next unused
+Bug number, such as Forge 1.14.4's `4.0.8.114041`, even though the 4.0.7 repair
+was not applicable to it.
 A branch may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:
