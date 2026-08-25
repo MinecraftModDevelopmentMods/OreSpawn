@@ -1,3 +1,12 @@
+Version 4.0.8.112021
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds and guarded Maven, CurseForge, and
+  GitHub release automation.
+* Keep the Forge 1.12.2 packaged access-transformer repair introduced in
+  4.0.7.112021.
+
 Version 4.0.7.112021
 
 * Fix Forge 1.12.2 packaged jars not declaring their access transformer, which
