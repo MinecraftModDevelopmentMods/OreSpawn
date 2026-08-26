@@ -239,8 +239,8 @@ final class OreDimensionScreen extends Screen {
 
 	private TextFieldWidget addPlacementField(int x, int y, String key, String value) {
 		TextFieldWidget box = new TextFieldWidget(font, x, y, columnWidth, 20, new StringTextComponent(key));
-		box.setValue(value);
 		box.setMaxLength(32);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(this, box, placementHelp(key));
 		placementWidgets.add(addButton(box));
 		return box;
@@ -252,8 +252,8 @@ final class OreDimensionScreen extends Screen {
 
 	private TextFieldWidget addHostField(int x, int y, String key, String value) {
 		TextFieldWidget box = new TextFieldWidget(font, x, y, contentWidth, 20, new StringTextComponent(key));
-		box.setValue(value);
 		box.setMaxLength(1024);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(this, box, "tooltip.orespawn." + key);
 		hostWidgets.add(addButton(box));
 		return box;
@@ -261,8 +261,8 @@ final class OreDimensionScreen extends Screen {
 
 	private TextFieldWidget addPatternField(int x, int y, String key, String value) {
 		TextFieldWidget box = new TextFieldWidget(font, x, y, columnWidth, 20, new StringTextComponent(key));
-		box.setValue(value);
 		box.setMaxLength(32);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(this, box, "tooltip.orespawn.ore." + key);
 		patternWidgets.add(addButton(box));
 		return box;
