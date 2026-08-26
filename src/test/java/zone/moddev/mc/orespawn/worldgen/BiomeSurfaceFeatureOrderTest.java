@@ -3,6 +3,8 @@ package zone.moddev.mc.orespawn.worldgen;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import net.minecraft.util.registry.Bootstrap;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.GenerationStage;
@@ -35,7 +37,7 @@ class BiomeSurfaceFeatureOrderTest {
 				.surfaceBuilder(SurfaceBuilder.DEFAULT, SurfaceBuilder.GRASS_DIRT_GRAVEL_CONFIG));
 
 		BiomeFeatureInstaller.installFeatures(biome, true, true, true, true, true, true);
-		assertTrue(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
+		assertFalse(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 				.contains(StoneReplacer.configuredFeature()));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 				.contains(OreSpawnOreGeneration.configuredFeature()));
@@ -43,7 +45,11 @@ class BiomeSurfaceFeatureOrderTest {
 				.contains(FluidDepositFeature.configuredFeature()));
 		ConfiguredFeature<?, ?> surfaces = BiomeSurfaceFeature.configuredFeature();
 		ConfiguredFeature<?, ?> bedrock = FlatBedrockFeature.configuredFeature();
-		assertTrue(biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS).contains(surfaces));
+		List<ConfiguredFeature<?, ?>> local =
+				biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS);
+		assertTrue(local.size() >= 2);
+		assertTrue(local.get(0) == StoneReplacer.configuredFeature());
+		assertTrue(local.get(1) == surfaces);
 		assertFalse(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(surfaces));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(bedrock));
 		assertFalse(biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS).contains(bedrock));

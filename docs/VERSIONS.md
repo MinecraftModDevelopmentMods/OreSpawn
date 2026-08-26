@@ -53,7 +53,7 @@ Examples:
 | --- | --- | ---: | --- |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.14.4 | Forge | `114041` | `4.0.8.114041` |
-| 1.15.2 | Forge | `115021` | `4.0.8.115021` |
+| 1.15.2 | Forge | `115021` | `4.0.9.115021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -144,8 +144,9 @@ only the affected branch's Bug number is incremented. For example, Forge
 unaffected branches remained on their target-qualified 4.0.6 versions.
 
 If a different branch later receives a shared fix, it uses the next unused
-Bug number, such as Forge 1.14.4's `4.0.8.114041` and Forge 1.15.2's
-`4.0.8.115021`, even though the 4.0.7 repair was not applicable to them.
+Bug number, such as Forge 1.14.4's `4.0.8.114041`, even though the 4.0.7 repair
+was not applicable to it. Forge 1.15.2 then advanced to `4.0.9.115021` for a
+target-qualified terrain-host ordering repair.
 A branch may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:

@@ -62,7 +62,6 @@ final class BiomeFeatureInstaller {
 		if (vanillaOreGate) VanillaOreFeatureGate.wrapFeatureList(underground);
 		if (terrain) {
 			StoneReplacer.removeVanillaMatchingStoneFeatures(underground);
-			addUnique(underground, StoneReplacer.configuredFeature());
 		}
 		if (managedOres) addUnique(underground, OreSpawnOreGeneration.configuredFeature());
 		if (fluidDeposits) addUnique(underground, FluidDepositFeature.configuredFeature());
@@ -71,13 +70,22 @@ final class BiomeFeatureInstaller {
 			VanillaOreFeatureGate.wrapFeatureList(
 					biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_DECORATION));
 		}
-		installSurfaceStages(biome, surfaces, flatBedrock);
+		installSurfaceStages(biome, terrain, surfaces, flatBedrock);
 	}
 
-	static boolean installSurfaceStages(Biome biome, boolean surfaces, boolean flatBedrock) {
-		boolean changed = surfaces && addUnique(biome.getFeatures(
-				GenerationStage.Decoration.LOCAL_MODIFICATIONS),
-				BiomeSurfaceFeature.configuredFeature());
+	static boolean installSurfaceStages(Biome biome, boolean terrain,
+			boolean surfaces, boolean flatBedrock) {
+		List<ConfiguredFeature<?, ?>> local =
+				biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS);
+		boolean changed = false;
+		if (terrain) {
+			changed |= placeUniqueAt(local, StoneReplacer.configuredFeature(), 0);
+			if (surfaces) {
+				changed |= placeUniqueAt(local, BiomeSurfaceFeature.configuredFeature(), 1);
+			}
+		} else if (surfaces) {
+			changed |= addUnique(local, BiomeSurfaceFeature.configuredFeature());
+		}
 		changed |= flatBedrock && addUnique(biome.getFeatures(
 				GenerationStage.Decoration.TOP_LAYER_MODIFICATION),
 				FlatBedrockFeature.configuredFeature());
@@ -96,6 +104,17 @@ final class BiomeFeatureInstaller {
 			ConfiguredFeature<?, ?> feature) {
 		if (feature == null || features.contains(feature)) return false;
 		features.add(feature);
+		return true;
+	}
+
+	private static boolean placeUniqueAt(List<ConfiguredFeature<?, ?>> features,
+			ConfiguredFeature<?, ?> feature, int index) {
+		if (feature == null) return false;
+		int current = features.indexOf(feature);
+		int target = Math.min(index, features.size() - (current >= 0 ? 1 : 0));
+		if (current == target) return false;
+		if (current >= 0) features.remove(current);
+		features.add(target, feature);
 		return true;
 	}
 }
