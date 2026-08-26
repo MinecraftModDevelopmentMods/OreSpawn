@@ -115,7 +115,7 @@ public final class GeomeGeology {
 					for (int y = surfaceY; y >= 0; y--) {
 						cursor.setPos(x, y, z);
 						BlockState current = chunk.getBlockState(cursor);
-						if (terrain.isReplaceable(current)) {
+						if (terrain.isReplaceable(current) && chunk.getTileEntity(cursor) == null) {
 							BlockState replacement = pickReplacement(
 									geomeIndex, baseRockValue, formationRegion, x, y, z);
 							if (!changes(current, replacement)) continue;
@@ -155,7 +155,8 @@ public final class GeomeGeology {
 			}
 			cursor.setY(y);
 			BlockState current = chunk.getBlockState(cursor);
-			if (terrain.isReplaceable(current) && changes(current, replacement)) {
+			if (terrain.isReplaceable(current) && chunk.getTileEntity(cursor) == null
+					&& changes(current, replacement)) {
 				chunk.setBlockState(cursor, replacement, false);
 				changed = true;
 			}

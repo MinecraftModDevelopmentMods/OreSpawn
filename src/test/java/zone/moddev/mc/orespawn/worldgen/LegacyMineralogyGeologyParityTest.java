@@ -35,7 +35,7 @@ class LegacyMineralogyGeologyParityTest {
     }
 
     @Test
-    void cyanoSamplerMatchesPublishedMineralogy501AndSealedVectors() throws Exception {
+	void cyanoSamplerMatchesPublishedMineralogy511AndSealedVectors() throws Exception {
         Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
         Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
         Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE,
@@ -43,38 +43,35 @@ class LegacyMineralogyGeologyParityTest {
         MessageDigest sealed = MessageDigest.getInstance("SHA-256");
 
         String configuredPath = System.getProperty("orespawn.mineralogy5Oracle", "");
-        Path oracle = configuredPath.trim().isEmpty() ? null : Paths.get(configuredPath);
-        PublishedMineralogy published = oracle != null && Files.isRegularFile(oracle)
-                ? PublishedMineralogy.open(oracle) : null;
+        assertTrue(!configuredPath.trim().isEmpty(),
+				"The direct published Mineralogy 5.1.1 oracle is mandatory");
+        Path oracle = Paths.get(configuredPath);
+        assertTrue(Files.isRegularFile(oracle), "Configured Mineralogy oracle is missing: " + oracle);
+        PublishedMineralogy published = PublishedMineralogy.open(oracle);
         try {
-            if (published != null) published.configure(9, igneous, metamorphic, sedimentary);
+            published.configure(9, igneous, metamorphic, sedimentary);
             for (long seed : new long[] { 0L, -4965128775892001975L }) {
                 Geology os4 = new Geology(seed, 128.0D, 37.25D, 9, false,
                         states(igneous), states(metamorphic), states(sedimentary));
-                PublishedSampler sampler = published == null ? null : published.newSampler(seed, 128.0D, 37.25D);
+                PublishedSampler sampler = published.newSampler(seed, 128.0D, 37.25D);
                 for (int x : new int[] { -1025, -257, -1, 0, 1, 255, 1024 }) {
                     for (int z : new int[] { -1025, -257, -1, 0, 1, 255, 1024 }) {
                         for (int y = 0; y < 256; y += 7) {
                             Block actual = os4.getStoneAt(x, y, z);
                             update(sealed, seed, x, y, z, actual);
-                            if (sampler != null) {
-                                assertEquals(sampler.getStoneAt(x, y, z), actual,
-                                        "Published Mineralogy 5.0.1 mismatch at "
-                                        + seed + ":" + x + ":" + y + ":" + z);
-                            }
+                            assertEquals(sampler.getStoneAt(x, y, z), actual,
+									"Published Mineralogy 5.1.1 mismatch at "
+                                    + seed + ":" + x + ":" + y + ":" + z);
                         }
                     }
                 }
             }
         } finally {
-            if (published != null) published.close();
+            published.close();
         }
 
         assertEquals(SEALED_VECTOR_SHA256, hex(sealed.digest()),
-                "The sealed vector digest is generated from the exact published Mineralogy 5.0.1 sampler");
-        if (oracle != null) {
-            assertTrue(Files.isRegularFile(oracle), "Configured Mineralogy oracle is missing: " + oracle);
-        }
+				"The sealed vector digest is generated from the exact published Mineralogy 5.1.1 sampler");
     }
 
     private static void update(MessageDigest digest, long seed, int x, int y, int z, Block block) {

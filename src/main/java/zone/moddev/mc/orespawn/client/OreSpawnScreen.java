@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.util.text.ITextComponent;
 
 /**
@@ -31,5 +32,10 @@ abstract class OreSpawnScreen extends Screen {
 		List<String> text = new ArrayList<>();
 		for (ITextComponent line : lines) text.add(line.getFormattedText());
 		renderTooltip(text, mouseX, mouseY);
+	}
+
+	/** Package-private view used by the separately packaged client qualification fixture. */
+	final List<Widget> qualificationButtons() {
+		return buttons;
 	}
 }
