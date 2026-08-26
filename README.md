@@ -1,3 +1,8 @@
+[![Discord](https://img.shields.io/badge/Discord-MMD-green.svg?style=flat&logo=Discord)](https://discord.moddev.zone)
+[![CurseForge downloads](https://cf.way2muchnoise.eu/full_mmd-orespawn_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Supported Minecraft versions](https://cf.way2muchnoise.eu/versions/Minecraft_mmd-orespawn_all.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Build, test, and audit](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml/badge.svg?branch=master-1.14.4)](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml?query=branch%3Amaster-1.14.4)
+
 # MMD OreSpawn
 
 OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.14.4.
@@ -11,6 +16,10 @@ End" policy used by mods such as Base Metals.
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
+
+This branch builds target-qualified version `4.0.8.114041`: the OreSpawn 4.0.8
+feature set for Minecraft 1.14.4 and Forge. See the
+[versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 ## What Happens When It Is Installed?
 
@@ -86,11 +95,13 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 8 from the repository root (the local validation JDK is 1.8.0_221):
+Run Gradle with Java 17 from the repository root. Install the exact Temurin
+`8.0.502+7` toolchain used to compile production code and test fixtures for
+Minecraft 1.14.4; the build rejects a different Java 8 toolchain:
 
 ```powershell
-.\gradlew.bat clean build javadoc --no-daemon
-.\gradlew.bat genEclipseRuns eclipse --no-daemon
+.\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
+.\gradlew.bat genEclipseRuns verifyEclipseProductionClasspath --no-daemon
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
@@ -101,10 +112,13 @@ survive, validates provider-rock vanilla springs and an external ore-pattern
 registration, then reopens and checks the exact saved world. The fixture is
 not included in OreSpawn's published jars.
 
-Run both `genEclipseRuns` and `eclipse` after importing or refreshing this
-ForgeGradle 3 project in Eclipse. This branch uses the Gradle 4.9 wrapper,
-Forge 28.2.26, the `snapshot_20190719-1.14.3` MCP mappings, and resource/data
-pack format 4. Published jars are SRG-reobfuscated for the Forge 28 runtime.
+Import or refresh the project with Eclipse Buildship, then run
+`genEclipseRuns` and `verifyEclipseProductionClasspath`. This branch uses
+ForgeGradle 7.0.34, the Gradle 9.6.1 wrapper, Forge 28.2.26, the
+`snapshot_20190719-1.14.3` MCP mappings, and pack format 4. Ordinary Eclipse
+launches exclude tests and fixtures. Published jars are deterministic,
+SRG-reobfuscated for the Forge 28 runtime, audited for their access transformer
+and contents, and accompanied by SHA-256 checksums.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

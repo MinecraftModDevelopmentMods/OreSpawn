@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
@@ -41,8 +43,23 @@ public final class SurfaceProbeSpringBridge {
 	}
 
 	public static boolean place(ServerWorld world, BlockPos pos, LiquidsConfig config) {
-		return VanillaSpringCompatibility.FEATURE.place(world,
-				world.getChunkProvider().getChunkGenerator(), world.getRandom(), pos, config);
+		Object generator = world.getChunkProvider().getChunkGenerator();
+		for (Method method : VanillaSpringCompatibility.FEATURE.getClass().getMethods()) {
+			Class<?>[] parameters = method.getParameterTypes();
+			if (method.getReturnType() != boolean.class || parameters.length != 5
+					|| !parameters[0].isInstance(world)
+					|| !parameters[1].isInstance(generator)
+					|| !parameters[2].isInstance(world.getRandom())
+					|| !parameters[3].isInstance(pos)
+					|| !parameters[4].isInstance(config)) continue;
+			try {
+				return (Boolean) method.invoke(VanillaSpringCompatibility.FEATURE,
+						world, generator, world.getRandom(), pos, config);
+			} catch (IllegalAccessException | InvocationTargetException failure) {
+				throw new IllegalStateException("Could not invoke the reobfuscated spring wrapper", failure);
+			}
+		}
+		throw new IllegalStateException("Could not locate the reobfuscated spring wrapper entry point");
 	}
 
 	private static LiquidsConfig find(ConfiguredFeature<?> feature,
