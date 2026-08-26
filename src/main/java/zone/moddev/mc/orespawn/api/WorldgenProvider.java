@@ -1272,7 +1272,7 @@ public final class WorldgenProvider {
 				profile.addProperty("place_fluid_deposits", true);
 				return this;
 			}
-			/** @deprecated Use {@link #fluidDeposit(FluidDepositDefinition)}. */
+			/** @deprecated Use {@code fluidDeposit(FluidDepositDefinition)}. */
 			@Deprecated
 			public Builder oil(OilDefinition value) {
 				profile.add("oil", value.toJson());
