@@ -501,8 +501,8 @@ task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
     source fileTree('src/biomeIntegrationTest/java')
     classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
     destinationDirectory = surfaceIntegrationClasses
-    sourceCompatibility = '16'
-    targetCompatibility = '16'
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     options.encoding = 'UTF-8'
 }
 
@@ -527,6 +527,7 @@ level-name=surface-integration-world
 level-seed=zsjpxah
 level-type=default
 online-mode=false
+server-port=0
 allow-nether=true
 generate-structures=false
 spawn-protection=0
@@ -739,7 +740,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.8.118021'
+        if (project.mod_version != '4.0.9.118021'
                 || project.minecraft_version != '1.18.2'
                 || project.forge_version != '40.3.0'
                 || project.mapping_channel != 'official'
@@ -752,9 +753,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.8.118021.jar',
-                'OreSpawn-4.0.8.118021-sources.jar',
-                'OreSpawn-4.0.8.118021-javadoc.jar'
+                'OreSpawn-4.0.9.118021.jar',
+                'OreSpawn-4.0.9.118021-sources.jar',
+                'OreSpawn-4.0.9.118021-javadoc.jar'
         ]
         if (base.archivesName.get() != 'OreSpawn'
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -771,7 +772,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.8.118021')) {
+            if (!file(path).getText('UTF-8').contains('4.0.9.118021')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
@@ -1275,6 +1276,7 @@ level-name=surface-integration-world
 level-seed=zsjpxah
 level-type=default
 online-mode=false
+server-port=0
 allow-nether=true
 generate-structures=false
 spawn-protection=0
