@@ -28,6 +28,8 @@ run
 classes
 logs
 /mcmodsrepo/
+/src/generated/resources/META-INF/orespawn/docs/
+/config/orespawn-worldgen.json
 
 # machine-specific agent context (public integration notes live under /docs)
 /AGENTS.md

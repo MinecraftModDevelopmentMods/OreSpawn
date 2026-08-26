@@ -30,6 +30,7 @@ public final class DocumentationExporter {
 			"MIGRATION.md",
 			"TROUBLESHOOTING.md",
 			"AGENTS.md",
+			"VERSIONS.md",
 			"examples/examplemod-orespawn.json",
 			"examples/orespawn-global.json",
 			"examples/orespawn-world.json",
