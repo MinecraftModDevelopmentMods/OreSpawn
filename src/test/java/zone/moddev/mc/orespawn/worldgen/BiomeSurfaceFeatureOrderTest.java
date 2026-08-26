@@ -24,27 +24,33 @@ class BiomeSurfaceFeatureOrderTest {
 
 	@Test
 	void eventAndRuntimeInstallersKeepSurfacesEarlyAndBedrockLast() {
+		StoneReplacer.registerConfiguredFeature();
 		BiomeSurfaceFeature.registerConfiguredFeature();
 		FlatBedrockFeature.registerConfiguredFeature();
 		BiomeGenerationSettingsBuilder generation = new BiomeGenerationSettingsBuilder(
 				net.minecraft.world.level.biome.BiomeGenerationSettings.EMPTY);
 
+		assertTrue(StoneReplacer.install(generation));
 		assertTrue(BiomeSurfaceFeature.install(generation));
 
 		ConfiguredFeature<?, ?> surfaces = BiomeSurfaceFeature.configuredFeature();
 		ConfiguredFeature<?, ?> bedrock = FlatBedrockFeature.configuredFeature();
 		var local = generation.getFeatures(GenerationStep.Decoration.LOCAL_MODIFICATIONS);
 		var top = generation.getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		assertTrue(local.stream().anyMatch(feature -> feature.get() == surfaces));
+		assertTrue(local.size() >= 2);
+		assertTrue(local.get(0).get() == StoneReplacer.configuredFeature());
+		assertTrue(local.get(1).get() == surfaces);
 		assertFalse(top.stream().anyMatch(feature -> feature.get() == surfaces));
 
 		List<List<Supplier<ConfiguredFeature<?, ?>>>> runtime = new ArrayList<>();
-		assertTrue(BiomeFeatureInstaller.installSurfaceStages(runtime));
+		assertTrue(BiomeFeatureInstaller.installSurfaceStages(runtime, true, true));
 		List<Supplier<ConfiguredFeature<?, ?>>> runtimeLocal = step(runtime,
 				GenerationStep.Decoration.LOCAL_MODIFICATIONS);
 		List<Supplier<ConfiguredFeature<?, ?>>> runtimeTop = step(runtime,
 				GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		assertTrue(runtimeLocal.stream().anyMatch(feature -> feature.get() == surfaces));
+		assertTrue(runtimeLocal.size() >= 2);
+		assertTrue(runtimeLocal.get(0).get() == StoneReplacer.configuredFeature());
+		assertTrue(runtimeLocal.get(1).get() == surfaces);
 		assertFalse(runtimeLocal.stream().anyMatch(feature -> feature.get() == bedrock));
 		assertTrue(runtimeTop.stream().anyMatch(feature -> feature.get() == bedrock));
 		assertFalse(runtimeTop.stream().anyMatch(feature -> feature.get() == surfaces));
