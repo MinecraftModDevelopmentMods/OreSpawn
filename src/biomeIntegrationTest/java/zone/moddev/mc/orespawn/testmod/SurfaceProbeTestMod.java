@@ -103,6 +103,15 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
 	private static final ResourceLocation DYNAMIC_FLUID = new ResourceLocation(MODID + ":fluid/dynamic_water");
+	private static final Block[] NATURAL_SOURCES = {
+			Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL,
+			Blocks.GRAVEL, Blocks.SAND, Blocks.RED_SAND, Blocks.CLAY,
+			Blocks.TERRACOTTA, Blocks.WHITE_TERRACOTTA,
+			Blocks.ORANGE_TERRACOTTA, Blocks.RED_TERRACOTTA
+	};
+	private static final Block[] INVALID_TERRAIN_HOSTS = {
+			Blocks.AIR, Blocks.WATER, Blocks.BEDROCK, Blocks.CHEST
+	};
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn:stable_craton"), new ResourceLocation("orespawn:mountain_belt"),
 			new ResourceLocation("orespawn:volcanic_arc"), new ResourceLocation("orespawn:sedimentary_basin"),
@@ -123,9 +132,11 @@ public final class SurfaceProbeTestMod {
 	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
 	private static final int EXPECTED_FILLER = EXPECTED_COLUMNS * 3;
+	private static final int EXPECTED_NATURAL_SOURCES = 9 * NATURAL_SOURCES.length;
 	private static final String PHASE_PROPERTY = "surfaceprobe.integrationPhase";
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
+	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
 
 	public SurfaceProbeTestMod() {
 		FMLJavaModLoadingContext context = FMLJavaModLoadingContext.get();
@@ -240,6 +251,8 @@ public final class SurfaceProbeTestMod {
 			end.add("biome_namespaces", namespaces);
 			JsonArray hosts = new JsonArray();
 			hosts.add(blockId(Blocks.END_STONE).toString());
+			for (Block source : NATURAL_SOURCES) hosts.add(blockId(source).toString());
+			for (Block source : INVALID_TERRAIN_HOSTS) hosts.add(blockId(source).toString());
 			end.add("host_blocks", hosts);
 			end.add("host_tags", new JsonArray());
 			terrain.add(OPEN_ID.toString(), end);
@@ -359,6 +372,13 @@ public final class SurfaceProbeTestMod {
 		int biomeB = 0;
 		int edgeChanges = 0;
 		int sentinels = 0;
+		long rawNaturalSources = 0L;
+		long structureNaturalSources = 0L;
+		long vegetationNaturalSources = 0L;
+		long cavePockets = 0L;
+		long underwaterPockets = 0L;
+		long rawBedrock = 0L;
+		long rawBlockEntities = 0L;
 		BlockPos.Mutable pos = new BlockPos.Mutable();
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
@@ -427,22 +447,97 @@ public final class SurfaceProbeTestMod {
 					}
 				}
 				sentinels += auditSentinels(level, chunk, pos, chunkMinX, chunkMinZ);
+				if (!roofed) {
+					NaturalSourceAudit natural = auditNaturalSources(level, chunk, pos,
+							chunkMinX, chunkMinZ);
+					rawNaturalSources += natural.rawConverted;
+					structureNaturalSources += natural.structurePreserved;
+					vegetationNaturalSources += natural.vegetationPreserved;
+					cavePockets += natural.cavePreserved;
+					underwaterPockets += natural.underwaterPreserved;
+					rawBedrock += natural.bedrockPreserved;
+					rawBlockEntities += natural.blockEntityPreserved;
+				}
 			}
 		}
 
 		if (top != EXPECTED_COLUMNS - 9 || underwater != 9 || filler != EXPECTED_FILLER
 				|| biomeA == 0 || biomeB == 0 || edgeChanges == 0 || sentinels != 9 * 4
 				|| geology != (roofed ? 0 : EXPECTED_FILLER)
-				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS))) {
+				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS))
+				|| (!roofed && (rawNaturalSources != EXPECTED_NATURAL_SOURCES
+						|| structureNaturalSources != EXPECTED_NATURAL_SOURCES
+						|| vegetationNaturalSources != EXPECTED_NATURAL_SOURCES
+						|| cavePockets != EXPECTED_NATURAL_SOURCES / 2
+						|| underwaterPockets != EXPECTED_NATURAL_SOURCES / 2
+						|| rawBedrock != 9 || rawBlockEntities != 9))) {
 			throw new IllegalStateException("Incomplete surface audit for " + level.dimension().location()
 					+ ": top=" + top + ", underwater=" + underwater + ", filler=" + filler
 					+ ", biomeA=" + biomeA + ", biomeB=" + biomeB + ", edges=" + edgeChanges
 					+ ", sentinels=" + sentinels + ", geology=" + geology
-					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop);
+					+ ", ceiling=" + ceiling + ", roofTop=" + roofTop
+					+ ", rawNatural=" + rawNaturalSources
+					+ ", structureNatural=" + structureNaturalSources
+					+ ", vegetationNatural=" + vegetationNaturalSources
+					+ ", cavePockets=" + cavePockets
+					+ ", underwaterPockets=" + underwaterPockets
+					+ ", rawBedrock=" + rawBedrock
+					+ ", rawBlockEntities=" + rawBlockEntities);
 		}
 		long aquiferFluid = roofed ? 0L : auditDynamicFluid(level);
 		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
-				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid);
+				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid,
+				rawNaturalSources, structureNaturalSources, vegetationNaturalSources,
+				cavePockets, underwaterPockets, rawBedrock, rawBlockEntities);
+	}
+
+	private static NaturalSourceAudit auditNaturalSources(ServerWorld level, IChunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ) {
+		long rawConverted = 0L;
+		long structurePreserved = 0L;
+		long vegetationPreserved = 0L;
+		long cavePreserved = 0L;
+		long underwaterPreserved = 0L;
+		long bedrockPreserved = 0L;
+		long blockEntityPreserved = 0L;
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			int x = naturalX(minX, index);
+			int z = naturalZ(minZ, index);
+			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
+			if (chunk.getBlockState(pos.set(x, groundY - 12, z)).is(Blocks.DIORITE)) {
+				rawConverted++;
+			}
+			Block pocket = chunk.getBlockState(pos.set(x, groundY - 11, z)).getBlock();
+			if (index < NATURAL_SOURCES.length / 2) {
+				if (pocket == Blocks.AIR) cavePreserved++;
+			} else if (pocket == Blocks.WATER) {
+				underwaterPreserved++;
+			}
+			if (chunk.getBlockState(pos.set(x, groundY - 16, z)).is(NATURAL_SOURCES[index])) {
+				structurePreserved++;
+			}
+			if (chunk.getBlockState(pos.set(x, groundY - 20, z)).is(NATURAL_SOURCES[index])) {
+				vegetationPreserved++;
+			}
+		}
+		int bedrockGroundY = findMarkedGround(chunk, pos, minX + 11, minZ + 12, 0, 256);
+		if (chunk.getBlockState(pos.set(minX + 11, bedrockGroundY - 24, minZ + 12))
+				.is(Blocks.BEDROCK)) {
+			bedrockPreserved++;
+		}
+		int chestGroundY = findMarkedGround(chunk, pos, minX + 12, minZ + 12, 0, 256);
+		pos.set(minX + 12, chestGroundY - 24, minZ + 12);
+		if (chunk.getBlockState(pos).is(Blocks.CHEST)
+				&& level.getBlockEntity(pos) instanceof ChestTileEntity) {
+			ChestTileEntity chest = (ChestTileEntity) level.getBlockEntity(pos);
+			if (chest != null && chest.getItem(0).getItem() == Items.EMERALD
+					&& RAW_CHEST_ITEM_NAME.equals(chest.getItem(0).getHoverName().getString())) {
+				blockEntityPreserved++;
+			}
+		}
+		return new NaturalSourceAudit(rawConverted, structurePreserved,
+				vegetationPreserved, cavePreserved, underwaterPreserved,
+				bedrockPreserved, blockEntityPreserved);
 	}
 
 	private static long auditDynamicFluid(ServerWorld level) {
@@ -581,6 +676,13 @@ public final class SurfaceProbeTestMod {
 			values.setProperty(prefix + "edge_changes", Integer.toString(result.edgeChanges()));
 			values.setProperty(prefix + "sentinels", Integer.toString(result.sentinels()));
 			values.setProperty(prefix + "aquifer_fluid", Long.toString(result.aquiferFluid()));
+			values.setProperty(prefix + "raw_natural_sources", Long.toString(result.rawNaturalSources()));
+			values.setProperty(prefix + "structure_natural_sources", Long.toString(result.structureNaturalSources()));
+			values.setProperty(prefix + "vegetation_natural_sources", Long.toString(result.vegetationNaturalSources()));
+			values.setProperty(prefix + "cave_pockets", Long.toString(result.cavePockets()));
+			values.setProperty(prefix + "underwater_pockets", Long.toString(result.underwaterPockets()));
+			values.setProperty(prefix + "raw_bedrock", Long.toString(result.rawBedrock()));
+			values.setProperty(prefix + "raw_block_entities", Long.toString(result.rawBlockEntities()));
 		}
 		return values;
 	}
@@ -676,7 +778,35 @@ public final class SurfaceProbeTestMod {
 				}
 			}
 		}
+		if (!roofed) placeRawNaturalSources(world, chunk, pos, minX, minZ);
 		return true;
+	}
+
+	private static void placeRawNaturalSources(ISeedReader world, IChunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ) {
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			int x = naturalX(minX, index);
+			int z = naturalZ(minZ, index);
+			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
+			chunk.setBlockState(pos.set(x, groundY - 12, z),
+					NATURAL_SOURCES[index].defaultBlockState(), false);
+			chunk.setBlockState(pos.set(x, groundY - 11, z),
+					(index < NATURAL_SOURCES.length / 2 ? Blocks.AIR : Blocks.WATER)
+							.defaultBlockState(), false);
+		}
+		int bedrockGroundY = findMarkedGround(chunk, pos, minX + 11, minZ + 12, 0, 256);
+		chunk.setBlockState(pos.set(minX + 11, bedrockGroundY - 24, minZ + 12),
+				Blocks.BEDROCK.defaultBlockState(), false);
+		int chestGroundY = findMarkedGround(chunk, pos, minX + 12, minZ + 12, 0, 256);
+		world.setBlock(pos.set(minX + 12, chestGroundY - 24, minZ + 12),
+				Blocks.CHEST.defaultBlockState(), 2);
+		if (world.getBlockEntity(pos) instanceof ChestTileEntity) {
+			ChestTileEntity chest = (ChestTileEntity) world.getBlockEntity(pos);
+			ItemStack sentinel = new ItemStack(Items.EMERALD);
+			sentinel.setHoverName(new StringTextComponent(RAW_CHEST_ITEM_NAME));
+			chest.setItem(0, sentinel);
+			chest.setChanged();
+		}
 	}
 
 	private static boolean solid(BlockState state) {
@@ -700,6 +830,7 @@ public final class SurfaceProbeTestMod {
 			chest.setItem(0, sentinel);
 			chest.setChanged();
 		}
+		placeAuthoredNaturalSources(world, chunk, pos, minX, minZ, 16);
 		return true;
 	}
 
@@ -716,7 +847,28 @@ public final class SurfaceProbeTestMod {
 		int vegetationY = markedGround(chunk, pos, minX + 6, minZ + 6, world);
 		world.setBlock(pos.set(minX + 6, vegetationY + 1, minZ + 6), Blocks.DIRT.defaultBlockState(), 2);
 		world.setBlock(pos.set(minX + 6, vegetationY + 2, minZ + 6), Blocks.OAK_SAPLING.defaultBlockState(), 2);
+		placeAuthoredNaturalSources(world, chunk, pos, minX, minZ, 20);
 		return true;
+	}
+
+	private static void placeAuthoredNaturalSources(ISeedReader world, IChunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ, int depth) {
+		if (!world.getLevel().dimension().equals(OPEN)) return;
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			int x = naturalX(minX, index);
+			int z = naturalZ(minZ, index);
+			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
+			world.setBlock(pos.set(x, groundY - depth, z),
+					NATURAL_SOURCES[index].defaultBlockState(), 2);
+		}
+	}
+
+	private static int naturalX(int minX, int index) {
+		return minX + 12 + index % 4;
+	}
+
+	private static int naturalZ(int minZ, int index) {
+		return minZ + 1 + index / 4;
 	}
 
 	private static int markedGround(IChunk chunk, BlockPos.Mutable pos,
@@ -751,6 +903,28 @@ public final class SurfaceProbeTestMod {
 		BlockState ceiling() { return ceiling; }
 	}
 
+	private static final class NaturalSourceAudit {
+		final long rawConverted;
+		final long structurePreserved;
+		final long vegetationPreserved;
+		final long cavePreserved;
+		final long underwaterPreserved;
+		final long bedrockPreserved;
+		final long blockEntityPreserved;
+
+		NaturalSourceAudit(long rawConverted, long structurePreserved,
+				long vegetationPreserved, long cavePreserved, long underwaterPreserved,
+				long bedrockPreserved, long blockEntityPreserved) {
+			this.rawConverted = rawConverted;
+			this.structurePreserved = structurePreserved;
+			this.vegetationPreserved = vegetationPreserved;
+			this.cavePreserved = cavePreserved;
+			this.underwaterPreserved = underwaterPreserved;
+			this.bedrockPreserved = bedrockPreserved;
+			this.blockEntityPreserved = blockEntityPreserved;
+		}
+	}
+
 	private static final class AuditResult {
 		private final long top;
 		private final long underwater;
@@ -763,10 +937,19 @@ public final class SurfaceProbeTestMod {
 		private final int edgeChanges;
 		private final int sentinels;
 		private final long aquiferFluid;
+		private final long rawNaturalSources;
+		private final long structureNaturalSources;
+		private final long vegetationNaturalSources;
+		private final long cavePockets;
+		private final long underwaterPockets;
+		private final long rawBedrock;
+		private final long rawBlockEntities;
 
 		AuditResult(long top, long underwater, long filler, long geology, long ceiling,
 				long roofTop, int biomeA, int biomeB, int edgeChanges, int sentinels,
-				long aquiferFluid) {
+				long aquiferFluid, long rawNaturalSources, long structureNaturalSources,
+				long vegetationNaturalSources, long cavePockets, long underwaterPockets,
+				long rawBedrock, long rawBlockEntities) {
 			this.top = top;
 			this.underwater = underwater;
 			this.filler = filler;
@@ -778,6 +961,13 @@ public final class SurfaceProbeTestMod {
 			this.edgeChanges = edgeChanges;
 			this.sentinels = sentinels;
 			this.aquiferFluid = aquiferFluid;
+			this.rawNaturalSources = rawNaturalSources;
+			this.structureNaturalSources = structureNaturalSources;
+			this.vegetationNaturalSources = vegetationNaturalSources;
+			this.cavePockets = cavePockets;
+			this.underwaterPockets = underwaterPockets;
+			this.rawBedrock = rawBedrock;
+			this.rawBlockEntities = rawBlockEntities;
 		}
 
 		long top() { return top; }
@@ -791,5 +981,12 @@ public final class SurfaceProbeTestMod {
 		int edgeChanges() { return edgeChanges; }
 		int sentinels() { return sentinels; }
 		long aquiferFluid() { return aquiferFluid; }
+		long rawNaturalSources() { return rawNaturalSources; }
+		long structureNaturalSources() { return structureNaturalSources; }
+		long vegetationNaturalSources() { return vegetationNaturalSources; }
+		long cavePockets() { return cavePockets; }
+		long underwaterPockets() { return underwaterPockets; }
+		long rawBedrock() { return rawBedrock; }
+		long rawBlockEntities() { return rawBlockEntities; }
 	}
 }

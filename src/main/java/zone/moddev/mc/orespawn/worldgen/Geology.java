@@ -113,8 +113,9 @@ public class Geology {
 				for (; y >= 0; y--) {
 					cursor.set(x, y, z);
 					BlockState current = chunk.getBlockState(cursor);
-					if (terrain.isReplaceable(current)
-							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE)) {
+					if ((terrain.isReplaceable(current)
+							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE))
+							&& chunk.getBlockEntity(cursor) == null) {
 						BlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
 						if (current.equals(replacement)) continue;
 						chunk.setBlockState(cursor, replacement, false);

@@ -47,11 +47,15 @@ public final class BiomeSurfaceFeature extends ContextFeature<NoFeatureConfig> {
 		if (configuredFeature == null) return false;
 		java.util.List<Supplier<ConfiguredFeature<?, ?>>> features = generation.getFeatures(
 				GenerationStage.Decoration.LOCAL_MODIFICATIONS);
-		if (features.stream().anyMatch(existing -> existing.get() == configuredFeature)) {
-			return false;
+		int stoneIndex = -1;
+		for (int index = 0; index < features.size(); index++) {
+			if (features.get(index).get() == StoneReplacer.configuredFeature()) {
+				stoneIndex = index;
+				break;
+			}
 		}
-		features.add(() -> configuredFeature);
-		return true;
+		return StoneReplacer.placeUniqueAt(features, configuredFeature,
+				stoneIndex >= 0 ? stoneIndex + 1 : features.size());
 	}
 
 	static ConfiguredFeature<?, ?> configuredFeature() {
