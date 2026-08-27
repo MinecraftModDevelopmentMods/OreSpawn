@@ -66,14 +66,33 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 				OreSpawnConfig.placeOreSpawnRock(), GeomeConfig.hasTerrainReplacement(Level.OVERWORLD))) {
 			removeVanillaMatchingStoneFeatures(event);
 		}
-		if (placedFeature != null) {
-			event.getGeneration().getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES)
-					.add(placedFeature);
-		}
+		install(event.getGeneration());
+	}
+
+	static boolean install(net.minecraftforge.common.world.BiomeGenerationSettingsBuilder generation) {
+		return placeUniqueAt(generation.getFeatures(
+				GenerationStep.Decoration.LOCAL_MODIFICATIONS), placedFeature, 0);
 	}
 
 	static Holder<PlacedFeature> placedFeature() {
 		return placedFeature;
+	}
+
+	static boolean placeUniqueAt(List<Holder<PlacedFeature>> features,
+			Holder<PlacedFeature> feature, int index) {
+		if (feature == null) return false;
+		int current = -1;
+		for (int candidate = 0; candidate < features.size(); candidate++) {
+			if (features.get(candidate).value() == feature.value()) {
+				current = candidate;
+				break;
+			}
+		}
+		int target = Math.min(index, features.size() - (current >= 0 ? 1 : 0));
+		if (current == target) return false;
+		if (current >= 0) features.remove(current);
+		features.add(target, feature);
+		return true;
 	}
 
 	static boolean removeVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {

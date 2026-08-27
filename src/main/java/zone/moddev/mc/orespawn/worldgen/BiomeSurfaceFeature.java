@@ -50,11 +50,16 @@ public final class BiomeSurfaceFeature extends Feature<NoneFeatureConfiguration>
 		if (placedFeature == null) return false;
 		java.util.List<Holder<PlacedFeature>> features = generation.getFeatures(
 				GenerationStep.Decoration.LOCAL_MODIFICATIONS);
-		if (features.stream().anyMatch(existing -> existing.value() == placedFeature.value())) {
-			return false;
+		Holder<PlacedFeature> stone = StoneReplacer.placedFeature();
+		int stoneIndex = -1;
+		for (int index = 0; stone != null && index < features.size(); index++) {
+			if (features.get(index).value() == stone.value()) {
+				stoneIndex = index;
+				break;
+			}
 		}
-		features.add(placedFeature);
-		return true;
+		return StoneReplacer.placeUniqueAt(features, placedFeature,
+				stoneIndex >= 0 ? stoneIndex + 1 : features.size());
 	}
 
 	static Holder<PlacedFeature> placedFeature() {

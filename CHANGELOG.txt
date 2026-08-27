@@ -1,13 +1,44 @@
+Version 4.0.10.118021
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve the shifted formation identity for layer, family, and rock choice
+  while preventing vanilla Stone fallback near dimension floors and ceilings.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.9.118021
+
+* Replace provider-declared natural terrain hosts during the existing geology
+  scan before structure and vegetation features can author matching blocks.
+* Keep air, fluids, bedrock, and block entities protected even when their block
+  IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.8.118021
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds, audited release artifacts, SHA-256
+  checksums, Buildship launches, and guarded release automation.
+* Export the complete bundled guide, including the shared version policy, to
+  the player-facing configuration folder.
+* Forge 1.12.2's 4.0.7 packaged access-transformer repair is target-specific
+  and is not applicable to Forge 1.18.2.
+
 Version 4.0.6.118021
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
 * Preserve generated worlds made with Mineralogy 1.10, 1.12, or 5.x by reading their saved mod metadata and exact legacy configuration before creating the OreSpawn world profile.
 * Write human-readable, idempotent upgrade reports for legacy OreSpawn and Mineralogy imports while retaining source files and existing chunks unchanged.
 * Audit automated runtime logs and dynamic-fluid generation so logged worldgen failures cannot pass merely because the process exits normally.
-* Qualify existing OreSpawn 4.0.4 global and per-world profiles without changing explicit Custom values or provider definitions.
+* Port OreSpawn 4.0.6.118021 to Minecraft 1.18.2 and Forge 40.3.0 using Java 17.
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
+* Preserve exact datapack-biome rules and stagger close Stable Layers geome boundaries.
+* Recalibrate Edge Detail and the managed vanilla-ore defaults for Minecraft 1.18.2.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
@@ -15,7 +46,7 @@ Version 4.0.5
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
 * Verify both public biome-registration helpers on Forge 40
-* Confirm Minecraft 1.18.2 ResourceLocation documentation and ForgeGradle workflow
+* Confirm Minecraft 1.18.2 ResourceLocation documentation and ForgeGradle 7 workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1
