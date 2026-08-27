@@ -48,6 +48,7 @@ jobs:
       java_version: ${{ steps.validate.outputs.java_version }}
       java_toolchain_version: ${{ steps.validate.outputs.java_toolchain_version }}
       gradle_java_version: ${{ steps.validate.outputs.gradle_java_version }}
+      install_gradle_java: ${{ steps.validate.outputs.install_gradle_java }}
       curseforge_project_id: ${{ steps.validate.outputs.curseforge_project_id }}
       main_jar: ${{ steps.validate.outputs.main_jar }}
       sources_jar: ${{ steps.validate.outputs.sources_jar }}
@@ -149,6 +150,47 @@ jobs:
           done
           java_toolchain_version="${java_toolchain_version:-$java_version}"
 
+          java_major() {
+            local version="$1"
+            if [[ ! "$version" =~ ^([0-9]+)([._+-].*)?$ ]]; then
+              echo "Invalid Java toolchain version $version" >&2
+              return 1
+            fi
+            printf '%s' "${BASH_REMATCH[1]}"
+          }
+          requires_separate_gradle_java() {
+            local toolchain_major
+            toolchain_major="$(java_major "$1")"
+            [[ "$toolchain_major" != "$2" ]]
+          }
+
+          java_setup_contracts=(
+            '8.0.502+7 17 true'
+            '16.0.2+7 17 true'
+            '17.0.1+12 17 false'
+            '17 17 false'
+            '21.0.8+9 21 false'
+          )
+          for contract in "${java_setup_contracts[@]}"; do
+            read -r contract_toolchain contract_gradle expected <<<"$contract"
+            actual=false
+            if requires_separate_gradle_java "$contract_toolchain" "$contract_gradle"; then
+              actual=true
+            fi
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Java setup contract failed for toolchain $contract_toolchain and Gradle $contract_gradle" >&2
+              exit 1
+            fi
+          done
+
+          install_gradle_java=false
+          if requires_separate_gradle_java "$java_toolchain_version" "$gradle_java_version"; then
+            install_gradle_java=true
+            echo "Gradle Java $gradle_java_version will be installed separately from toolchain $java_toolchain_version"
+          else
+            echo "Pinned toolchain $java_toolchain_version also satisfies Gradle Java $gradle_java_version"
+          fi
+
           IFS=. read -r mc_major mc_minor mc_patch extra <<<"$minecraft_version"
           if [[ -n "${extra:-}" || -z "${mc_major:-}" || -z "${mc_minor:-}" ]]; then
             echo "Invalid minecraft_version=$minecraft_version" >&2
@@ -196,6 +238,7 @@ jobs:
           echo "java_version=$java_version" >> "$GITHUB_OUTPUT"
           echo "java_toolchain_version=$java_toolchain_version" >> "$GITHUB_OUTPUT"
           echo "gradle_java_version=$gradle_java_version" >> "$GITHUB_OUTPUT"
+          echo "install_gradle_java=$install_gradle_java" >> "$GITHUB_OUTPUT"
           echo "curseforge_project_id=$curseforge_project_id" >> "$GITHUB_OUTPUT"
           echo "main_jar=OreSpawn-$release_version.jar" >> "$GITHUB_OUTPUT"
           echo "sources_jar=OreSpawn-$release_version-sources.jar" >> "$GITHUB_OUTPUT"
@@ -241,7 +284,8 @@ jobs:
           distribution: temurin
           java-version: ${{ needs.preflight.outputs.java_toolchain_version }}
 
-      - name: Install Java for Gradle
+      - name: Install separate Java for Gradle
+        if: needs.preflight.outputs.install_gradle_java == 'true'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -395,7 +439,8 @@ jobs:
           distribution: temurin
           java-version: ${{ needs.preflight.outputs.java_toolchain_version }}
 
-      - name: Install Java for Gradle
+      - name: Install separate Java for Gradle
+        if: needs.preflight.outputs.install_gradle_java == 'true'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
