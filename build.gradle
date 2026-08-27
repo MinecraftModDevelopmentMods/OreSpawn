@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.jar.Manifest
@@ -35,6 +36,9 @@ if (versionParts[3] != expectedTargetVersion) {
 ext.functional_version = versionParts[0..2].join('.')
 ext.display_version = project.mod_version
 ext.release_tag = project.mod_version
+def expectedMavenGroup = 'zone.moddev.mc.orespawn'
+def expectedMavenArtifact = 'OreSpawn'
+def expectedMavenCoordinate = "${expectedMavenGroup}:${expectedMavenArtifact}:${project.version}"
 
 java {
     toolchain {
@@ -640,7 +644,7 @@ tasks.named('jar', Jar) {
                 'Implementation-Vendor'    : 'SkyBlade1978',
                 'OreSpawn-API-Version'     : '1',
                 'FMLAT'                    : 'accesstransformer.cfg',
-                'Maven-Artifact'           : "${project.group}:${base.archivesName.get()}:${project.version}",
+                'Maven-Artifact'           : expectedMavenCoordinate,
                 'Built-On-Java'            : '16',
                 'Built-On'                 : "${project.minecraft_version}-${project.forge_version}"
         ])
@@ -697,6 +701,7 @@ tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
         if (project.mod_version != '4.0.9.117011'
+                || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.17.1'
                 || project.forge_version != '37.1.1'
                 || project.mapping_channel != 'official'
@@ -713,7 +718,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'OreSpawn-4.0.9.117011-sources.jar',
                 'OreSpawn-4.0.9.117011-javadoc.jar'
         ]
-        if (base.archivesName.get() != 'OreSpawn'
+        if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
             throw new GradleException('Public artifacts must use the version-only OreSpawn filename contract')
         }
@@ -895,6 +900,7 @@ tasks.register('verifyReleaseArtifacts') {
                     || manifest.getValue('Implementation-Version') != project.mod_version
                     || manifest.getValue('OreSpawn-API-Version') != '1'
                     || manifest.getValue('FMLAT') != 'accesstransformer.cfg'
+                    || manifest.getValue('Maven-Artifact') != expectedMavenCoordinate
                     || manifest.getValue('Implementation-Timestamp') != null) {
                 throw new GradleException('Release manifest is incorrect or volatile')
             }
@@ -994,8 +1000,8 @@ def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId = project.group.toString()
-            artifactId = base.archivesName.get()
+            groupId = expectedMavenGroup
+            artifactId = expectedMavenArtifact
             version = project.version.toString()
             if (preparedReleaseDir.isPresent()) {
                 File prepared = file(preparedReleaseDir.get())
@@ -1031,6 +1037,26 @@ publishing {
         }
     }
 }
+tasks.register('verifyMavenCoordinates') {
+    group = 'verification'
+    description = 'Verifies the generated POM uses OreSpawn\'s mod-specific Maven namespace.'
+    dependsOn tasks.named('generatePomFileForMavenJavaPublication')
+    doLast {
+        File pomFile = layout.buildDirectory.file(
+                'publications/mavenJava/pom-default.xml').get().asFile
+        if (!pomFile.isFile()) {
+            throw new GradleException("Generated Maven POM does not exist: ${pomFile}")
+        }
+        def pom = new XmlSlurper(false, false).parse(pomFile)
+        def actual = [pom.groupId.text(), pom.artifactId.text(), pom.version.text()]
+        def expected = [expectedMavenGroup, expectedMavenArtifact,
+                project.version.toString()]
+        if (project.group.toString() != expectedMavenGroup || actual != expected) {
+            throw new GradleException("Expected Maven coordinate ${expected.join(':')}, " +
+                    "found ${actual.join(':')}")
+        }
+    }
+}
 tasks.register('validateMavenReleaseCredentials') {
     group = 'publishing'
     doLast {
@@ -1046,6 +1072,7 @@ tasks.register('validateMavenReleaseCredentials') {
 }
 tasks.withType(PublishToMavenRepository).configureEach {
     dependsOn tasks.named('validateMavenReleaseCredentials')
+    dependsOn tasks.named('verifyMavenCoordinates')
     dependsOn preparedReleaseDir.isPresent()
             ? tasks.named('verifyPreparedReleaseArtifacts')
             : tasks.named('verifyReleaseArtifacts')
@@ -1200,6 +1227,7 @@ tasks.register('verifyCommandPortability') {
 }
 
 tasks.named('check') { dependsOn tasks.named('verifyCommandPortability') }
+tasks.named('check') { dependsOn tasks.named('verifyMavenCoordinates') }
 
 def packagedForgeServerRuntime = providers.gradleProperty('packagedForgeServerRuntime')
 def packagedForgeClientRuntime = providers.gradleProperty('packagedForgeClientRuntime')
