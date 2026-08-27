@@ -361,7 +361,7 @@ def acceptedForge40LogNoise = [
         ~/FML appears to be missing any signature data/,
         ~/Found multiple arguments for option fml\.mcVersion/,
         ~/Found multiple arguments for option fml\.forgeVersion/,
-        ~/\/ERROR\]: Failed to verify authentication$/,
+        ~/\/ERROR\] \[net\.minecraft\.client\.Minecraft\/\]: Failed to verify authentication$/,
         ~/\/(?:ERROR|FATAL)\] \[net\.minecraftforge\.fml\.network\.simple\.IndexedMessageCodec\/SIMPLENET\]: Received empty payload on channel fml:handshake$/,
         ~/\/FATAL\] \[net\.minecraftforge\.common\.ForgeConfig\/CORE\]: Forge config just got changed on the file system!$/,
         ~/\/FATAL\] \[net\.minecraftforge\.fml\.packs\.ModFileResourcePack\/\]: Failed to clean up tempdir /
@@ -423,6 +423,7 @@ task runtimeLogScannerTest {
         File logs = new File(probe, 'logs'); logs.mkdirs()
         new File(logs, 'latest.log').setText(
                 '[main/ERROR] [FML]: FML appears to be missing any signature data\n'
+                + '[Render thread/ERROR] [net.minecraft.client.Minecraft/]: Failed to verify authentication\n'
                 + '[Client thread/ERROR] [net.minecraftforge.fml.network.simple.IndexedMessageCodec/SIMPLENET]: Received empty payload on channel fml:handshake\n'
                 + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
         assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe', [] as Set)
@@ -591,7 +592,7 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
 
 check.dependsOn surfaceIntegrationTest
 
-task syncForge37EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+task syncForge40EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
     group = 'ide'
     doLast {
         String mainOutput = new File(projectDir, 'bin/main').absolutePath
@@ -650,7 +651,7 @@ task syncForge37EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
     }
 }
 
-task verifyForge37EclipseLaunchIsolation {
+task verifyForge40EclipseLaunchIsolation {
     group = 'verification'
     doLast {
         ['runClient.launch', 'runServer.launch', 'runData.launch'].each { String launchName ->
@@ -664,10 +665,10 @@ task verifyForge37EclipseLaunchIsolation {
     }
 }
 
-syncForge37EclipseLaunches.finalizedBy verifyForge37EclipseLaunchIsolation
+syncForge40EclipseLaunches.finalizedBy verifyForge40EclipseLaunchIsolation
 
 tasks.matching { it.name == 'genEclipseRuns' }.all {
-    finalizedBy syncForge37EclipseLaunches
+    finalizedBy syncForge40EclipseLaunches
 }
 
 def packagedSurfaceProbeJar = renamer.classes(tasks.named('surfaceIntegrationTestModJar', Jar)) {
@@ -1126,6 +1127,16 @@ eclipse {
     classpath {
         downloadSources = true
         downloadJavadoc = true
+        file.whenMerged { classpath ->
+            classpath.entries.removeAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
+                        && ['src/main/resources', 'src/generated/resources'].contains(entry.path)
+            }
+            if (!classpath.entries.any { entry -> entry.path == 'build/resources/main' }) {
+                classpath.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder(
+                        'build/resources/main', 'bin/main'))
+            }
+        }
     }
     synchronizationTasks 'isolateEclipseProductionRuns'
 }
@@ -1157,7 +1168,7 @@ tasks.register('configureEclipseBuildship') {
 tasks.register('isolateEclipseProductionRuns') {
     group = 'ide'
     dependsOn tasks.named('genEclipseRuns')
-    dependsOn syncForge37EclipseLaunches
+    dependsOn syncForge40EclipseLaunches
     dependsOn tasks.named('configureEclipseBuildship')
     dependsOn prepareEclipseResources
     doLast {
@@ -1204,14 +1215,18 @@ tasks.register('verifyEclipseProductionClasspath') {
                 .toSet()
         if (!legacyLwjglArtifacts.isEmpty()) {
             throw new GradleException(
-                    "Forge 1.17 Eclipse classpath contains legacy LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
+                    "Forge 1.18 Eclipse classpath contains legacy LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
         }
         File eclipseClasspath = file('.classpath')
-        if (!eclipseClasspath.isFile()
-                || !eclipseClasspath.getText('UTF-8').contains(
-                        'path="src/generated/resources"')) {
+        if (!eclipseClasspath.isFile()) {
+            throw new GradleException('Eclipse .classpath was not generated')
+        }
+        String eclipseClasspathText = eclipseClasspath.getText('UTF-8')
+        if (!eclipseClasspathText.contains('path="build/resources/main"')
+                || eclipseClasspathText.contains('path="src/main/resources"')
+                || eclipseClasspathText.contains('path="src/generated/resources"')) {
             throw new GradleException(
-                    'Eclipse does not expose the generated production-resource source folder')
+                    'Eclipse must consume only Gradle-processed production resources')
         }
         [
                 'META-INF/mods.toml',
@@ -1221,6 +1236,16 @@ tasks.register('verifyEclipseProductionClasspath') {
             if (!new File('bin/main', relative).isFile()) {
                 throw new GradleException("Eclipse output is missing ${relative}")
             }
+        }
+        File processedModMetadata = new File(sourceSets.main.output.resourcesDir,
+                'META-INF/mods.toml')
+        File eclipseModMetadata = file('bin/main/META-INF/mods.toml')
+        if (!java.util.Arrays.equals(processedModMetadata.bytes, eclipseModMetadata.bytes)
+                || eclipseModMetadata.getText('UTF-8').contains('${version}')
+                || !eclipseModMetadata.getText('UTF-8').contains(
+                        "version=\"${project.version}\"")) {
+            throw new GradleException(
+                    'Eclipse output contains unexpanded or stale Forge mod metadata')
         }
         List<String> forbidden = [
                 'src/test', 'bin/test', 'build/classes/java/test',
@@ -1275,6 +1300,7 @@ tasks.named('check') { dependsOn tasks.named('verifyMavenCoordinates') }
 
 def packagedForgeServerRuntime = providers.gradleProperty('packagedForgeServerRuntime')
 def packagedForgeClientRuntime = providers.gradleProperty('packagedForgeClientRuntime')
+def packagedClientJavaExecutable = providers.gradleProperty('packagedClientJavaExecutable')
 
 def requireRuntimeDirectory = { Provider<String> configuredPath, String propertyName ->
     if (!configuredPath.isPresent()) {
@@ -1404,6 +1430,22 @@ tasks.register('preparePackagedClientIntegration') {
         }
         new File(packagedClientRunDirectory, 'options.txt').setText(
                 'fullscreen:false\nlang:en_us\n', 'UTF-8')
+        File configDirectory = new File(packagedClientRunDirectory, 'config')
+        configDirectory.mkdirs()
+        new File(configDirectory, 'orespawn-common.toml').setText('''\
+# Bootstrap fallbacks. Detailed settings live in orespawn-worldgen.json.
+[worldgen]
+    # Master switch for configured terrain replacement.
+    place_terrain = true
+    # Allowed Values: GEOME, LEGACY
+    fallback_geology_mode = "GEOME"
+    # Range: 4 ~ 32767
+    cyano_region_size = 256
+    # Range: 1.0 ~ 32767.0
+    cyano_layer_reach = 32.0
+    # Range: 1 ~ 255
+    cyano_layer_thickness = 8
+''', 'UTF-8')
     }
 }
 def packagedClientProcess = tasks.register('packagedClientProcess', Exec) {
@@ -1483,8 +1525,14 @@ def packagedClientProcess = tasks.register('packagedClientProcess', Exec) {
                 '--width', '854', '--height', '480'
         ])
         workingDir packagedClientRunDirectory
+        File clientJava = packagedClientJavaExecutable.isPresent()
+                ? file(packagedClientJavaExecutable.get())
+                : java17Launcher.get().executablePath.asFile
+        if (!clientJava.isFile()) {
+            throw new GradleException("packagedClientJavaExecutable does not name a Java executable: ${clientJava}")
+        }
         List<String> clientCommand = [
-                java17Launcher.get().executablePath.asFile.absolutePath,
+                clientJava.absolutePath,
                 '-Xms512m', '-Xmx2g', '-Dclientprobe.enabled=true',
                 "-Djava.library.path=${nativesDirectory.absolutePath}",
                 '-Dminecraft.launcher.brand=orespawn-validation',
