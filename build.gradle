@@ -1082,6 +1082,16 @@ eclipse {
     classpath {
         downloadSources = true
         downloadJavadoc = true
+        file.whenMerged { classpath ->
+            classpath.entries.removeAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
+                        && ['src/main/resources', 'src/generated/resources'].contains(entry.path)
+            }
+            if (!classpath.entries.any { entry -> entry.path == 'build/resources/main' }) {
+                classpath.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder(
+                        'build/resources/main', 'bin/main'))
+            }
+        }
     }
     synchronizationTasks 'isolateEclipseProductionRuns'
 }
@@ -1163,11 +1173,15 @@ tasks.register('verifyEclipseProductionClasspath') {
                     "Forge 1.17 Eclipse classpath contains legacy LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
         }
         File eclipseClasspath = file('.classpath')
-        if (!eclipseClasspath.isFile()
-                || !eclipseClasspath.getText('UTF-8').contains(
-                        'path="src/generated/resources"')) {
+        if (!eclipseClasspath.isFile()) {
+            throw new GradleException('Eclipse .classpath was not generated')
+        }
+        String eclipseClasspathText = eclipseClasspath.getText('UTF-8')
+        if (!eclipseClasspathText.contains('path="build/resources/main"')
+                || eclipseClasspathText.contains('path="src/main/resources"')
+                || eclipseClasspathText.contains('path="src/generated/resources"')) {
             throw new GradleException(
-                    'Eclipse does not expose the generated production-resource source folder')
+                    'Eclipse must consume only Gradle-processed production resources')
         }
         [
                 'META-INF/mods.toml',
@@ -1177,6 +1191,16 @@ tasks.register('verifyEclipseProductionClasspath') {
             if (!new File('bin/main', relative).isFile()) {
                 throw new GradleException("Eclipse output is missing ${relative}")
             }
+        }
+        File processedModMetadata = new File(sourceSets.main.output.resourcesDir,
+                'META-INF/mods.toml')
+        File eclipseModMetadata = file('bin/main/META-INF/mods.toml')
+        if (!java.util.Arrays.equals(processedModMetadata.bytes, eclipseModMetadata.bytes)
+                || eclipseModMetadata.getText('UTF-8').contains('${version}')
+                || !eclipseModMetadata.getText('UTF-8').contains(
+                        "version=\"${project.version}\"")) {
+            throw new GradleException(
+                    'Eclipse output contains unexpanded or stale Forge mod metadata')
         }
         List<String> forbidden = [
                 'src/test', 'bin/test', 'build/classes/java/test',
