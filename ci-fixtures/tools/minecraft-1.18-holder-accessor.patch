@@ -1,0 +1,43 @@
+diff --git a/src/main/java/net/minecraftforge/mcmaven/cli/Main.java b/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
+index eeda8a0..4762951 100644
+--- a/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
++++ b/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
+@@ -14,0 +15 @@ import java.util.ArrayList;
++import java.util.Arrays;
+@@ -39,0 +41,6 @@ public class Main {
++        if ("true".equalsIgnoreCase(System.getenv("ORESPAWN_MAVENIZER_OFFLINE"))
++            && Arrays.stream(args).noneMatch("--offline"::equals)) {
++            var offlineArgs = Arrays.copyOf(args, args.length + 1);
++            offlineArgs[args.length] = "--offline";
++            args = offlineArgs;
++        }
+diff --git a/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java b/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
+index 9fa2888..be7f6be 100644
+--- a/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
++++ b/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
+@@ -307,0 +308,2 @@ public final class ProcessUtils {
++        patchMinecraft118HolderAccessor(sourcesOutput);
++
+@@ -368,0 +371,22 @@ public final class ProcessUtils {
++    private static void patchMinecraft118HolderAccessor(File sourcesOutput) {
++        var holder = new File(sourcesOutput, "net/minecraft/core/Holder.java");
++        if (!holder.isFile())
++            return;
++
++        try {
++            var source = Files.readString(holder.toPath());
++            var record = "public static record Direct<T>(T value) implements Holder<T>";
++            var accessor = "\n      public T value() {\n         return this.value;\n      }\n";
++            if (!source.contains(record) || !source.contains(accessor))
++                return;
++
++            var patched = source.replace(accessor, "\n");
++            if (patched.contains(accessor))
++                throw new IllegalStateException("Holder.Direct accessor compatibility patch was ambiguous");
++            Files.writeString(holder.toPath(), patched);
++            LOGGER.info("Applied Minecraft 1.18.2 Holder.Direct javac compatibility patch");
++        } catch (IOException e) {
++            throw new RuntimeException("Failed to patch Minecraft 1.18.2 Holder source", e);
++        }
++    }
++

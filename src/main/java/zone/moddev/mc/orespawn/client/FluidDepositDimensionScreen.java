@@ -161,7 +161,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		int fieldWidth = Math.min(72, Math.max(58, columnWidth / 3));
 		EditBox box = new EditBox(font, groupX + columnWidth - fieldWidth, 90 + (row * 24),
 				fieldWidth, 20, new TextComponent(key));
-		box.setValue(value); box.setMaxLength(32);
+		box.setMaxLength(32); box.setValue(value);
 		placementWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
 				placementHelp(key)));
 		return box;
@@ -170,7 +170,7 @@ final class FluidDepositDimensionScreen extends Screen {
 	private EditBox hostField(int index, String key, String value) {
 		int x = index == 0 ? left : left + columnWidth + 5;
 		EditBox box = new EditBox(font, x, 106, columnWidth, 20, new TextComponent(key));
-		box.setValue(value); box.setMaxLength(1024);
+		box.setMaxLength(1024); box.setValue(value);
 		hostWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
 				"tooltip.orespawn." + key));
 		return box;
@@ -180,7 +180,7 @@ final class FluidDepositDimensionScreen extends Screen {
 		int x = (index & 1) == 0 ? left : left + columnWidth + 5;
 		int y = 106 + ((index / 2) * 44);
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, new TextComponent(key));
-		box.setValue(value); box.setMaxLength(1024);
+		box.setMaxLength(1024); box.setValue(value);
 		biomeWidgets.add(OreSpawnScreenLayout.explain(this, addRenderableWidget(box),
 				"tooltip.orespawn.fluid." + key));
 		return box;
