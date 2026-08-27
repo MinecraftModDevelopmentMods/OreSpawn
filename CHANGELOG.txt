@@ -1,3 +1,12 @@
+Version 4.0.10.118021
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve the shifted formation identity for layer, family, and rock choice
+  while preventing vanilla Stone fallback near dimension floors and ceilings.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
 Version 4.0.9.118021
 
 * Replace provider-declared natural terrain hosts during the existing geology
