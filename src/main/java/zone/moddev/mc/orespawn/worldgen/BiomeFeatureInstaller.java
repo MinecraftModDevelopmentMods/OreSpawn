@@ -57,10 +57,10 @@ final class BiomeFeatureInstaller {
 		List<Supplier<ConfiguredFeature<?, ?>>> underground =
 				step(features, GenerationStep.Decoration.UNDERGROUND_ORES);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(underground);
-		if (GeomeConfig.hasTerrainReplacement(dimension)) {
+		boolean terrain = GeomeConfig.hasTerrainReplacement(dimension);
+		if (terrain) {
 			changed |= StoneReplacer.removeVanillaMatchingStoneFeatures(underground);
 		}
-		changed |= addUnique(underground, StoneReplacer.configuredFeature());
 		changed |= addUnique(underground, OreSpawnOreGeneration.configuredFeature());
 		changed |= addUnique(underground, FluidDepositFeature.configuredFeature());
 
@@ -68,19 +68,29 @@ final class BiomeFeatureInstaller {
 				step(features, GenerationStep.Decoration.UNDERGROUND_DECORATION);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(undergroundDecoration);
 
-		changed |= installSurfaceStages(features);
+		changed |= installSurfaceStages(features, terrain, true);
 
 		if (!changed) return;
 		ORIGINALS.putIfAbsent(biome, original);
 		biome.generationSettings = rebuild(original, features);
 	}
 
-	static boolean installSurfaceStages(List<List<Supplier<ConfiguredFeature<?, ?>>>> features) {
+	static boolean installSurfaceStages(List<List<Supplier<ConfiguredFeature<?, ?>>>> features,
+			boolean terrain, boolean surfaces) {
 		List<Supplier<ConfiguredFeature<?, ?>>> local =
 				step(features, GenerationStep.Decoration.LOCAL_MODIFICATIONS);
 		List<Supplier<ConfiguredFeature<?, ?>>> top =
 				step(features, GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		boolean changed = addUnique(local, BiomeSurfaceFeature.configuredFeature());
+		boolean changed = false;
+		if (terrain) {
+			changed |= StoneReplacer.placeUniqueAt(local, StoneReplacer.configuredFeature(), 0);
+			if (surfaces) {
+				changed |= StoneReplacer.placeUniqueAt(local,
+						BiomeSurfaceFeature.configuredFeature(), 1);
+			}
+		} else if (surfaces) {
+			changed |= addUnique(local, BiomeSurfaceFeature.configuredFeature());
+		}
 		changed |= addUnique(top, FlatBedrockFeature.configuredFeature());
 		return changed;
 	}
