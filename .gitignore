@@ -47,6 +47,8 @@ logs
 # local regression, benchmark, and profiling evidence
 /run-*/
 /benchmark-*/
+/preferred-seed-*/
+/validation/
 /regression-*/
 /evidence/
 /evidence-*/
