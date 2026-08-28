@@ -1,3 +1,14 @@
+Version 4.0.8.120061
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds, audited release artifacts, SHA-256
+  checksums, Buildship launches, and guarded release automation.
+* Export the complete bundled guide, including the shared version policy, to
+  the player-facing configuration folder.
+* Forge 1.12.2's 4.0.7 packaged access-transformer repair is target-specific
+  and is not applicable to Forge 1.20.6.
+
 Version 4.0.6.120061
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
@@ -8,9 +19,6 @@ Version 4.0.6.120061
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
-* Honour exact biome-to-geome weights on dynamic biome registries.
-* Stagger close Stable Layers geome transitions by layer instead of changing a whole rock column at one boundary.
-* Recalibrate Stable Layers edge-detail presets so Average retains natural variation at later rock contacts.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
@@ -18,7 +26,7 @@ Version 4.0.5
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
 * Verify both public biome-registration helpers on Forge 50
-* Correct Minecraft 1.20.6 ResourceLocation documentation and ForgeGradle workflow
+* Confirm Minecraft 1.20.6 ResourceLocation documentation and ForgeGradle workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1
