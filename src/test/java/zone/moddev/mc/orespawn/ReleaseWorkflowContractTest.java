@@ -43,12 +43,12 @@ class ReleaseWorkflowContractTest {
 					workflow + " must install one Mavenizer and one production JDK per job");
 			assertTrue(text.contains("distribution: temurin"),
 					workflow + " must use Temurin");
-			assertEquals(jobCount, occurrences(text, "java-version: '25.0.3+9'"),
+			assertEquals(jobCount, occurrences(text, "java-version: '25.0.3+9.0.LTS'"),
 					workflow + " must install the exact Mavenizer Java runtime");
 			assertEquals(jobCount, occurrences(text, "java-version: '17.0.1+12'"),
 					workflow + " must install the exact qualified Java runtime");
 			assertTrue(text.lastIndexOf("java-version: '17.0.1+12'")
-					> text.lastIndexOf("java-version: '25.0.3+9'"),
+					> text.lastIndexOf("java-version: '25.0.3+9.0.LTS'"),
 					workflow + " must leave Java 17 as JAVA_HOME");
 			assertFalse(text.contains("distribution: microsoft"),
 					workflow + " must not replace the exact Temurin Gradle runtime");
