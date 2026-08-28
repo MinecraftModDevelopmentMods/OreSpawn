@@ -21,9 +21,6 @@ jobs:
     name: Cold Forge bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    env:
-      GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
-
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -42,6 +39,8 @@ jobs:
 
       - name: Bootstrap Forge from an empty cache
         shell: bash
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
         run: |
           set -euo pipefail
           test ! -e .gradle
@@ -62,6 +61,8 @@ jobs:
 
       - name: Verify same-cache preparation is idempotent
         shell: bash
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
         run: |
           set -euo pipefail
           ./gradlew verifyMavenizerCompatibilityFixture help \
