@@ -57,8 +57,11 @@ class ReleaseWorkflowContractTest {
 					> text.lastIndexOf("java-version: '8.0.502+7'"),
 					workflow + " must install Java 17 last so it remains JAVA_HOME");
 			assertEquals(gradleInvocationCount, occurrences(text,
-					"-Dorg.gradle.java.installations.paths=\"$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64\""),
+					"-Dorg.gradle.java.installations.paths="),
 					workflow + " must limit Gradle discovery to the pinned JDKs");
+			assertEquals(gradleInvocationCount, occurrences(text,
+					"$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"),
+					workflow + " must use only the explicit pinned JDK paths");
 			assertEquals(gradleInvocationCount, occurrences(text,
 					"-Dorg.gradle.java.installations.auto-detect=false"),
 					workflow + " must reject preinstalled runner toolchains");
@@ -68,6 +71,19 @@ class ReleaseWorkflowContractTest {
 			assertFalse(text.contains("distribution: microsoft"),
 					workflow + " must not replace the exact Temurin Gradle runtime");
 		}
+	}
+
+	@Test
+	void codeQlUsesABoundedCachePreservingCompileRetry() throws Exception {
+		String text = new String(Files.readAllBytes(
+				Paths.get(".github", "workflows", "codeql-analysis.yml")), StandardCharsets.UTF_8);
+		assertTrue(text.contains("gradle_args=("), "CodeQL must pass Gradle options as an argument vector");
+		assertTrue(text.contains("for attempt in 1 2 3; do"),
+				"CodeQL must bound transient Mavenizer download retries");
+		assertTrue(text.contains("./gradlew \"${gradle_args[@]}\""),
+				"CodeQL retries must preserve exact Gradle arguments");
+		assertTrue(text.contains("failed after $attempt attempts"),
+				"CodeQL must fail rather than hide a persistent bootstrap defect");
 	}
 
 	private static int occurrences(String text, String needle) {
