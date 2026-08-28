@@ -17,6 +17,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cold-forge-bootstrap:
+    name: Cold Forge bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9'
+
+      - name: Install pinned Java 17 runtime and toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17.0.1+12'
+
+      - name: Bootstrap Forge from an empty cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .gradle
+          test ! -e "$GRADLE_USER_HOME"
+          mkdir -p "$GRADLE_USER_HOME"
+          chmod +x ./gradlew
+          ./gradlew verifyMavenizerCompatibilityFixture help \
+            --no-daemon --no-build-cache --stacktrace --max-workers=2 \
+            | tee "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          grep -F "OreSpawn Mavenizer compatibility runtime: Java 25" \
+            "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          grep -F "OreSpawn Mavenizer compatibility: applied 8 rule(s) for net.minecraftforge:forge:1.19.4-45.4.0" \
+            "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          find "$GRADLE_USER_HOME" .gradle/mavenizer \
+            -name '*.orespawn-compatibility' -type f -print0 \
+            | sort -z | xargs -0 -r sha256sum > "$RUNNER_TEMP/markers-before.sha256"
+          test -s "$RUNNER_TEMP/markers-before.sha256"
+
+      - name: Verify same-cache preparation is idempotent
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew verifyMavenizerCompatibilityFixture help \
+            --no-daemon --no-build-cache --stacktrace --max-workers=2
+          find "$GRADLE_USER_HOME" .gradle/mavenizer \
+            -name '*.orespawn-compatibility' -type f -print0 \
+            | sort -z | xargs -0 -r sha256sum > "$RUNNER_TEMP/markers-after.sha256"
+          diff -u "$RUNNER_TEMP/markers-before.sha256" "$RUNNER_TEMP/markers-after.sha256"
+
   build:
     name: Build, test, and audit
     runs-on: ubuntu-latest
@@ -25,6 +79,12 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9'
 
       - name: Install pinned Java 17 runtime and toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
