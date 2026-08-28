@@ -58,8 +58,8 @@ Examples:
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
 | 1.18.2 | Forge | `118021` | `4.0.10.118021` |
 | 1.19.4 | Forge | `119041` | `4.0.10.119041` |
-| 1.20.1 | Forge | `120011` | `4.0.10.120011` |
-| 1.20.6 | Forge | `120061` | `4.0.10.120061` |
+| 1.20.1 | Forge | `120011` | `4.0.11.120011` |
+| 1.20.6 | Forge | `120061` | `4.0.11.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
 | 26.2 | Forge | `2602001` | `4.0.6.2602001` |
@@ -155,6 +155,10 @@ target-qualified 4.0.9 releases for the provider terrain-host ordering repair.
 Forge 1.18.2 through 1.20.1 then advanced to their target-qualified 4.0.10
 releases for the distinct Stable Layers actual-height eligibility repair. A
 branch may therefore legitimately skip functional version numbers.
+
+Forge 1.20.1 then advanced to `4.0.11.120011` to retain biome-dictionary
+weights and ore biome filters when a data-driven biome is represented by a
+different runtime object with the same stable registry key.
 
 This provides three useful guarantees:
 
