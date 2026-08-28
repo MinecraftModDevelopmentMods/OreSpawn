@@ -1,0 +1,382 @@
+From 96468d9931e7f1448d9fb00f13ec0a6559ee0054 Mon Sep 17 00:00:00 2001
+From: OreSpawn Build Fixture <orespawn-fixture@invalid.local>
+Date: Fri, 28 Aug 2026 15:21:10 +0100
+Subject: [PATCH] Add target-aware source compatibility rules
+
+---
+ build.gradle                                  |   2 +-
+ .../net/minecraftforge/mcmaven/cli/Main.java  |  18 +-
+ .../minecraftforge/mcmaven/cli/MavenTask.java |   3 +
+ .../mcmaven/impl/util/ProcessUtils.java       |   2 +
+ .../impl/util/SourceCompatibilityPatcher.java | 247 ++++++++++++++++++
+ .../minecraft-source-compatibility.json       |   9 +
+ 6 files changed, 279 insertions(+), 2 deletions(-)
+ create mode 100644 src/main/java/net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.java
+ create mode 100644 src/main/resources/META-INF/orespawn/minecraft-source-compatibility.json
+
+diff --git a/build.gradle b/build.gradle
+index 439c211..9d99d81 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -17,7 +17,7 @@ plugins {
+ gradleutils.displayName = 'Minecraft Mavenizer'
+ description = 'A pure-blooded Java tool to generate a maven repository for Minecraft artifacts.'
+ group = 'net.minecraftforge'
+-version = gitversion.tagOffset
++version = '0.5.21'
+ 
+ println "Version: $version"
+ 
+diff --git a/src/main/java/net/minecraftforge/mcmaven/cli/Main.java b/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
+index eeda8a0..ad0fe93 100644
+--- a/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
++++ b/src/main/java/net/minecraftforge/mcmaven/cli/Main.java
+@@ -12,6 +12,7 @@ import static net.minecraftforge.mcmaven.impl.Mavenizer.LOGGER;
+ 
+ import java.time.Duration;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ 
+ public class Main {
+     private static final String DISPLAY_NAME = "Minecraft Mavenizer";
+@@ -20,6 +21,8 @@ public class Main {
+         try {
+             LOGGER.capture();
+             LOGGER.info(JarVersionInfo.of(DISPLAY_NAME, Main.class).implementation());
++            LOGGER.info("OreSpawn Mavenizer compatibility runtime: Java " + Runtime.version()
++                + " (" + System.getProperty("java.vendor") + ")");
+             run(args);
+         } catch (Throwable e) {
+             LOGGER.release();
+@@ -36,7 +39,8 @@ public class Main {
+         LOGGER.getInfo().printf(", took %d:%02d.%03d%n", time.toMinutesPart(), time.toSecondsPart(), time.toMillisPart());
+     }
+ 
+-    private static void run(String[] args) throws Exception {
++    private static void run(String[] suppliedArgs) throws Exception {
++        var args = withOfflinePropagation(suppliedArgs);
+         var parser = new OptionParser();
+         parser.allowsUnrecognizedOptions();
+         var tasks = Tasks.values();
+@@ -88,4 +92,16 @@ public class Main {
+             Tasks.MAVEN.callback.run(args, false);
+         }
+     }
++
++    private static String[] withOfflinePropagation(String[] suppliedArgs) {
++        if (!"true".equalsIgnoreCase(System.getenv("ORESPAWN_MAVENIZER_OFFLINE"))
++            || Arrays.asList(suppliedArgs).contains("--offline")) {
++            return suppliedArgs;
++        }
++
++        var propagated = Arrays.copyOf(suppliedArgs, suppliedArgs.length + 1);
++        propagated[suppliedArgs.length] = "--offline";
++        LOGGER.info("OreSpawn Mavenizer compatibility: propagated Gradle offline mode");
++        return propagated;
++    }
+ }
+diff --git a/src/main/java/net/minecraftforge/mcmaven/cli/MavenTask.java b/src/main/java/net/minecraftforge/mcmaven/cli/MavenTask.java
+index 825820e..39bb9b3 100644
+--- a/src/main/java/net/minecraftforge/mcmaven/cli/MavenTask.java
++++ b/src/main/java/net/minecraftforge/mcmaven/cli/MavenTask.java
+@@ -21,6 +21,7 @@ import net.minecraftforge.mcmaven.impl.cache.Cache;
+ import net.minecraftforge.mcmaven.impl.mappings.Mappings;
+ import net.minecraftforge.mcmaven.impl.util.Artifact;
+ import net.minecraftforge.mcmaven.impl.util.Constants;
++import net.minecraftforge.mcmaven.impl.util.SourceCompatibilityPatcher;
+ 
+ import static net.minecraftforge.mcmaven.impl.Mavenizer.LOGGER;
+ 
+@@ -194,6 +195,8 @@ class MavenTask {
+         if (artifact.getVersion() == null)
+             artifact = artifact.withVersion(options.valueOf(versionO));
+ 
++        SourceCompatibilityPatcher.selectTarget(artifact);
++
+         var mappings = getMappings(options, mappingsO, parchmentO);
+ 
+         var foreignRepositories = new HashMap<String, String>();
+diff --git a/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java b/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
+index 9fa2888..d8c14fd 100644
+--- a/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
++++ b/src/main/java/net/minecraftforge/mcmaven/impl/util/ProcessUtils.java
+@@ -305,6 +305,8 @@ public final class ProcessUtils {
+             throw new RuntimeException("Failed to extract source jar: " + sourcesJar.getAbsolutePath(), e);
+         }
+ 
++        SourceCompatibilityPatcher.apply(sourcesOutput.toPath(), outputJar.toPath());
++
+         // track source files
+         var sourcePath = new StringBuilder();
+         var nonSourceFiles = new ArrayList<File>();
+diff --git a/src/main/java/net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.java b/src/main/java/net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.java
+new file mode 100644
+index 0000000..4d72d34
+--- /dev/null
++++ b/src/main/java/net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.java
+@@ -0,0 +1,247 @@
++/*
++ * Copyright (c) Forge Development LLC and contributors
++ * SPDX-License-Identifier: LGPL-2.1-only
++ */
++package net.minecraftforge.mcmaven.impl.util;
++
++import com.google.gson.Gson;
++import java.io.IOException;
++import java.io.InputStream;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.StandardCopyOption;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.HashSet;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.Objects;
++import java.util.stream.Collectors;
++
++import static net.minecraftforge.mcmaven.impl.Mavenizer.LOGGER;
++
++/** Applies exact, target-scoped source compatibility rules before recompilation. */
++public final class SourceCompatibilityPatcher {
++    public static final String MANIFEST_RESOURCE = "META-INF/orespawn/minecraft-source-compatibility.json";
++    private static final Gson GSON = new Gson();
++    private static volatile String selectedArtifact;
++
++    private SourceCompatibilityPatcher() {}
++
++    public static void selectTarget(Artifact artifact) {
++        selectedArtifact = artifact.getDescriptor();
++    }
++
++    public static void apply(Path sourceRoot, Path outputJar) {
++        var artifact = selectedArtifact;
++        if (artifact == null)
++            throw new IllegalStateException("No Mavenizer target artifact was selected before source recompilation");
++
++        var manifestBytes = readManifest();
++        var manifestHash = sha256(manifestBytes);
++        var manifest = GSON.fromJson(new String(manifestBytes, StandardCharsets.UTF_8), RuleManifest.class);
++        if (manifest == null || manifest.schema != 1 || manifest.targets == null)
++            throw new IllegalStateException("Unsupported or incomplete OreSpawn Mavenizer compatibility manifest");
++
++        var target = manifest.targets.get(artifact);
++        if (target == null) {
++            LOGGER.info("OreSpawn Mavenizer compatibility: no rules for " + artifact);
++            return;
++        }
++
++        validateTarget(target);
++        if (target.expectedApplications == 0) {
++            writeMarker(outputJar, artifact, manifestHash, target.rules);
++            LOGGER.info("OreSpawn Mavenizer compatibility: applied 0 rule(s) for " + artifact
++                + " (explicit no-op) manifest SHA-256 " + manifestHash);
++            return;
++        }
++        var sourceByFile = new LinkedHashMap<Path, String>();
++        var present = 0;
++        var absent = 0;
++        for (var rule : target.rules) {
++            var file = sourceRoot.resolve(rule.file).normalize();
++            if (!file.startsWith(sourceRoot.normalize()))
++                throw new IllegalStateException("Compatibility rule escapes source root: " + rule.id);
++            if (!Files.isRegularFile(file))
++                throw new IllegalStateException("Compatibility source file is missing for " + rule.id + ": " + rule.file);
++
++            var source = sourceByFile.computeIfAbsent(file,
++                ignored -> readUtf8(file).replace("\r\n", "\n"));
++            requireCount(source, rule.recordDeclaration, 1, "record declaration", rule);
++            var accessorCount = countInRecord(source, rule);
++            if (accessorCount == 1)
++                present++;
++            else if (accessorCount == 0)
++                absent++;
++            else
++                throw new IllegalStateException("Ambiguous accessor match for " + rule.id + ": expected at most 1, found " + accessorCount);
++        }
++
++        if (present != 0 && absent != 0)
++            throw new IllegalStateException("Partial compatibility state for " + artifact + ": " + present + " present, " + absent + " absent");
++
++        if (present == target.expectedApplications) {
++            for (var rule : target.rules) {
++                var file = sourceRoot.resolve(rule.file).normalize();
++                var patched = replaceInRecord(sourceByFile.get(file), rule);
++                sourceByFile.put(file, patched);
++            }
++            sourceByFile.forEach(SourceCompatibilityPatcher::writeUtf8);
++            writeMarker(outputJar, artifact, manifestHash, target.rules);
++            LOGGER.info("OreSpawn Mavenizer compatibility: applied " + present + " rule(s) for " + artifact
++                + " [" + ruleIds(target.rules) + "] manifest SHA-256 " + manifestHash);
++        } else if (absent == target.expectedApplications) {
++            writeMarker(outputJar, artifact, manifestHash, target.rules);
++            LOGGER.info("OreSpawn Mavenizer compatibility: verified " + absent + " rule(s) already applied for " + artifact
++                + " [" + ruleIds(target.rules) + "] manifest SHA-256 " + manifestHash);
++        } else {
++            throw new IllegalStateException("Compatibility manifest expected " + target.expectedApplications
++                + " applications for " + artifact + " but defines " + target.rules.size());
++        }
++    }
++
++    private static void validateTarget(TargetRuleSet target) {
++        if (target.expectedApplications < 0 || target.rules == null
++            || target.rules.size() != target.expectedApplications) {
++            throw new IllegalStateException("Compatibility target has an invalid expected application count");
++        }
++        var ids = new HashSet<String>();
++        for (var rule : target.rules) {
++            Objects.requireNonNull(rule.id, "Compatibility rule id");
++            Objects.requireNonNull(rule.file, "Compatibility rule file");
++            Objects.requireNonNull(rule.recordDeclaration, "Compatibility record declaration");
++            Objects.requireNonNull(rule.accessor, "Compatibility accessor");
++            if (!ids.add(rule.id))
++                throw new IllegalStateException("Duplicate compatibility rule id: " + rule.id);
++        }
++    }
++
++    private static byte[] readManifest() {
++        try (InputStream in = SourceCompatibilityPatcher.class.getClassLoader().getResourceAsStream(MANIFEST_RESOURCE)) {
++            if (in == null)
++                throw new IllegalStateException("Missing embedded compatibility manifest: " + MANIFEST_RESOURCE);
++            return in.readAllBytes();
++        } catch (IOException e) {
++            throw new IllegalStateException("Could not read embedded compatibility manifest", e);
++        }
++    }
++
++    private static String readUtf8(Path file) {
++        try {
++            return Files.readString(file, StandardCharsets.UTF_8);
++        } catch (IOException e) {
++            throw new IllegalStateException("Could not read compatibility source " + file, e);
++        }
++    }
++
++    private static void writeUtf8(Path file, String content) {
++        try {
++            Files.writeString(file, content, StandardCharsets.UTF_8);
++        } catch (IOException e) {
++            throw new IllegalStateException("Could not write compatibility source " + file, e);
++        }
++    }
++
++    private static void writeMarker(Path outputJar, String artifact, String manifestHash, List<Rule> rules) {
++        var marker = Path.of(outputJar.toString() + ".orespawn-compatibility");
++        var temp = Path.of(marker.toString() + ".tmp");
++        var content = "artifact=" + artifact + "\nmanifestSha256=" + manifestHash + "\nrules=" + ruleIds(rules) + "\n";
++        try {
++            Files.writeString(temp, content, StandardCharsets.UTF_8);
++            try {
++                Files.move(temp, marker, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
++            } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
++                Files.move(temp, marker, StandardCopyOption.REPLACE_EXISTING);
++            }
++        } catch (IOException e) {
++            throw new IllegalStateException("Could not write compatibility marker " + marker, e);
++        }
++    }
++
++    private static String ruleIds(List<Rule> rules) {
++        return rules.stream().map(rule -> rule.id).collect(Collectors.joining(","));
++    }
++
++    private static void requireCount(String source, String needle, int expected, String description, Rule rule) {
++        var actual = count(source, needle);
++        if (actual != expected)
++            throw new IllegalStateException("Invalid " + description + " match for " + rule.id
++                + ": expected " + expected + ", found " + actual);
++    }
++
++    private static int count(String source, String needle) {
++        var count = 0;
++        var from = 0;
++        while ((from = source.indexOf(needle, from)) >= 0) {
++            count++;
++            from += needle.length();
++        }
++        return count;
++    }
++
++    private static int countInRecord(String source, Rule rule) {
++        var bounds = recordBounds(source, rule);
++        return count(source.substring(bounds[0], bounds[1]), rule.accessor);
++    }
++
++    private static String replaceInRecord(String source, Rule rule) {
++        var bounds = recordBounds(source, rule);
++        var body = source.substring(bounds[0], bounds[1]);
++        var count = count(body, rule.accessor);
++        if (count != 1)
++            throw new IllegalStateException("Accessor state changed while applying " + rule.id
++                + ": expected 1, found " + count);
++        var patchedBody = body.replace(rule.accessor, "");
++        if (count(patchedBody, rule.accessor) != 0)
++            throw new IllegalStateException("Accessor remained after applying " + rule.id);
++        return source.substring(0, bounds[0]) + patchedBody + source.substring(bounds[1]);
++    }
++
++    private static int[] recordBounds(String source, Rule rule) {
++        var declaration = source.indexOf(rule.recordDeclaration);
++        var open = source.indexOf('{', declaration + rule.recordDeclaration.length());
++        if (declaration < 0 || open < 0)
++            throw new IllegalStateException("Could not locate record body for " + rule.id);
++        var depth = 0;
++        for (var index = open; index < source.length(); index++) {
++            var character = source.charAt(index);
++            if (character == '{')
++                depth++;
++            else if (character == '}' && --depth == 0)
++                return new int[] {open, index + 1};
++        }
++        throw new IllegalStateException("Unterminated record body for " + rule.id);
++    }
++
++    private static String sha256(byte[] bytes) {
++        try {
++            var digest = MessageDigest.getInstance("SHA-256").digest(bytes);
++            var result = new StringBuilder(digest.length * 2);
++            for (byte value : digest)
++                result.append(String.format("%02X", value));
++            return result.toString();
++        } catch (NoSuchAlgorithmException e) {
++            throw new IllegalStateException("SHA-256 is unavailable", e);
++        }
++    }
++
++    private static final class RuleManifest {
++        int schema;
++        Map<String, TargetRuleSet> targets;
++    }
++
++    private static final class TargetRuleSet {
++        int expectedApplications;
++        List<Rule> rules;
++    }
++
++    private static final class Rule {
++        String id;
++        String file;
++        String recordDeclaration;
++        String accessor;
++    }
++}
+diff --git a/src/main/resources/META-INF/orespawn/minecraft-source-compatibility.json b/src/main/resources/META-INF/orespawn/minecraft-source-compatibility.json
+new file mode 100644
+index 0000000..702d759
+--- /dev/null
++++ b/src/main/resources/META-INF/orespawn/minecraft-source-compatibility.json
+@@ -0,0 +1,9 @@
++{
++  "schema": 1,
++  "targets": {
++    "net.minecraftforge:forge:1.20.6-50.2.0": {
++      "expectedApplications": 0,
++      "rules": []
++    }
++  }
++}
+-- 
+2.55.0.windows.3
+

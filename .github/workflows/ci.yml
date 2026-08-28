@@ -17,6 +17,73 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cold-forge-bootstrap:
+    name: Cold Forge bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
+      - name: Install pinned Java 8 launcher toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
+      - name: Install pinned Java 21 runtime and toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21.0.7+6'
+
+      - name: Bootstrap Forge from an empty cache
+        shell: bash
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
+        run: |
+          set -euo pipefail
+          test ! -e .gradle
+          test ! -e "$GRADLE_USER_HOME"
+          mkdir -p "$GRADLE_USER_HOME"
+          chmod +x ./gradlew
+          ./gradlew verifyMavenizerCompatibilityFixture help \
+            --no-daemon --no-build-cache --stacktrace --max-workers=2 \
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64" \
+            -Dorg.gradle.java.installations.auto-detect=false \
+            -Dorg.gradle.java.installations.auto-download=false \
+            | tee "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          grep -F "OreSpawn Mavenizer compatibility runtime: Java 25.0.3" \
+            "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          grep -F "OreSpawn Mavenizer compatibility: applied 0 rule(s) for net.minecraftforge:forge:1.20.6-50.2.0 (explicit no-op)" \
+            "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          find "$GRADLE_USER_HOME" .gradle/mavenizer \
+            -name '*.orespawn-compatibility' -type f -print0 \
+            | sort -z | xargs -0 -r sha256sum > "$RUNNER_TEMP/markers-before.sha256"
+          test -s "$RUNNER_TEMP/markers-before.sha256"
+
+      - name: Verify same-cache preparation is idempotent
+        shell: bash
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/orespawn-cold-gradle
+        run: |
+          set -euo pipefail
+          ./gradlew verifyMavenizerCompatibilityFixture help \
+            --no-daemon --no-build-cache --stacktrace --max-workers=2 \
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64" \
+            -Dorg.gradle.java.installations.auto-detect=false \
+            -Dorg.gradle.java.installations.auto-download=false
+          find "$GRADLE_USER_HOME" .gradle/mavenizer \
+            -name '*.orespawn-compatibility' -type f -print0 \
+            | sort -z | xargs -0 -r sha256sum > "$RUNNER_TEMP/markers-after.sha256"
+          diff -u "$RUNNER_TEMP/markers-before.sha256" "$RUNNER_TEMP/markers-after.sha256"
+
   build:
     name: Build, test, and audit
     runs-on: ubuntu-latest
@@ -26,17 +93,23 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Install Java 21 toolchain
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
+      - name: Install pinned Java 8 launcher toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
+      - name: Install pinned Java 21 runtime and toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '21.0.7+6'
-
-      - name: Install Java 21 for Gradle
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: microsoft
-          java-version: '21'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
@@ -48,6 +121,9 @@ jobs:
         run: >-
           ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums
           verifyEclipseProductionClasspath --no-daemon --stacktrace
+          -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+          -Dorg.gradle.java.installations.auto-detect=false
+          -Dorg.gradle.java.installations.auto-download=false
 
       - name: Upload audited release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
