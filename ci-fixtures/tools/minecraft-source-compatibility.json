@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "targets": {
+    "net.minecraftforge:forge:1.19.4-45.4.0": {
+      "expectedApplications": 8,
+      "rules": [
+        {
+          "id": "forge-1.19.4-holder-direct-value",
+          "file": "net/minecraft/core/Holder.java",
+          "recordDeclaration": "public static record Direct<T>(T value) implements Holder<T>",
+          "accessor": "\n      public T value() {\n         return this.value;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-option-alt-enum-value-setter",
+          "file": "net/minecraft/client/OptionInstance.java",
+          "recordDeclaration": "public static record AltEnum<T>(List<T> values, List<T> altValues, BooleanSupplier altCondition, OptionInstance.CycleableValueSet.ValueSetter<T> valueSetter, Codec<T> codec)",
+          "accessor": "\n      public OptionInstance.CycleableValueSet.ValueSetter<T> valueSetter() {\n         return this.valueSetter;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-option-alt-enum-codec",
+          "file": "net/minecraft/client/OptionInstance.java",
+          "recordDeclaration": "public static record AltEnum<T>(List<T> values, List<T> altValues, BooleanSupplier altCondition, OptionInstance.CycleableValueSet.ValueSetter<T> valueSetter, Codec<T> codec)",
+          "accessor": "\n      public Codec<T> codec() {\n         return this.codec;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-option-enum-codec",
+          "file": "net/minecraft/client/OptionInstance.java",
+          "recordDeclaration": "public static record Enum<T>(List<T> values, Codec<T> codec)",
+          "accessor": "\n      public Codec<T> codec() {\n         return this.codec;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-option-lazy-enum-codec",
+          "file": "net/minecraft/client/OptionInstance.java",
+          "recordDeclaration": "public static record LazyEnum<T>(Supplier<List<T>> values, Function<T, Optional<T>> validateValue, Codec<T> codec)",
+          "accessor": "\n      public Codec<T> codec() {\n         return this.codec;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-memory-absent-memory",
+          "file": "net/minecraft/world/entity/ai/behavior/declarative/MemoryCondition.java",
+          "recordDeclaration": "public static record Absent<Value>(MemoryModuleType<Value> memory)",
+          "accessor": "\n      public MemoryModuleType<Value> memory() {\n         return this.memory;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-memory-present-memory",
+          "file": "net/minecraft/world/entity/ai/behavior/declarative/MemoryCondition.java",
+          "recordDeclaration": "public static record Present<Value>(MemoryModuleType<Value> memory)",
+          "accessor": "\n      public MemoryModuleType<Value> memory() {\n         return this.memory;\n      }\n"
+        },
+        {
+          "id": "forge-1.19.4-memory-registered-memory",
+          "file": "net/minecraft/world/entity/ai/behavior/declarative/MemoryCondition.java",
+          "recordDeclaration": "public static record Registered<Value>(MemoryModuleType<Value> memory)",
+          "accessor": "\n      public MemoryModuleType<Value> memory() {\n         return this.memory;\n      }\n"
+        }
+      ]
+    }
+  }
+}

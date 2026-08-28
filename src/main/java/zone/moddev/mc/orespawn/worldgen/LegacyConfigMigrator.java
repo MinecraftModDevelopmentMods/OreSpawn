@@ -212,7 +212,7 @@ final class LegacyConfigMigrator {
 			}
 		}
 		if (dimensions.size() == 0 && selectors.size() == 0) {
-			report.add("Skipped " + name + ": no 1.18 dimension mapping could be inferred.");
+			report.add("Skipped " + name + ": no 1.19 dimension mapping could be inferred.");
 			return null;
 		}
 		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
@@ -358,7 +358,7 @@ final class LegacyConfigMigrator {
 
 	private static void writeUpgradeReport(Path config, int imported, List<String> detail) {
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.6.119041 Upgrade Report");
+		lines.add("OreSpawn 4.0.10.119041 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn settings were imported into the OS4 profile.");
