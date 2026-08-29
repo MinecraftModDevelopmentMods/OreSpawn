@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -26,8 +27,17 @@ import net.minecraftforge.registries.ForgeRegistries;
  */
 final class BiomeTypeCompatibility {
 	private static final Map<String, List<TagKey<Biome>>> TYPES = types();
+	private static volatile Registry<Biome> activeRegistry;
 
 	private BiomeTypeCompatibility() {
+	}
+
+	static void useRegistry(Registry<Biome> registry) {
+		activeRegistry = registry;
+	}
+
+	static void clearRegistry() {
+		activeRegistry = null;
 	}
 
 	static Set<String> types(Biome biome) {
@@ -50,6 +60,16 @@ final class BiomeTypeCompatibility {
 
 	static Set<ResourceKey<Biome>> biomeKeys(String type) {
 		Set<ResourceKey<Biome>> result = new LinkedHashSet<>();
+		Registry<Biome> registry = activeRegistry;
+		if (registry != null) {
+			for (Map.Entry<ResourceKey<Biome>, Biome> entry : registry.entrySet()) {
+				if (registry.getHolder(entry.getKey())
+						.map(holder -> matches(holder, tags(type))).orElse(false)) {
+					result.add(entry.getKey());
+				}
+			}
+			return result;
+		}
 		for (Biome biome : biomes(type)) {
 			ResourceLocation id = ForgeRegistries.BIOMES.getKey(biome);
 			if (id != null) result.add(ResourceKey.create(Registries.BIOME, id));
@@ -58,8 +78,19 @@ final class BiomeTypeCompatibility {
 	}
 
 	static boolean hasType(ResourceKey<Biome> key, String type) {
+		Registry<Biome> registry = activeRegistry;
+		if (registry != null) {
+			return registry.getHolder(key)
+					.map(holder -> matches(holder, tags(type))).orElse(false);
+		}
 		return ForgeRegistries.BIOMES.getHolder(key)
 				.map(holder -> matches(holder, tags(type))).orElse(false);
+	}
+
+	static Biome biome(ResourceKey<Biome> key) {
+		Registry<Biome> registry = activeRegistry;
+		return registry == null ? ForgeRegistries.BIOMES.getValue(key.location())
+				: registry.get(key.location());
 	}
 
 	static boolean hasType(Biome biome, String type) {
