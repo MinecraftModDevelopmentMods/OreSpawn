@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "description": "OreSpawn client qualification fixture",
+    "forge:resource_pack_format": 13,
+    "forge:data_pack_format": 15,
+    "pack_format": 15
+  }
+}
