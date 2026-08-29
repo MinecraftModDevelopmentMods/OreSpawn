@@ -1,3 +1,12 @@
+Version 4.0.11.119041
+
+* Preserve biome-dictionary geome weights when a data-driven biome is reached
+  through its stable registry key rather than the object baked at startup.
+* Apply ore biome include and exclude filters by stable registry key so
+  dynamic-registry biome instances with the same ID are treated consistently.
+* Existing chunks and profile formats are unchanged; the corrections apply to
+  generation in affected provider biomes.
+
 Version 4.0.10.119041
 
 * Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
