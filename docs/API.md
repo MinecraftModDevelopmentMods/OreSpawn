@@ -136,9 +136,11 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 `sampleColumn` performs one biome/geome classification and reuses it for every
 Y query. Pass the first-free surface height returned by `Level.getHeight`;
 OreSpawn uses the highest occupied block immediately below it for biome/geome
-classification, exactly as chunk geology generation does. Sampling is read-only
-and is intended for gameplay decisions, diagnostics, and compatible generation
-outside OreSpawn's block loops. Callbacks inside OreSpawn generation loops are
+classification and resolves the same stable quart-biome cell used by chunk
+geology. This avoids display-oriented fuzzy biome zoom changing the prediction
+after later surface work alters a heightmap. Sampling is read-only and is
+intended for gameplay decisions, diagnostics, and compatible generation outside
+OreSpawn's block loops. Callbacks inside OreSpawn generation loops are
 intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using

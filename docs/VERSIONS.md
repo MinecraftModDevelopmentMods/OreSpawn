@@ -56,7 +56,7 @@ Examples:
 | 1.15.2 | Forge | `115021` | `4.0.9.115021` |
 | 1.16.5 | Forge | `116051` | `4.0.9.116051` |
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
-| 1.18.2 | Forge | `118021` | `4.0.14.118021` |
+| 1.18.2 | Forge | `118021` | `4.0.15.118021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -158,7 +158,9 @@ highest occupied block as chunk generation at vertical biome seams. It then
 advanced to `4.0.13.118021` to restore API biome-filter parity and accept
 provider-namespaced geomes in the creation editor, then to `4.0.14.118021` so
 one-layer Snow above the motion-blocking surface is included in configured
-weather-material conversion. A branch
+weather-material conversion, and then to `4.0.15.118021` so generated geology
+and public samples use the same stable quart-biome cell at three-dimensional
+biome boundaries. A branch
 may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:

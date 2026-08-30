@@ -8,10 +8,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeGenerationSettings;
+import net.minecraft.world.level.biome.BiomeSpecialEffects;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.Blocks;
 
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
@@ -19,6 +25,12 @@ import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
 
 class GeomeTransitionTest {
 	private static final ResourceLocation WINDSWEPT_HILLS = new ResourceLocation("minecraft:windswept_hills");
+
+	@BeforeAll
+	static void bootstrapMinecraftRegistries() {
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
+	}
 
 	@Test
 	void configuredBiomeWeightsWorkWithoutAForgeBiomeRegistryEntry() {
@@ -30,6 +42,19 @@ class GeomeTransitionTest {
 		BakedGeomeConfig config = config(weights);
 
 		assertEquals(1, config.pickGeome(null, WINDSWEPT_HILLS, new double[2], 0.0D));
+	}
+
+	@Test
+	void explicitBiomeIdentifierWinsOverAliasedBiomeObjectIdentity() {
+		Biome aliasedBiome = testBiome();
+		ResourceLocation dynamicId = new ResourceLocation("cakeworld", "peppermint_pinewoods");
+		double[] identityWeights = { 12.0D, 1.0D };
+		double[] identifierWeights = { 1.0D, 12.0D };
+		BakedGeomeConfig config = config(Map.of(aliasedBiome, identityWeights),
+				Map.of(dynamicId, identifierWeights));
+
+		assertEquals(1, config.pickGeome(aliasedBiome, dynamicId, new double[2], 0.0D),
+				"a stable dynamic biome key must override a conflicting object-identity alias");
 	}
 
 	@Test
@@ -94,6 +119,11 @@ class GeomeTransitionTest {
 	}
 
 	private static BakedGeomeConfig config(Map<ResourceLocation, double[]> biomeWeightsById) {
+		return config(Collections.emptyMap(), biomeWeightsById);
+	}
+
+	private static BakedGeomeConfig config(Map<Biome, double[]> biomeWeights,
+			Map<ResourceLocation, double[]> biomeWeightsById) {
 		double[] familyWeights = { 1.0D, 1.0D, 1.0D, 1.0D };
 		GeomeDefinition[] geomes = {
 				new GeomeDefinition("orespawn:first", 1.0D, familyWeights.clone()),
@@ -106,7 +136,25 @@ class GeomeTransitionTest {
 		FormationSettings formations = new FormationSettings(FormationSettings.Algorithm.STABLE_LAYERS,
 				256.0D, 100.0D, 8, 48.0D, 64.0D, 12.0D, 2, 0.85D);
 		return new BakedGeomeConfig(geomes, 384.0D, 1.15D, 0.9D, 0.45D,
-				Collections.emptyMap(), biomeWeightsById, rocks, formations);
+				biomeWeights, biomeWeightsById, rocks, formations);
+	}
+
+	private static Biome testBiome() {
+		BiomeSpecialEffects effects = new BiomeSpecialEffects.Builder()
+				.fogColor(0xC0D8FF)
+				.waterColor(0x3F76E4)
+				.waterFogColor(0x050533)
+				.skyColor(0x78A7FF)
+				.build();
+		return new Biome.BiomeBuilder()
+				.precipitation(Biome.Precipitation.NONE)
+				.biomeCategory(Biome.BiomeCategory.NONE)
+				.temperature(0.5F)
+				.downfall(0.5F)
+				.specialEffects(effects)
+				.mobSpawnSettings(MobSpawnSettings.EMPTY)
+				.generationSettings(BiomeGenerationSettings.EMPTY)
+				.build();
 	}
 
 	private static BakedGeomeConfig observedWorldConfig() {
