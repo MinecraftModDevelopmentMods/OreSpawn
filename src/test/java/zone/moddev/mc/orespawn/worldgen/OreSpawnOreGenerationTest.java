@@ -10,14 +10,54 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 
 class OreSpawnOreGenerationTest {
+	@Test
+	void biomeFiltersRetainUnknownDynamicRegistryKeys() {
+		ResourceKey<Biome> sodaOcean = ResourceKey.create(Registry.BIOME_REGISTRY,
+				new ResourceLocation("cakeworld", "soda_ocean"));
+		JsonObject rule = new JsonObject();
+		JsonArray ids = new JsonArray();
+		ids.add("cakeworld:soda_ocean");
+		rule.add("biome_ids", ids);
+
+		Set<?> resolved = OreSpawnOreGeneration.resolveBiomes(
+				rule, "biome_ids", "biome_dictionary");
+
+		assertEquals(Set.of(sodaOcean), resolved);
+	}
+
+	@Test
+	void biomeFiltersMergeDictionaryKeys() {
+		ResourceKey<Biome> sodaOcean = ResourceKey.create(Registry.BIOME_REGISTRY,
+				new ResourceLocation("cakeworld", "soda_ocean"));
+		JsonObject rule = new JsonObject();
+		JsonArray dictionary = new JsonArray();
+		dictionary.add("OCEAN");
+		rule.add("biome_dictionary", dictionary);
+
+		Set<ResourceKey<Biome>> resolved = OreSpawnOreGeneration.resolveBiomes(
+				rule, "biome_ids", "biome_dictionary", type -> Set.of(sodaOcean));
+
+		assertEquals(Set.of(sodaOcean), resolved);
+		assertTrue(OreSpawnOreGeneration.acceptsBiome(resolved, Set.of(), sodaOcean));
+		assertFalse(OreSpawnOreGeneration.acceptsBiome(resolved, Set.of(), ResourceKey.create(
+				Registry.BIOME_REGISTRY, new ResourceLocation("cakeworld", "candy_plains"))));
+		assertFalse(OreSpawnOreGeneration.acceptsBiome(Set.of(), resolved, sodaOcean));
+		assertTrue(OreSpawnOreGeneration.acceptsBiome(Set.of(), resolved, ResourceKey.create(
+				Registry.BIOME_REGISTRY, new ResourceLocation("cakeworld", "candy_plains"))));
+	}
+
 	@Test
 	void fixedQuantityDoesNotConsumeRandomState() {
 		CountingRandom random = new CountingRandom(0);
