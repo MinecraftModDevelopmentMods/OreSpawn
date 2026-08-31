@@ -1,3 +1,10 @@
+Version 4.0.12.120061
+
+* Classify public geology samples at the same highest occupied block used by
+  chunk geology generation, rather than the first free block above it.
+* Keep public sampler predictions consistent with generated rock at vertical
+  biome seams without changing existing chunks, profiles, or generation.
+
 Version 4.0.11.120061
 
 * Preserve biome-dictionary geome weights when a data-driven biome is reached
