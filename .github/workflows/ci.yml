@@ -132,9 +132,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/OreSpawn-4.0.12.119041.jar
-            build/libs/OreSpawn-4.0.12.119041-sources.jar
-            build/libs/OreSpawn-4.0.12.119041-javadoc.jar
+            build/libs/OreSpawn-4.0.13.119041.jar
+            build/libs/OreSpawn-4.0.13.119041-sources.jar
+            build/libs/OreSpawn-4.0.13.119041-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.txt
 
