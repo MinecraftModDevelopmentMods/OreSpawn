@@ -1,3 +1,10 @@
+Version 4.0.16.120011
+
+* Leave benchmark shutdown to the GameTest harness when a benchmark is run
+  through Forge's GameTest server, preventing a null test-tracker crash and
+  allowing the harness to report its real test result.
+* Ordinary dedicated benchmark servers still stop automatically when requested.
+
 Version 4.0.15.120011
 
 * Classify generated geology and public geology samples through the same

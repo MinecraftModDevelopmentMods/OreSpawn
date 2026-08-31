@@ -364,7 +364,8 @@ public final class ClientProbeTestMod {
 			Class<?>[] parameters = method.getParameterTypes();
 			if (parameters.length != 3 || parameters[0] != Minecraft.class
 					|| parameters[1] != int.class || parameters[2] != int.class
-					|| method.getReturnType() != void.class) continue;
+					|| method.getReturnType() != void.class
+					|| !java.lang.reflect.Modifier.isFinal(method.getModifiers())) continue;
 			try {
 				method.setAccessible(true);
 				method.invoke(screen, minecraft, 640, 480);

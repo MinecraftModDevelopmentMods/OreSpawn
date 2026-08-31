@@ -156,6 +156,9 @@ minecraft {
         }
         register('client')
         register('server') { args '--nogui' }
+        register('gameTestServer') {
+            workingDir.convention layout.buildDirectory.dir('gametest-benchmark-run')
+        }
         register('data') {
             workingDir.convention layout.projectDirectory.dir('run-data')
             args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/'),
@@ -237,6 +240,7 @@ tasks.withType(JavaExec).configureEach { JavaExec runTask ->
     Map<String, String> targets = [
             runClient: 'fmluserdevclient',
             runServer: 'fmluserdevserver',
+            runGameTestServer: 'fmluserdevgametestserver',
             runData: 'fmluserdevdata',
             runSurfaceIntegrationFresh: 'fmluserdevserver',
             runSurfaceIntegrationReload: 'fmluserdevserver'
@@ -568,10 +572,26 @@ task verifyMineralogyOracleIsolation {
 
 check.dependsOn verifyMineralogyOracleIsolation
 
-['runClient', 'runServer', 'runData'].each { String taskName ->
+['runClient', 'runServer', 'runGameTestServer', 'runData'].each { String taskName ->
     tasks.matching { it.name == taskName }.all { JavaExec runTask ->
+        if (taskName == 'runGameTestServer') {
+            runTask.workingDir = file("${buildDir}/gametest-benchmark-run")
+        }
         doFirst {
             new File(runTask.workingDir, 'mods').mkdirs()
+            if (taskName == 'runGameTestServer') {
+                new File(runTask.workingDir, 'server.properties').setText('''\
+level-name=gametest-benchmark-world
+level-seed=-4965128775892001975
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            }
             runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
         }
         doLast {
@@ -847,7 +867,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.120011'
+        if (project.mod_version != '4.0.16.120011'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.20.1'
                 || project.forge_version != '47.4.10'
@@ -861,9 +881,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.120011.jar',
-                'OreSpawn-4.0.15.120011-sources.jar',
-                'OreSpawn-4.0.15.120011-javadoc.jar'
+                'OreSpawn-4.0.16.120011.jar',
+                'OreSpawn-4.0.16.120011-sources.jar',
+                'OreSpawn-4.0.16.120011-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -880,7 +900,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.15.120011')) {
+            if (!file(path).getText('UTF-8').contains('4.0.16.120011')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
