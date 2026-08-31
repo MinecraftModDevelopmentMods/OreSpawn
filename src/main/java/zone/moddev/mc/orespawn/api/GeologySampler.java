@@ -6,7 +6,8 @@ public interface GeologySampler {
 	 * Classifies one column. The returned column reuses that biome/geome
 	 * classification for all subsequent Y queries. {@code surfaceY} is the first
 	 * free block returned by {@code Level.getHeight}; OreSpawn classifies the
-	 * biome at the highest occupied block, matching chunk geology generation.
+	 * stable quart biome at the highest occupied block, matching chunk geology
+	 * generation without Minecraft's display-oriented fuzzy biome zoom.
 	 */
 	GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY);
 }
