@@ -12,8 +12,10 @@ import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
 import net.minecraft.core.Holder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.gametest.framework.GameTestServer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -118,9 +120,17 @@ public final class WorldgenBenchmark {
 				MODE, chunks, repetitions, format(median), format(median / chunks),
 				format(sorted[0]), format(sorted[sorted.length - 1]));
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
-			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
-			event.getServer().halt(false);
+			if (ownsServerShutdown(event.getServer().getClass())) {
+				LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
+				event.getServer().halt(false);
+			} else {
+				LOGGER.info("ORESPAWN_BENCHMARK leaving shutdown to the GameTest harness");
+			}
 		}
+	}
+
+	static boolean ownsServerShutdown(Class<? extends MinecraftServer> serverType) {
+		return !GameTestServer.class.isAssignableFrom(serverType);
 	}
 
 	static ResourceKey<Level> benchmarkDimensionKey(String configured) {
