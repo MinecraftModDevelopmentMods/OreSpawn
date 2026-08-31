@@ -630,7 +630,7 @@ final class GeologyEditorSession {
 
 	void addGeome(String id) {
 		String normalized = id.trim().toLowerCase(Locale.ROOT);
-		if (!normalized.matches("[a-z0-9_.-]+") || section("geomes").has(normalized)) {
+		if (!validGeomeId(normalized) || section("geomes").has(normalized)) {
 			return;
 		}
 		JsonObject geome = new JsonObject();
@@ -690,7 +690,7 @@ final class GeologyEditorSession {
 		}
 		for (Entry<String, JsonElement> entry : terrainActive
 				? geomes.entrySet() : Collections.<Entry<String, JsonElement>>emptySet()) {
-			if (!entry.getKey().matches("[a-z0-9_.-]+") || !entry.getValue().isJsonObject()) {
+			if (!validGeomeId(entry.getKey()) || !entry.getValue().isJsonObject()) {
 				errors.add("Invalid geome: " + entry.getKey());
 				continue;
 			}
@@ -1168,6 +1168,13 @@ final class GeologyEditorSession {
 		} catch (RuntimeException e) {
 			return false;
 		}
+	}
+
+	private static boolean validGeomeId(String id) {
+		if (id == null || id.isEmpty()) return false;
+		if (id.indexOf(':') < 0) return id.matches("[a-z0-9_.-]+");
+		if (!validResource(id)) return false;
+		return id.equals(new ResourceLocation(id).toString());
 	}
 
 	static String string(JsonObject json, String key, String fallback) {
