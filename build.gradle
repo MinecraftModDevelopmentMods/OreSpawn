@@ -845,7 +845,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.119041'
+        if (project.mod_version != '4.0.16.119041'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.19.4'
                 || project.forge_version != '45.4.0'
@@ -859,9 +859,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.119041.jar',
-                'OreSpawn-4.0.15.119041-sources.jar',
-                'OreSpawn-4.0.15.119041-javadoc.jar'
+                'OreSpawn-4.0.16.119041.jar',
+                'OreSpawn-4.0.16.119041-sources.jar',
+                'OreSpawn-4.0.16.119041-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -878,7 +878,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.15.119041')) {
+            if (!file(path).getText('UTF-8').contains('4.0.16.119041')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }

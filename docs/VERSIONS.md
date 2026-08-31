@@ -57,7 +57,7 @@ Examples:
 | 1.16.5 | Forge | `116051` | `4.0.9.116051` |
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
 | 1.18.2 | Forge | `118021` | `4.0.10.118021` |
-| 1.19.4 | Forge | `119041` | `4.0.15.119041` |
+| 1.19.4 | Forge | `119041` | `4.0.16.119041` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -164,7 +164,9 @@ restore API biome-filter parity and accept provider-namespaced geomes in the
 creation editor, and to `4.0.14.119041` to convert exposed one-layer Snow
 without touching buried or authored weather materials. It then advanced to
 `4.0.15.119041` so generated geology and public samples use the same stable
-quart-biome cell at three-dimensional biome boundaries.
+quart-biome cell at three-dimensional biome boundaries, and to
+`4.0.16.119041` so GameTest benchmark runs leave shutdown and result reporting
+to the test harness.
 
 This provides three useful guarantees:
 
