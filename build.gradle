@@ -151,52 +151,30 @@ minecraft {
             jvmArgs '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED'
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
-            mods { orespawn { source sourceSets.main } }
         }
         register('client')
         register('server') { args '--nogui' }
+        register('gameTestServer') {
+            workingDir.convention layout.buildDirectory.dir('gametest-benchmark-run')
+        }
         register('data') {
             workingDir.convention layout.projectDirectory.dir('run-data')
             args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/'),
                     '--existing', file('src/main/resources/')
         }
         register('surfaceIntegrationFresh') {
-            mainClass = 'cpw.mods.bootstraplauncher.BootstrapLauncher'
+            mainClass = 'net.minecraftforge.bootstrap.ForgeBootstrap'
             workingDir.convention layout.buildDirectory.dir('surface-integration-run')
-            jvmArgs '-p', '{modules}', '--add-modules', 'ALL-MODULE-PATH',
-                    '--add-opens', 'java.base/java.lang.invoke=cpw.mods.securejarhandler',
-                    '--add-opens', 'java.base/java.util.jar=cpw.mods.securejarhandler',
-                    '--add-exports', 'java.base/sun.security.util=cpw.mods.securejarhandler',
-                    '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming'
-            args '--launchTarget', 'forgeserveruserdev', '--gameDir', '.',
-                    '--fml.forgeVersion', forge_version, '--fml.mcVersion', minecraft_version,
-                    '--fml.forgeGroup', 'net.minecraftforge', '--fml.mcpVersion', mcp_version,
-                    '--nogui'
-            systemProperty 'legacyClassPath.file', '{minecraft_classpath_file}'
-            systemProperty 'ignoreList',
-                    'bootstraplauncher,securejarhandler,asm-commons,asm-util,asm-analysis,asm-tree,asm,JarJarFileSystems,client-extra,fmlcore,javafmllanguage,lowcodelanguage,mclanguage,forge-'
-            systemProperty 'mergeModules',
-                    'jna-5.14.0.jar,jna-platform-5.14.0.jar,java-objc-bridge-1.0.0.jar'
+            jvmArgs '-Djava.net.preferIPv6Addresses=system'
+            args '--launchTarget', 'forge_userdev_server', '--gameDir', '.', '--nogui'
             systemProperty 'surfaceprobe.integrationPhase', 'fresh'
             environment 'MCP_MAPPINGS', '{mcp_mappings}'
         }
         register('surfaceIntegrationReload') {
-            mainClass = 'cpw.mods.bootstraplauncher.BootstrapLauncher'
+            mainClass = 'net.minecraftforge.bootstrap.ForgeBootstrap'
             workingDir.convention layout.buildDirectory.dir('surface-integration-run')
-            jvmArgs '-p', '{modules}', '--add-modules', 'ALL-MODULE-PATH',
-                    '--add-opens', 'java.base/java.lang.invoke=cpw.mods.securejarhandler',
-                    '--add-opens', 'java.base/java.util.jar=cpw.mods.securejarhandler',
-                    '--add-exports', 'java.base/sun.security.util=cpw.mods.securejarhandler',
-                    '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming'
-            args '--launchTarget', 'forgeserveruserdev', '--gameDir', '.',
-                    '--fml.forgeVersion', forge_version, '--fml.mcVersion', minecraft_version,
-                    '--fml.forgeGroup', 'net.minecraftforge', '--fml.mcpVersion', mcp_version,
-                    '--nogui'
-            systemProperty 'legacyClassPath.file', '{minecraft_classpath_file}'
-            systemProperty 'ignoreList',
-                    'bootstraplauncher,securejarhandler,asm-commons,asm-util,asm-analysis,asm-tree,asm,JarJarFileSystems,client-extra,fmlcore,javafmllanguage,lowcodelanguage,mclanguage,forge-'
-            systemProperty 'mergeModules',
-                    'jna-5.14.0.jar,jna-platform-5.14.0.jar,java-objc-bridge-1.0.0.jar'
+            jvmArgs '-Djava.net.preferIPv6Addresses=system'
+            args '--launchTarget', 'forge_userdev_server', '--gameDir', '.', '--nogui'
             systemProperty 'surfaceprobe.integrationPhase', 'reload'
             environment 'MCP_MAPPINGS', '{mcp_mappings}'
         }
@@ -230,12 +208,26 @@ def prepareForgeRunModClasses = tasks.register('prepareForgeRunModClasses', Sync
 def configureForge50Run = { JavaExec runTask, String launchTarget ->
     runTask.dependsOn prepareForgeRunModClasses
     // Forge 50 resolves the complete exploded mod from one merged output.
-    runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory}"
+    // ForgeGradle materializes its source-set environment after the run model
+    // is configured, so apply the target-required merged path immediately
+    // before launch rather than allowing the split classes/resources paths to
+    // replace it.
+    runTask.doFirst {
+        Set<String> splitOutputs = sourceSets.main.output.files.collect {
+            it.canonicalFile.absolutePath
+        } as Set
+        Collection<File> targetClasspath = runTask.classpath.files.findAll {
+            !splitOutputs.contains(it.canonicalFile.absolutePath)
+        }
+        runTask.classpath = files(forgeRunModClassesDirectory, targetClasspath)
+        runTask.environment 'MOD_CLASSES', "${mod_id}%%${forgeRunModClassesDirectory}"
+    }
 }
 tasks.withType(JavaExec).configureEach { JavaExec runTask ->
     Map<String, String> targets = [
             runClient: 'fmluserdevclient',
             runServer: 'fmluserdevserver',
+            runGameTestServer: 'fmluserdevgametestserver',
             runData: 'fmluserdevdata',
             runSurfaceIntegrationFresh: 'fmluserdevserver',
             runSurfaceIntegrationReload: 'fmluserdevserver'
@@ -565,10 +557,26 @@ task verifyMineralogyOracleIsolation {
 
 check.dependsOn verifyMineralogyOracleIsolation
 
-['runClient', 'runServer', 'runData'].each { String taskName ->
+['runClient', 'runServer', 'runGameTestServer', 'runData'].each { String taskName ->
     tasks.matching { it.name == taskName }.all { JavaExec runTask ->
+        if (taskName == 'runGameTestServer') {
+            runTask.workingDir = file("${buildDir}/gametest-benchmark-run")
+        }
         doFirst {
             new File(runTask.workingDir, 'mods').mkdirs()
+            if (taskName == 'runGameTestServer') {
+                new File(runTask.workingDir, 'server.properties').setText('''\
+level-name=gametest-benchmark-world
+level-seed=-4965128775892001975
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            }
             runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
         }
         doLast {
@@ -858,7 +866,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.120061'
+        if (project.mod_version != '4.0.16.120061'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.20.6'
                 || project.forge_version != '50.2.0'
@@ -872,9 +880,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.120061.jar',
-                'OreSpawn-4.0.15.120061-sources.jar',
-                'OreSpawn-4.0.15.120061-javadoc.jar'
+                'OreSpawn-4.0.16.120061.jar',
+                'OreSpawn-4.0.16.120061-sources.jar',
+                'OreSpawn-4.0.16.120061-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -891,7 +899,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.15.120061')) {
+            if (!file(path).getText('UTF-8').contains('4.0.16.120061')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }

@@ -963,7 +963,8 @@ public final class SurfaceProbeTestMod {
 				Blocks.CHEST.defaultBlockState(), 2);
 		if (world.getBlockEntity(pos) instanceof ChestBlockEntity chest) {
 			ItemStack sentinel = new ItemStack(Items.EMERALD);
-			sentinel.setHoverName(Component.literal(RAW_CHEST_ITEM_NAME));
+			sentinel.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+					Component.literal(RAW_CHEST_ITEM_NAME));
 			chest.setItem(0, sentinel);
 			chest.setChanged();
 		}
