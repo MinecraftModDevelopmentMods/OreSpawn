@@ -57,7 +57,7 @@ Examples:
 | 1.16.5 | Forge | `116051` | `4.0.9.116051` |
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
 | 1.18.2 | Forge | `118021` | `4.0.10.118021` |
-| 1.19.4 | Forge | `119041` | `4.0.13.119041` |
+| 1.19.4 | Forge | `119041` | `4.0.14.119041` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -161,7 +161,8 @@ different runtime object with the same stable registry key, to
 `4.0.12.119041` so public geology samples classify the same highest occupied
 block as chunk generation at vertical biome seams, and to `4.0.13.119041` to
 restore API biome-filter parity and accept provider-namespaced geomes in the
-creation editor.
+creation editor, and to `4.0.14.119041` to convert exposed one-layer Snow
+without touching buried or authored weather materials.
 
 This provides three useful guarantees:
 

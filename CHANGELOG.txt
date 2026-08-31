@@ -1,3 +1,10 @@
+Version 4.0.14.119041
+
+* Convert naturally exposed one-layer Snow at the first free block above the
+  motion-blocking surface while retaining the existing Snow and Ice scan.
+* Preserve buried or authored Snow and Ice, unconfigured dimensions, fluids,
+  bedrock, block entities, profiles, schemas, and existing chunks.
+
 Version 4.0.13.119041
 
 * Give the public ore-dimension builder the exact biome include/exclude and
