@@ -54,6 +54,14 @@ public final class WorldMaterialWeather {
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, localX, localZ);
+				// A one-layer Snow block is non-motion-blocking and therefore occupies
+				// the first free cell immediately above this heightmap's surface.
+				if (materials.snow != null && top + 1 < chunk.getMaxBuildHeight()) {
+					cursor.set(minX + localX, top + 1, minZ + localZ);
+					if (chunk.getBlockState(cursor).is(Blocks.SNOW)) {
+						chunk.setBlockState(cursor, materials.snow, false);
+					}
+				}
 				for (int offset = 0; offset <= 2; offset++) {
 					cursor.set(minX + localX, top - offset, minZ + localZ);
 					BlockState state = chunk.getBlockState(cursor);
