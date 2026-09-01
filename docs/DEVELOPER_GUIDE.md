@@ -100,6 +100,10 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
+					.biome(ResourceLocation.fromNamespaceAndPath("minecraft", "plains"))
+					.biomeDictionary("FOREST")
+					.excludeBiome(ResourceLocation.fromNamespaceAndPath("minecraft", "dark_forest"))
+					.excludeBiomeDictionary("SPOOKY")
 					.hostTag(ResourceLocation.parse("minecraft:stone_ore_replaceables"))))
         .build();
 
@@ -114,6 +118,8 @@ Use `.quantity(8)` when every attempt should have a fixed budget. The selector
 above preserves old OS3 behavior in every ordinary dimension except Nether and
 End. Add an explicit `.dimension(overworld, ...)` as well when the Overworld
 needs different settings; the explicit rule overrides the selector there.
+Ore dimension builders support the same exact-ID and biome-dictionary include
+and exclude filters as provider JSON and fluid-deposit builders.
 
 ## Pack Override Quick Start
 

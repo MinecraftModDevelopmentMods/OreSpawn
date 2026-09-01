@@ -9,10 +9,10 @@ import zone.moddev.mc.orespawn.worldgen.Geology;
 import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.GeomeGeology;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
+import zone.moddev.mc.orespawn.worldgen.TerrainBiomeLookup;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -56,8 +56,8 @@ final class OreSpawnGeologySampler implements GeologySampler {
 
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
-		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
-		Holder<Biome> holder = level.getBiome(position);
+		int biomeY = generationBiomeY(surfaceY, level.getMinBuildHeight());
+		Holder<Biome> holder = TerrainBiomeLookup.atBlock(level, blockX, biomeY, blockZ);
 		ResourceLocation biomeId = holder.unwrapKey().map(ResourceKey::location)
 				.orElse(ResourceLocation.fromNamespaceAndPath("orespawn", "unregistered_biome"));
 		if (mode == GeologyMode.LEGACY) {
@@ -65,6 +65,10 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 		GeomeGeology.ColumnSample sample = sky.sampleColumn(holder.value(), biomeId, blockX, blockZ);
 		return new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample);
+	}
+
+	static int generationBiomeY(int firstFreeY, int minBuildHeight) {
+		return firstFreeY <= minBuildHeight ? minBuildHeight : firstFreeY - 1;
 	}
 
 	private abstract class BaseColumn implements GeologyColumn {

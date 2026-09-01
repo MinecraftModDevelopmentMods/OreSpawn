@@ -1,3 +1,79 @@
+Version 4.0.16.120061
+
+* Leave benchmark shutdown to the GameTest harness when a benchmark is run
+  through Forge's GameTest server, preventing a null test-tracker crash and
+  allowing the harness to report its real test result.
+* Ordinary dedicated benchmark servers still stop automatically when requested.
+
+Version 4.0.15.120061
+
+* Classify generated geology and public geology samples through the same
+  stable quart-biome cell at three-dimensional biome boundaries.
+* Keep ore family-host filters and sampler predictions consistent when later
+  surface features alter the final heightmap by a small amount.
+* Existing chunks, profiles, API signatures, and schemas are unchanged.
+
+Version 4.0.14.120061
+
+* Convert naturally exposed one-layer Snow at the first free block above the
+  motion-blocking surface while retaining the existing Snow and Ice scan.
+* Preserve buried or authored Snow and Ice, unconfigured dimensions, fluids,
+  bedrock, block entities, profiles, schemas, and existing chunks.
+
+Version 4.0.13.120061
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and worldgen
+  behaviour are unchanged.
+
+Version 4.0.12.120061
+
+* Classify public geology samples at the same highest occupied block used by
+  chunk geology generation, rather than the first free block above it.
+* Keep public sampler predictions consistent with generated rock at vertical
+  biome seams without changing existing chunks, profiles, or generation.
+
+Version 4.0.11.120061
+
+* Preserve biome-dictionary geome weights when a data-driven biome is reached
+  through its stable registry key rather than the object baked at startup.
+* Apply ore biome include and exclude filters by stable registry key so
+  dynamic-registry biome instances with the same ID are treated consistently.
+* Existing chunks and profile formats are unchanged; the corrections apply to
+  generation in affected provider biomes.
+
+Version 4.0.10.120061
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve the shifted formation identity for layer, family, and rock choice
+  while preventing vanilla Stone fallback near dimension floors and ceilings.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.9.120061
+
+* Replace provider-declared natural terrain hosts during the existing geology
+  scan before structure and vegetation features can author matching blocks.
+* Keep air, fluids, bedrock, and block entities protected even when their block
+  IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.8.120061
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds, audited release artifacts, SHA-256
+  checksums, Buildship launches, and guarded release automation.
+* Export the complete bundled guide, including the shared version policy, to
+  the player-facing configuration folder.
+* Forge 1.12.2's 4.0.7 packaged access-transformer repair is target-specific
+  and is not applicable to Forge 1.20.6.
+
 Version 4.0.6.120061
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
@@ -8,9 +84,6 @@ Version 4.0.6.120061
 * Fix provider top and filler materials being generated one block below exposed ground.
 * Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
 * Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
-* Honour exact biome-to-geome weights on dynamic biome registries.
-* Stagger close Stable Layers geome transitions by layer instead of changing a whole rock column at one boundary.
-* Recalibrate Stable Layers edge-detail presets so Average retains natural variation at later rock contacts.
 * Existing chunks are not rewritten; the correction applies while generating new chunks.
 
 Version 4.0.5
@@ -18,7 +91,7 @@ Version 4.0.5
 * Complete native translations for every shipped non-English locale
 * Add automatic fresh-and-reload validation for provider-owned custom biomes
 * Verify both public biome-registration helpers on Forge 50
-* Correct Minecraft 1.20.6 ResourceLocation documentation and ForgeGradle workflow
+* Confirm Minecraft 1.20.6 ResourceLocation documentation and ForgeGradle workflow
 * Preserve public API major 1 and provider/global/world schemas 4/6/5
 
 Version 3.3.1
