@@ -85,6 +85,20 @@ class ReleaseWorkflowContractTest {
 				"CodeQL must fail rather than hide a persistent bootstrap defect");
 	}
 
+	@Test
+	void coldForgeBootstrapRetriesTransientDownloadsWithoutAcceptingPersistentFailure() throws Exception {
+		String text = new String(Files.readAllBytes(
+				Paths.get(".github", "workflows", "ci.yml")), StandardCharsets.UTF_8);
+		assertTrue(text.contains("for attempt in 1 2 3; do"),
+				"Cold Forge bootstrap must bound transient download retries");
+		assertTrue(text.contains("./gradlew \"${gradle_args[@]}\" 2>&1 | tee \"$attempt_log\""),
+				"Every retry must preserve the exact Gradle bootstrap arguments and diagnostics");
+		assertTrue(text.contains("rm -rf -- \"$GRADLE_USER_HOME/caches/minecraftforge\" .gradle/mavenizer"),
+				"Retries must discard partial Forge and Mavenizer state");
+		assertTrue(text.contains("Cold Forge bootstrap failed after $attempt attempts"),
+				"A persistent bootstrap failure must still fail CI");
+	}
+
 	private static int occurrences(String text, String needle) {
 		int count = 0;
 		int offset = 0;
