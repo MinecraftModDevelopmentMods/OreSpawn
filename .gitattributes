@@ -11,6 +11,7 @@ mcmod.info   text
 *.lang       text
 *.mcmeta     text
 *.md         text
+*.patch      text eol=lf -diff
 *.properties text
 gradlew      text eol=lf
 *.sh         text eol=lf

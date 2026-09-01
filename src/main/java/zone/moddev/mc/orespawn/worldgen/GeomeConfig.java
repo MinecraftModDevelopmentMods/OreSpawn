@@ -288,7 +288,8 @@ public final class GeomeConfig {
 			return null;
 		}
 		Map<Biome, double[]> biomeWeights = bakeBiomeWeights(geomeIndexes, biomeRules, dictionaryRules);
-		Map<ResourceLocation, double[]> biomeWeightsById = bakeBiomeIdentifierWeights(geomeIndexes, biomeRules);
+		Map<ResourceLocation, double[]> biomeWeightsById = bakeBiomeIdentifierWeights(
+				geomeIndexes, biomeRules, dictionaryRules);
 
 		LOGGER.info("Baked OreSpawn geome config for '{}' with {} geomes, {} rock entries, "
 				+ "{} resolved biome profiles, {} identifier profiles, and {} formations",
@@ -1040,20 +1041,51 @@ public final class GeomeConfig {
 
 	static Map<ResourceLocation, double[]> bakeBiomeIdentifierWeights(Map<String, Integer> geomeIndexes,
 			Map<String, double[]> biomeRules) {
+		return bakeBiomeIdentifierWeights(geomeIndexes, biomeRules, Collections.emptyMap());
+	}
+
+	static Map<ResourceLocation, double[]> bakeBiomeIdentifierWeights(Map<String, Integer> geomeIndexes,
+			Map<String, double[]> biomeRules, Map<String, double[]> dictionaryRules) {
+		return bakeBiomeIdentifierWeights(geomeIndexes, biomeRules, dictionaryRules,
+				BiomeTypeCompatibility::biomeKeys);
+	}
+
+	static Map<ResourceLocation, double[]> bakeBiomeIdentifierWeights(Map<String, Integer> geomeIndexes,
+			Map<String, double[]> biomeRules, Map<String, double[]> dictionaryRules,
+			java.util.function.Function<String, Set<ResourceKey<Biome>>> dictionaryResolver) {
 		Map<ResourceLocation, double[]> result = new LinkedHashMap<>();
 		for (Entry<String, double[]> entry : biomeRules.entrySet()) {
 			try {
 				ResourceLocation biomeId = ResourceLocation.parse(entry.getKey());
-				double[] weights = new double[geomeIndexes.size()];
-				Arrays.fill(weights, 1.0D);
-				merge(weights, entry.getValue());
-				applyBiomeHeuristic(weights, geomeIndexes, biomeId, Float.NaN, Float.NaN);
-				result.put(biomeId, weights);
+				merge(identifierWeights(result, biomeId, geomeIndexes.size()), entry.getValue());
 			} catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid OreSpawn biome rule ID '{}'", entry.getKey());
 			}
 		}
+		for (Entry<String, double[]> entry : dictionaryRules.entrySet()) {
+			for (ResourceKey<Biome> biomeKey : dictionaryResolver.apply(entry.getKey())) {
+				merge(identifierWeights(result, biomeKey.location(), geomeIndexes.size()), entry.getValue());
+			}
+		}
+		for (Entry<ResourceLocation, double[]> entry : result.entrySet()) {
+			Biome biome = BiomeTypeCompatibility.biome(ResourceKey.create(
+					Registries.BIOME, entry.getKey()));
+			if (biome == null) {
+				applyBiomeHeuristic(entry.getValue(), geomeIndexes, entry.getKey(), Float.NaN, Float.NaN);
+			} else {
+				applyBiomeHeuristic(entry.getValue(), geomeIndexes, entry.getKey(), biome);
+			}
+		}
 		return result;
+	}
+
+	private static double[] identifierWeights(Map<ResourceLocation, double[]> result,
+			ResourceLocation biomeId, int geomeCount) {
+		return result.computeIfAbsent(biomeId, ignored -> {
+			double[] weights = new double[geomeCount];
+			Arrays.fill(weights, 1.0D);
+			return weights;
+		});
 	}
 
 	private static void applyBiomeHeuristic(double[] weights, Map<String, Integer> geomeIndexes,
