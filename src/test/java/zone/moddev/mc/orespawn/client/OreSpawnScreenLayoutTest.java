@@ -4,9 +4,13 @@ import static java.lang.reflect.Modifier.isFinal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 class OreSpawnScreenLayoutTest {
 	@Test
@@ -14,6 +18,27 @@ class OreSpawnScreenLayoutTest {
 		assertTrue(isFinal(OreSpawnScreen.class
 				.getDeclaredMethod("render", GuiGraphics.class, int.class, int.class, float.class)
 				.getModifiers()));
+	}
+
+	@Test
+	void sharedScreenUsesTargetNativeBackgroundBeforeForeground() {
+		List<String> passes = new ArrayList<>();
+		OreSpawnScreen screen = new OreSpawnScreen(Component.empty()) {
+			@Override
+			public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY,
+					float partialTick) {
+				passes.add("background");
+			}
+
+			@Override
+			protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY,
+					float partialTick) {
+				passes.add("foreground");
+			}
+		};
+
+		screen.render(null, 0, 0, 0.0F);
+		assertEquals(List.of("background", "foreground"), passes);
 	}
 
 	@Test
