@@ -199,6 +199,7 @@ minecraft {
             applyBenchmarkProperties(delegate, '8', '5', '1024')
         }
         register('gameTestServer') {
+			workingDir = layout.buildDirectory.dir('gametest-benchmark-run')
             applyBenchmarkProperties(delegate, '4', '3', '256')
         }
         ['Fresh', 'Reload'].each { String phase ->
@@ -237,6 +238,10 @@ sourceSets.main.resources {
     // the generated documentation in the source set prevents a Buildship
     // refresh from silently removing the guide copied by processResources.
     srcDir 'src/generated/resources'
+}
+def processedMainResourcesDirectory = { sourceSets.main.output.resourcesDir }
+def processedMainResourcesPath = {
+    project.relativePath(processedMainResourcesDirectory()).replace('\\', '/')
 }
 
 // ForgeGradle's merged Eclipse output and Gradle 9 cannot safely share the
@@ -476,7 +481,7 @@ def prepareEclipseResources = tasks.register('prepareEclipseResources') {
     dependsOn tasks.named('processResources')
     doLast {
         project.copy {
-            from(layout.buildDirectory.dir('resources/main'))
+            from(processedMainResourcesDirectory())
             into(layout.projectDirectory.dir('bin/main'))
         }
     }
@@ -622,10 +627,23 @@ task verifyMineralogyOracleIsolation {
 
 check.dependsOn verifyMineralogyOracleIsolation
 
-['runClient', 'runServer', 'runData'].each { String taskName ->
+['runClient', 'runServer', 'runGameTestServer', 'runData'].each { String taskName ->
     tasks.matching { it.name == taskName }.all { JavaExec runTask ->
         doFirst {
             new File(runTask.workingDir, 'mods').mkdirs()
+			if (taskName == 'runGameTestServer') {
+				new File(runTask.workingDir, 'server.properties').setText('''\
+level-name=gametest-benchmark-world
+level-seed=-4965128775892001975
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+			}
             runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
         }
         doLast {
@@ -685,6 +703,9 @@ task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
 task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
     archiveFileName = 'surfaceprobe.jar'
     destinationDirectory = file("${buildDir}/surface-integration-fixture")
+    manifest {
+        attributes 'MixinConfigs': 'surfaceprobe.mixins.json'
+    }
     from surfaceIntegrationClasses
     from 'src/biomeIntegrationTest/resources'
 }
@@ -726,7 +747,7 @@ tasks.matching { it.name == 'runSurfaceIntegrationReload' }.all {
 surfaceIntegrationFreshProcess.configure {
     doLast {
         File marker = new File(surfaceIntegrationRunDirectory,
-                'surface-integration-world/surfaceprobe-integration.properties')
+                'gametestserver/gametestworld/surfaceprobe-integration.properties')
         if (!marker.isFile()) {
             throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
         }
@@ -750,7 +771,7 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
     group = 'verification'
     doLast {
         File marker = new File(surfaceIntegrationRunDirectory,
-                'surface-integration-world/surfaceprobe-integration.properties')
+                'gametestserver/gametestworld/surfaceprobe-integration.properties')
         Properties result = new Properties()
         marker.withInputStream { result.load(it) }
         if (result.getProperty('reload_verified') != 'true') {
@@ -915,7 +936,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.121111'
+        if (project.mod_version != '4.0.16.121111'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.21.11'
                 || project.forge_version != '61.1.0'
@@ -929,9 +950,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.121111.jar',
-                'OreSpawn-4.0.15.121111-sources.jar',
-                'OreSpawn-4.0.15.121111-javadoc.jar'
+                'OreSpawn-4.0.16.121111.jar',
+                'OreSpawn-4.0.16.121111-sources.jar',
+                'OreSpawn-4.0.16.121111-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -948,7 +969,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.15.121111')) {
+            if (!file(path).getText('UTF-8').contains('4.0.16.121111')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
@@ -1008,7 +1029,7 @@ def verifyDocumentationParity = tasks.register('verifyDocumentationParity') {
         }
         assertDocumentationTree(bundledDocumentationDirectory.asFile,
                 expected, 'generated resources')
-        assertDocumentationTree(new File(layout.buildDirectory.dir('resources/main').get().asFile,
+        assertDocumentationTree(new File(processedMainResourcesDirectory(),
                 'META-INF/orespawn/docs'), expected, 'processed resources')
         assertDocumentationTree(file('bin/main/META-INF/orespawn/docs'),
                 expected, 'Eclipse bin/main')
@@ -1301,9 +1322,10 @@ eclipse {
                 entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
                         && ['src/main/resources', 'src/generated/resources'].contains(entry.path)
             }
-            if (!classpath.entries.any { entry -> entry.path == 'build/resources/main' }) {
+            String resourcesPath = processedMainResourcesPath()
+            if (!classpath.entries.any { entry -> entry.path == resourcesPath }) {
                 classpath.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder(
-                        'build/resources/main', 'bin/main'))
+                        resourcesPath, 'bin/main'))
             }
         }
     }
@@ -1391,7 +1413,7 @@ tasks.register('verifyEclipseProductionClasspath') {
             throw new GradleException('Eclipse .classpath was not generated')
         }
         String eclipseClasspathText = eclipseClasspath.getText('UTF-8')
-        if (!eclipseClasspathText.contains('path="build/resources/main"')
+        if (!eclipseClasspathText.contains("path=\"${processedMainResourcesPath()}\"")
                 || eclipseClasspathText.contains('path="src/main/resources"')
                 || eclipseClasspathText.contains('path="src/generated/resources"')) {
             throw new GradleException(

@@ -28,11 +28,9 @@ import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import zone.moddev.mc.orespawn.client.OreSpawnWorldSettingsScreen;
@@ -40,7 +38,6 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
 /** Build-only isolated client probe. It is compiled and packaged outside every release artifact. */
 @Mod(ClientProbeTestMod.MODID)
-@Mod.EventBusSubscriber(modid = ClientProbeTestMod.MODID, value = Dist.CLIENT)
 public final class ClientProbeTestMod {
 	static final String MODID = "clientprobe";
 	private static final String WORLD_DIRECTORY = "New World";
@@ -56,12 +53,19 @@ public final class ClientProbeTestMod {
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
 	private List<GuiEventListener> worldCreationButtons;
+	private static final InputWithModifiers NO_MODIFIERS = new InputWithModifiers() {
+		@Override public int input() { return 0; }
+		@Override public int modifiers() { return 0; }
+	};
 
 	public ClientProbeTestMod() {
 		instance = this;
+		ScreenEvent.Init.Post.BUS.addListener(ClientProbeTestMod::onScreenInitialized);
+		ScreenEvent.Render.Post.BUS.addListener(ClientProbeTestMod::onScreenDrawn);
+		TickEvent.RenderTickEvent.Post.BUS.addListener(ClientProbeTestMod::onWorldRendered);
+		TickEvent.ClientTickEvent.Post.BUS.addListener(ClientProbeTestMod::onClientTick);
 	}
 
-	@SubscribeEvent
 	public static void onScreenInitialized(ScreenEvent.Init.Post event) {
 		ClientProbeTestMod probe = instance;
 		if (probe == null || !Boolean.getBoolean("clientprobe.enabled")) return;
@@ -69,27 +73,22 @@ public final class ClientProbeTestMod {
 		probe.worldCreationButtons = event.getListenersList();
 	}
 
-	@SubscribeEvent
 	public static void onScreenDrawn(ScreenEvent.Render.Post event) {
 		ClientProbeTestMod probe = instance;
 		if (probe != null && Boolean.getBoolean("clientprobe.enabled")
 				&& isOreSpawnEditor(event.getScreen())) probe.editorFrames++;
 	}
 
-	@SubscribeEvent
-	public static void onWorldRendered(RenderLevelStageEvent event) {
-		if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) return;
+	public static void onWorldRendered(TickEvent.RenderTickEvent.Post event) {
 		ClientProbeTestMod probe = instance;
 		if (probe == null || !Boolean.getBoolean("clientprobe.enabled")) return;
 		if (probe.state == 6) probe.firstWorldFrames++;
 		if (probe.state == 8) probe.reloadWorldFrames++;
 	}
 
-	@SubscribeEvent
-	public static void onClientTick(TickEvent.ClientTickEvent event) {
+	public static void onClientTick(TickEvent.ClientTickEvent.Post event) {
 		ClientProbeTestMod probe = instance;
-		if (probe == null || event.phase != TickEvent.Phase.END
-				|| !Boolean.getBoolean("clientprobe.enabled")) return;
+		if (probe == null || !Boolean.getBoolean("clientprobe.enabled")) return;
 		probe.handleClientTick();
 	}
 
@@ -101,7 +100,8 @@ public final class ClientProbeTestMod {
 			switch (state) {
 				case 0:
 					if (minecraft.screen instanceof TitleScreen) {
-						CreateWorldScreen.openFresh(minecraft, minecraft.screen);
+						Screen parent = minecraft.screen;
+						CreateWorldScreen.openFresh(minecraft, () -> minecraft.setScreen(parent));
 						nextState(1);
 					}
 					break;
@@ -131,7 +131,7 @@ public final class ClientProbeTestMod {
 							nextState(6);
 						} else {
 							Screen before = minecraft.screen;
-							target.onPress();
+							press(target);
 							if (minecraft.screen != before && isOreSpawnEditor(minecraft.screen)) {
 								editorRoutes.add(minecraft.screen.getClass().getSimpleName());
 								editorFrames = 0;
@@ -366,20 +366,10 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void initializeScreen(Screen screen, Minecraft minecraft) {
-		for (Method method : Screen.class.getDeclaredMethods()) {
-			Class<?>[] parameters = method.getParameterTypes();
-			if (parameters.length != 3 || parameters[0] != Minecraft.class
-					|| parameters[1] != int.class || parameters[2] != int.class
-					|| method.getReturnType() != void.class) continue;
-			try {
-				method.setAccessible(true);
-				method.invoke(screen, minecraft, 640, 480);
-				return;
-			} catch (ReflectiveOperationException failure) {
-				throw new IllegalStateException("Could not initialize target-native editor", failure);
-			}
+		minecraft.setScreen(screen);
+		if (minecraft.screen != screen) {
+			throw new IllegalStateException("Could not initialize target-native editor");
 		}
-		throw new IllegalStateException("Could not locate Forge 61 Screen initialization method");
 	}
 
 	private static void pressDone(Screen screen) {
@@ -387,7 +377,7 @@ public final class ClientProbeTestMod {
 			if (!(widget instanceof Button)) continue;
 			String caption = ChatFormatting.stripFormatting(((Button) widget).getMessage().getString());
 			if ("done".equalsIgnoreCase(caption)) {
-				((Button) widget).onPress();
+				press((Button) widget);
 				return;
 			}
 		}
@@ -419,7 +409,7 @@ public final class ClientProbeTestMod {
 			}
 		}
 		if (listener instanceof Button && isWorldSettingsControl((AbstractWidget) listener)) {
-			((Button) listener).onPress();
+			press((Button) listener);
 			return true;
 		}
 		return false;
@@ -442,7 +432,7 @@ public final class ClientProbeTestMod {
 			if (!(widget instanceof Button)) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption != null && caption.toLowerCase(java.util.Locale.ROOT).contains("create new world")) {
-				((Button) widget).onPress();
+				press((Button) widget);
 				return;
 			}
 		}
@@ -454,7 +444,7 @@ public final class ClientProbeTestMod {
 			if (!(widget instanceof Button) || !widget.visible || !widget.active) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption != null && caption.equalsIgnoreCase("Proceed")) {
-				((Button) widget).onPress();
+				press((Button) widget);
 				return;
 			}
 		}
@@ -475,7 +465,7 @@ public final class ClientProbeTestMod {
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			String lower = caption == null ? "" : caption.toLowerCase(java.util.Locale.ROOT);
 			if (!lower.equals("no") && !lower.equals("cancel") && !lower.equals("back")) {
-				((Button) widget).onPress();
+				press((Button) widget);
 				return;
 			}
 		}
@@ -500,10 +490,11 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void stopIntegratedServer(Minecraft minecraft) {
-		// Tell the integrated server to stop through the client connection first, then
-		// use Forge 61's disconnect path to wait for shutdown and clear the client level.
-		if (minecraft.level != null) minecraft.level.disconnect();
-		minecraft.disconnect(new TitleScreen());
+		minecraft.disconnect(new TitleScreen(), false);
+	}
+
+	private static void press(Button button) {
+		button.onPress(NO_MODIFIERS);
 	}
 
 	private void writeMarker() throws IOException {
