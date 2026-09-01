@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -490,7 +491,15 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void stopIntegratedServer(Minecraft minecraft) {
-		minecraft.disconnect(new TitleScreen(), false);
+		// Forge 61 cannot safely tear down an integrated server from inside the
+		// post-client-tick callback, and disconnect no longer requests the server
+		// halt by itself. Signal the server first, then queue the disconnect from a
+		// different thread so the event returns before the save-and-stop loop.
+		if (minecraft.getSingleplayerServer() != null) {
+			minecraft.getSingleplayerServer().halt(false);
+		}
+		CompletableFuture.runAsync(() -> minecraft.execute(
+				() -> minecraft.disconnect(new TitleScreen(), false)));
 	}
 
 	private static void press(Button button) {

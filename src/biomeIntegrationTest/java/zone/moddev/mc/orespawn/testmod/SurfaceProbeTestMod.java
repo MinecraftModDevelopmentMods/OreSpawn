@@ -28,6 +28,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -334,6 +335,9 @@ public final class SurfaceProbeTestMod {
 
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
+		if (!(event.getServer() instanceof GameTestServer)) {
+			event.getServer().execute(() -> event.getServer().halt(false));
+		}
 	}
 
 	private static ServerLevel requireLevel(ServerStartedEvent event, ResourceKey<Level> key) {
