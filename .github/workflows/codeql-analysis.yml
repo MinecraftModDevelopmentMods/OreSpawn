@@ -26,6 +26,18 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
+      - name: Install pinned Java 8 launcher toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+
       - name: Install pinned Java 21 runtime and toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -43,7 +55,22 @@ jobs:
       - name: Compile production code
         run: |
           chmod +x ./gradlew
-          ./gradlew clean classes --no-daemon --stacktrace
+          gradle_args=(
+            clean classes --no-daemon --stacktrace
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
+            -Dorg.gradle.java.installations.auto-detect=false
+            -Dorg.gradle.java.installations.auto-download=false
+          )
+          for attempt in 1 2 3; do
+            if ./gradlew "${gradle_args[@]}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "CodeQL compilation failed after $attempt attempts." >&2
+              exit 1
+            fi
+            echo "::warning::CodeQL compilation attempt $attempt failed; retrying with the preserved Forge cache."
+          done
 
       - name: Analyze
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
