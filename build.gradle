@@ -200,6 +200,7 @@ minecraft {
         }
         register('gameTestServer') {
 			workingDir = layout.buildDirectory.dir('gametest-benchmark-run')
+            args '--tests', 'minecraft:always_pass', '--report', 'benchmark-gametest-results.xml'
             applyBenchmarkProperties(delegate, '4', '3', '256')
         }
         ['Fresh', 'Reload'].each { String phase ->
@@ -656,10 +657,20 @@ check.dependsOn verifyMineralogyOracleIsolation
 
 ['runClient', 'runServer', 'runGameTestServer', 'runData'].each { String taskName ->
     tasks.matching { it.name == taskName }.all { JavaExec runTask ->
+        File runtimeDirectory = taskName == 'runGameTestServer'
+                ? layout.buildDirectory.dir('gametest-benchmark-run').get().asFile
+                : taskName == 'runData'
+                        ? layout.projectDirectory.dir('run-data').asFile
+                        : layout.projectDirectory.dir('run').asFile
+        // Capture preserved developer crash reports during configuration as
+        // well as immediately before launch. ForgeGradle may prepare the run
+        // directory in an earlier doFirst action, so relying on only the
+        // latter snapshot can incorrectly classify historic reports as new.
+        Set configuredCrashSnapshot = runtimeCrashSnapshot(runtimeDirectory)
         doFirst {
-            new File(runTask.workingDir, 'mods').mkdirs()
+			new File(runtimeDirectory, 'mods').mkdirs()
 			if (taskName == 'runGameTestServer') {
-				new File(runTask.workingDir, 'server.properties').setText('''\
+				new File(runtimeDirectory, 'server.properties').setText('''\
 level-name=gametest-benchmark-world
 level-seed=-4965128775892001975
 level-type=default
@@ -671,10 +682,11 @@ spawn-protection=0
 max-tick-time=-1
 ''', 'UTF-8')
 			}
-            runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
+            runTask.ext.oreSpawnCrashSnapshot = configuredCrashSnapshot +
+                    runtimeCrashSnapshot(runtimeDirectory)
         }
         doLast {
-            assertRuntimeLogsClean(runTask.workingDir, taskName,
+            assertRuntimeLogsClean(runtimeDirectory, taskName,
                     runTask.ext.oreSpawnCrashSnapshot as Set)
         }
     }
@@ -698,24 +710,6 @@ tasks.register('clientIntegrationTestModJar', Jar) {
     from 'src/clientIntegrationTest/resources'
 }
 def packagedClientProbeJar = tasks.named('clientIntegrationTestModJar', Jar)
-
-def benchmarkIntegrationClasses = file("${buildDir}/benchmark-integration-fixture/classes")
-tasks.register('compileBenchmarkIntegrationTestMod', JavaCompile) {
-    dependsOn tasks.named('classes')
-    source fileTree('src/benchmarkIntegrationTest/java')
-    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
-    destinationDirectory = benchmarkIntegrationClasses
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    options.encoding = 'UTF-8'
-}
-tasks.register('benchmarkIntegrationTestModJar', Jar) {
-    dependsOn tasks.named('compileBenchmarkIntegrationTestMod')
-    archiveFileName = 'benchmarkprobe.jar'
-    destinationDirectory = file("${buildDir}/benchmark-integration-fixture")
-    from benchmarkIntegrationClasses
-    from 'src/benchmarkIntegrationTest/resources'
-}
 
 def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
 task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {

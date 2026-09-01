@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[50,)"
+loaderVersion="[61,)"
 license="LGPL-2.1"
 
 [[mods]]
@@ -11,7 +11,7 @@ description='''Build-only OreSpawn client editor and world reload fixture.'''
 [[dependencies.clientprobe]]
 modId="forge"
 mandatory=true
-versionRange="[50,)"
+versionRange="[61.1.0,62)"
 ordering="NONE"
 side="CLIENT"
 
