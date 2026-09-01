@@ -77,6 +77,13 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
+Ore dimension builders expose the same biome filters as provider JSON and
+fluid-deposit builders. Use `.biome(...)` and `.biomeDictionary(...)` for
+inclusions, with `.excludeBiome(...)` and `.excludeBiomeDictionary(...)` for
+exclusions. These methods work on both explicit `.dimension(...)` rules and
+`.dimensionSelector(...)` fallbacks; built definitions and their returned
+filter sets are immutable.
+
 Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
 provides a small optional convenience for cloning a known biome:
 
