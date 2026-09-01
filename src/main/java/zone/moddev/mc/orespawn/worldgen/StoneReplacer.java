@@ -60,6 +60,23 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 		return placedFeature;
 	}
 
+	static boolean placeUniqueAt(List<Holder<PlacedFeature>> features,
+			Holder<PlacedFeature> feature, int index) {
+		if (feature == null) return false;
+		int current = -1;
+		for (int candidate = 0; candidate < features.size(); candidate++) {
+			if (features.get(candidate).value() == feature.value()) {
+				current = candidate;
+				break;
+			}
+		}
+		int target = Math.min(index, features.size() - (current >= 0 ? 1 : 0));
+		if (current == target) return false;
+		if (current >= 0) features.remove(current);
+		features.add(target, feature);
+		return true;
+	}
+
 	static boolean removeVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
