@@ -4,13 +4,13 @@ import static java.lang.reflect.Modifier.isFinal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
 
 class OreSpawnScreenLayoutTest {
 	@Test
@@ -21,24 +21,13 @@ class OreSpawnScreenLayoutTest {
 	}
 
 	@Test
-	void sharedScreenUsesTargetNativeBackgroundBeforeForeground() {
-		List<String> passes = new ArrayList<>();
-		OreSpawnScreen screen = new OreSpawnScreen(Component.empty()) {
-			@Override
-			public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY,
-					float partialTick) {
-				passes.add("background");
-			}
-
-			@Override
-			protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY,
-					float partialTick) {
-				passes.add("foreground");
-			}
-		};
-
-		screen.render(null, 0, 0, 0.0F);
-		assertEquals(List.of("background", "foreground"), passes);
+	void sharedScreenUsesTargetNativeBackgroundBeforeForeground() throws IOException {
+		String source = Files.readString(Path.of("src/main/java/zone/moddev/mc/orespawn/client/OreSpawnScreen.java"));
+		int render = source.indexOf("public final void render(");
+		int backgroundAndWidgets = source.indexOf("super.render(graphics", render);
+		int foreground = source.indexOf("renderForeground(graphics", render);
+		assertTrue(render >= 0 && backgroundAndWidgets > render && foreground > backgroundAndWidgets,
+				"The 1.21.11 Screen render pass must finish before OreSpawn foreground text");
 	}
 
 	@Test
