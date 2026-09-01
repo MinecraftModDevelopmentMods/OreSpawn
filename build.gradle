@@ -15,6 +15,62 @@ plugins {
     id 'net.minecraftforge.gradle' version '7.0.34'
 }
 
+def sha256Of = { File inputFile ->
+    MessageDigest digest = MessageDigest.getInstance('SHA-256')
+    inputFile.withInputStream { input ->
+        byte[] buffer = new byte[8192]
+        for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+            if (read > 0) digest.update(buffer, 0, read)
+        }
+    }
+    digest.digest().encodeHex().toString().toUpperCase()
+}
+
+def mavenizerToolsDirectory = layout.projectDirectory.dir('ci-fixtures/tools')
+def mavenizerCompatibilityJar = mavenizerToolsDirectory.file(
+        'minecraft-mavenizer-0.5.21-orespawn-compat.jar')
+def mavenizerRuleManifest = mavenizerToolsDirectory.file(
+        'minecraft-source-compatibility.json')
+def mavenizerSourcePatch = mavenizerToolsDirectory.file(
+        'minecraft-mavenizer-0.5.21-orespawn-compat.patch')
+def mavenizerLicense = mavenizerToolsDirectory.file('LICENSE-MAVENIZER.txt')
+def mavenizerReadme = mavenizerToolsDirectory.file('README.md')
+def mavenizerFixtureChecksums = [
+        (mavenizerCompatibilityJar.asFile):
+                '019032A4A26ECB473D403EF017054D5892CE59A9904E8831B452287CD756397E',
+        (mavenizerRuleManifest.asFile):
+                '7F669F225520D0382E76991A8A3E5E4020840F0FA975F7DCB86681D7E7C3F766',
+        (mavenizerSourcePatch.asFile):
+                '84FEA234619CC2D1931E609B22B6E5D96F59366F7D6C2783C3BEE0F726F3E876',
+        (mavenizerLicense.asFile):
+                '20C17D8B8C48A600800DFD14F95D5CB9FF47066A9641DDEAB48DC54AEC96E331',
+        (mavenizerReadme.asFile):
+                '45C527DD0EDF0E366F585D0E46F2E572CA8AD9CA9D798D03D27A92438FA6AF8E'
+]
+
+// ForgeGradle invokes Mavenizer during project configuration. Verify the
+// executable and its exact target rules before any Mavenizer code can run.
+[mavenizerCompatibilityJar.asFile, mavenizerRuleManifest.asFile].each { fixture ->
+    if (!fixture.isFile()) {
+        throw new GradleException("Missing Mavenizer compatibility fixture: ${fixture}")
+    }
+    String actual = sha256Of(fixture)
+    String expected = mavenizerFixtureChecksums[fixture]
+    if (actual != expected) {
+        throw new GradleException("Mavenizer compatibility fixture checksum mismatch for " +
+                "${fixture.name}: expected ${expected}, found ${actual}")
+    }
+}
+
+fgtools.configure('mavenizer') {
+    classpath.from(mavenizerCompatibilityJar)
+    mainClass.set('net.minecraftforge.mcmaven.cli.Main')
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+        vendor = JvmVendorSpec.ADOPTIUM
+    })
+}
+
 group = project.mod_group
 version = project.mod_version
 base.archivesName = 'OreSpawn'
@@ -230,6 +286,90 @@ tasks.register('verifyLegacyFixtures') {
     }
 }
 
+tasks.register('verifyMavenizerCompatibilityFixture') {
+    group = 'verification'
+    description = 'Verifies the sealed target-aware ForgeGradle Mavenizer compatibility tool.'
+    inputs.files mavenizerFixtureChecksums.keySet()
+    doLast {
+        mavenizerFixtureChecksums.each { fixture, expected ->
+            if (!fixture.isFile()) {
+                throw new GradleException("Missing Mavenizer compatibility fixture: ${fixture}")
+            }
+            String actual = sha256Of(fixture)
+            if (actual != expected) {
+                throw new GradleException("Mavenizer compatibility fixture checksum mismatch for " +
+                        "${fixture.name}: expected ${expected}, found ${actual}")
+            }
+        }
+
+        def parsed = new JsonSlurper().parse(mavenizerRuleManifest.asFile)
+        String target = 'net.minecraftforge:forge:1.21.1-52.1.0'
+        if (parsed.schema != 1 || parsed.targets.keySet() != [target] as Set) {
+            throw new GradleException('Mavenizer target-rule manifest has unexpected targets or schema')
+        }
+        def forgeRules = parsed.targets[target]
+        if (forgeRules.expectedApplications != 0 || !forgeRules.rules.isEmpty()) {
+            throw new GradleException('Forge 52 Mavenizer target must be an explicit zero-rule qualification')
+        }
+
+        ZipFile fixtureJar = new ZipFile(mavenizerCompatibilityJar.asFile)
+        try {
+            def embeddedEntry = fixtureJar.getEntry(
+                    'META-INF/orespawn/minecraft-source-compatibility.json')
+            if (embeddedEntry == null) {
+                throw new GradleException('Mavenizer fixture is missing its embedded target-rule manifest')
+            }
+            byte[] embedded = fixtureJar.getInputStream(embeddedEntry).withCloseable { it.readAllBytes() }
+            byte[] external = mavenizerRuleManifest.asFile.bytes
+            if (!Arrays.equals(embedded, external)) {
+                throw new GradleException('Embedded and externally audited Mavenizer manifests differ')
+            }
+
+            def patcherEntry = fixtureJar.getEntry(
+                    'net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.class')
+            if (patcherEntry == null) {
+                throw new GradleException('Mavenizer fixture is missing SourceCompatibilityPatcher')
+            }
+            byte[] classHeader = fixtureJar.getInputStream(patcherEntry).withCloseable {
+                it.readNBytes(8)
+            }
+            if (classHeader.length != 8 || classHeader[0..3] !=
+                    [0xCA, 0xFE, 0xBA, 0xBE].collect { (byte) it }) {
+                throw new GradleException('Mavenizer compatibility class has an invalid class header')
+            }
+            int classMajor = ((classHeader[6] & 0xff) << 8) | (classHeader[7] & 0xff)
+            if (classMajor != 69) {
+                throw new GradleException("Mavenizer compatibility tool must use Java 25 bytecode, found ${classMajor}")
+            }
+
+            def jarManifestEntry = fixtureJar.getEntry('META-INF/MANIFEST.MF')
+            Manifest jarManifest = new Manifest(fixtureJar.getInputStream(jarManifestEntry))
+            if (jarManifest.mainAttributes.getValue('Main-Class') !=
+                    'net.minecraftforge.mcmaven.cli.Main') {
+                throw new GradleException('Mavenizer compatibility fixture has an unexpected main class')
+            }
+        } finally {
+            fixtureJar.close()
+        }
+
+        String readme = mavenizerReadme.asFile.getText('UTF-8')
+        String patchText = mavenizerSourcePatch.asFile.getText('UTF-8')
+        String licenseText = mavenizerLicense.asFile.getText('UTF-8')
+        if (!readme.contains('6968241ce7a0a902cdc1c534b976e8373a423091')
+                || !readme.contains('Temurin `25.0.3+9`')
+                || !readme.contains('1.21.1-52.1.0')) {
+            throw new GradleException('Mavenizer provenance, target, or Java 25 build instructions are incomplete')
+        }
+        if (!patchText.contains('SourceCompatibilityPatcher.java')
+                || !patchText.contains('minecraft-source-compatibility.json')) {
+            throw new GradleException('Mavenizer source patch is incomplete')
+        }
+        if (!licenseText.contains('GNU LESSER GENERAL PUBLIC LICENSE')) {
+            throw new GradleException('Mavenizer LGPL-2.1 licence fixture is incomplete')
+        }
+    }
+}
+
 dependencies {
     implementation minecraft.dependency(
             "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
@@ -278,6 +418,7 @@ tasks.register('verifyJava21Toolchain') {
 tasks.named('check') {
     dependsOn tasks.named('verifyLegacyOracleIsolation')
     dependsOn tasks.named('verifyJava21Toolchain')
+    dependsOn tasks.named('verifyMavenizerCompatibilityFixture')
 }
 
 tasks.named('processResources', ProcessResources) {
