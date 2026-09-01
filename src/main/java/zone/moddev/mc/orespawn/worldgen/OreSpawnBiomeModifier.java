@@ -41,7 +41,6 @@ public final class OreSpawnBiomeModifier implements BiomeModifier {
 				generation.getFeatures(GenerationStep.Decoration.UNDERGROUND_ORES);
 		changed |= StoneReplacer.wrapVanillaMatchingStoneFeatures(underground);
 		changed |= VanillaOreFeatureGate.wrapFeatureList(underground);
-		changed |= addUnique(underground, StoneReplacer.placedFeature());
 		changed |= addUnique(underground, OreSpawnOreGeneration.placedFeature());
 		changed |= addUnique(underground, FluidDepositFeature.placedFeature());
 
@@ -51,7 +50,8 @@ public final class OreSpawnBiomeModifier implements BiomeModifier {
 
 		List<Holder<PlacedFeature>> local =
 				generation.getFeatures(GenerationStep.Decoration.LOCAL_MODIFICATIONS);
-		changed |= addUnique(local, BiomeSurfaceFeature.placedFeature());
+		changed |= StoneReplacer.placeUniqueAt(local, StoneReplacer.placedFeature(), 0);
+		changed |= StoneReplacer.placeUniqueAt(local, BiomeSurfaceFeature.placedFeature(), 1);
 
 		List<Holder<PlacedFeature>> top =
 				generation.getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
