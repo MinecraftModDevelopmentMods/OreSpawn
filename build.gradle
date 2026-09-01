@@ -1338,7 +1338,18 @@ eclipse {
     classpath {
         downloadSources = true
         downloadJavadoc = true
+        defaultOutputDir = file('bin/default')
         file.whenMerged { classpath ->
+            // ForgeGradle 7 models Forge 61's merged Gradle output as
+            // build/sourceSets with main/test children. Eclipse rejects a
+            // source output nested below the default output, so keep Gradle's
+            // merged directories as inputs while compiling Eclipse sources to
+            // the conventional disjoint bin outputs.
+            classpath.entries.findAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.Output
+            }.each { entry ->
+                entry.path = 'bin/default'
+            }
             classpath.entries.removeAll { entry ->
                 entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
                         && ['src/main/resources', 'src/generated/resources'].contains(entry.path)
@@ -1347,6 +1358,15 @@ eclipse {
             if (!classpath.entries.any { entry -> entry.path == resourcesPath }) {
                 classpath.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder(
                         resourcesPath, 'bin/main'))
+            }
+            classpath.entries.findAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
+            }.each { entry ->
+                if (entry.path == resourcesPath || entry.path == 'src/main/java') {
+                    entry.output = 'bin/main'
+                } else if (entry.path.startsWith('src/test/')) {
+                    entry.output = 'bin/test'
+                }
             }
         }
     }
@@ -1439,6 +1459,35 @@ tasks.register('verifyEclipseProductionClasspath') {
                 || eclipseClasspathText.contains('path="src/generated/resources"')) {
             throw new GradleException(
                     'Eclipse must consume only Gradle-processed production resources')
+        }
+        def eclipseClasspathXml = new XmlSlurper(false, false).parse(eclipseClasspath)
+        String defaultOutput = eclipseClasspathXml.classpathentry
+                .find { it.@kind.text() == 'output' }.@path.text()
+        Map<String, String> expectedSourceOutputs = [
+                'src/main/java'                   : 'bin/main',
+                (processedMainResourcesPath())    : 'bin/main',
+                'src/test/java'                   : 'bin/test',
+                'src/test/resources'              : 'bin/test'
+        ]
+        List<String> invalidSourceOutputs = eclipseClasspathXml.classpathentry
+                .findAll { it.@kind.text() == 'src' }
+                .collect { [it.@path.text(), it.@output.text()] }
+                .findAll { pair ->
+                    String expected = expectedSourceOutputs[pair[0]]
+                    expected != null && pair[1] != expected
+                }
+                .collect { pair -> "${pair[0]} -> ${pair[1]}" }
+        boolean nestedOutput = eclipseClasspathXml.classpathentry
+                .findAll { it.@kind.text() == 'src' && !it.@output.text().isEmpty() }
+                .any { entry ->
+                    String output = entry.@output.text()
+                    output == defaultOutput || output.startsWith(defaultOutput + '/')
+                }
+        if (defaultOutput != 'bin/default' || !invalidSourceOutputs.isEmpty()
+                || nestedOutput || eclipseClasspathText.contains('output="build/sourceSets')) {
+            throw new GradleException(
+                    "Eclipse outputs must be disjoint bin/default, bin/main and bin/test " +
+                    "directories; default=${defaultOutput}, invalid=${invalidSourceOutputs}")
         }
         [
                 'META-INF/mods.toml',

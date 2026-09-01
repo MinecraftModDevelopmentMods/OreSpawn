@@ -85,6 +85,18 @@ class ReleaseWorkflowContractTest {
 				"CodeQL must fail rather than hide a persistent bootstrap defect");
 	}
 
+	@Test
+	void eclipseOutputsCannotNestInsideForgeMergedOutput() throws Exception {
+		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
+		assertTrue(build.contains("defaultOutputDir = file('bin/default')"));
+		assertTrue(build.contains("entry instanceof org.gradle.plugins.ide.eclipse.model.Output"));
+		assertTrue(build.contains("entry.path = 'bin/default'"));
+		assertTrue(build.contains("entry.output = 'bin/main'"));
+		assertTrue(build.contains("entry.output = 'bin/test'"));
+		assertTrue(build.contains("Eclipse outputs must be disjoint"),
+				"The real generated classpath must reject nested Buildship outputs");
+	}
+
 	private static int occurrences(String text, String needle) {
 		int count = 0;
 		int offset = 0;
