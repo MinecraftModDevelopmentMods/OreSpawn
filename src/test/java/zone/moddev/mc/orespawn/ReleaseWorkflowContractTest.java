@@ -47,12 +47,12 @@ class ReleaseWorkflowContractTest {
 					workflow + " must install the exact Mavenizer Java runtime");
 			assertEquals(jobCount, occurrences(text, "java-version: '8.0.502+7'"),
 					workflow + " must install the exact legacy launcher toolchain");
-			assertEquals(jobCount, occurrences(text, "java-version: '21.0.7+6'"),
+			assertEquals(jobCount, occurrences(text, "java-version: '21.0.7+6.0.LTS'"),
 					workflow + " must install the exact qualified Java runtime");
-			assertTrue(text.lastIndexOf("java-version: '21.0.7+6'")
+			assertTrue(text.lastIndexOf("java-version: '21.0.7+6.0.LTS'")
 					> text.lastIndexOf("java-version: '25.0.3+9.0.LTS'"),
 					workflow + " must leave Java 21 as JAVA_HOME");
-			assertTrue(text.lastIndexOf("java-version: '21.0.7+6'")
+			assertTrue(text.lastIndexOf("java-version: '21.0.7+6.0.LTS'")
 					> text.lastIndexOf("java-version: '8.0.502+7'"),
 					workflow + " must install Java 21 last so it remains JAVA_HOME");
 			assertEquals(gradleInvocationCount, occurrences(text,
