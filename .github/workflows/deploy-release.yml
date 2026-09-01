@@ -47,6 +47,7 @@ jobs:
       loader_display: ${{ steps.validate.outputs.loader_display }}
       java_version: ${{ steps.validate.outputs.java_version }}
       java_toolchain_version: ${{ steps.validate.outputs.java_toolchain_version }}
+      java_setup_version: ${{ steps.validate.outputs.java_setup_version }}
       gradle_java_version: ${{ steps.validate.outputs.gradle_java_version }}
       install_gradle_java: ${{ steps.validate.outputs.install_gradle_java }}
       curseforge_project_id: ${{ steps.validate.outputs.curseforge_project_id }}
@@ -138,6 +139,7 @@ jobs:
           loader_code="$(value loader_code)"
           java_version="$(value java_version)"
           java_toolchain_version="$(value java_toolchain_version)"
+          java_setup_version="$(value java_setup_version)"
           gradle_java_version="$(value gradle_java_version)"
           curseforge_project_id="$(value curseforge_project_id)"
 
@@ -149,6 +151,7 @@ jobs:
             fi
           done
           java_toolchain_version="${java_toolchain_version:-$java_version}"
+          java_setup_version="${java_setup_version:-$java_toolchain_version}"
 
           java_major() {
             local version="$1"
@@ -163,6 +166,11 @@ jobs:
             toolchain_major="$(java_major "$1")"
             [[ "$toolchain_major" != "$2" ]]
           }
+
+          if [[ "$(java_major "$java_setup_version")" != "$(java_major "$java_toolchain_version")" ]]; then
+            echo "Hosted Java selector $java_setup_version does not match toolchain $java_toolchain_version" >&2
+            exit 1
+          fi
 
           java_setup_contracts=(
             '8.0.502+7 17 true'
@@ -237,6 +245,7 @@ jobs:
           echo "loader_display=$loader_display" >> "$GITHUB_OUTPUT"
           echo "java_version=$java_version" >> "$GITHUB_OUTPUT"
           echo "java_toolchain_version=$java_toolchain_version" >> "$GITHUB_OUTPUT"
+          echo "java_setup_version=$java_setup_version" >> "$GITHUB_OUTPUT"
           echo "gradle_java_version=$gradle_java_version" >> "$GITHUB_OUTPUT"
           echo "install_gradle_java=$install_gradle_java" >> "$GITHUB_OUTPUT"
           echo "curseforge_project_id=$curseforge_project_id" >> "$GITHUB_OUTPUT"
@@ -282,7 +291,7 @@ jobs:
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: ${{ needs.preflight.outputs.java_toolchain_version }}
+          java-version: ${{ needs.preflight.outputs.java_setup_version }}
 
       - name: Install separate Java for Gradle
         if: needs.preflight.outputs.install_gradle_java == 'true'
@@ -437,7 +446,7 @@ jobs:
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: ${{ needs.preflight.outputs.java_toolchain_version }}
+          java-version: ${{ needs.preflight.outputs.java_setup_version }}
 
       - name: Install separate Java for Gradle
         if: needs.preflight.outputs.install_gradle_java == 'true'
