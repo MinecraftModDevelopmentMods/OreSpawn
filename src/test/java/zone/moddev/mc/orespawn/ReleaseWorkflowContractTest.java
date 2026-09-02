@@ -24,6 +24,16 @@ class ReleaseWorkflowContractTest {
 	}
 
 	@Test
+	void declaresTheHostedSelectorForTheExactTemurinToolchain() throws Exception {
+		Properties properties = new Properties();
+		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {
+			properties.load(input);
+		}
+		assertEquals("25.0.3+9", properties.getProperty("java_toolchain_version"));
+		assertEquals("25.0.3+9.0.LTS", properties.getProperty("java_setup_version"));
+	}
+
+	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
 		Path buildFile = Paths.get("build.gradle");
 		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
