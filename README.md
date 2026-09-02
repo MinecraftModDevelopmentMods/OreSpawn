@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.13.2601021`: the OreSpawn 4.0.13
+This branch builds target-qualified version `4.0.14.2601021`: the OreSpawn 4.0.14
 feature set for Minecraft 26.1.2 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
