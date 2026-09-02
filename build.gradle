@@ -548,6 +548,18 @@ def packagedOfflineAuthenticationNoise = [
         ~/\/ERROR\] \[com\.mojang\.realmsclient\.RealmsAvailability\/\]: Couldn't connect to realms$/,
         ~/^com\.mojang\.realmsclient\.exception\.RealmsServiceException: Realms authentication error with message 'java\.lang\.RuntimeException: Failed to parse into SignedJWT: validation-token'$/
 ]
+// Forge 65/Minecraft 26.2 asks OSHI for Windows performance counters while
+// preloading its system report.  A plain Forge server with an empty mods
+// directory reproduces these two lines on this host and continues to Done.
+// Keep the exception scoped to packaged runtimes so the same ERROR remains a
+// failure in userdev, migration, surface and benchmark processes.
+def packagedWindowsOshiNoise = [
+        ~/\/ERROR\] \[oshi\.driver\.windows\.registry\.HkeyPerformanceDataUtil\/\]: Unable to locate English counter names in registry Perflib 009\. Counters may need to be rebuilt: $/,
+        ~/^com\.sun\.jna\.platform\.win32\.Win32Exception: The parameter is incorrect\.$/,
+        ~/^java\.lang\.NullPointerException: Cannot invoke "oshi\.software\.os\.OSProcess\.getUserTime\(\)" because "process" is null$/,
+        ~/^java\.lang\.NullPointerException: Cannot invoke "oshi\.software\.os\.OSProcess\.getVirtualSize\(\)" because "process" is null$/,
+        ~/^java\.lang\.NullPointerException: Cannot invoke "oshi\.software\.os\.OSProcess\.getResidentSetSize\(\)" because "process" is null$/
+]
 
 def runtimeCrashSnapshot = { File runDirectory ->
     File crashDirectory = new File(runDirectory, 'crash-reports')
@@ -633,6 +645,21 @@ task runtimeLogScannerTest {
         catch (GradleException expected) { rejectedOutsidePackagedClient = true }
         if (!rejectedOutsidePackagedClient) {
             throw new GradleException('Runtime scanner accepted packaged-client authentication noise globally')
+        }
+        new File(logs, 'latest.log').setText(
+                '[main/ERROR] [oshi.driver.windows.registry.HkeyPerformanceDataUtil/]: Unable to locate English counter names in registry Perflib 009. Counters may need to be rebuilt: \n'
+                + 'com.sun.jna.platform.win32.Win32Exception: The parameter is incorrect.\n'
+                + 'java.lang.NullPointerException: Cannot invoke "oshi.software.os.OSProcess.getUserTime()" because "process" is null\n'
+                + 'java.lang.NullPointerException: Cannot invoke "oshi.software.os.OSProcess.getVirtualSize()" because "process" is null\n'
+                + 'java.lang.NullPointerException: Cannot invoke "oshi.software.os.OSProcess.getResidentSetSize()" because "process" is null\n',
+                'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-packaged-windows-oshi-probe',
+                [] as Set, packagedWindowsOshiNoise)
+        boolean rejectedOutsidePackagedRuntime = false
+        try { assertRuntimeLogsClean(probe, 'scanner-oshi-scope-probe', [] as Set) }
+        catch (GradleException expected) { rejectedOutsidePackagedRuntime = true }
+        if (!rejectedOutsidePackagedRuntime) {
+            throw new GradleException('Runtime scanner accepted packaged Windows OSHI noise globally')
         }
         new File(logs, 'latest.log').setText(
                 '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
@@ -1676,7 +1703,7 @@ def packagedSurfaceFresh = tasks.register('packagedSurfaceFresh', Exec) {
                 'surface-integration-world/surfaceprobe-integration.properties')
         if (!marker.isFile()) throw new GradleException('Packaged fresh surface marker is missing')
         assertRuntimeLogsClean(packagedSurfaceRunDirectory,
-                'packaged surface fresh', [] as Set)
+                'packaged surface fresh', [] as Set, packagedWindowsOshiNoise)
     }
 }
 def packagedSurfaceReload = tasks.register('packagedSurfaceReload', Exec) {
@@ -1696,7 +1723,7 @@ def packagedSurfaceReload = tasks.register('packagedSurfaceReload', Exec) {
     }
     doLast {
         assertRuntimeLogsClean(packagedSurfaceRunDirectory,
-                'packaged surface reload', [] as Set)
+                'packaged surface reload', [] as Set, packagedWindowsOshiNoise)
     }
 }
 tasks.register('packagedSurfaceIntegrationTest') {
@@ -1868,7 +1895,8 @@ tasks.register('packagedClientIntegrationTest') {
         assertDocumentationTree(new File(packagedClientRunDirectory,
                 'config/orespawn-guide'), documentationFiles(), 'runtime guide export')
         assertRuntimeLogsClean(packagedClientRunDirectory,
-                'packaged client', [] as Set, packagedOfflineAuthenticationNoise)
+                'packaged client', [] as Set,
+                packagedOfflineAuthenticationNoise + packagedWindowsOshiNoise)
     }
 }
 
