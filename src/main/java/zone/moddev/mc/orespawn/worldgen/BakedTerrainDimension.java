@@ -8,6 +8,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** Immutable setup-time resolution of one terrain replacement dimension. */
@@ -38,6 +40,11 @@ final class BakedTerrainDimension {
 	}
 
 	boolean isReplaceable(BlockState state) {
+		if (state.isAir() || state.getBlock() instanceof LiquidBlock
+				|| !state.getFluidState().isEmpty()
+				|| state.getBlock() == Blocks.BEDROCK) {
+			return false;
+		}
 		if (smallHostSet != null) {
 			Block block = state.getBlock();
 			for (Block host : smallHostSet) {
