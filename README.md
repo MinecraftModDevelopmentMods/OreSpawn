@@ -1,3 +1,8 @@
+[![Discord](https://img.shields.io/badge/Discord-MMD-green.svg?style=flat&logo=Discord)](https://discord.moddev.zone)
+[![CurseForge downloads](https://cf.way2muchnoise.eu/full_mmd-orespawn_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Supported Minecraft versions](https://cf.way2muchnoise.eu/versions/Minecraft_mmd-orespawn_all.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Build, test, and audit](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml/badge.svg?branch=master-26.2)](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml?query=branch%3Amaster-26.2)
+
 # MMD OreSpawn
 
 OreSpawn 4 is a provider-driven world-generation engine for Minecraft 26.2.
@@ -11,6 +16,10 @@ End" policy used by mods such as Base Metals.
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
+
+This branch builds target-qualified version `4.0.8.2602001`: the OreSpawn 4.0.8
+feature set for Minecraft 26.2 and Forge. See the
+[versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 ## What Happens When It Is Installed?
 
@@ -44,9 +53,6 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
-Stable Layers honours exact biome-ID geome influences on dynamic biome
-registries and spreads close geome transitions across layers rather than
-changing an entire vertical rock column at one boundary.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -89,23 +95,29 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 25 from the repository root:
+Run Gradle with Java 25 from the repository root. Install the exact Temurin
+`25.0.3+9` toolchain used to compile production code and test fixtures for
+Minecraft 26.2; the build rejects a different Java 25 toolchain:
 
 ```powershell
-.\gradlew.bat clean build javadoc --no-daemon
-.\gradlew.bat genEclipseRuns --no-daemon
+.\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
+.\gradlew.bat genEclipseRuns verifyEclipseProductionClasspath --no-daemon
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
 that lifecycle packages a test-only provider mod and verifies exposed,
 underwater, filler, and ceiling surfaces in open and ceiling normal-noise
 dimensions. It also proves later vegetation, structures, and block entities
-survive, verifies identifier-weighted geology in a dynamic custom biome, then
-reopens and checks the exact saved world. The fixture is not included in
-OreSpawn's published jars.
+survive, then reopens and checks the exact saved world. The fixture is not
+included in OreSpawn's published jars.
 
-Import or refresh the project with Eclipse Buildship. ForgeGradle 7's legacy
-`eclipse` task produces Java-only metadata and must not be used for this branch.
+Import or refresh the project with Eclipse Buildship, then run
+`genEclipseRuns` and `verifyEclipseProductionClasspath`. This branch uses
+ForgeGradle 7.0.34, the Gradle 9.6.1 wrapper, Forge 65.1.0, official Minecraft
+26.2 mappings, data-pack format 107.1, and resource-pack format 88. Ordinary
+Eclipse launches exclude tests and fixtures. Published jars are deterministic and retain Forge 65's official
+runtime names, are audited for their four access-transformer rules and contents, and
+accompanied by SHA-256 checksums.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included
