@@ -35,6 +35,7 @@ public final class BakedGeomeConfig {
 	private final Map<Biome, double[]> biomeWeights;
 	private final Map<Identifier, double[]> biomeWeightsById;
 	private final double[] fallbackWeights;
+	private final RockEntry[] rocks;
 	private final BlockState[] rockStates;
 	private final Set<Block> sedimentaryBlocks;
 	private final Set<Block> oreReplaceableBlocks;
@@ -45,6 +46,9 @@ public final class BakedGeomeConfig {
 	private WeightedBlockPicker[][][] legacyRockPickers;
 	private byte[] stableFamilyChoices;
 	private int[] stableRockChoices;
+	private int[][] familyRockIndexes;
+	private double[][][] stableRockLogWeights;
+	private double[][][] stableRockPriorities;
 
 	BakedGeomeConfig(GeomeDefinition[] geomes, double geomeScale, double biomeInfluence,
 			double regionalNoiseInfluence, double boundaryNoiseInfluence, Map<Biome, double[]> biomeWeights,
@@ -61,7 +65,7 @@ public final class BakedGeomeConfig {
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
 			Identifier biomeId = ForgeRegistries.BIOMES.getKey(entry.getKey());
 			if (biomeId != null) {
-				biomeWeightsById.put(biomeId, entry.getValue());
+				this.biomeWeightsById.putIfAbsent(biomeId, entry.getValue());
 			}
 		}
 		this.fallbackWeights = defaultWeights(geomes.length);
@@ -72,6 +76,7 @@ public final class BakedGeomeConfig {
 			noiseOffsetZ[i] = -((i + 1) * 6151);
 		}
 
+		this.rocks = rocks.clone();
 		rockStates = new BlockState[rocks.length];
 		for (int i = 0; i < rocks.length; i++) {
 			rockStates[i] = rocks[i].state;
@@ -152,13 +157,67 @@ public final class BakedGeomeConfig {
 		return RockFamily.SEDIMENTARY;
 	}
 
+	RockFamily pickStableFamilyAtWorldY(int geomeIndex, int worldY, int formationY,
+			int formationValue, int diversitySlot) {
+		RockFamily preferred = pickFamily(geomeIndex, formationY, formationValue, diversitySlot);
+		if (hasEligibleStableRock(geomeIndex, preferred, worldY, formationY)) {
+			return preferred;
+		}
+
+		int bucket = formationValue & 0xFF;
+		int boundedFormationY = clampStableValue(formationY);
+		double bestScore = Double.NEGATIVE_INFINITY;
+		RockFamily bestFamily = preferred;
+		for (RockFamily family : RockFamily.values()) {
+			if (!hasEligibleStableRock(geomeIndex, family, worldY, formationY)) {
+				continue;
+			}
+			double weight = Math.pow(geomes[geomeIndex].familyWeights[family.ordinal()], 2.5D)
+					* familyDepthWeight(family, boundedFormationY);
+			if (weight <= 0.0D) {
+				continue;
+			}
+			double score = Math.log(weight) + gumbelPriority(bucket, geomeIndex, family.ordinal(),
+					isStableBucket(bucket, -1), 0x6A09E667F3BCC909L);
+			if (score > bestScore) {
+				bestScore = score;
+				bestFamily = family;
+			}
+		}
+		return bestFamily;
+	}
+
 	public BlockState pickRock(int geomeIndex, RockFamily family, int y, int formationValue) {
 		if (formations.usesStableLayers()) {
-			int index = stableRockIndex(geomeIndex, family.ordinal(), clampStableY(y), formationValue & 0xFF);
-			int rockIndex = stableRockChoices[index];
-			return rockIndex < 0 ? FALLBACK : rockStates[rockIndex];
+			return pickStableRockAtWorldY(geomeIndex, family, y, y, formationValue);
 		}
 		return legacyRockPickers[geomeIndex][family.ordinal()][clampLegacyY(y)].pick(formationValue);
+	}
+
+	BlockState pickStableRockAtWorldY(int geomeIndex, RockFamily family, int worldY,
+			int formationY, int formationValue) {
+		int yIndex = clampStableY(formationY);
+		int bucket = formationValue & 0xFF;
+		int choiceIndex = stableRockIndex(geomeIndex, family.ordinal(), yIndex, bucket);
+		int selectedRock = stableRockChoices[choiceIndex];
+		if (isEligibleStableRock(geomeIndex, selectedRock, worldY, yIndex)) {
+			return rockStates[selectedRock];
+		}
+
+		double bestScore = Double.NEGATIVE_INFINITY;
+		int bestRock = -1;
+		for (int rockIndex : familyRockIndexes[family.ordinal()]) {
+			if (!isEligibleStableRock(geomeIndex, rockIndex, worldY, yIndex)) {
+				continue;
+			}
+			double score = stableRockLogWeights[geomeIndex][rockIndex][yIndex]
+					+ stableRockPriorities[geomeIndex][rockIndex][bucket];
+			if (score > bestScore) {
+				bestScore = score;
+				bestRock = rockIndex;
+			}
+		}
+		return bestRock < 0 ? FALLBACK : rockStates[bestRock];
 	}
 
 	public String geomeName(int geomeIndex) {
@@ -227,12 +286,12 @@ public final class BakedGeomeConfig {
 	}
 
 	String describeBiomeWeights(Biome biome) {
-		double[] weights = biomeWeights.get(biome);
-		String source = "identity";
+		Identifier biomeId = ForgeRegistries.BIOMES.getKey(biome);
+		double[] weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
+		String source = "registry-id";
 		if (weights == null) {
-			Identifier biomeId = ForgeRegistries.BIOMES.getKey(biome);
-			weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
-			source = "registry-id";
+			weights = biomeWeights.get(biome);
+			source = "identity";
 		}
 		if (weights == null) {
 			weights = fallbackWeights;
@@ -271,10 +330,8 @@ public final class BakedGeomeConfig {
 	}
 
 	private double[] biomeWeightsFor(Biome biome, Identifier biomeId) {
-		double[] weights = biomeWeights.get(biome);
-		if (weights == null && biomeId != null) {
-			weights = biomeWeightsById.get(biomeId);
-		}
+		double[] weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
+		if (weights == null) weights = biomeWeights.get(biome);
 		return weights == null ? fallbackWeights : weights;
 	}
 
@@ -283,9 +340,9 @@ public final class BakedGeomeConfig {
 		stableRockChoices = new int[geomes.length * RockFamily.values().length * HEIGHT * FORMATION_BUCKETS];
 		Arrays.fill(stableRockChoices, -1);
 		int familyCount = RockFamily.values().length;
-		int[][] familyRockIndexes = groupRockIndexes(rocks);
-		double[][][] rockLogWeights = new double[geomes.length][rocks.length][HEIGHT];
-		double[][][] rockPriorities = new double[geomes.length][rocks.length][FORMATION_BUCKETS];
+		familyRockIndexes = groupRockIndexes(rocks);
+		stableRockLogWeights = new double[geomes.length][rocks.length][HEIGHT];
+		stableRockPriorities = new double[geomes.length][rocks.length][FORMATION_BUCKETS];
 		double[][][] familyLogWeights = new double[geomes.length][familyCount][HEIGHT];
 		double[][][] familyWeights = new double[geomes.length][familyCount][HEIGHT];
 		double[][][] familyPriorities = new double[geomes.length][familyCount][FORMATION_BUCKETS];
@@ -294,14 +351,13 @@ public final class BakedGeomeConfig {
 			for (int rockIndex = 0; rockIndex < rocks.length; rockIndex++) {
 				RockEntry rock = rocks[rockIndex];
 				for (int y = MIN_Y; y <= MAX_Y; y++) {
-					double rawWeight = y < rock.minY || y > rock.maxY ? 0.0D
-							: rock.weight * rock.geomeWeights[geome]
-									* depthWeight(y, rock.depthPeak, rock.depthSpread);
-					rockLogWeights[geome][rockIndex][y - MIN_Y] = rawWeight > 0.0D
+					double rawWeight = rock.weight * rock.geomeWeights[geome]
+							* depthWeight(y, rock.depthPeak, rock.depthSpread);
+					stableRockLogWeights[geome][rockIndex][y - MIN_Y] = rawWeight > 0.0D
 							? Math.log(rawWeight) : Double.NEGATIVE_INFINITY;
 				}
 				for (int bucket = 0; bucket < FORMATION_BUCKETS; bucket++) {
-					rockPriorities[geome][rockIndex][bucket] = gumbelPriority(bucket, geome, rockIndex,
+					stableRockPriorities[geome][rockIndex][bucket] = gumbelPriority(bucket, geome, rockIndex,
 							isStableBucket(bucket, rock.family.ordinal()),
 							0xBB67AE8584CAA73BL ^ ((long) rock.family.ordinal() << 32));
 				}
@@ -313,7 +369,9 @@ public final class BakedGeomeConfig {
 					int yIndex = y - MIN_Y;
 					boolean available = false;
 					for (int rockIndex : familyRockIndexes[familyIndex]) {
-						if (rockLogWeights[geome][rockIndex][yIndex] != Double.NEGATIVE_INFINITY) {
+						RockEntry rock = rocks[rockIndex];
+						if (y >= rock.minY && y <= rock.maxY
+								&& stableRockLogWeights[geome][rockIndex][yIndex] != Double.NEGATIVE_INFINITY) {
 							available = true;
 							break;
 						}
@@ -363,8 +421,12 @@ public final class BakedGeomeConfig {
 						double bestRockScore = Double.NEGATIVE_INFINITY;
 						int bestRock = -1;
 						for (int rockIndex : familyRockIndexes[familyIndex]) {
-							double rockScore = rockLogWeights[geome][rockIndex][yIndex]
-									+ rockPriorities[geome][rockIndex][bucket];
+							RockEntry rock = rocks[rockIndex];
+							if (y < rock.minY || y > rock.maxY) {
+								continue;
+							}
+							double rockScore = stableRockLogWeights[geome][rockIndex][yIndex]
+									+ stableRockPriorities[geome][rockIndex][bucket];
 							if (rockScore > bestRockScore) {
 								bestRockScore = rockScore;
 								bestRock = rockIndex;
@@ -375,6 +437,25 @@ public final class BakedGeomeConfig {
 				}
 			}
 		}
+	}
+
+	private boolean hasEligibleStableRock(int geomeIndex, RockFamily family, int worldY, int formationY) {
+		int yIndex = clampStableY(formationY);
+		for (int rockIndex : familyRockIndexes[family.ordinal()]) {
+			if (isEligibleStableRock(geomeIndex, rockIndex, worldY, yIndex)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean isEligibleStableRock(int geomeIndex, int rockIndex, int worldY, int formationYIndex) {
+		if (rockIndex < 0) {
+			return false;
+		}
+		RockEntry rock = rocks[rockIndex];
+		return worldY >= rock.minY && worldY <= rock.maxY
+				&& stableRockLogWeights[geomeIndex][rockIndex][formationYIndex] != Double.NEGATIVE_INFINITY;
 	}
 
 	private void fillBalancedFamilyCycle(int geome, int yIndex, int bucket,
@@ -629,6 +710,10 @@ public final class BakedGeomeConfig {
 
 	private static int clampStableY(int y) {
 		return Math.max(MIN_Y, Math.min(MAX_Y, y)) - MIN_Y;
+	}
+
+	private static int clampStableValue(int y) {
+		return Math.max(MIN_Y, Math.min(MAX_Y, y));
 	}
 
 	private static int clampLegacyY(int y) {
