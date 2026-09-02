@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "targets": {
+    "net.minecraftforge:forge:26.1.2-64.0.9": {
+      "expectedApplications": 0,
+      "rules": []
+    }
+  }
+}

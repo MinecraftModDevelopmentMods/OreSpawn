@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: '25.0.3+9'
+          java-version: '25.0.3+9.0.LTS'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
@@ -43,7 +43,22 @@ jobs:
       - name: Compile production code
         run: |
           chmod +x ./gradlew
-          ./gradlew clean classes --no-daemon --stacktrace
+          gradle_args=(
+            clean classes --no-daemon --stacktrace
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+            -Dorg.gradle.java.installations.auto-detect=false
+            -Dorg.gradle.java.installations.auto-download=false
+          )
+          for attempt in 1 2 3; do
+            if ./gradlew "${gradle_args[@]}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "CodeQL compilation failed after $attempt attempts." >&2
+              exit 1
+            fi
+            echo "::warning::CodeQL compilation attempt $attempt failed; retrying with the preserved Forge cache."
+          done
 
       - name: Analyze
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
