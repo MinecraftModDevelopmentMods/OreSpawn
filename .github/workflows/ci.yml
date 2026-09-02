@@ -39,14 +39,31 @@ jobs:
           set -euo pipefail
           test ! -e .gradle
           test ! -e "$GRADLE_USER_HOME"
-          mkdir -p "$GRADLE_USER_HOME"
           chmod +x ./gradlew
-          ./gradlew verifyMavenizerCompatibilityFixture help \
-            --no-daemon --no-build-cache --stacktrace --max-workers=2 \
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME" \
-            -Dorg.gradle.java.installations.auto-detect=false \
-            -Dorg.gradle.java.installations.auto-download=false \
-            | tee "$RUNNER_TEMP/cold-forge-bootstrap.log"
+          gradle_args=(
+            verifyMavenizerCompatibilityFixture help
+            --no-daemon --no-build-cache --stacktrace --max-workers=2
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+            -Dorg.gradle.java.installations.auto-detect=false
+            -Dorg.gradle.java.installations.auto-download=false
+          )
+          for attempt in 1 2 3; do
+            if (( attempt > 1 )); then
+              echo "Retrying the cold Forge bootstrap after transient download failure ($attempt/3)"
+              rm -rf -- "$GRADLE_USER_HOME/caches/minecraftforge" .gradle/mavenizer
+              sleep "$((attempt * 5))"
+            fi
+            mkdir -p "$GRADLE_USER_HOME"
+            attempt_log="$RUNNER_TEMP/cold-forge-bootstrap-attempt-$attempt.log"
+            if ./gradlew "${gradle_args[@]}" 2>&1 | tee "$attempt_log"; then
+              cp "$attempt_log" "$RUNNER_TEMP/cold-forge-bootstrap.log"
+              break
+            fi
+            if (( attempt == 3 )); then
+              echo "Cold Forge bootstrap failed after $attempt attempts" >&2
+              exit 1
+            fi
+          done
           grep -F "OreSpawn Mavenizer compatibility runtime: Java 25.0.3" \
             "$RUNNER_TEMP/cold-forge-bootstrap.log"
           grep -F "OreSpawn Mavenizer compatibility: applied 0 rule(s) for net.minecraftforge:forge:26.2-65.1.0 (explicit no-op)" \

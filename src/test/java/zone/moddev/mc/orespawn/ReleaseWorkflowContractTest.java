@@ -100,6 +100,17 @@ class ReleaseWorkflowContractTest {
 				"CodeQL retries must preserve exact Gradle arguments");
 		assertTrue(text.contains("failed after $attempt attempts"),
 				"CodeQL must fail rather than hide a persistent bootstrap defect");
+
+		String ci = new String(Files.readAllBytes(
+				Paths.get(".github", "workflows", "ci.yml")), StandardCharsets.UTF_8);
+		assertTrue(ci.contains("gradle_args=("),
+				"the cold Forge bootstrap must pass Gradle options as an argument vector");
+		assertTrue(ci.contains("for attempt in 1 2 3; do"),
+				"the cold Forge bootstrap must bound transient Mavenizer download retries");
+		assertTrue(ci.contains("./gradlew \"${gradle_args[@]}\""),
+				"cold-bootstrap retries must preserve exact Gradle arguments");
+		assertTrue(ci.contains("Cold Forge bootstrap failed after $attempt attempts"),
+				"the cold bootstrap must fail rather than hide a persistent download defect");
 	}
 
 	private static int occurrences(String text, String needle) {
