@@ -542,6 +542,7 @@ def acceptedForge65LogNoise = [
 ]
 def packagedOfflineAuthenticationNoise = [
         ~/\/ERROR\] \[net\.minecraft\.client\.Minecraft\/\]: Failed to fetch user properties$/,
+        ~/\/ERROR\] \[net\.minecraft\.client\.multiplayer\.AccountProfileKeyPairManager\/\]: Failed to retrieve profile key pair$/,
         ~/^com\.mojang\.authlib\.exceptions\.InvalidCredentialsException: Status: 401$/,
         ~/^Caused by: com\.mojang\.authlib\.exceptions\.MinecraftClientHttpException: Status: 401$/,
         ~/\/ERROR\] \[com\.mojang\.realmsclient\.client\.RealmsClient\/\]: Failed to fetch Realms feature flags$/,
@@ -632,6 +633,7 @@ task runtimeLogScannerTest {
         new File(logs, 'debug.log').delete()
         new File(logs, 'latest.log').setText(
                 '[Download-2/ERROR] [net.minecraft.client.Minecraft/]: Failed to fetch user properties\n'
+                + '[Download-2/ERROR] [net.minecraft.client.multiplayer.AccountProfileKeyPairManager/]: Failed to retrieve profile key pair\n'
                 + 'com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401\n'
                 + 'Caused by: com.mojang.authlib.exceptions.MinecraftClientHttpException: Status: 401\n'
                 + '[Download-2/ERROR] [com.mojang.realmsclient.client.RealmsClient/]: Failed to fetch Realms feature flags\n'
@@ -1775,6 +1777,11 @@ tasks.register('preparePackagedClientIntegration') {
 def packagedClientProcess = tasks.register('packagedClientProcess', Exec) {
     group = 'verification'
     dependsOn tasks.named('preparePackagedClientIntegration')
+    // Minecraft 26.2 returns -1 from its programmatic stop path after the
+    // client probe completes.  The following task requires the completion
+    // marker, a clean crash-report directory and clean runtime logs, so an
+    // early failure cannot be mistaken for success.
+    ignoreExitValue = true
     doFirst {
         File runtime = requireRuntimeDirectory(packagedForgeClientRuntime,
                 'packagedForgeClientRuntime')

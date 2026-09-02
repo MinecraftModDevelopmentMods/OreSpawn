@@ -19,6 +19,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
@@ -219,12 +220,17 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(Screen screen) {
 		for (AbstractWidget widget : widgets(screen)) {
+			// Minecraft 26.2's create-world menu uses an empty-captioned composite
+			// container; its visible tab controls are checked independently.
+			if (widget instanceof MenuTabBar) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.getMessage());
+				throw new IllegalStateException("Invalid client caption on "
+						+ screen.getClass().getName() + " widget " + widget.getClass().getName()
+						+ ": " + widget.getMessage());
 			}
 		}
 	}
