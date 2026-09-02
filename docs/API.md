@@ -80,7 +80,16 @@ for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 Minecraft 26.1.2 biomes are dynamic registry entries. Ship them as
 `data/<modid>/worldgen/biome/<name>.json`, or generate that data through a
 `RegistrySetBuilder`. `OreSpawnBiomes.copyAndRegister` is an optional bootstrap
-helper for cloning a known biome while generating the datapack entry:
+helper for cloning a known biome while generating the datapack entry.
+
+Ore dimension builders expose the same biome filters as provider JSON and
+fluid-deposit builders. Use `.biome(...)` and `.biomeDictionary(...)` for
+inclusions, with `.excludeBiome(...)` and `.excludeBiomeDictionary(...)` for
+exclusions. These methods work on both explicit `.dimension(...)` rules and
+`.dimensionSelector(...)` fallbacks; built definitions and their returned
+filter sets are immutable.
+
+Register custom biomes with Forge as usual:
 
 ```java
 public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
