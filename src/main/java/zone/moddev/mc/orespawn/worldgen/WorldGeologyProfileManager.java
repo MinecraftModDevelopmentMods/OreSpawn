@@ -22,6 +22,7 @@ import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
@@ -118,6 +119,8 @@ public final class WorldGeologyProfileManager {
 
 	public static void onServerAboutToStart(ServerAboutToStartEvent event) {
 		activeServer = event.getServer();
+		BiomeTypeCompatibility.useRegistry(event.getServer().registryAccess()
+				.lookupOrThrow(Registries.BIOME));
 		Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT).normalize();
 		Path profilePath = worldRoot.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile fallback = globalProfile();
@@ -174,6 +177,7 @@ public final class WorldGeologyProfileManager {
 		VanillaSpringCompatibility.clear(event.getServer().registryAccess());
 		activeServer = null;
 		activeProfile = null;
+		BiomeTypeCompatibility.clearRegistry();
 		GeomeConfig.applyWorldProfile(globalProfile());
 		BiomeWorldgenManager.clear();
 		StoneReplacer.refreshWorldConfig();
