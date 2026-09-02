@@ -56,7 +56,8 @@ final class OreSpawnGeologySampler implements GeologySampler {
 
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
-		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
+		BlockPos position = new BlockPos(blockX,
+				generationBiomeY(surfaceY, level.getMinY()), blockZ);
 		Holder<Biome> holder = level.getBiome(position);
 		Identifier biomeId = holder.unwrapKey().map(ResourceKey::identifier)
 				.orElse(Identifier.fromNamespaceAndPath("orespawn", "unregistered_biome"));
@@ -65,6 +66,10 @@ final class OreSpawnGeologySampler implements GeologySampler {
 		}
 		GeomeGeology.ColumnSample sample = sky.sampleColumn(holder.value(), biomeId, blockX, blockZ);
 		return new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample);
+	}
+
+	static int generationBiomeY(int firstFreeY, int minBuildHeight) {
+		return firstFreeY <= minBuildHeight ? minBuildHeight : firstFreeY - 1;
 	}
 
 	private abstract class BaseColumn implements GeologyColumn {
