@@ -146,11 +146,13 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 
 `sampleColumn` performs one biome/dominant-geome classification and reuses its
 transition scores for every Y query. Pass the first-free surface height returned
-by `Level.getHeight`; OreSpawn classifies the biome at the highest occupied block
-immediately below it, matching chunk geology generation. `rockAt` therefore
-matches Stable Layers when a close geome transition is staggered by layer.
-Sampling is read-only and is intended for gameplay decisions, diagnostics, and
-compatible generation outside OreSpawn's block loops.
+by `Level.getHeight`; OreSpawn classifies the stable quart-biome cell at the
+highest occupied block immediately below it, matching chunk geology generation
+without display-oriented fuzzy biome zoom. `rockAt` therefore matches Stable
+Layers when a close geome transition is staggered by layer, even when later
+surface work changes the final heightmap slightly. Sampling is read-only and is
+intended for gameplay decisions, diagnostics, and compatible generation outside
+OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
