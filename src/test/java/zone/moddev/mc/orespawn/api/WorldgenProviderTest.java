@@ -14,6 +14,33 @@ import net.minecraft.resources.Identifier;
 
 class WorldgenProviderTest {
 	@Test
+	void terrainHostContractRetainsNaturalSourceOrder() {
+		Identifier dimension = id("surfaceprobe:the_end");
+		WorldgenProvider provider = WorldgenProvider.builder("surfaceprobe", 1)
+				.terrainDimension(dimension, terrain -> terrain
+						.hostBlock(id("minecraft:dirt"))
+						.hostBlock(id("minecraft:grass_block"))
+						.hostBlock(id("minecraft:coarse_dirt"))
+						.hostBlock(id("minecraft:podzol"))
+						.hostBlock(id("minecraft:rooted_dirt"))
+						.hostBlock(id("minecraft:gravel"))
+						.hostBlock(id("minecraft:sand"))
+						.hostBlock(id("minecraft:red_sand"))
+						.hostBlock(id("minecraft:clay"))
+						.hostBlock(id("minecraft:terracotta")))
+				.build();
+
+		assertEquals("[\"minecraft:dirt\",\"minecraft:grass_block\","
+				+ "\"minecraft:coarse_dirt\",\"minecraft:podzol\","
+				+ "\"minecraft:rooted_dirt\",\"minecraft:gravel\","
+				+ "\"minecraft:sand\",\"minecraft:red_sand\","
+				+ "\"minecraft:clay\",\"minecraft:terracotta\"]",
+				provider.toJson().getAsJsonObject("terrain_dimensions")
+						.getAsJsonObject(dimension.toString())
+						.getAsJsonArray("host_blocks").toString());
+	}
+
+	@Test
 	void serializesTypedSchemaFourProvider() {
 		Identifier overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
