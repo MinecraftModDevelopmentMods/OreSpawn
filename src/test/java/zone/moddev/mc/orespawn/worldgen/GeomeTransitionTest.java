@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.resources.Identifier;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
@@ -28,6 +32,22 @@ class GeomeTransitionTest {
 		BakedGeomeConfig config = config(weights);
 
 		assertEquals(1, config.pickGeome(null, WINDSWEPT_HILLS, new double[2], 0.0D));
+	}
+
+	@Test
+	void identifierFallbackRetainsDictionaryWeightContributions() {
+		Map<String, Integer> indexes = new LinkedHashMap<>();
+		indexes.put("cakeworld:peppermint_fold", 0);
+		indexes.put("cakeworld:rock_candy_uplift", 1);
+		Identifier marshmallowPeaks = Identifier.parse("cakeworld:marshmallow_peaks");
+		Map<Identifier, double[]> weights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
+				Map.of(marshmallowPeaks.toString(), new double[] { 6.0D, 14.0D }),
+				Map.of("COLD", new double[] { 8.0D, 0.0D }),
+				type -> Set.of(ResourceKey.create(Registries.BIOME, marshmallowPeaks)));
+
+		// The COLD dictionary rule contributes another 8 to Peppermint Fold.
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[0]);
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[1]);
 	}
 
 	@Test
