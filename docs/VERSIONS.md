@@ -58,12 +58,12 @@ Examples:
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
 | 1.18.2 | Forge | `118021` | `4.0.10.118021` |
 | 1.19.4 | Forge | `119041` | `4.0.10.119041` |
-| 1.20.1 | Forge | `120011` | `4.0.9.120011` |
-| 1.20.6 | Forge | `120061` | `4.0.9.120061` |
-| 1.21.1 | Forge | `121011` | `4.0.9.121011` |
-| 1.21.11 | Forge | `121111` | `4.0.9.121111` |
-| 26.1.2 | Forge | `2601021` | `4.0.9.2601021` |
-| 26.2 | Forge | `2602001` | `4.0.13.2602001` |
+| 1.20.1 | Forge | `120011` | `4.0.14.120011` |
+| 1.20.6 | Forge | `120061` | `4.0.14.120061` |
+| 1.21.1 | Forge | `121011` | `4.0.14.121011` |
+| 1.21.11 | Forge | `121111` | `4.0.14.121111` |
+| 26.1.2 | Forge | `2601021` | `4.0.14.2601021` |
+| 26.2 | Forge | `2602001` | `4.0.14.2602001` |
 | 26.2 | NeoForge | `2602002` | `4.0.6.2602002` |
 
 Historical MMD releases may also have four numeric components but may have used
@@ -153,7 +153,18 @@ If a different branch later receives a shared fix, it uses the next unused
 Bug number, such as Forge 1.14.4's `4.0.8.114041`, even though the 4.0.7 repair
 was not applicable there. Forge 1.15.2 through 1.20.1 then advanced to their
 target-qualified 4.0.9 releases for the provider terrain-host ordering repair.
-A branch may therefore legitimately skip functional version numbers.
+Forge 1.18.2 through 1.20.1 then advanced to their target-qualified 4.0.10
+releases for the distinct Stable Layers actual-height eligibility repair. A
+branch may therefore legitimately skip functional version numbers.
+
+Forge 1.20.1 then advanced to `4.0.11.120011` to retain biome-dictionary
+weights and ore biome filters when a data-driven biome is represented by a
+different runtime object with the same stable registry key, to
+`4.0.12.120011` so public geology samples classify the same highest occupied
+block as chunk generation at vertical biome seams, to `4.0.13.120011` to
+restore API biome-filter parity and accept provider-namespaced geomes in the
+creation editor, and to `4.0.14.120011` to convert exposed one-layer Snow
+without touching buried or authored weather materials.
 
 This provides three useful guarantees:
 
