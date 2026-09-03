@@ -1,3 +1,11 @@
+Version 4.0.15.2602002
+
+* Classify generated geology and public geology samples through the same
+  stable quart-biome cell at three-dimensional biome boundaries.
+* Keep ore family-host filters and sampler predictions consistent when later
+  surface features alter the final heightmap by a small amount.
+* Existing chunks, profiles, API signatures, and schemas are unchanged.
+
 Version 4.0.14.2602002
 
 * Convert naturally exposed one-layer Snow at the first free block above the
