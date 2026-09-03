@@ -12,7 +12,7 @@ runtime. In `mods.toml` use a mandatory dependency, for example:
 [[dependencies.examplemod]]
 modId="orespawn"
 mandatory=true
-versionRange="[4.0.0,5.0.0)"
+versionRange="[4.0.6,5.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
@@ -80,7 +80,16 @@ for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 Minecraft 26.2 biomes are dynamic registry entries. Ship them as
 `data/<modid>/worldgen/biome/<name>.json`, or generate that data through a
 `RegistrySetBuilder`. `OreSpawnBiomes.copyAndRegister` is an optional bootstrap
-helper for cloning a known biome while generating the datapack entry:
+helper for cloning a known biome while generating the datapack entry.
+
+Ore dimension builders expose the same biome filters as provider JSON and
+fluid-deposit builders. Use `.biome(...)` and `.biomeDictionary(...)` for
+inclusions, with `.excludeBiome(...)` and `.excludeBiomeDictionary(...)` for
+exclusions. These methods work on both explicit `.dimension(...)` rules and
+`.dimensionSelector(...)` fallbacks; built definitions and their returned
+filter sets are immutable.
+
+Register custom biomes with Forge as usual:
 
 ```java
 public static final ResourceKey<Biome> CANDY_PLAINS = ResourceKey.create(
@@ -136,10 +145,14 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 ```
 
 `sampleColumn` performs one biome/dominant-geome classification and reuses its
-transition scores for every Y query. `rockAt` therefore matches Stable Layers
-when a close geome transition is staggered by layer. Sampling is read-only and
-is intended for gameplay decisions, diagnostics, and compatible generation
-outside OreSpawn's block loops.
+transition scores for every Y query. Pass the first-free surface height returned
+by `Level.getHeight`; OreSpawn classifies the stable quart-biome cell at the
+highest occupied block immediately below it, matching chunk geology generation
+without display-oriented fuzzy biome zoom. `rockAt` therefore matches Stable
+Layers when a close geome transition is staggered by layer, even when later
+surface work changes the final heightmap slightly. Sampling is read-only and is
+intended for gameplay decisions, diagnostics, and compatible generation outside
+OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using

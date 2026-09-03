@@ -49,13 +49,21 @@ version.
 
 Examples:
 
-| Minecraft | Loader | Target | Full OreSpawn 4.0.6 version |
+| Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
-| 1.20.6 | Forge | `120061` | `4.0.6.120061` |
-| 1.21.11 | Forge | `121111` | `4.0.6.121111` |
-| 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
-| 26.2 | Forge | `2602001` | `4.0.6.2602001` |
+| 1.14.4 | Forge | `114041` | `4.0.8.114041` |
+| 1.15.2 | Forge | `115021` | `4.0.9.115021` |
+| 1.16.5 | Forge | `116051` | `4.0.9.116051` |
+| 1.17.1 | Forge | `117011` | `4.0.9.117011` |
+| 1.18.2 | Forge | `118021` | `4.0.10.118021` |
+| 1.19.4 | Forge | `119041` | `4.0.10.119041` |
+| 1.20.1 | Forge | `120011` | `4.0.16.120011` |
+| 1.20.6 | Forge | `120061` | `4.0.16.120061` |
+| 1.21.1 | Forge | `121011` | `4.0.16.121011` |
+| 1.21.11 | Forge | `121111` | `4.0.16.121111` |
+| 26.1.2 | Forge | `2601021` | `4.0.16.2601021` |
+| 26.2 | Forge | `2602001` | `4.0.16.2602001` |
 | 26.2 | NeoForge | `2602002` | `4.0.6.2602002` |
 
 Historical MMD releases may also have four numeric components but may have used
@@ -138,12 +146,27 @@ same `Major.Minor.Bug` may be shared by functionally equivalent ports.
 
 If a released branch receives a bug fix that other branches do not require,
 only the affected branch's Bug number is incremented. For example, Forge
-1.13.2 may move from `4.0.6.113021` to `4.0.7.113021` while unaffected branches
-remain on their target-qualified 4.0.6 versions.
+1.12.2 moved to `4.0.7.112021` for its packaged access-transformer repair while
+unaffected branches remained on their target-qualified 4.0.6 versions.
 
-If a different branch later receives a separate fix, it uses the next unused
-Bug number, such as `4.0.8`, even if the `4.0.7` fix was not applicable to it.
-A branch may therefore legitimately skip functional version numbers.
+If a different branch later receives a shared fix, it uses the next unused
+Bug number, such as Forge 1.14.4's `4.0.8.114041`, even though the 4.0.7 repair
+was not applicable there. Forge 1.15.2 through 1.20.1 then advanced to their
+target-qualified 4.0.9 releases for the provider terrain-host ordering repair.
+Forge 1.18.2 through 1.20.1 then advanced to their target-qualified 4.0.10
+releases for the distinct Stable Layers actual-height eligibility repair. A
+branch may therefore legitimately skip functional version numbers.
+
+Forge 1.20.1 then advanced to `4.0.11.120011` to retain biome-dictionary
+weights and ore biome filters when a data-driven biome is represented by a
+different runtime object with the same stable registry key, to
+`4.0.12.120011` so public geology samples classify the same highest occupied
+block as chunk generation at vertical biome seams, to `4.0.13.120011` to
+restore API biome-filter parity and accept provider-namespaced geomes in the
+creation editor, and to `4.0.14.120011` to convert exposed one-layer Snow
+without touching buried or authored weather materials. It then advanced to
+`4.0.15.120011` so generated geology and public samples use the same stable
+quart-biome cell at three-dimensional biome boundaries.
 
 This provides three useful guarantees:
 
