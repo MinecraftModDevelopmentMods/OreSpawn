@@ -64,7 +64,7 @@ public final class BakedGeomeConfig {
 		for (Map.Entry<Biome, double[]> entry : biomeWeights.entrySet()) {
 			ResourceLocation biomeId = BiomeRegistryAccess.id(entry.getKey());
 			if (biomeId != null) {
-				biomeWeightsById.put(biomeId, entry.getValue());
+				this.biomeWeightsById.putIfAbsent(biomeId, entry.getValue());
 			}
 		}
 		this.fallbackWeights = defaultWeights(geomes.length);
@@ -285,12 +285,12 @@ public final class BakedGeomeConfig {
 	}
 
 	String describeBiomeWeights(Biome biome) {
-		double[] weights = biomeWeights.get(biome);
-		String source = "identity";
+		ResourceLocation biomeId = BiomeRegistryAccess.id(biome);
+		double[] weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
+		String source = "registry-id";
 		if (weights == null) {
-			ResourceLocation biomeId = BiomeRegistryAccess.id(biome);
-			weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
-			source = "registry-id";
+			weights = biomeWeights.get(biome);
+			source = "identity";
 		}
 		if (weights == null) {
 			weights = fallbackWeights;
@@ -329,10 +329,8 @@ public final class BakedGeomeConfig {
 	}
 
 	private double[] biomeWeightsFor(Biome biome, ResourceLocation biomeId) {
-		double[] weights = biomeWeights.get(biome);
-		if (weights == null && biomeId != null) {
-			weights = biomeWeightsById.get(biomeId);
-		}
+		double[] weights = biomeId == null ? null : biomeWeightsById.get(biomeId);
+		if (weights == null) weights = biomeWeights.get(biome);
 		return weights == null ? fallbackWeights : weights;
 	}
 
