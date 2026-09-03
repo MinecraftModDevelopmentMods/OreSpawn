@@ -37,8 +37,13 @@ jobs:
           test ! -d .gradle
           export GRADLE_USER_HOME="$RUNNER_TEMP/orespawn-neoforge-cold-cache"
           rm -rf "$GRADLE_USER_HOME"
-          ./gradlew help verifyLegacyFixtures --no-daemon --no-build-cache --stacktrace --max-workers=2
-          ./gradlew help verifyLegacyFixtures --offline --no-daemon --no-build-cache --stacktrace --max-workers=2
+          gradle_jdk_args=(
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+            -Dorg.gradle.java.installations.auto-detect=false
+            -Dorg.gradle.java.installations.auto-download=false
+          )
+          ./gradlew help verifyLegacyFixtures --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew help verifyLegacyFixtures --offline --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
 
   build:
     name: Build, test, and audit
@@ -57,7 +62,10 @@ jobs:
       - name: Build, test, and audit release artifacts
         run: |
           chmod +x ./gradlew
-          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums eclipse verifyEclipseProductionClasspath --no-daemon --stacktrace --max-workers=2
+          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums eclipse verifyEclipseProductionClasspath --no-daemon --stacktrace --max-workers=2 \
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME" \
+            -Dorg.gradle.java.installations.auto-detect=false \
+            -Dorg.gradle.java.installations.auto-download=false
       - name: Upload audited release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -65,9 +73,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/OreSpawn-4.0.15.120062.jar
-            build/libs/OreSpawn-4.0.15.120062-sources.jar
-            build/libs/OreSpawn-4.0.15.120062-javadoc.jar
+            build/libs/OreSpawn-4.0.16.120062.jar
+            build/libs/OreSpawn-4.0.16.120062-sources.jar
+            build/libs/OreSpawn-4.0.16.120062-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.txt
       - name: Upload diagnostics on failure
