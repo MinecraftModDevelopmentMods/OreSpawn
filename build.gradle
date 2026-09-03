@@ -928,9 +928,36 @@ tasks.register('verifyCommandPortability') {
     }
 }
 
+tasks.register('verifyColdNeoForgeBootstrapContract') {
+    group = 'verification'
+    description = 'Verifies that CI qualifies NeoGradle from an isolated Java 25 cache without Forge tooling or forced source decompilation.'
+    doLast {
+        String workflow = file('.github/workflows/ci.yml').getText('UTF-8')
+        [
+                'Cold NeoForge bootstrap',
+                'orespawn-neoforge-cold-cache',
+                '--no-build-cache',
+                '--offline',
+                "java-version: '25.0.3+9.0.LTS'"
+        ].each { required ->
+            if (!workflow.contains(required)) {
+                throw new GradleException("Cold NeoForge bootstrap is missing ${required}")
+            }
+        }
+        ['MinecraftMavenizer', 'mavenizer', 'net.minecraftforge.gradle',
+                'neogradle.subsystems.decompiler.enabled=true',
+                "java-version: '21", "java-version: '17", "java-version: '8"].each { forbidden ->
+            if (workflow.contains(forbidden)) {
+                throw new GradleException("Cold NeoForge bootstrap contains Forge-only tooling: ${forbidden}")
+            }
+        }
+    }
+}
+
 tasks.named('check') {
     dependsOn tasks.named('verifyCommandPortability')
     dependsOn tasks.named('verifyMavenCoordinates')
+    dependsOn tasks.named('verifyColdNeoForgeBootstrapContract')
 }
 
 idea {
