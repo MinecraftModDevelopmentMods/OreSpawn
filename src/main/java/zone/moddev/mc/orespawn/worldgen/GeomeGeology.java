@@ -99,8 +99,7 @@ public final class GeomeGeology {
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
 				int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
-				cursor.set(x, surfaceY, z);
-				Holder<Biome> biomeHolder = world.getBiome(cursor);
+				Holder<Biome> biomeHolder = TerrainBiomeLookup.atBlock(chunk, x, surfaceY, z);
 				Biome biome = biomeHolder.value();
 				Optional<ResourceKey<Biome>> biomeKey = biomeHolder.unwrapKey();
 				Identifier biomeId = biomeKey.isPresent() ? biomeKey.get().identifier() : null;
