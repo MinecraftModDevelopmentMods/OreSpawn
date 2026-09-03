@@ -1,3 +1,12 @@
+Version 4.0.13.121112
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and worldgen
+  behaviour are unchanged.
+
 Version 4.0.12.121112
 
 * Classify public geology samples at the same highest occupied block used by
