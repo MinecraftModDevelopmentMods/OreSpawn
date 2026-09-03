@@ -358,7 +358,7 @@ final class LegacyConfigMigrator {
 
 	private static void writeUpgradeReport(Path config, int imported, List<String> detail) {
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.15.2602002 Upgrade Report");
+		lines.add("OreSpawn 4.0.16.2602002 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn settings were imported into the OS4 profile.");

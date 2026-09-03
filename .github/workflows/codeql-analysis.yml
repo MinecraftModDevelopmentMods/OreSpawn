@@ -40,13 +40,21 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
+          gradle_args=(
+            clean classes --no-daemon --stacktrace --max-workers=2
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+            -Dorg.gradle.java.installations.auto-detect=false
+            -Dorg.gradle.java.installations.auto-download=false
+          )
           for attempt in 1 2 3; do
-            if ./gradlew clean classes --no-daemon --stacktrace --max-workers=2; then
+            if ./gradlew "${gradle_args[@]}"; then
               exit 0
             fi
             if [ "$attempt" -eq 3 ]; then
+              echo "CodeQL compilation failed after $attempt attempts." >&2
               exit 1
             fi
+            echo "::warning::CodeQL compilation attempt $attempt failed; retrying with the preserved NeoGradle cache."
           done
       - name: Analyze
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4

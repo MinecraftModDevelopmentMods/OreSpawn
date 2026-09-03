@@ -23,9 +23,10 @@ import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.BackupConfirmScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
@@ -104,6 +105,9 @@ public final class ClientProbeTestMod {
 		try {
 			switch (state) {
 				case 0:
+					if (minecraft.screen instanceof AccessibilityOnboardingScreen) {
+						minecraft.screen.onClose();
+					}
 					if (minecraft.screen instanceof TitleScreen) {
 						Screen parent = minecraft.screen;
 						CreateWorldScreen.openFresh(minecraft, () -> minecraft.setScreen(parent));
@@ -371,20 +375,10 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void initializeScreen(Screen screen, Minecraft minecraft) {
-		for (Method method : Screen.class.getDeclaredMethods()) {
-			Class<?>[] parameters = method.getParameterTypes();
-			if (parameters.length != 3 || parameters[0] != Minecraft.class
-					|| parameters[1] != int.class || parameters[2] != int.class
-					|| method.getReturnType() != void.class) continue;
-			try {
-				method.setAccessible(true);
-				method.invoke(screen, minecraft, 640, 480);
-				return;
-			} catch (ReflectiveOperationException failure) {
-				throw new IllegalStateException("Could not initialize target-native editor", failure);
-			}
+		minecraft.setScreen(screen);
+		if (minecraft.screen != screen) {
+			throw new IllegalStateException("Could not initialize target-native editor");
 		}
-		throw new IllegalStateException("Could not locate Forge 50 Screen initialization method");
 	}
 
 	private static void pressDone(Screen screen) {

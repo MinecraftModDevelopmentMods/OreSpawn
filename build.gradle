@@ -83,8 +83,7 @@ def prepareBundledDocumentation = tasks.register('prepareBundledDocumentation', 
 
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
-def configureBenchmark = { run, String radius, String repetitions, String center,
-        String stopServer ->
+def configureBenchmark = { run, String radius, String repetitions, String center ->
     if (!providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
         return
     }
@@ -120,8 +119,7 @@ def configureBenchmark = { run, String radius, String repetitions, String center
         run.systemProperty 'orespawn.worldgenBenchmarkBiomeType',
                 providers.gradleProperty('orespawnBenchmarkBiomeType').get()
     }
-    run.systemProperty 'orespawn.worldgenBenchmarkStopServer',
-            providers.gradleProperty('orespawnBenchmarkStopServer').getOrElse(stopServer)
+    run.systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
     if (providers.gradleProperty('worldgenJfrFile').isPresent()) {
         run.jvmArgument "-XX:StartFlightRecording=filename=${providers.gradleProperty('worldgenJfrFile').get()},settings=profile,dumponexit=true"
     }
@@ -139,7 +137,7 @@ runs {
         systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         // The GameTest server always uses Minecraft's flat test preset, so
         // real terrain benchmarks must run through a normal integrated world.
-        configureBenchmark(delegate, '8', '5', '1024', 'false')
+        configureBenchmark(delegate, '8', '5', '1024')
         if (providers.gradleProperty('orespawnBenchmarkWorld').isPresent()) {
             arguments.addAll '--quickPlaySingleplayer',
                     providers.gradleProperty('orespawnBenchmarkWorld').get()
@@ -149,11 +147,19 @@ runs {
     server {
         systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         argument '--nogui'
-        configureBenchmark(delegate, '8', '5', '1024', 'true')
+        configureBenchmark(delegate, '8', '5', '1024')
     }
 
     gameTestServer {
-        systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        systemProperty 'neoforge.enabledGameTestNamespaces',
+                providers.gradleProperty('orespawnBenchmarkMode').isPresent()
+                        ? "${mod_id},minecraft" : mod_id
+        if (providers.gradleProperty('orespawnBenchmarkMode').isPresent()) {
+            workingDirectory layout.buildDirectory.dir('gametest-benchmark-run')
+            arguments.addAll '--tests', 'minecraft:always_pass', '--report',
+                    'benchmark-gametest-results.xml'
+        }
+        configureBenchmark(delegate, '4', '3', '256')
     }
 
     clientData {
@@ -471,6 +477,12 @@ tasks.named('check') {
     tasks.matching { it.name == taskName }.configureEach { JavaExec runTask ->
         doFirst {
             new File(runTask.workingDir, 'mods').mkdirs()
+            if (taskName == 'runGameTestServer') {
+                File serverProperties = new File(runTask.workingDir, 'server.properties')
+                if (!serverProperties.isFile()) {
+                    serverProperties.setText('# Generated for the OreSpawn GameTest gate\n', 'UTF-8')
+                }
+            }
             runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
         }
         doLast {
@@ -590,7 +602,7 @@ tasks.named('assemble') {
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.2602002'
+        if (project.mod_version != '4.0.16.2602002'
                 || project.mod_group_id != expectedMavenGroup
                 || project.minecraft_version != '26.2'
                 || project.neo_version != '26.2.0.45-beta') {
@@ -598,13 +610,14 @@ tasks.register('verifyReleaseConfiguration') {
         }
         if (project.loader_name != 'neoforge' || project.loader_code != '2'
                 || project.java_version != '25' || project.gradle_java_version != '25'
-                || project.java_toolchain_version != '25.0.3+9') {
+                || project.java_toolchain_version != '25.0.3+9'
+                || project.java_setup_version != '25.0.3+9.0.LTS') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.2602002.jar',
-                'OreSpawn-4.0.15.2602002-sources.jar',
-                'OreSpawn-4.0.15.2602002-javadoc.jar'
+                'OreSpawn-4.0.16.2602002.jar',
+                'OreSpawn-4.0.16.2602002-sources.jar',
+                'OreSpawn-4.0.16.2602002-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
