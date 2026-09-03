@@ -53,7 +53,7 @@ class StoneReplacerTest {
 		hosts.add(Blocks.DIRT);
 		BakedTerrainDimension terrain = new BakedTerrainDimension(
 				ResourceKey.create(Registries.DIMENSION,
-						new ResourceLocation("surfaceprobe", "the_end")),
+						ResourceLocation.fromNamespaceAndPath("surfaceprobe", "the_end")),
 				Collections.emptySet(), Collections.emptySet(), hosts);
 
 		assertFalse(terrain.isReplaceable(Blocks.AIR.defaultBlockState()));
