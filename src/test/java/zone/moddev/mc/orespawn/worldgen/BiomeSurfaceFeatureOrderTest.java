@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 class BiomeSurfaceFeatureOrderTest {
 	@Test
 	void surfacesRunBeforeStructuresAndVegetationWhileFlatBedrockStaysLast() {
+		StoneReplacer.registerConfiguredFeature();
 		BiomeSurfaceFeature.registerConfiguredFeature();
 		FlatBedrockFeature.registerConfiguredFeature();
 		BiomeGenerationSettingsBuilder generation =
@@ -25,7 +26,9 @@ class BiomeSurfaceFeatureOrderTest {
 		Holder<PlacedFeature> bedrock = FlatBedrockFeature.placedFeature();
 		var local = generation.getFeatures(GenerationStep.Decoration.LOCAL_MODIFICATIONS);
 		var top = generation.getFeatures(GenerationStep.Decoration.TOP_LAYER_MODIFICATION);
-		assertTrue(local.stream().anyMatch(feature -> feature.value() == surfaces.value()));
+		assertTrue(local.size() >= 2);
+		assertTrue(local.get(0).value() == StoneReplacer.placedFeature().value());
+		assertTrue(local.get(1).value() == surfaces.value());
 		assertFalse(local.stream().anyMatch(feature -> feature.value() == bedrock.value()));
 		assertTrue(top.stream().anyMatch(feature -> feature.value() == bedrock.value()));
 		assertFalse(top.stream().anyMatch(feature -> feature.value() == surfaces.value()));

@@ -15,8 +15,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.GameTestServer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -140,9 +142,17 @@ public final class WorldgenBenchmark {
 			throw new IllegalStateException("Benchmark fluid audit found no successful deposits");
 		}
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
-			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
-			event.getServer().halt(false);
+			if (ownsServerShutdown(event.getServer().getClass())) {
+				LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
+				event.getServer().halt(false);
+			} else {
+				LOGGER.info("ORESPAWN_BENCHMARK leaving shutdown to the GameTest harness");
+			}
 		}
+	}
+
+	static boolean ownsServerShutdown(Class<? extends MinecraftServer> serverType) {
+		return !GameTestServer.class.isAssignableFrom(serverType);
 	}
 
 	static ResourceKey<Level> benchmarkDimensionKey(String configured) {
