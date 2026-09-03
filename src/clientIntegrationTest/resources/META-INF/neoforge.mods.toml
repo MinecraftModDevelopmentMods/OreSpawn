@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[3,)"
+license="LGPL-2.1"
+
+[[mods]]
+modId="clientprobe"
+version="1"
+displayName="OreSpawn Client Probe"
+description='''Build-only OreSpawn client editor and world reload fixture.'''
+
+[[dependencies.clientprobe]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.247,21.2)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.clientprobe]]
+modId="orespawn"
+type="required"
+versionRange="[4.0.6,5.0.0)"
+ordering="AFTER"
+side="CLIENT"
+
+[[dependencies.clientprobe]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.22)"
+ordering="NONE"
+side="CLIENT"

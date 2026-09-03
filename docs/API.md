@@ -12,7 +12,7 @@ runtime. In `neoforge.mods.toml` use a required dependency, for example:
 [[dependencies.examplemod]]
 modId="orespawn"
 type="required"
-versionRange="[4.0.0,5.0.0)"
+versionRange="[4.0.6,5.0.0)"
 ordering="AFTER"
 side="BOTH"
 ```
