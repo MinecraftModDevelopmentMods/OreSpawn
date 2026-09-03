@@ -590,7 +590,7 @@ tasks.named('assemble') {
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.10.2601022'
+        if (project.mod_version != '4.0.11.2601022'
                 || project.mod_group_id != expectedMavenGroup
                 || project.minecraft_version != '26.1.2'
                 || project.neo_version != '26.1.2.94') {
@@ -602,9 +602,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.10.2601022.jar',
-                'OreSpawn-4.0.10.2601022-sources.jar',
-                'OreSpawn-4.0.10.2601022-javadoc.jar'
+                'OreSpawn-4.0.11.2601022.jar',
+                'OreSpawn-4.0.11.2601022-sources.jar',
+                'OreSpawn-4.0.11.2601022-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -930,7 +930,7 @@ tasks.register('verifyCommandPortability') {
 
 tasks.register('verifyColdNeoForgeBootstrapContract') {
     group = 'verification'
-    description = 'Verifies that CI qualifies NeoGradle from an isolated Java 21 cache without Forge tooling.'
+    description = 'Verifies that CI qualifies NeoGradle from an isolated Java 25 cache without Forge tooling.'
     doLast {
         String workflow = file('.github/workflows/ci.yml').getText('UTF-8')
         [
@@ -938,13 +938,14 @@ tasks.register('verifyColdNeoForgeBootstrapContract') {
                 'orespawn-neoforge-cold-cache',
                 '--no-build-cache',
                 '--offline',
-                "java-version: '21.0.7+6.0.LTS'"
+                "java-version: '25.0.3+9.0.LTS'"
         ].each { required ->
             if (!workflow.contains(required)) {
                 throw new GradleException("Cold NeoForge bootstrap is missing ${required}")
             }
         }
-        ['MinecraftMavenizer', 'mavenizer', 'java-version: \'25', 'net.minecraftforge.gradle'].each { forbidden ->
+        ['MinecraftMavenizer', 'mavenizer', 'java-version: \'21',
+                'java-version: \'8', 'net.minecraftforge.gradle'].each { forbidden ->
             if (workflow.contains(forbidden)) {
                 throw new GradleException("Cold NeoForge bootstrap contains Forge-only tooling: ${forbidden}")
             }
