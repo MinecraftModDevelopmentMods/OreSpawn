@@ -590,7 +590,7 @@ tasks.named('assemble') {
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.9.2602002'
+        if (project.mod_version != '4.0.10.2602002'
                 || project.mod_group_id != expectedMavenGroup
                 || project.minecraft_version != '26.2'
                 || project.neo_version != '26.2.0.45-beta') {
@@ -602,9 +602,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.9.2602002.jar',
-                'OreSpawn-4.0.9.2602002-sources.jar',
-                'OreSpawn-4.0.9.2602002-javadoc.jar'
+                'OreSpawn-4.0.10.2602002.jar',
+                'OreSpawn-4.0.10.2602002-sources.jar',
+                'OreSpawn-4.0.10.2602002-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {

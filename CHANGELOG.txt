@@ -1,3 +1,8 @@
+Version 4.0.10.2602002
+
+* Evaluate Stable Layers rock minimum and maximum heights against actual world Y while preserving shifted formation identity.
+* Deterministically choose another eligible configured rock before using the vanilla Stone fallback.
+
 Version 4.0.9.2602002
 
 * Replace provider-declared natural terrain hosts during the existing geology scan before structure and vegetation features can author matching blocks.
