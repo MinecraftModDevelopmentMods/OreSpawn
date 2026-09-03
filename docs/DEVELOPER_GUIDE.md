@@ -100,6 +100,10 @@ private void enqueueWorldgen(InterModEnqueueEvent event) {
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
+					.biome(Identifier.fromNamespaceAndPath("minecraft", "plains"))
+					.biomeDictionary("FOREST")
+					.excludeBiome(Identifier.fromNamespaceAndPath("minecraft", "dark_forest"))
+					.excludeBiomeDictionary("SPOOKY")
 					.hostTag(Identifier.fromNamespaceAndPath("minecraft", "stone_ore_replaceables"))))
         .build();
 
