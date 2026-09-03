@@ -1,0 +1,94 @@
+name: Start OreSpawn release from tag
+
+on:
+  push:
+    tags:
+      - '*.*.*.*'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: orespawn-release-starter-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-release-tag:
+    name: Validate tag for manual release confirmation
+    if: github.repository == 'MinecraftModDevelopmentMods/OreSpawn'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag, target metadata, and prior CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          value() { sed -n "s/^$1=//p" gradle.properties; }
+          release_version="$(value mod_version)"
+          minecraft_version="$(value minecraft_version)"
+          loader_name="$(value loader_name)"
+          loader_code="$(value loader_code)"
+
+          IFS=. read -r mc_major mc_minor mc_patch extra <<<"$minecraft_version"
+          if [[ -n "${extra:-}" || -z "${mc_major:-}" || -z "${mc_minor:-}" ]]; then
+            echo "Invalid minecraft_version=$minecraft_version" >&2
+            exit 1
+          fi
+          mc_patch="${mc_patch:-0}"
+          if [[ ! "$mc_major" =~ ^[0-9]+$ || ! "$mc_minor" =~ ^[0-9]+$ || ! "$mc_patch" =~ ^[0-9]+$ ]]; then
+            echo "Invalid minecraft_version=$minecraft_version" >&2
+            exit 1
+          fi
+          case "$loader_name:$loader_code" in
+            forge:1|neoforge:2) ;;
+            *) echo "Invalid loader metadata $loader_name/$loader_code" >&2; exit 1 ;;
+          esac
+          printf -v minor_padded '%02d' "$((10#$mc_minor))"
+          printf -v patch_padded '%02d' "$((10#$mc_patch))"
+          target_suffix="${mc_major}${minor_padded}${patch_padded}${loader_code}"
+
+          if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.${target_suffix}$ ]]; then
+            echo "mod_version $release_version does not match $minecraft_version $loader_name target $target_suffix" >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" != "$release_version" ]]; then
+            echo "Release tag must equal mod_version $release_version; found $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          successful_ci="$(gh api \
+            "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name == "Build, test, and audit" and .conclusion == "success")] | length')"
+          if [[ "$successful_ci" -lt 1 ]]; then
+            echo "The tagged commit has no successful Build, test, and audit check" >&2
+            exit 1
+          fi
+
+      - name: Record the required manual publication step
+        env:
+          RELEASE_WORKFLOW_URL: https://github.com/${{ github.repository }}/actions/workflows/deploy-release.yml
+        run: |
+          {
+            echo "## Release candidate validated"
+            echo
+            echo "Tag \`$GITHUB_REF_NAME\` matches the selected target and has a successful Build, test, and audit check."
+            echo
+            echo "**Nothing has been published.**"
+            echo
+            echo "To continue, open [Deploy OreSpawn release]($RELEASE_WORKFLOW_URL), select **Run workflow**, and enter:"
+            echo
+            echo "- release_version: \`$GITHUB_REF_NAME\`"
+            echo "- curseforge_release_level: \`release\`, \`beta\`, or \`alpha\`"
+            echo "- confirm_live_publication: \`true\`"
+            echo
+            echo "The dispatcher builds and audits the immutable bundle before the separate \`release\` environment approval gate."
+          } >> "$GITHUB_STEP_SUMMARY"
