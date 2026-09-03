@@ -132,6 +132,13 @@ lets OreSpawn replace the actual exposed ground while preserving later trees,
 plants, authored structures, and block entities. In ceiling dimensions,
 `ceiling_block` applies to the roof underside and does not replace the roof top.
 
+Provider-declared `terrain_dimensions.host_blocks` are resolved by one terrain
+scan at the start of `LOCAL_MODIFICATIONS`, immediately before provider
+surfaces. Matching natural blocks already present in base terrain are eligible
+for geology; matching blocks authored by later structure or vegetation stages
+are not. Air, fluids, bedrock, and block-entity states remain protected even if
+a provider mistakenly lists their block IDs as terrain hosts.
+
 Surface correction is generation-only. Installing or updating OreSpawn does
 not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.

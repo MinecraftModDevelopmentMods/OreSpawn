@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[2,)"
+license="LGPL-2.1"
+
+[[mods]]
+modId="benchmarkprobe"
+version="1"
+displayName="OreSpawn Benchmark Harness Test"
+description='''Build-only GameTest used to qualify OreSpawn benchmark shutdown ownership.'''
+
+[[dependencies.benchmarkprobe]]
+modId="neoforge"
+type="required"
+versionRange="[20.6.139,20.7)"
+ordering="NONE"
+side="SERVER"
+
+[[dependencies.benchmarkprobe]]
+modId="orespawn"
+type="required"
+versionRange="[4.0.6,5.0.0)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.benchmarkprobe]]
+modId="minecraft"
+type="required"
+versionRange="[1.20.6,1.21)"
+ordering="NONE"
+side="SERVER"

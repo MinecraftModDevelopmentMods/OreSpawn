@@ -238,8 +238,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 
 	private EditBox addPlacementField(int x, int y, String key, String value) {
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
-		box.setValue(value);
 		box.setMaxLength(32);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(box, placementHelp(key));
 		placementWidgets.add(addRenderableWidget(box));
 		return box;
@@ -251,8 +251,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 
 	private EditBox addHostField(int x, int y, String key, String value) {
 		EditBox box = new EditBox(font, x, y, contentWidth, 20, Component.literal(key));
-		box.setValue(value);
 		box.setMaxLength(1024);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(box, "tooltip.orespawn." + key);
 		hostWidgets.add(addRenderableWidget(box));
 		return box;
@@ -260,8 +260,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 
 	private EditBox addPatternField(int x, int y, String key, String value) {
 		EditBox box = new EditBox(font, x, y, columnWidth, 20, Component.literal(key));
-		box.setValue(value);
 		box.setMaxLength(32);
+		box.setValue(value);
 		OreSpawnScreenLayout.explain(box, "tooltip.orespawn.ore." + key);
 		patternWidgets.add(addRenderableWidget(box));
 		return box;
