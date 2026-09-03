@@ -1,6 +1,11 @@
 # MMD OreSpawn
 
-OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.21.1.
+[![Discord](https://img.shields.io/discord/303440391124942858?label=Discord&logo=discord)](https://discord.moddev.zone)
+[![CurseForge downloads](https://cf.way2muchnoise.eu/full_245586_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/orespawn)
+[![Minecraft](https://cf.way2muchnoise.eu/versions/245586.svg)](https://www.curseforge.com/minecraft/mc-mods/orespawn/files)
+[![CI](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml/badge.svg?branch=master-26.1.2-neo)](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml?query=branch%3Amaster-26.1.2-neo)
+
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 26.1.2.
 It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
@@ -89,11 +94,12 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Use Java 25 from the repository root:
+OreSpawn 4.0.8.2601022 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
+Temurin 25.0.3+9 from the repository root:
 
 ```powershell
-.\gradlew.bat clean build javadoc --no-daemon
-.\gradlew.bat eclipse --no-daemon
+.\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon --max-workers=2
+.\gradlew.bat eclipse verifyEclipseProductionClasspath --no-daemon --max-workers=2
 ```
 
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
@@ -107,6 +113,10 @@ OreSpawn's published jars.
 Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
 Eclipse model and run configurations through the `eclipse` task; this branch
 does not use ForgeGradle's `genEclipseRuns` task.
+
+The audited public outputs are `OreSpawn-4.0.8.2601022.jar`, its sources jar,
+and its Javadoc jar. CI additionally proves a cache-cold NeoGradle bootstrap
+and a same-cache offline rerun.
 
 Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
 Public developer and AI integration guidance lives in `docs/` and is included

@@ -13,5 +13,5 @@ Use the focused guides for implementation details:
 - [TEMPLATES.md](TEMPLATES.md) for selectable world styles;
 - [CONFIGURATION.md](CONFIGURATION.md) for configuration behavior;
 - [VERSIONS.md](VERSIONS.md) for the shared four-component target-qualified
-  versioning and branch-release convention;
+  versioning, skipped functional releases, and branch-release convention;
 - [README.md](README.md) for schemas, examples, and the complete documentation index.
