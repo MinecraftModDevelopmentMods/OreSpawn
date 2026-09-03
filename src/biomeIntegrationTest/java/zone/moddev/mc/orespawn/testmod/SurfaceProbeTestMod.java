@@ -19,6 +19,8 @@ import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
+import zone.moddev.mc.orespawn.api.OreHeightDistribution;
+import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.ProviderStatus;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
@@ -78,6 +80,7 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation PROBE_GEOME_ALTERNATIVE =
 			id(MODID + ":dynamic_biome_geome_alternative");
 	private static final ResourceLocation DYNAMIC_FLUID = id(MODID + ":fluid/dynamic_water");
+	private static final ResourceLocation DYNAMIC_ORE = id(MODID + ":ore/dynamic_biome_filter");
 	private static final Block[] NATURAL_SOURCES = {
 			Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL,
 			Blocks.ROOTED_DIRT, Blocks.GRAVEL, Blocks.SAND, Blocks.RED_SAND,
@@ -119,6 +122,23 @@ public final class SurfaceProbeTestMod {
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addDynamicBiomeGeology(provider);
+		provider.ore(DYNAMIC_ORE, blockId(Blocks.DIAMOND_BLOCK), ore -> ore
+				.retrogen(false)
+				.dimension(OPEN_ID, placement -> placement
+						.yRange(16, 48)
+						.attempts(16.0D)
+						.quantity(8)
+						.pattern(OrePattern.CLUSTER)
+						.heightDistribution(OreHeightDistribution.UNIFORM)
+						.discardChanceOnAirExposure(0.0D)
+						.spread(4, 3)
+						.nodeSize(3)
+						.hostBlock(blockId(Blocks.CALCITE))
+						.hostBlock(blockId(Blocks.BASALT))
+						.biome(BIOME_A)
+						.biomeDictionary("COLD")
+						.excludeBiome(BIOME_B)
+						.excludeBiomeDictionary("SPOOKY")));
 		provider.fluidDeposit(DYNAMIC_FLUID, blockId(Blocks.WATER), deposit -> deposit
 				.dimension(OPEN_ID, placement -> placement
 						.yRange(16, 24)
@@ -196,7 +216,6 @@ public final class SurfaceProbeTestMod {
 				dictionary.add("COLD", cold);
 			}
 			cold.addProperty(PROBE_GEOME.toString(), 8.0D);
-			addDynamicBiomeOre(root);
 			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
 			if (terrain == null) {
 				terrain = new JsonObject();
@@ -224,49 +243,6 @@ public final class SurfaceProbeTestMod {
 		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
 			throw new IllegalStateException("Could not reload the test-owned End geology profile");
 		}
-	}
-
-	private static void addDynamicBiomeOre(JsonObject root) {
-		JsonObject ores = root.getAsJsonObject("ores");
-		if (ores == null) {
-			ores = new JsonObject();
-			root.add("ores", ores);
-		}
-		JsonObject ore = new JsonObject();
-		ore.addProperty("block", blockId(Blocks.DIAMOND_BLOCK).toString());
-		ore.addProperty("enabled", true);
-		ore.addProperty("native_generation", false);
-		ore.addProperty("suppress_vanilla", false);
-		ore.addProperty("retrogen", false);
-		JsonObject dimensions = new JsonObject();
-		JsonObject end = new JsonObject();
-		end.addProperty("enabled", true);
-		end.addProperty("min_y", 16);
-		end.addProperty("max_y", 48);
-		end.addProperty("frequency", 16.0D);
-		end.addProperty("quantity", 8);
-		end.addProperty("pattern", "cluster");
-		end.addProperty("height_distribution", "uniform");
-		end.addProperty("discard_chance_on_air_exposure", 0.0D);
-		end.addProperty("spread", 4);
-		end.addProperty("vertical_spread", 3);
-		end.addProperty("node_size", 3);
-		end.add("host_families", new JsonArray());
-		JsonArray hosts = new JsonArray();
-		hosts.add(blockId(Blocks.CALCITE).toString());
-		hosts.add(blockId(Blocks.BASALT).toString());
-		end.add("host_blocks", hosts);
-		end.add("host_tags", new JsonArray());
-		end.add("geomes", new JsonObject());
-		JsonArray biomes = new JsonArray();
-		biomes.add(BIOME_A.toString());
-		end.add("biome_ids", biomes);
-		end.add("excluded_biome_ids", new JsonArray());
-		end.add("biome_dictionary", new JsonArray());
-		end.add("excluded_biome_dictionary", new JsonArray());
-		dimensions.add(OPEN_ID.toString(), end);
-		ore.add("dimensions", dimensions);
-		ores.add(MODID + ":ore/dynamic_biome_filter", ore);
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
