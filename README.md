@@ -94,7 +94,10 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-OreSpawn 4.0.8.2601022 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
+This branch builds target-qualified version `4.0.9.2601022`: the OreSpawn 4.0.9
+feature set for Minecraft 26.1.2 and NeoForge.
+
+OreSpawn 4.0.9.2601022 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
 Temurin 25.0.3+9 from the repository root:
 
 ```powershell
@@ -114,7 +117,7 @@ Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
 Eclipse model and run configurations through the `eclipse` task; this branch
 does not use ForgeGradle's `genEclipseRuns` task.
 
-The audited public outputs are `OreSpawn-4.0.8.2601022.jar`, its sources jar,
+The audited public outputs are `OreSpawn-4.0.9.2601022.jar`, its sources jar,
 and its Javadoc jar. CI additionally proves a cache-cold NeoGradle bootstrap
 and a same-cache offline rerun.
 
