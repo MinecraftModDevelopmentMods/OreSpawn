@@ -1,3 +1,9 @@
+Version 4.0.9.121012
+
+* Replace provider-declared natural terrain hosts during the existing geology scan before structure and vegetation features can author matching blocks.
+* Keep air, fluids, bedrock and block entities protected even when their IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and saved profiles remain unchanged.
+
 Version 4.0.8.121012
 
 * Preserve long host, tag and biome-list values when Ore and Fluid editors reopen by applying their existing maximum lengths before saved text is restored.
