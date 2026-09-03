@@ -144,7 +144,9 @@ runs {
     }
 
     gameTestServer {
-        systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        systemProperty 'neoforge.enabledGameTestNamespaces',
+                providers.gradleProperty('orespawnBenchmarkMode').isPresent()
+                        ? "${mod_id},minecraft" : mod_id
         configureBenchmark(delegate, '4', '3', '256')
     }
 
@@ -489,6 +491,12 @@ tasks.named('check') {
     tasks.matching { it.name == taskName }.configureEach { JavaExec runTask ->
         doFirst {
             new File(runTask.workingDir, 'mods').mkdirs()
+            if (taskName == 'runGameTestServer') {
+                File serverProperties = new File(runTask.workingDir, 'server.properties')
+                if (!serverProperties.isFile()) {
+                    serverProperties.setText('# Generated for the OreSpawn GameTest gate\n', 'UTF-8')
+                }
+            }
             runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
         }
         doLast {
@@ -635,7 +643,7 @@ tasks.named('assemble') {
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.0.15.121012'
+        if (project.mod_version != '4.0.16.121012'
                 || project.mod_group_id != expectedMavenGroup
                 || project.minecraft_version != '1.21.1'
                 || project.neo_version != '21.1.247') {
@@ -643,13 +651,14 @@ tasks.register('verifyReleaseConfiguration') {
         }
         if (project.loader_name != 'neoforge' || project.loader_code != '2'
                 || project.java_version != '21' || project.gradle_java_version != '21'
-                || project.java_toolchain_version != '21.0.7+6') {
+                || project.java_toolchain_version != '21.0.7+6'
+                || project.java_setup_version != '21.0.7+6.0.LTS') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.0.15.121012.jar',
-                'OreSpawn-4.0.15.121012-sources.jar',
-                'OreSpawn-4.0.15.121012-javadoc.jar'
+                'OreSpawn-4.0.16.121012.jar',
+                'OreSpawn-4.0.16.121012-sources.jar',
+                'OreSpawn-4.0.16.121012-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {

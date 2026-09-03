@@ -22,6 +22,7 @@ import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.BackupConfirmScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
@@ -99,6 +100,10 @@ public final class ClientProbeTestMod {
 		try {
 			switch (state) {
 				case 0:
+					if (minecraft.screen instanceof AccessibilityOnboardingScreen) {
+						minecraft.setScreen(new TitleScreen());
+						break;
+					}
 					if (minecraft.screen instanceof TitleScreen) {
 						CreateWorldScreen.openFresh(minecraft, minecraft.screen);
 						nextState(1);
@@ -369,7 +374,8 @@ public final class ClientProbeTestMod {
 			Class<?>[] parameters = method.getParameterTypes();
 			if (parameters.length != 3 || parameters[0] != Minecraft.class
 					|| parameters[1] != int.class || parameters[2] != int.class
-					|| method.getReturnType() != void.class) continue;
+					|| method.getReturnType() != void.class
+					|| !java.lang.reflect.Modifier.isFinal(method.getModifiers())) continue;
 			try {
 				method.setAccessible(true);
 				method.invoke(screen, minecraft, 640, 480);
