@@ -35,8 +35,8 @@ class OreSpawnScreenLayoutTest {
 	void sharedScreenUsesTargetNativeBackgroundBeforeForeground() throws IOException {
 		String source = Files.readString(Path.of(
 				"src/main/java/zone/moddev/mc/orespawn/client/OreSpawnScreen.java"));
-		int render = source.indexOf("public final void render(");
-		int backgroundAndWidgets = source.indexOf("super.render(graphics", render);
+		int render = source.indexOf("public final void extractRenderState(");
+		int backgroundAndWidgets = source.indexOf("super.extractRenderState(graphics", render);
 		int foreground = source.indexOf("renderForeground(graphics", render);
 		assertTrue(render >= 0 && backgroundAndWidgets > render && foreground > backgroundAndWidgets,
 				"The 26.2 Screen render pass must finish before OreSpawn foreground text");
