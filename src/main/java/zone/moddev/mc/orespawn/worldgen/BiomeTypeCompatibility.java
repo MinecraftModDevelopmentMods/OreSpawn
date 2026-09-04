@@ -61,6 +61,10 @@ final class BiomeTypeCompatibility {
 				.map(holder -> matches(holder, tags(type))).orElse(false);
 	}
 
+	static Biome biome(ResourceKey<Biome> key) {
+		return zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.get(key.identifier());
+	}
+
 	static boolean hasType(Biome biome, String type) {
 		return matches(zone.moddev.mc.orespawn.worldgen.BiomeRegistryAccess.holder(biome), tags(type));
 	}

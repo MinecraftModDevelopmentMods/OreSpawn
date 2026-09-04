@@ -4,6 +4,10 @@ import static java.lang.reflect.Modifier.isFinal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,6 +18,17 @@ class OreSpawnScreenLayoutTest {
 		assertTrue(isFinal(OreSpawnScreen.class
 				.getDeclaredMethod("render", GuiGraphics.class, int.class, int.class, float.class)
 				.getModifiers()));
+	}
+
+	@Test
+	void sharedScreenUsesTargetNativeBackgroundBeforeForeground() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/zone/moddev/mc/orespawn/client/OreSpawnScreen.java"));
+		int render = source.indexOf("public final void render(");
+		int backgroundAndWidgets = source.indexOf("super.render(graphics", render);
+		int foreground = source.indexOf("renderForeground(graphics", render);
+		assertTrue(render >= 0 && backgroundAndWidgets > render && foreground > backgroundAndWidgets,
+				"The 1.21.11 Screen render pass must finish before OreSpawn foreground text");
 	}
 
 	@Test

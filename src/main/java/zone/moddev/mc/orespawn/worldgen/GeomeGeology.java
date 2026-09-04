@@ -99,8 +99,7 @@ public final class GeomeGeology {
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
 				int surfaceY = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, dx, dz);
-				cursor.set(x, surfaceY, z);
-				Holder<Biome> biomeHolder = world.getBiome(cursor);
+				Holder<Biome> biomeHolder = TerrainBiomeLookup.atBlock(chunk, x, surfaceY, z);
 				Biome biome = biomeHolder.value();
 				Optional<ResourceKey<Biome>> biomeKey = biomeHolder.unwrapKey();
 				Identifier biomeId = biomeKey.isPresent() ? biomeKey.get().identifier() : null;
@@ -118,7 +117,8 @@ public final class GeomeGeology {
 				} else {
 					for (int y = surfaceY; y >= chunk.getMinY(); y--) {
 						cursor.set(x, y, z);
-						if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
+						if (terrain.isReplaceable(chunk.getBlockState(cursor))
+								&& chunk.getBlockEntity(cursor) == null) {
 							chunk.setBlockState(cursor,
 									pickReplacement(geomeIndex, baseRockValue, formationRegion, x, y, z), 0);
 							changed = true;
@@ -140,7 +140,6 @@ public final class GeomeGeology {
 		int layerStart = layerIndex * layerThickness;
 		int layerGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
 				layerIndex, geomeTransitionPhase);
-		BlockState replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 		boolean changed = false;
 		cursor.set(x, surfaceY, z);
 
@@ -151,11 +150,12 @@ public final class GeomeGeology {
 				layerStart -= layerThickness;
 				layerGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
 						layerIndex, geomeTransitionPhase);
-				replacement = pickStableReplacement(layerGeome, formationRegion, layerIndex);
 			}
 			cursor.setY(y);
-			if (terrain.isReplaceable(chunk.getBlockState(cursor))) {
-				chunk.setBlockState(cursor, replacement, 0);
+			if (terrain.isReplaceable(chunk.getBlockState(cursor))
+					&& chunk.getBlockEntity(cursor) == null) {
+				chunk.setBlockState(cursor,
+						pickStableReplacement(layerGeome, formationRegion, layerIndex, y), 0);
 				changed = true;
 			}
 		}
@@ -248,7 +248,7 @@ public final class GeomeGeology {
 		int stratum = baseRockValue + y;
 		int layerIndex = Math.floorDiv(stratum, layerThickness);
 		if (stableLayers) {
-			return pickStableReplacement(geomeIndex, formationRegion, layerIndex);
+			return pickStableReplacement(geomeIndex, formationRegion, layerIndex, y);
 		}
 
 		int layerY = y + (layerThickness / 2) - Math.floorMod(stratum, layerThickness);
@@ -258,7 +258,7 @@ public final class GeomeGeology {
 		return config.pickRock(geomeIndex, family, layerY, rockHash);
 	}
 
-	private BlockState pickStableReplacement(int geomeIndex, long formationRegion, int layerIndex) {
+	private BlockState pickStableReplacement(int geomeIndex, long formationRegion, int layerIndex, int worldY) {
 		// A dipping or uplifted layer keeps the depth identity it had in stratum space.
 		int formationY = (layerIndex * layerThickness) + (layerThickness / 2);
 		int layerBucket = layerIndex & 0xFF;
@@ -284,8 +284,9 @@ public final class GeomeGeology {
 			// from collapsing onto one exact rock.
 			rockBucket ^= LITHOLOGY_ROCK_SALTS[familySlot];
 		}
-		RockFamily family = config.pickFamily(geomeIndex, formationY, familyBucket, familySlot);
-		return config.pickRock(geomeIndex, family, formationY, rockBucket);
+		RockFamily family = config.pickStableFamilyAtWorldY(geomeIndex, worldY, formationY,
+				familyBucket, familySlot);
+		return config.pickStableRockAtWorldY(geomeIndex, family, worldY, formationY, rockBucket);
 	}
 
 	int stratumOffsetAt(int x, int z) {
