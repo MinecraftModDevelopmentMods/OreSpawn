@@ -85,8 +85,8 @@ public final class SurfaceProbeTestMod {
 	private static final Block[] NATURAL_SOURCES = {
 			Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL,
 			Blocks.ROOTED_DIRT, Blocks.GRAVEL, Blocks.SAND, Blocks.RED_SAND,
-			Blocks.CLAY, Blocks.TERRACOTTA, Blocks.WHITE_TERRACOTTA,
-			Blocks.ORANGE_TERRACOTTA, Blocks.RED_TERRACOTTA
+			Blocks.CLAY, Blocks.TERRACOTTA, Blocks.DYED_TERRACOTTA.pick(DyeColor.WHITE),
+			Blocks.DYED_TERRACOTTA.pick(DyeColor.ORANGE), Blocks.DYED_TERRACOTTA.pick(DyeColor.RED)
 	};
 	private static final Block[] INVALID_TERRAIN_HOSTS = {
 			Blocks.AIR, Blocks.WATER, Blocks.BEDROCK, Blocks.CHEST
@@ -106,7 +106,7 @@ public final class SurfaceProbeTestMod {
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
 	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
-	private static final BlockState WEATHER_SNOW_REPLACEMENT = Blocks.WHITE_WOOL.defaultBlockState();
+	private static final BlockState WEATHER_SNOW_REPLACEMENT = Blocks.WOOL.pick(DyeColor.WHITE).defaultBlockState();
 	private static final BlockState WEATHER_ICE_REPLACEMENT = Blocks.BLUE_ICE.defaultBlockState();
 
 	static {
@@ -155,7 +155,7 @@ public final class SurfaceProbeTestMod {
 		addPalette(provider, "open_palette", OPEN_ID, false);
 		addPalette(provider, "roofed_palette", ROOFED_ID, true);
 		provider.dimensionMaterials(Identifier.parse(MODID + ":materials/end"), OPEN_ID,
-				materials -> materials.snowBlock(blockId(Blocks.WHITE_WOOL))
+				materials -> materials.snowBlock(blockId(Blocks.WOOL.pick(DyeColor.WHITE)))
 						.iceBlock(blockId(Blocks.BLUE_ICE)));
 		provider.dimensionMaterials(Identifier.parse(MODID + ":materials/nether"), ROOFED_ID,
 				materials -> materials.defaultFluid(blockId(Blocks.WATER)));

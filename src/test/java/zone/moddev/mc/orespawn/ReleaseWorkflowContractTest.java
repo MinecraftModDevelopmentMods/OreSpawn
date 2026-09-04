@@ -89,6 +89,11 @@ class ReleaseWorkflowContractTest {
 		}
 		assertFalse(properties.containsKey("neogradle.subsystems.decompiler.enabled"));
 
+		String build = new String(Files.readAllBytes(
+				Paths.get("build.gradle")), StandardCharsets.UTF_8);
+		assertTrue(build.contains("task.name.startsWith('cacheVersionExecutable')"));
+		assertTrue(build.contains("!gradle.startParameter.offline || cachedOutputs.isEmpty()"));
+
 		String text = new String(Files.readAllBytes(
 				Paths.get(".github", "workflows", "ci.yml")), StandardCharsets.UTF_8);
 		assertEquals(3, occurrences(text, "./gradlew clean "));

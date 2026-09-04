@@ -72,6 +72,20 @@ sourceSets.main.resources {
     srcDir 'src/generated/resources'
 }
 
+// NeoGradle stores the downloaded vanilla executables in its project-local
+// cache. Gradle's --rerun-tasks would otherwise delete those valid inputs
+// before an offline build and then ask NeoGradle to download them again.
+// Preserve complete cached executables only while offline; a missing cache
+// entry still executes the provider task and fails with NeoGradle's normal
+// diagnostic instead of hiding an incomplete bootstrap.
+tasks.matching { task -> task.name.startsWith('cacheVersionExecutable') }.configureEach {
+    onlyIf {
+        Set<File> cachedOutputs = outputs.files.files
+        !gradle.startParameter.offline || cachedOutputs.isEmpty()
+                || !cachedOutputs.every { it.exists() }
+    }
+}
+
 def bundledDocumentationDirectory = layout.projectDirectory.dir(
         'src/generated/resources/META-INF/orespawn/docs')
 def prepareBundledDocumentation = tasks.register('prepareBundledDocumentation', Sync) {

@@ -21,6 +21,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
@@ -101,36 +102,36 @@ public final class ClientProbeTestMod {
 	private void handleClientTick() {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (++stateTicks > 3600) fail(minecraft, "Timed out in client probe state " + state
-				+ " on screen " + (minecraft.screen == null ? "<none>" : minecraft.screen.getClass().getName()));
+				+ " on screen " + (minecraft.gui.screen() == null ? "<none>" : minecraft.gui.screen().getClass().getName()));
 		try {
 			switch (state) {
 				case 0:
-					if (minecraft.screen instanceof AccessibilityOnboardingScreen) {
-						minecraft.screen.onClose();
+					if (minecraft.gui.screen() instanceof AccessibilityOnboardingScreen) {
+						minecraft.gui.screen().onClose();
 					}
-					if (minecraft.screen instanceof TitleScreen) {
-						Screen parent = minecraft.screen;
-						CreateWorldScreen.openFresh(minecraft, () -> minecraft.setScreen(parent));
+					if (minecraft.gui.screen() instanceof TitleScreen) {
+						Screen parent = minecraft.gui.screen();
+						CreateWorldScreen.openFresh(minecraft, () -> minecraft.gui.setScreen(parent));
 						nextState(1);
 					}
 					break;
 				case 1:
-					if (minecraft.screen instanceof CreateWorldScreen
-							&& activateWorldSettings(minecraft.screen, worldCreationButtons)) {
+					if (minecraft.gui.screen() instanceof CreateWorldScreen
+							&& activateWorldSettings(minecraft.gui.screen(), worldCreationButtons)) {
 						worldSettingsOpened = true;
 						nextState(2);
 					}
 					break;
 				case 2:
-					if (minecraft.screen instanceof CreateWorldScreen && stateTicks >= 2) {
-						validateCaptions(minecraft.screen);
-						validateLongEditorRoundTrip(minecraft, minecraft.screen);
+					if (minecraft.gui.screen() instanceof CreateWorldScreen && stateTicks >= 2) {
+						validateCaptions(minecraft.gui.screen());
+						validateLongEditorRoundTrip(minecraft, minecraft.gui.screen());
 						nextState(3);
 					}
 					break;
 				case 3:
-					if (minecraft.screen instanceof CreateWorldScreen) {
-						CreateWorldScreen root = (CreateWorldScreen) minecraft.screen;
+					if (minecraft.gui.screen() instanceof CreateWorldScreen) {
+						CreateWorldScreen root = (CreateWorldScreen) minecraft.gui.screen();
 						Button target = nextNavigationButton(root);
 						if (target == null) {
 							if (editorRoutes.size() < 5) fail(minecraft,
@@ -139,10 +140,10 @@ public final class ClientProbeTestMod {
 							pressCreateWorld(root);
 							nextState(6);
 						} else {
-							Screen before = minecraft.screen;
+							Screen before = minecraft.gui.screen();
 							press(target);
-							if (minecraft.screen != before && isOreSpawnEditor(minecraft.screen)) {
-								editorRoutes.add(minecraft.screen.getClass().getSimpleName());
+							if (minecraft.gui.screen() != before && isOreSpawnEditor(minecraft.gui.screen())) {
+								editorRoutes.add(minecraft.gui.screen().getClass().getSimpleName());
 								editorFrames = 0;
 								nextState(4);
 							}
@@ -150,20 +151,20 @@ public final class ClientProbeTestMod {
 					}
 					break;
 				case 4:
-					if (isOreSpawnEditor(minecraft.screen) && editorFrames >= 2) {
-						validateCaptions(minecraft.screen);
-						minecraft.screen.onClose();
+					if (isOreSpawnEditor(minecraft.gui.screen()) && editorFrames >= 2) {
+						validateCaptions(minecraft.gui.screen());
+						minecraft.gui.screen().onClose();
 						nextState(3);
 					}
 					break;
 				case 5:
 					break;
 				case 6:
-					if (minecraft.screen instanceof ConfirmScreen) {
-						pressWorldCreationConfirmation((ConfirmScreen) minecraft.screen);
+					if (minecraft.gui.screen() instanceof ConfirmScreen) {
+						pressWorldCreationConfirmation((ConfirmScreen) minecraft.gui.screen());
 					}
-					if (minecraft.screen instanceof ConfirmExperimentalFeaturesScreen) {
-						pressExperimentalProceed((ConfirmExperimentalFeaturesScreen) minecraft.screen);
+					if (minecraft.gui.screen() instanceof ConfirmExperimentalFeaturesScreen) {
+						pressExperimentalProceed((ConfirmExperimentalFeaturesScreen) minecraft.gui.screen());
 					}
 					if (minecraft.level != null && minecraft.player != null && firstWorldFrames >= 8
 							&& stateTicks >= 100) {
@@ -174,19 +175,19 @@ public final class ClientProbeTestMod {
 				case 7:
 					if (minecraft.level == null && !minecraft.hasSingleplayerServer() && stateTicks >= 100) {
 						minecraft.createWorldOpenFlows().openWorld(WORLD_DIRECTORY,
-								() -> minecraft.setScreen(new TitleScreen()));
+								() -> minecraft.gui.setScreen(new TitleScreen()));
 						nextState(8);
 					}
 					break;
 				case 8:
-					if (minecraft.screen instanceof BackupConfirmScreen) {
-						pressBackupConfirmation((BackupConfirmScreen) minecraft.screen);
+					if (minecraft.gui.screen() instanceof BackupConfirmScreen) {
+						pressBackupConfirmation((BackupConfirmScreen) minecraft.gui.screen());
 					}
-					if (minecraft.screen instanceof ConfirmScreen) {
-						pressWorldCreationConfirmation((ConfirmScreen) minecraft.screen);
+					if (minecraft.gui.screen() instanceof ConfirmScreen) {
+						pressWorldCreationConfirmation((ConfirmScreen) minecraft.gui.screen());
 					}
-					if (minecraft.screen instanceof ConfirmExperimentalFeaturesScreen) {
-						pressExperimentalProceed((ConfirmExperimentalFeaturesScreen) minecraft.screen);
+					if (minecraft.gui.screen() instanceof ConfirmExperimentalFeaturesScreen) {
+						pressExperimentalProceed((ConfirmExperimentalFeaturesScreen) minecraft.gui.screen());
 					}
 					if (minecraft.level != null && minecraft.player != null && reloadWorldFrames >= 8
 							&& stateTicks >= 100) {
@@ -227,12 +228,17 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(Screen screen) {
 		for (AbstractWidget widget : widgets(screen)) {
+			// Minecraft 26.2's create-world menu uses an empty-captioned composite
+			// container; its visible tab controls are checked independently.
+			if (widget instanceof MenuTabBar) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.getMessage());
+				throw new IllegalStateException("Invalid client caption on "
+						+ screen.getClass().getName() + " widget " + widget.getClass().getName()
+						+ ": " + widget.getMessage());
 			}
 		}
 	}
@@ -375,8 +381,8 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void initializeScreen(Screen screen, Minecraft minecraft) {
-		minecraft.setScreen(screen);
-		if (minecraft.screen != screen) {
+		minecraft.gui.setScreen(screen);
+		if (minecraft.gui.screen() != screen) {
 			throw new IllegalStateException("Could not initialize target-native editor");
 		}
 	}
