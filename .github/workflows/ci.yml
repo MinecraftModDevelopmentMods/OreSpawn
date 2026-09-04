@@ -42,8 +42,10 @@ jobs:
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
-          ./gradlew help verifyLegacyFixtures --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
-          ./gradlew help verifyLegacyFixtures --offline --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew clean --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew classes verifyLegacyFixtures --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew clean --offline --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew classes verifyLegacyFixtures --offline --no-daemon --no-build-cache --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
 
   build:
     name: Build, test, and audit
@@ -60,12 +62,17 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
       - name: Build, test, and audit release artifacts
+        shell: bash
         run: |
+          set -euo pipefail
           chmod +x ./gradlew
-          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums eclipse verifyEclipseProductionClasspath --no-daemon --stacktrace --max-workers=2 \
-            "-Dorg.gradle.java.installations.paths=$JAVA_HOME" \
-            -Dorg.gradle.java.installations.auto-detect=false \
+          gradle_jdk_args=(
+            "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+            -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
+          )
+          ./gradlew clean --no-daemon --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums eclipse verifyEclipseProductionClasspath --no-daemon --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
       - name: Upload audited release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

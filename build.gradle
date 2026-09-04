@@ -961,14 +961,24 @@ tasks.register('verifyCommandPortability') {
 
 tasks.register('verifyColdNeoForgeBootstrapContract') {
     group = 'verification'
-    description = 'Verifies that CI qualifies NeoGradle from an isolated Java 21 cache without Forge tooling.'
+    description = 'Verifies that CI qualifies NeoGradle source patches from an isolated Java 21 cache.'
     doLast {
+        Properties gradleProperties = new Properties()
+        file('gradle.properties').withInputStream { gradleProperties.load(it) }
+        if (gradleProperties.getProperty('neogradle.subsystems.decompiler.enabled') != 'true') {
+            throw new GradleException(
+                    'NeoForge 21.11 CI must retain API-complete source patching')
+        }
+
         String workflow = file('.github/workflows/ci.yml').getText('UTF-8')
         [
                 'Cold NeoForge bootstrap',
                 'orespawn-neoforge-cold-cache',
                 '--no-build-cache',
                 '--offline',
+                './gradlew classes verifyLegacyFixtures --no-daemon',
+                './gradlew classes verifyLegacyFixtures --offline --no-daemon',
+                './gradlew check build javadoc',
                 "java-version: '21.0.7+6.0.LTS'"
         ].each { required ->
             if (!workflow.contains(required)) {
@@ -979,6 +989,19 @@ tasks.register('verifyColdNeoForgeBootstrapContract') {
             if (workflow.contains(forbidden)) {
                 throw new GradleException("Cold NeoForge bootstrap contains Forge-only tooling: ${forbidden}")
             }
+        }
+        ['./gradlew clean check', './gradlew clean classes'].each { combined ->
+            if (workflow.contains(combined)) {
+                throw new GradleException(
+                        "NeoGradle clean must run separately from model consumers: ${combined}")
+            }
+        }
+
+        String codeQlWorkflow = file('.github/workflows/codeql-analysis.yml').getText('UTF-8')
+        if (!codeQlWorkflow.contains('./gradlew clean --no-daemon')
+                || codeQlWorkflow.contains('clean classes')) {
+            throw new GradleException(
+                    'CodeQL must clean once before its cache-preserving compilation retry loop')
         }
     }
 }

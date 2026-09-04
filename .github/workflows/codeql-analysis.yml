@@ -40,11 +40,15 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          gradle_args=(
-            clean classes --no-daemon --stacktrace --max-workers=2
+          gradle_jdk_args=(
             "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
+          )
+          ./gradlew clean --no-daemon --stacktrace --max-workers=2 "${gradle_jdk_args[@]}"
+          gradle_args=(
+            classes --no-daemon --stacktrace --max-workers=2
+            "${gradle_jdk_args[@]}"
           )
           for attempt in 1 2 3; do
             if ./gradlew "${gradle_args[@]}"; then
