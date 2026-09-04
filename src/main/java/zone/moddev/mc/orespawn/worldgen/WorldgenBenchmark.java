@@ -15,8 +15,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.GameTestServer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -88,7 +90,8 @@ public final class WorldgenBenchmark {
 		if (level == null) {
 			throw new IllegalStateException("Benchmark dimension is unavailable: " + dimensionName);
 		}
-		if (level.getChunkSource().getGenerator() instanceof FlatLevelSource) {
+		if (level.getChunkSource().getGenerator() instanceof FlatLevelSource
+				&& !allowsFlatBenchmark(event.getServer().getClass())) {
 			throw new IllegalStateException("OreSpawn worldgen benchmarks require a normal terrain world; "
 					+ "Minecraft's GameTest server always uses the flat test preset");
 		}
@@ -145,17 +148,21 @@ public final class WorldgenBenchmark {
 			throw new IllegalStateException("Benchmark fluid audit found no successful deposits");
 		}
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
-			if (Boolean.getBoolean("neoforge.gameTestServer")
-					|| Boolean.getBoolean("forge.gameTestServer")) {
-				// GameTestServer owns its exit code. Halting it from ServerStartedEvent
-				// leaves its tracker uninitialised, which 26.1 reports as exit -1 even
-				// though the benchmark completed. Let the empty test run finish normally.
-				LOGGER.info("ORESPAWN_BENCHMARK completed; allowing GameTest server to exit normally");
-			} else {
+			if (ownsServerShutdown(event.getServer().getClass())) {
 				LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
 				event.getServer().halt(false);
+			} else {
+				LOGGER.info("ORESPAWN_BENCHMARK leaving shutdown to the GameTest harness");
 			}
 		}
+	}
+
+	static boolean ownsServerShutdown(Class<? extends MinecraftServer> serverType) {
+		return !GameTestServer.class.isAssignableFrom(serverType);
+	}
+
+	static boolean allowsFlatBenchmark(Class<? extends MinecraftServer> serverType) {
+		return !ownsServerShutdown(serverType);
 	}
 
 	static ResourceKey<Level> benchmarkDimensionKey(String configured) {

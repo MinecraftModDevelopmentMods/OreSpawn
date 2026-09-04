@@ -526,6 +526,10 @@ public final class WorldgenProvider {
 		private final Map<Identifier, Double> geomes;
 		private final Set<Identifier> hostBlocks;
 		private final Set<Identifier> hostTags;
+		private final Set<Identifier> biomeIds;
+		private final Set<Identifier> excludedBiomeIds;
+		private final Set<String> biomeDictionary;
+		private final Set<String> excludedBiomeDictionary;
 		private final Map<Identifier, Double> hostBlockWeights;
 		private final Map<Identifier, Double> hostTagWeights;
 
@@ -549,6 +553,11 @@ public final class WorldgenProvider {
 			geomes = immutableMap(builder.geomes);
 			hostBlocks = immutableSet(builder.hostBlocks);
 			hostTags = immutableSet(builder.hostTags);
+			biomeIds = immutableSet(builder.biomeIds);
+			excludedBiomeIds = immutableSet(builder.excludedBiomeIds);
+			biomeDictionary = Collections.unmodifiableSet(new LinkedHashSet<>(builder.biomeDictionary));
+			excludedBiomeDictionary = Collections.unmodifiableSet(
+					new LinkedHashSet<>(builder.excludedBiomeDictionary));
 			hostBlockWeights = immutableMap(builder.hostBlockWeights);
 			hostTagWeights = immutableMap(builder.hostTagWeights);
 		}
@@ -575,6 +584,10 @@ public final class WorldgenProvider {
 		public Map<Identifier, Double> geomes() { return geomes; }
 		public Set<Identifier> hostBlocks() { return hostBlocks; }
 		public Set<Identifier> hostTags() { return hostTags; }
+		public Set<Identifier> biomeIds() { return biomeIds; }
+		public Set<Identifier> excludedBiomeIds() { return excludedBiomeIds; }
+		public Set<String> biomeDictionary() { return biomeDictionary; }
+		public Set<String> excludedBiomeDictionary() { return excludedBiomeDictionary; }
 		public Map<Identifier, Double> hostBlockWeights() { return hostBlockWeights; }
 		public Map<Identifier, Double> hostTagWeights() { return hostTagWeights; }
 
@@ -610,6 +623,10 @@ public final class WorldgenProvider {
 			json.add("geomes", weights(geomes));
 			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
 			json.add("host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
+			json.add("biome_ids", ids(biomeIds));
+			json.add("excluded_biome_ids", ids(excludedBiomeIds));
+			json.add("biome_dictionary", strings(biomeDictionary));
+			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
 			return json;
 		}
 
@@ -633,6 +650,10 @@ public final class WorldgenProvider {
 			private final Map<Identifier, Double> geomes = new LinkedHashMap<>();
 			private final Set<Identifier> hostBlocks = new LinkedHashSet<>();
 			private final Set<Identifier> hostTags = new LinkedHashSet<>();
+			private final Set<Identifier> biomeIds = new LinkedHashSet<>();
+			private final Set<Identifier> excludedBiomeIds = new LinkedHashSet<>();
+			private final Set<String> biomeDictionary = new LinkedHashSet<>();
+			private final Set<String> excludedBiomeDictionary = new LinkedHashSet<>();
 			private final Map<Identifier, Double> hostBlockWeights = new LinkedHashMap<>();
 			private final Map<Identifier, Double> hostTagWeights = new LinkedHashMap<>();
 
@@ -663,6 +684,12 @@ public final class WorldgenProvider {
 			public Builder geomeWeight(Identifier geome, double value) { geomes.put(geome, value); return this; }
 			public Builder hostBlock(Identifier value) { hostBlocks.add(value); return this; }
 			public Builder hostTag(Identifier value) { hostTags.add(value); return this; }
+			public Builder biome(Identifier value) { biomeIds.add(value); return this; }
+			public Builder excludeBiome(Identifier value) { excludedBiomeIds.add(value); return this; }
+			public Builder biomeDictionary(String value) { biomeDictionary.add(nonBlank(value)); return this; }
+			public Builder excludeBiomeDictionary(String value) {
+				excludedBiomeDictionary.add(nonBlank(value)); return this;
+			}
 			public Builder hostBlock(Identifier value, double weight) {
 				hostBlocks.add(value);
 				hostBlockWeights.put(value, replacementWeight(weight));

@@ -1,3 +1,69 @@
+Version 4.0.16.2602002
+
+* Leave benchmark shutdown to the GameTest harness when a benchmark is run
+  through Minecraft's GameTest server, preventing a null test-tracker crash and
+  allowing the harness to report its real test result.
+* Ordinary dedicated benchmark servers still stop automatically when requested.
+
+Version 4.0.15.2602002
+
+* Classify generated geology and public geology samples through the same
+  stable quart-biome cell at three-dimensional biome boundaries.
+* Keep ore family-host filters and sampler predictions consistent when later
+  surface features alter the final heightmap by a small amount.
+* Existing chunks, profiles, API signatures, and schemas are unchanged.
+
+Version 4.0.14.2602002
+
+* Convert naturally exposed one-layer Snow at the first free block above the
+  motion-blocking surface while retaining the existing Snow and Ice scan.
+* Preserve buried or authored Snow and Ice, unconfigured dimensions, fluids,
+  bedrock, block entities, profiles, schemas, and existing chunks.
+
+Version 4.0.13.2602002
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and worldgen
+  behaviour are unchanged.
+
+Version 4.0.12.2602002
+
+* Classify public geology samples at the same highest occupied block used by
+  chunk geology generation, rather than the first free block above it.
+* Keep public sampler predictions consistent with generated rock at vertical
+  biome seams without changing existing chunks, profiles, or generation.
+
+Version 4.0.11.2602002
+
+* Preserve biome-dictionary geome weights when a data-driven biome is reached
+  through its stable registry key rather than the object baked at startup.
+* Apply ore biome include and exclude filters by stable registry key so
+  dynamic-registry biome instances with the same ID are treated consistently.
+* Existing chunks and profile formats are unchanged; the corrections apply to
+  generation in affected provider biomes.
+
+Version 4.0.10.2602002
+
+* Evaluate Stable Layers rock minimum and maximum heights against actual world Y while preserving shifted formation identity.
+* Deterministically choose another eligible configured rock before using the vanilla Stone fallback.
+
+Version 4.0.9.2602002
+
+* Replace provider-declared natural terrain hosts during the existing geology scan before structure and vegetation features can author matching blocks.
+* Keep air, fluids, bedrock and block entities protected even when their IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and saved profiles remain unchanged.
+
+Version 4.0.8.2602002
+
+* Preserve long host, tag and biome-list values when Ore and Fluid editors reopen by applying their existing maximum lengths before saved text is restored.
+* Add deterministic, audited release artifacts, checksum output, guarded Maven preparation and pinned build, wrapper, CodeQL and release-tag workflows.
+* Make the Mineralogy 1.18.2 5.4.0 compatibility oracle mandatory, checksum-sealed and isolated from production artifacts and Eclipse launches.
+* Export and verify the complete 21-file documentation set, including VERSIONS.md.
+* Standardize NeoForge 26.2 builds on NeoGradle 7.1.38, Gradle 9.2.1 and Temurin 25.0.3+9.
+
 Version 4.0.6.2602002
 
 * Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
