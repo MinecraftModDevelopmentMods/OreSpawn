@@ -147,4 +147,27 @@ class GeologyEditorSessionTest {
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
 	}
+
+	@Test
+	void namespacedGeomesCanBeAddedValidatedAndRoundTripped() {
+		String geomeId = "cakeworld:cocoa_basin";
+		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
+		session.configureDefaultVanillaStrata();
+		session.addGeome(geomeId);
+
+		assertTrue(session.section("geomes").has(geomeId));
+		session.weightMap("biomes", "minecraft:plains").addProperty(geomeId, 2.0D);
+		session.rock("minecraft:stone").getAsJsonObject("geomes").addProperty(geomeId, 3.0D);
+		java.util.List<String> errors = session.validate();
+		assertTrue(errors.isEmpty(), errors.toString());
+
+		WorldGeologyProfile saved = session.profile();
+		GeologyEditorSession reopened = new GeologyEditorSession(saved);
+		assertEquals(saved.rootCopy(), reopened.profile().rootCopy());
+		assertTrue(reopened.validate().isEmpty(), reopened.validate().toString());
+		assertEquals(2.0D, reopened.weightMap("biomes", "minecraft:plains")
+				.get(geomeId).getAsDouble());
+		assertEquals(3.0D, reopened.rock("minecraft:stone").getAsJsonObject("geomes")
+				.get(geomeId).getAsDouble());
+	}
 }
