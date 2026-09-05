@@ -6,16 +6,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
 
 class GeomeTransitionTest {
+	static {
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
+	}
+
 	private static final ResourceLocation MOUNTAINS = new ResourceLocation("minecraft:mountains");
 
 	@Test
@@ -28,6 +37,21 @@ class GeomeTransitionTest {
 		BakedGeomeConfig config = config(weights);
 
 		assertEquals(1, config.pickGeome(null, MOUNTAINS, new double[2], 0.0D));
+	}
+
+	@Test
+	void identifierFallbackRetainsDictionaryWeightContributions() {
+		Map<String, Integer> indexes = new LinkedHashMap<>();
+		indexes.put("cakeworld:peppermint_fold", 0);
+		indexes.put("cakeworld:rock_candy_uplift", 1);
+		ResourceLocation marshmallowPeaks = new ResourceLocation("cakeworld", "marshmallow_peaks");
+		Map<ResourceLocation, double[]> weights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
+				Map.of(marshmallowPeaks.toString(), new double[] { 6.0D, 14.0D }),
+				Map.of("COLD", new double[] { 8.0D, 0.0D }),
+				type -> Set.of(marshmallowPeaks));
+
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[0]);
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[1]);
 	}
 
 	@Test
