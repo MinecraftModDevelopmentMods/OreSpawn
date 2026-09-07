@@ -528,6 +528,10 @@ public final class WorldgenProvider {
 		private final Map<ResourceLocation, Double> geomes;
 		private final Set<ResourceLocation> hostBlocks;
 		private final Set<ResourceLocation> hostTags;
+		private final Set<ResourceLocation> biomeIds;
+		private final Set<ResourceLocation> excludedBiomeIds;
+		private final Set<String> biomeDictionary;
+		private final Set<String> excludedBiomeDictionary;
 		private final Map<ResourceLocation, Double> hostBlockWeights;
 		private final Map<ResourceLocation, Double> hostTagWeights;
 
@@ -551,6 +555,11 @@ public final class WorldgenProvider {
 			geomes = immutableMap(builder.geomes);
 			hostBlocks = immutableSet(builder.hostBlocks);
 			hostTags = immutableSet(builder.hostTags);
+			biomeIds = immutableSet(builder.biomeIds);
+			excludedBiomeIds = immutableSet(builder.excludedBiomeIds);
+			biomeDictionary = Collections.unmodifiableSet(new LinkedHashSet<>(builder.biomeDictionary));
+			excludedBiomeDictionary = Collections.unmodifiableSet(
+					new LinkedHashSet<>(builder.excludedBiomeDictionary));
 			hostBlockWeights = immutableMap(builder.hostBlockWeights);
 			hostTagWeights = immutableMap(builder.hostTagWeights);
 		}
@@ -577,6 +586,10 @@ public final class WorldgenProvider {
 		public Map<ResourceLocation, Double> geomes() { return geomes; }
 		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
 		public Set<ResourceLocation> hostTags() { return hostTags; }
+		public Set<ResourceLocation> biomeIds() { return biomeIds; }
+		public Set<ResourceLocation> excludedBiomeIds() { return excludedBiomeIds; }
+		public Set<String> biomeDictionary() { return biomeDictionary; }
+		public Set<String> excludedBiomeDictionary() { return excludedBiomeDictionary; }
 		public Map<ResourceLocation, Double> hostBlockWeights() { return hostBlockWeights; }
 		public Map<ResourceLocation, Double> hostTagWeights() { return hostTagWeights; }
 
@@ -612,6 +625,10 @@ public final class WorldgenProvider {
 			json.add("geomes", weights(geomes));
 			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
 			json.add("host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
+			json.add("biome_ids", ids(biomeIds));
+			json.add("excluded_biome_ids", ids(excludedBiomeIds));
+			json.add("biome_dictionary", strings(biomeDictionary));
+			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
 			return json;
 		}
 
@@ -635,6 +652,10 @@ public final class WorldgenProvider {
 			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
 			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
 			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
+			private final Set<ResourceLocation> biomeIds = new LinkedHashSet<>();
+			private final Set<ResourceLocation> excludedBiomeIds = new LinkedHashSet<>();
+			private final Set<String> biomeDictionary = new LinkedHashSet<>();
+			private final Set<String> excludedBiomeDictionary = new LinkedHashSet<>();
 			private final Map<ResourceLocation, Double> hostBlockWeights = new LinkedHashMap<>();
 			private final Map<ResourceLocation, Double> hostTagWeights = new LinkedHashMap<>();
 
@@ -665,6 +686,12 @@ public final class WorldgenProvider {
 			public Builder geomeWeight(ResourceLocation geome, double value) { geomes.put(geome, value); return this; }
 			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
 			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
+			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
+			public Builder excludeBiome(ResourceLocation value) { excludedBiomeIds.add(value); return this; }
+			public Builder biomeDictionary(String value) { biomeDictionary.add(nonBlank(value)); return this; }
+			public Builder excludeBiomeDictionary(String value) {
+				excludedBiomeDictionary.add(nonBlank(value)); return this;
+			}
 			public Builder hostBlock(ResourceLocation value, double weight) {
 				hostBlocks.add(value);
 				hostBlockWeights.put(value, replacementWeight(weight));
@@ -1272,7 +1299,7 @@ public final class WorldgenProvider {
 				profile.addProperty("place_fluid_deposits", true);
 				return this;
 			}
-			/** @deprecated Use {@code fluidDeposit(FluidDepositDefinition)}. */
+			/** @deprecated Use {@link WorldgenProvider.GeologyTemplate.Builder#fluidDeposit(WorldgenProvider.FluidDepositDefinition)}. */
 			@Deprecated
 			public Builder oil(OilDefinition value) {
 				profile.add("oil", value.toJson());

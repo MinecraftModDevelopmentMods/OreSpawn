@@ -293,8 +293,10 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				if (!bool(dimension, "enabled", true)) {
 					continue;
 				}
+				BakedGeomeConfig dimensionConfig = GeomeConfig.baked(dimensionId);
+				if (dimensionConfig == null) dimensionConfig = config;
 				BakedOre baked = bakeOre(output.getDefaultState(), deepOutput, deepOutputMaxY, outputs,
-						dimension, config, resolvedTags, retrogen);
+						dimension, dimensionConfig, resolvedTags, retrogen);
 				if (baked != null) {
 					rule.explicit.put(dimensionId, baked);
 				} else {
@@ -446,7 +448,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				minY, maxY, Math.min(64.0D, frequency), minQuantity, maxQuantity,
 				pattern, heightDistribution, discardChanceOnAirExposure,
 				spread, verticalSpread, nodeSize,
-				hostBlocks, familyMask, geomeWeights, includedBiomeIds, excludedBiomeIds,
+				hostBlocks, familyMask, config, geomeWeights, includedBiomeIds, excludedBiomeIds,
 				includedDictionaryBiomes, excludedDictionaryBiomes, retrogen);
 	}
 
@@ -631,6 +633,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		final int nodeSize;
 		final Map<Block, Double> hostBlocks;
 		final int familyMask;
+		final BakedGeomeConfig hostConfig;
 		final double[] geomeWeights;
 		final Set<ResourceLocation> includedBiomeIds;
 		final Set<ResourceLocation> excludedBiomeIds;
@@ -643,7 +646,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				CompiledOrePattern pattern, OreHeightDistribution heightDistribution,
 				double discardChanceOnAirExposure,
 				int spread, int verticalSpread, int nodeSize,
-				Map<Block, Double> hostBlocks, int familyMask, double[] geomeWeights,
+				Map<Block, Double> hostBlocks, int familyMask, BakedGeomeConfig hostConfig,
+				double[] geomeWeights,
 				Set<ResourceLocation> includedBiomeIds, Set<ResourceLocation> excludedBiomeIds,
 				Set<Biome> includedDictionaryBiomes, Set<Biome> excludedDictionaryBiomes,
 				boolean retrogen) {
@@ -664,6 +668,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			this.nodeSize = nodeSize;
 			this.hostBlocks = hostBlocks;
 			this.familyMask = familyMask;
+			this.hostConfig = hostConfig;
 			this.geomeWeights = geomeWeights;
 			this.includedBiomeIds = includedBiomeIds;
 			this.excludedBiomeIds = excludedBiomeIds;
@@ -686,13 +691,13 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			return output;
 		}
 
-		boolean accepts(BlockState state, Random random, BakedGeomeConfig config) {
+		boolean accepts(BlockState state, Random random) {
 			Double chance = hostBlocks.get(state.getBlock());
 			if (chance != null) {
 				return chance >= 1.0D || random.nextDouble() < chance;
 			}
-			RockFamily family = config.familyOf(state);
-			return family != null && config.isOreReplaceable(state)
+			RockFamily family = hostConfig.familyOf(state);
+			return family != null && hostConfig.isOreReplaceable(state)
 					&& (familyMask & (1 << family.ordinal())) != 0;
 		}
 
@@ -837,7 +842,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			if (!inside(x, y, z)) return false;
 			cursor.setPos(x, y, z);
 			BlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
-			if (!ore.accepts(existing, random, geomeConfig)) return false;
+			if (!ore.accepts(existing, random)) return false;
 			if (ore.discardChanceOnAirExposure > 0.0D
 					&& random.nextDouble() < ore.discardChanceOnAirExposure
 					&& isAdjacentToAir(x, y, z)) {

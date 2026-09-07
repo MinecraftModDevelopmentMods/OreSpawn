@@ -25,6 +25,10 @@ import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
+import zone.moddev.mc.orespawn.api.GeologyColumn;
+import zone.moddev.mc.orespawn.api.GeologySampler;
+import zone.moddev.mc.orespawn.api.OreHeightDistribution;
+import zone.moddev.mc.orespawn.api.OrePattern;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes;
 import zone.moddev.mc.orespawn.api.ProviderStatus;
@@ -107,7 +111,10 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
+	private static final ResourceLocation PROBE_GEOME_ALTERNATIVE =
+			new ResourceLocation(MODID + ":dynamic_biome_geome_alternative");
 	private static final ResourceLocation DYNAMIC_FLUID = new ResourceLocation(MODID + ":fluid/dynamic_water");
+	private static final ResourceLocation FAMILY_ORE = new ResourceLocation(MODID + ":ore/family_attribution");
 	private static final Block[] NATURAL_SOURCES = {
 			Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL,
 			Blocks.GRAVEL, Blocks.SAND, Blocks.RED_SAND, Blocks.CLAY,
@@ -142,6 +149,8 @@ public final class SurfaceProbeTestMod {
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
 	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
+	private static final BlockState WEATHER_SNOW_REPLACEMENT = Blocks.WHITE_WOOL.getDefaultState();
+	private static final BlockState WEATHER_ICE_REPLACEMENT = Blocks.BLUE_ICE.getDefaultState();
 
 	public SurfaceProbeTestMod() {
 		FMLJavaModLoadingContext context = FMLJavaModLoadingContext.get();
@@ -191,6 +200,16 @@ public final class SurfaceProbeTestMod {
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addDynamicBiomeGeology(provider);
+		provider.ore(FAMILY_ORE, blockId(Blocks.DIAMOND_BLOCK), ore -> ore
+				.retrogen(false)
+				.dimension(OPEN_ID, placement -> placement
+						.yRange(16, 48)
+						.attempts(16.0D)
+						.quantity(8)
+						.pattern(OrePattern.CLUSTER)
+						.heightDistribution(OreHeightDistribution.UNIFORM)
+						.discardChanceOnAirExposure(0.0D)
+						.hostFamily(GeologyFamily.SEDIMENTARY)));
 		provider.fluidDeposit(DYNAMIC_FLUID, blockId(Blocks.WATER), deposit -> deposit
 				.dimension(OPEN_ID, placement -> placement
 						.yRange(16, 24)
@@ -203,6 +222,9 @@ public final class SurfaceProbeTestMod {
 						.hostBlock(blockId(Blocks.DIORITE))));
 		addPalette(provider, "open_palette_0", OPEN_ID, false);
 		addPalette(provider, "roofed_palette_0", ROOFED_ID, true);
+		provider.dimensionMaterials(new ResourceLocation(MODID + ":materials/end"), OPEN_ID,
+				materials -> materials.snowBlock(blockId(Blocks.WHITE_WOOL))
+						.iceBlock(blockId(Blocks.BLUE_ICE)));
 		provider.dimensionMaterials(new ResourceLocation(MODID + ":materials/nether"), ROOFED_ID,
 				materials -> materials.defaultFluid(blockId(Blocks.WATER)));
 		if (!OreSpawnApi.enqueue(provider.build())) {
@@ -214,20 +236,25 @@ public final class SurfaceProbeTestMod {
 		provider.geome(PROBE_GEOME, geome -> geome
 				.baseWeight(0.0D)
 				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
+		provider.geome(PROBE_GEOME_ALTERNATIVE, geome -> geome
+				.baseWeight(0.0D)
+				.familyWeight(GeologyFamily.IGNEOUS_INTRUSIVE, 1.0D));
 		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome"), blockId(Blocks.DIORITE),
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 1.0D);
+					rock.geomeWeight(PROBE_GEOME_ALTERNATIVE, 0.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
 				});
-		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.GRANITE),
-				GeologyFamily.SEDIMENTARY, rock -> {
+		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome_alternative"), blockId(Blocks.GRANITE),
+				GeologyFamily.IGNEOUS_INTRUSIVE, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 0.0D);
-					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
+					rock.geomeWeight(PROBE_GEOME_ALTERNATIVE, 1.0D);
+					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
 				});
 		provider.biome(BIOME_A, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
-		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
+		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME_ALTERNATIVE, 100.0D));
 	}
 
 	private void enableGeologyProbe(FMLServerAboutToStartEvent event) {
@@ -241,6 +268,7 @@ public final class SurfaceProbeTestMod {
 		}
 		try {
 			root.addProperty("place_fluid_deposits", true);
+			root.addProperty("place_ores", true);
 			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
 			if (terrain == null) {
 				terrain = new JsonObject();
@@ -388,7 +416,18 @@ public final class SurfaceProbeTestMod {
 		long underwaterPockets = 0L;
 		long rawBedrock = 0L;
 		long rawBlockEntities = 0L;
+		long primaryGeology = 0L;
+		long alternativeGeology = 0L;
+		long samplerMismatches = 0L;
+		long exposedSnowConverted = 0L;
+		long surfaceIceConverted = 0L;
+		long buriedSnowPreserved = 0L;
+		long buriedIcePreserved = 0L;
+		long unconfiguredSnowPreserved = 0L;
+		long unconfiguredIcePreserved = 0L;
 		BlockPos.Mutable pos = new BlockPos.Mutable();
+		GeologySampler sampler = roofed ? null : OreSpawnApi.createSampler(level)
+				.orElseThrow(() -> new IllegalStateException("Surface probe geology sampler is unavailable"));
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
 			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
@@ -436,15 +475,25 @@ public final class SurfaceProbeTestMod {
 							filler++;
 						}
 						if (!roofed) {
+							GeologyColumn sampled = sampler.sampleColumn(x, z, groundY + 1);
+							ResourceLocation geologyBiomeId = biomeId(level,
+									stableBiome(level, x, groundY, z));
+							Block expectedRock = BIOME_A.equals(geologyBiomeId)
+									? Blocks.DIORITE : Blocks.GRANITE;
 							for (int depth = 6; depth <= 8; depth++) {
 								assertBlock(chunk, pos, x, groundY - depth, z,
-										Blocks.DIORITE.getDefaultState(), "dynamic-biome geome rock");
+										expectedRock.getDefaultState(), "stable-biome geome rock");
+								if (sampled.rockAt(groundY - depth).getBlock() != expectedRock) {
+									samplerMismatches++;
+								}
+								if (expectedRock == Blocks.DIORITE) primaryGeology++;
+								else alternativeGeology++;
 								geology++;
 							}
 						}
 						if (roofed) {
-							ResourceLocation ceilingBiome = biomeId(level, level.getBiome(
-									pos.setPos(x, groundY + 8, z)));
+							ResourceLocation ceilingBiome = biomeId(level,
+									level.getBiome(pos.setPos(x, groundY + 8, z)));
 							BlockState expectedCeiling = material(ceilingBiome, true).ceiling();
 							assertBlock(chunk, pos, x, groundY + 8, z, expectedCeiling,
 									"roof underside");
@@ -466,20 +515,40 @@ public final class SurfaceProbeTestMod {
 					rawBedrock += natural.bedrockPreserved;
 					rawBlockEntities += natural.blockEntityPreserved;
 				}
+				WeatherMaterialAudit weather = auditWeatherMaterials(chunk, pos,
+						chunkMinX, chunkMinZ, 0, 256, roofed);
+				exposedSnowConverted += weather.exposedSnowConverted();
+				surfaceIceConverted += weather.surfaceIceConverted();
+				buriedSnowPreserved += weather.buriedSnowPreserved();
+				buriedIcePreserved += weather.buriedIcePreserved();
+				unconfiguredSnowPreserved += weather.unconfiguredSnowPreserved();
+				unconfiguredIcePreserved += weather.unconfiguredIcePreserved();
 			}
 		}
 
+		FamilyOreAudit familyOre = roofed ? new FamilyOreAudit(0L, 0L)
+				: auditFamilyOre(level, sampler);
 		if (top != EXPECTED_COLUMNS - 9 || underwater != 9 || filler != EXPECTED_FILLER
 				|| biomeA == 0 || biomeB == 0 || edgeChanges == 0 || sentinels != 9 * 4
 				|| geology != (roofed ? 0 : EXPECTED_FILLER)
-				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS))
+				|| (roofed && (ceiling != EXPECTED_COLUMNS || roofTop != EXPECTED_COLUMNS
+						|| unconfiguredSnowPreserved != 9 || unconfiguredIcePreserved != 9
+						|| exposedSnowConverted != 0 || surfaceIceConverted != 0
+						|| buriedSnowPreserved != 0 || buriedIcePreserved != 0))
 				|| (!roofed && (rawNaturalSources != EXPECTED_NATURAL_SOURCES
 						|| structureNaturalSources != EXPECTED_NATURAL_SOURCES
 						|| vegetationNaturalSources != EXPECTED_NATURAL_SOURCES
 						|| cavePockets != EXPECTED_NATURAL_SOURCES / 2
 						|| underwaterPockets != EXPECTED_NATURAL_SOURCES / 2
-						|| rawBedrock != 9 || rawBlockEntities != 9))) {
-			throw new IllegalStateException("Incomplete surface audit for " + DimensionType.getKey(level.dimension.getType())
+						|| rawBedrock != 9 || rawBlockEntities != 9
+						|| primaryGeology == 0 || alternativeGeology == 0
+						|| samplerMismatches != 0
+						|| familyOre.generated == 0 || familyOre.mismatches != 0
+						|| exposedSnowConverted != 9 || surfaceIceConverted != 9
+						|| buriedSnowPreserved != 9 || buriedIcePreserved != 9
+						|| unconfiguredSnowPreserved != 0 || unconfiguredIcePreserved != 0))) {
+			throw new IllegalStateException("Incomplete surface audit for "
+					+ DimensionType.getKey(level.dimension.getType())
 					+ ": top=" + top + ", underwater=" + underwater + ", filler=" + filler
 					+ ", biomeA=" + biomeA + ", biomeB=" + biomeB + ", edges=" + edgeChanges
 					+ ", sentinels=" + sentinels + ", geology=" + geology
@@ -490,13 +559,95 @@ public final class SurfaceProbeTestMod {
 					+ ", cavePockets=" + cavePockets
 					+ ", underwaterPockets=" + underwaterPockets
 					+ ", rawBedrock=" + rawBedrock
-					+ ", rawBlockEntities=" + rawBlockEntities);
+					+ ", rawBlockEntities=" + rawBlockEntities
+					+ ", primaryGeology=" + primaryGeology
+					+ ", alternativeGeology=" + alternativeGeology
+					+ ", samplerMismatches=" + samplerMismatches
+					+ ", familyOre=" + familyOre.generated
+					+ ", familyOreMismatches=" + familyOre.mismatches
+					+ ", exposedSnowConverted=" + exposedSnowConverted
+					+ ", surfaceIceConverted=" + surfaceIceConverted
+					+ ", buriedSnowPreserved=" + buriedSnowPreserved
+					+ ", buriedIcePreserved=" + buriedIcePreserved
+					+ ", unconfiguredSnowPreserved=" + unconfiguredSnowPreserved
+					+ ", unconfiguredIcePreserved=" + unconfiguredIcePreserved);
 		}
 		long aquiferFluid = roofed ? 0L : auditDynamicFluid(level);
 		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
 				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid,
 				rawNaturalSources, structureNaturalSources, vegetationNaturalSources,
-				cavePockets, underwaterPockets, rawBedrock, rawBlockEntities);
+				cavePockets, underwaterPockets, rawBedrock, rawBlockEntities,
+				primaryGeology, alternativeGeology, samplerMismatches,
+				familyOre.generated, familyOre.mismatches,
+				exposedSnowConverted, surfaceIceConverted,
+				buriedSnowPreserved, buriedIcePreserved,
+				unconfiguredSnowPreserved, unconfiguredIcePreserved);
+	}
+
+	private static FamilyOreAudit auditFamilyOre(ServerWorld level, GeologySampler sampler) {
+		BlockPos.Mutable pos = new BlockPos.Mutable();
+		long generated = 0L;
+		long mismatches = 0L;
+		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
+			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
+				Chunk chunk = level.getChunk(chunkX, chunkZ);
+				for (int x = chunk.getPos().getXStart(); x <= chunk.getPos().getXEnd(); x++) {
+					for (int z = chunk.getPos().getZStart(); z <= chunk.getPos().getZEnd(); z++) {
+						int surfaceY = level.getHeight(Heightmap.Type.WORLD_SURFACE, x, z);
+						GeologyColumn sampled = sampler.sampleColumn(x, z, surfaceY);
+						for (int y = 16; y <= 48; y++) {
+							if (chunk.getBlockState(pos.setPos(x, y, z)).getBlock() != Blocks.DIAMOND_BLOCK) {
+								continue;
+							}
+							generated++;
+							ResourceLocation biome = biomeId(level, stableBiome(level, x, y, z));
+							if (!BIOME_A.equals(biome)
+									|| !sampled.familyAt(y).filter(family -> family == GeologyFamily.SEDIMENTARY)
+											.isPresent()) {
+								mismatches++;
+							}
+						}
+					}
+				}
+			}
+		}
+		return new FamilyOreAudit(generated, mismatches);
+	}
+
+	private static WeatherMaterialAudit auditWeatherMaterials(IChunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ, int minY, int maxY,
+			boolean roofed) {
+		int snowGroundY = findMarkedGround(chunk, pos, minX + 2, minZ + 2, minY, maxY);
+		int iceGroundY = findMarkedGround(chunk, pos, minX + 3, minZ + 2, minY, maxY);
+		if (roofed) {
+			return new WeatherMaterialAudit(0L, 0L, 0L, 0L,
+					assertState(chunk, pos.setPos(minX + 2, snowGroundY + 11, minZ + 2),
+							Blocks.SNOW.getDefaultState(), "unconfigured exposed Snow preservation"),
+					assertState(chunk, pos.setPos(minX + 3, iceGroundY + 11, minZ + 2),
+							Blocks.ICE.getDefaultState(), "unconfigured surface Ice preservation"));
+		}
+		int buriedSnowGroundY = findMarkedGround(chunk, pos, minX + 2, minZ + 3, minY, maxY);
+		int buriedIceGroundY = findMarkedGround(chunk, pos, minX + 3, minZ + 3, minY, maxY);
+		return new WeatherMaterialAudit(
+				assertState(chunk, pos.setPos(minX + 2, snowGroundY + 1, minZ + 2),
+						WEATHER_SNOW_REPLACEMENT, "exposed Snow weather replacement"),
+				assertState(chunk, pos.setPos(minX + 3, iceGroundY + 1, minZ + 2),
+						WEATHER_ICE_REPLACEMENT, "surface Ice weather replacement"),
+				assertState(chunk, pos.setPos(minX + 2, buriedSnowGroundY - 24, minZ + 3),
+						Blocks.SNOW.getDefaultState(), "buried authored Snow preservation"),
+				assertState(chunk, pos.setPos(minX + 3, buriedIceGroundY - 24, minZ + 3),
+						Blocks.ICE.getDefaultState(), "buried authored Ice preservation"),
+				0L, 0L);
+	}
+
+	private static long assertState(IChunk chunk, BlockPos pos,
+			BlockState expected, String label) {
+		BlockState actual = chunk.getBlockState(pos);
+		if (!actual.equals(expected)) {
+			throw new IllegalStateException(label + " changed at " + pos
+					+ ": expected " + expected + " but found " + actual);
+		}
+		return 1L;
 	}
 
 	private static NaturalSourceAudit auditNaturalSources(ServerWorld level, IChunk chunk, BlockPos.Mutable pos,
@@ -512,7 +663,8 @@ public final class SurfaceProbeTestMod {
 			int x = naturalX(minX, index);
 			int z = naturalZ(minZ, index);
 			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
-			if (chunk.getBlockState(pos.setPos(x, groundY - 12, z)).getBlock() == Blocks.DIORITE) {
+			Block converted = chunk.getBlockState(pos.setPos(x, groundY - 12, z)).getBlock();
+			if (converted == Blocks.DIORITE || converted == Blocks.GRANITE) {
 				rawConverted++;
 			}
 			Block pocket = chunk.getBlockState(pos.setPos(x, groundY - 11, z)).getBlock();
@@ -667,6 +819,11 @@ public final class SurfaceProbeTestMod {
 		return ForgeRegistries.BIOMES.getKey(biome);
 	}
 
+	private static Biome stableBiome(ServerWorld level, int blockX, int blockY, int blockZ) {
+		return level.getNoiseBiomeRaw(Math.floorDiv(blockX, 4),
+				Math.floorDiv(blockY, 4), Math.floorDiv(blockZ, 4));
+	}
+
 	private static Properties properties(long seed, Map<String, AuditResult> results) {
 		Properties values = new Properties();
 		values.setProperty("seed", Long.toString(seed));
@@ -693,6 +850,17 @@ public final class SurfaceProbeTestMod {
 			values.setProperty(prefix + "underwater_pockets", Long.toString(result.underwaterPockets()));
 			values.setProperty(prefix + "raw_bedrock", Long.toString(result.rawBedrock()));
 			values.setProperty(prefix + "raw_block_entities", Long.toString(result.rawBlockEntities()));
+			values.setProperty(prefix + "primary_geology", Long.toString(result.primaryGeology()));
+			values.setProperty(prefix + "alternative_geology", Long.toString(result.alternativeGeology()));
+			values.setProperty(prefix + "sampler_mismatches", Long.toString(result.samplerMismatches()));
+			values.setProperty(prefix + "family_ore", Long.toString(result.familyOre()));
+			values.setProperty(prefix + "family_ore_mismatches", Long.toString(result.familyOreMismatches()));
+			values.setProperty(prefix + "exposed_snow_converted", Long.toString(result.exposedSnowConverted()));
+			values.setProperty(prefix + "surface_ice_converted", Long.toString(result.surfaceIceConverted()));
+			values.setProperty(prefix + "buried_snow_preserved", Long.toString(result.buriedSnowPreserved()));
+			values.setProperty(prefix + "buried_ice_preserved", Long.toString(result.buriedIcePreserved()));
+			values.setProperty(prefix + "unconfigured_snow_preserved", Long.toString(result.unconfiguredSnowPreserved()));
+			values.setProperty(prefix + "unconfigured_ice_preserved", Long.toString(result.unconfiguredIcePreserved()));
 		}
 		return values;
 	}
@@ -857,7 +1025,33 @@ public final class SurfaceProbeTestMod {
 		world.setBlockState(pos.setPos(minX + 6, vegetationY + 1, minZ + 6), Blocks.DIRT.getDefaultState(), 2);
 		world.setBlockState(pos.setPos(minX + 6, vegetationY + 2, minZ + 6), Blocks.OAK_SAPLING.getDefaultState(), 2);
 		placeAuthoredNaturalSources(world, chunk, pos, minX, minZ, 20);
+		placeWeatherMaterialSentinels(world, chunk, pos, minX, minZ);
 		return true;
+	}
+
+	private static void placeWeatherMaterialSentinels(IWorld world, IChunk chunk,
+			BlockPos.Mutable pos, int minX, int minZ) {
+		int snowGroundY = markedGround(chunk, pos, minX + 2, minZ + 2, world);
+		int iceGroundY = markedGround(chunk, pos, minX + 3, minZ + 2, world);
+		ResourceLocation dimension = DimensionType.getKey(world.getWorld().dimension.getType());
+		if (ROOFED_ID.equals(dimension)) {
+			world.setBlockState(pos.setPos(minX + 2, snowGroundY + 11, minZ + 2),
+					Blocks.SNOW.getDefaultState(), 2);
+			world.setBlockState(pos.setPos(minX + 3, iceGroundY + 11, minZ + 2),
+					Blocks.ICE.getDefaultState(), 2);
+			return;
+		}
+		if (!OPEN_ID.equals(dimension)) return;
+		world.setBlockState(pos.setPos(minX + 2, snowGroundY + 1, minZ + 2),
+				Blocks.SNOW.getDefaultState(), 2);
+		world.setBlockState(pos.setPos(minX + 3, iceGroundY + 1, minZ + 2),
+				Blocks.ICE.getDefaultState(), 2);
+		int buriedSnowGroundY = markedGround(chunk, pos, minX + 2, minZ + 3, world);
+		int buriedIceGroundY = markedGround(chunk, pos, minX + 3, minZ + 3, world);
+		world.setBlockState(pos.setPos(minX + 2, buriedSnowGroundY - 24, minZ + 3),
+				Blocks.SNOW.getDefaultState(), 2);
+		world.setBlockState(pos.setPos(minX + 3, buriedIceGroundY - 24, minZ + 3),
+				Blocks.ICE.getDefaultState(), 2);
 	}
 
 	private static void placeAuthoredNaturalSources(IWorld world, IChunk chunk,
@@ -934,6 +1128,43 @@ public final class SurfaceProbeTestMod {
 		}
 	}
 
+	private static final class WeatherMaterialAudit {
+		private final long exposedSnowConverted;
+		private final long surfaceIceConverted;
+		private final long buriedSnowPreserved;
+		private final long buriedIcePreserved;
+		private final long unconfiguredSnowPreserved;
+		private final long unconfiguredIcePreserved;
+
+		WeatherMaterialAudit(long exposedSnowConverted, long surfaceIceConverted,
+				long buriedSnowPreserved, long buriedIcePreserved,
+				long unconfiguredSnowPreserved, long unconfiguredIcePreserved) {
+			this.exposedSnowConverted = exposedSnowConverted;
+			this.surfaceIceConverted = surfaceIceConverted;
+			this.buriedSnowPreserved = buriedSnowPreserved;
+			this.buriedIcePreserved = buriedIcePreserved;
+			this.unconfiguredSnowPreserved = unconfiguredSnowPreserved;
+			this.unconfiguredIcePreserved = unconfiguredIcePreserved;
+		}
+
+		long exposedSnowConverted() { return exposedSnowConverted; }
+		long surfaceIceConverted() { return surfaceIceConverted; }
+		long buriedSnowPreserved() { return buriedSnowPreserved; }
+		long buriedIcePreserved() { return buriedIcePreserved; }
+		long unconfiguredSnowPreserved() { return unconfiguredSnowPreserved; }
+		long unconfiguredIcePreserved() { return unconfiguredIcePreserved; }
+	}
+
+	private static final class FamilyOreAudit {
+		final long generated;
+		final long mismatches;
+
+		FamilyOreAudit(long generated, long mismatches) {
+			this.generated = generated;
+			this.mismatches = mismatches;
+		}
+	}
+
 	private static final class AuditResult {
 		private final long top;
 		private final long underwater;
@@ -953,12 +1184,28 @@ public final class SurfaceProbeTestMod {
 		private final long underwaterPockets;
 		private final long rawBedrock;
 		private final long rawBlockEntities;
+		private final long primaryGeology;
+		private final long alternativeGeology;
+		private final long samplerMismatches;
+		private final long familyOre;
+		private final long familyOreMismatches;
+		private final long exposedSnowConverted;
+		private final long surfaceIceConverted;
+		private final long buriedSnowPreserved;
+		private final long buriedIcePreserved;
+		private final long unconfiguredSnowPreserved;
+		private final long unconfiguredIcePreserved;
 
 		AuditResult(long top, long underwater, long filler, long geology, long ceiling,
 				long roofTop, int biomeA, int biomeB, int edgeChanges, int sentinels,
 				long aquiferFluid, long rawNaturalSources, long structureNaturalSources,
 				long vegetationNaturalSources, long cavePockets, long underwaterPockets,
-				long rawBedrock, long rawBlockEntities) {
+				long rawBedrock, long rawBlockEntities,
+				long primaryGeology, long alternativeGeology, long samplerMismatches,
+				long familyOre, long familyOreMismatches,
+				long exposedSnowConverted, long surfaceIceConverted,
+				long buriedSnowPreserved, long buriedIcePreserved,
+				long unconfiguredSnowPreserved, long unconfiguredIcePreserved) {
 			this.top = top;
 			this.underwater = underwater;
 			this.filler = filler;
@@ -977,6 +1224,17 @@ public final class SurfaceProbeTestMod {
 			this.underwaterPockets = underwaterPockets;
 			this.rawBedrock = rawBedrock;
 			this.rawBlockEntities = rawBlockEntities;
+			this.primaryGeology = primaryGeology;
+			this.alternativeGeology = alternativeGeology;
+			this.samplerMismatches = samplerMismatches;
+			this.familyOre = familyOre;
+			this.familyOreMismatches = familyOreMismatches;
+			this.exposedSnowConverted = exposedSnowConverted;
+			this.surfaceIceConverted = surfaceIceConverted;
+			this.buriedSnowPreserved = buriedSnowPreserved;
+			this.buriedIcePreserved = buriedIcePreserved;
+			this.unconfiguredSnowPreserved = unconfiguredSnowPreserved;
+			this.unconfiguredIcePreserved = unconfiguredIcePreserved;
 		}
 
 		long top() { return top; }
@@ -997,5 +1255,16 @@ public final class SurfaceProbeTestMod {
 		long underwaterPockets() { return underwaterPockets; }
 		long rawBedrock() { return rawBedrock; }
 		long rawBlockEntities() { return rawBlockEntities; }
+		long primaryGeology() { return primaryGeology; }
+		long alternativeGeology() { return alternativeGeology; }
+		long samplerMismatches() { return samplerMismatches; }
+		long familyOre() { return familyOre; }
+		long familyOreMismatches() { return familyOreMismatches; }
+		long exposedSnowConverted() { return exposedSnowConverted; }
+		long surfaceIceConverted() { return surfaceIceConverted; }
+		long buriedSnowPreserved() { return buriedSnowPreserved; }
+		long buriedIcePreserved() { return buriedIcePreserved; }
+		long unconfiguredSnowPreserved() { return unconfiguredSnowPreserved; }
+		long unconfiguredIcePreserved() { return unconfiguredIcePreserved; }
 	}
 }
