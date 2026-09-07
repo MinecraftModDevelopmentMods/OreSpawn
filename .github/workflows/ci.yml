@@ -26,6 +26,12 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Install pinned Java 25 ForgeGradle Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+
       - name: Install pinned Java 8 compilation toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -51,7 +57,7 @@ jobs:
           gradle_args=(
             classes verifyLegacyFixtures
             --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
@@ -66,7 +72,7 @@ jobs:
           gradle_args=(
             classes verifyLegacyFixtures
             --rerun-tasks --offline --no-daemon --no-build-cache --stacktrace --max-workers=2
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64"
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
             -Dorg.gradle.java.installations.auto-detect=false
             -Dorg.gradle.java.installations.auto-download=false
           )
@@ -80,6 +86,12 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned Java 25 ForgeGradle Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
 
       - name: Install pinned Java 8 compilation toolchain
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -103,7 +115,7 @@ jobs:
         run: >-
           ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums
           verifyEclipseProductionClasspath --no-daemon --stacktrace
-          -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64"
+          -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"
           -Dorg.gradle.java.installations.auto-detect=false
           -Dorg.gradle.java.installations.auto-download=false
 
