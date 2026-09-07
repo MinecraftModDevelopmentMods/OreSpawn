@@ -77,6 +77,13 @@ WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
 `OilDefinition` and template `.oil(...)` remain deprecated migration adapters
 for one legacy oil rule. New integrations should use `FluidDepositDefinition`.
 
+Ore dimension builders expose the same biome filters as provider JSON and
+fluid-deposit builders. Use `.biome(...)` and `.biomeDictionary(...)` for
+inclusions, with `.excludeBiome(...)` and `.excludeBiomeDictionary(...)` for
+exclusions. These methods work on both explicit `.dimension(...)` rules and
+`.dimensionSelector(...)` fallbacks; built definitions and their returned
+filter sets are immutable.
+
 Register custom biomes with Forge as usual. `OreSpawnBiomes.copyAndRegister`
 provides a small optional convenience for cloning a known biome without adding
 TerraBlender:
@@ -127,9 +134,14 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 ```
 
 `sampleColumn` performs one biome/geome classification and reuses it for every
-Y query. Sampling is read-only and is intended for gameplay decisions,
-diagnostics, and compatible generation outside OreSpawn's block loops.
-Callbacks inside OreSpawn generation loops are intentionally unsupported.
+Y query. Pass the first-free surface height returned by `Level.getHeight`;
+OreSpawn uses the highest occupied block immediately below it for biome/geome
+classification and resolves the same stable quart-biome cell used by chunk
+geology. This avoids display-oriented fuzzy biome zoom changing the prediction
+after later surface work alters a heightmap. Sampling is read-only and is
+intended for gameplay decisions, diagnostics, and compatible generation outside
+OreSpawn's block loops. Callbacks inside OreSpawn generation loops are
+intentionally unsupported.
 
 Custom pattern mods create a Forge `DeferredRegister<OrePatternType>` using
 `OreSpawnPatternRegistry.REGISTRY_NAME`. An `OrePatternType` contains a codec

@@ -270,6 +270,68 @@ class WorldgenProviderTest {
 	}
 
 	@Test
+	void oreBiomeFiltersMatchFluidBuilderForDimensionsAndSelectors() {
+		ResourceLocation overworld = id("minecraft:overworld");
+		ResourceLocation plains = id("minecraft:plains");
+		ResourceLocation darkForest = id("minecraft:dark_forest");
+		WorldgenProvider.OreDimensionDefinition explicit = WorldgenProvider.OreDimensionDefinition
+				.builder(overworld)
+				.enabled(false)
+				.hostTag(id("minecraft:stone_ore_replaceables"))
+				.biome(plains)
+				.biomeDictionary("FOREST")
+				.excludeBiome(darkForest)
+				.excludeBiomeDictionary("SPOOKY")
+				.build();
+		WorldgenProvider.OreDimensionDefinition selector = WorldgenProvider.OreDimensionDefinition
+				.builder(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id())
+				.hostTag(id("minecraft:stone_ore_replaceables"))
+				.biome(plains)
+				.biomeDictionary("FOREST")
+				.excludeBiome(darkForest)
+				.excludeBiomeDictionary("SPOOKY")
+				.build();
+
+		assertEquals(Collections.singleton(plains), explicit.biomeIds());
+		assertEquals(Collections.singleton(darkForest), explicit.excludedBiomeIds());
+		assertEquals(Collections.singleton("FOREST"), explicit.biomeDictionary());
+		assertEquals(Collections.singleton("SPOOKY"), explicit.excludedBiomeDictionary());
+		assertThrows(UnsupportedOperationException.class,
+				() -> explicit.biomeIds().add(id("minecraft:forest")));
+
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.ore(id("examplemod:filtered_ore"), ore -> ore
+						.dimension(explicit)
+						.dimensionSelector(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END,
+								selector))
+				.build();
+		JsonObject ore = provider.toJson().getAsJsonObject("ores")
+				.getAsJsonObject("examplemod:ore/examplemod/filtered_ore");
+		assertFalse(ore.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString())
+				.get("enabled").getAsBoolean());
+		assertTrue(ore.getAsJsonObject("dimension_selectors").getAsJsonObject(
+				OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString())
+				.get("enabled").getAsBoolean());
+		for (JsonObject rule : new JsonObject[] {
+				ore.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString()),
+				ore.getAsJsonObject("dimension_selectors").getAsJsonObject(
+						OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString()) }) {
+			assertEquals("[\"minecraft:plains\"]", rule.getAsJsonArray("biome_ids").toString());
+			assertEquals("[\"minecraft:dark_forest\"]",
+					rule.getAsJsonArray("excluded_biome_ids").toString());
+			assertEquals("[\"FOREST\"]", rule.getAsJsonArray("biome_dictionary").toString());
+			assertEquals("[\"SPOOKY\"]",
+					rule.getAsJsonArray("excluded_biome_dictionary").toString());
+		}
+		ore.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString())
+				.getAsJsonArray("biome_ids").add("minecraft:forest");
+		assertEquals("[\"minecraft:plains\"]", provider.toJson().getAsJsonObject("ores")
+				.getAsJsonObject("examplemod:ore/examplemod/filtered_ore")
+				.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString())
+				.getAsJsonArray("biome_ids").toString());
+	}
+
+	@Test
 	void rejectsInvalidQuantityRangesEarly() {
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
 				.builder(id("minecraft:overworld")).quantityRange(12, 4)
