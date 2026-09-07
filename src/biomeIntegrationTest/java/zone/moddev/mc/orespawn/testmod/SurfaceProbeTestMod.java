@@ -200,8 +200,7 @@ public final class SurfaceProbeTestMod {
 	private void enqueueProvider(InterModEnqueueEvent event) {
 		WorldgenProvider.Builder provider = WorldgenProvider.builder(MODID, 1);
 		addDynamicBiomeGeology(provider);
-		provider.ore(FAMILY_ORE, ore -> ore
-				.output(blockId(Blocks.DIAMOND_BLOCK), 1.0D)
+		provider.ore(FAMILY_ORE, blockId(Blocks.DIAMOND_BLOCK), ore -> ore
 				.retrogen(false)
 				.dimension(OPEN_ID, placement -> placement
 						.yRange(16, 48)
@@ -441,7 +440,7 @@ public final class SurfaceProbeTestMod {
 						int x = chunkMinX + localX;
 						int z = chunkMinZ + localZ;
 						int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
-						Biome biome = stableBiome(level, x, groundY, z);
+						Biome biome = level.getBiome(pos.setPos(x, groundY, z));
 						ResourceLocation biomeId = biomeId(level, biome);
 						Material material = material(biomeId, roofed);
 						float expectedTemperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
@@ -457,12 +456,12 @@ public final class SurfaceProbeTestMod {
 						if (BIOME_A.equals(biomeId)) biomeA++; else biomeB++;
 						if (x > (MINIMUM_CHUNK << 4)) {
 							ResourceLocation westBiome = biomeId(level,
-									stableBiome(level, x - 1, groundY, z));
+									level.getBiome(pos.setPos(x - 1, groundY, z)));
 							if (!westBiome.equals(biomeId)) edgeChanges++;
 						}
 						if (z > (MINIMUM_CHUNK << 4)) {
 							ResourceLocation northBiome = biomeId(level,
-									stableBiome(level, x, groundY, z - 1));
+									level.getBiome(pos.setPos(x, groundY, z - 1)));
 							if (!northBiome.equals(biomeId)) edgeChanges++;
 						}
 						boolean waterColumn = localX == 1 && localZ == 1;
@@ -477,7 +476,10 @@ public final class SurfaceProbeTestMod {
 						}
 						if (!roofed) {
 							GeologyColumn sampled = sampler.sampleColumn(x, z, groundY + 1);
-							Block expectedRock = BIOME_A.equals(biomeId) ? Blocks.DIORITE : Blocks.GRANITE;
+							ResourceLocation geologyBiomeId = biomeId(level,
+									stableBiome(level, x, groundY, z));
+							Block expectedRock = BIOME_A.equals(geologyBiomeId)
+									? Blocks.DIORITE : Blocks.GRANITE;
 							for (int depth = 6; depth <= 8; depth++) {
 								assertBlock(chunk, pos, x, groundY - depth, z,
 										expectedRock.getDefaultState(), "stable-biome geome rock");
@@ -491,7 +493,7 @@ public final class SurfaceProbeTestMod {
 						}
 						if (roofed) {
 							ResourceLocation ceilingBiome = biomeId(level,
-									stableBiome(level, x, groundY + 8, z));
+									level.getBiome(pos.setPos(x, groundY + 8, z)));
 							BlockState expectedCeiling = material(ceilingBiome, true).ceiling();
 							assertBlock(chunk, pos, x, groundY + 8, z, expectedCeiling,
 									"roof underside");
@@ -661,7 +663,8 @@ public final class SurfaceProbeTestMod {
 			int x = naturalX(minX, index);
 			int z = naturalZ(minZ, index);
 			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
-			if (chunk.getBlockState(pos.setPos(x, groundY - 12, z)).getBlock() == Blocks.DIORITE) {
+			Block converted = chunk.getBlockState(pos.setPos(x, groundY - 12, z)).getBlock();
+			if (converted == Blocks.DIORITE || converted == Blocks.GRANITE) {
 				rawConverted++;
 			}
 			Block pocket = chunk.getBlockState(pos.setPos(x, groundY - 11, z)).getBlock();
