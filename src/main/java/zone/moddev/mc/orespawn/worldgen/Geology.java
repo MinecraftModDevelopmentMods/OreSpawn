@@ -111,8 +111,10 @@ public class Geology {
 				for (; y >= 0; y--) {
 					cursor.setPos(x, y, z);
 					IBlockState current = chunk.getBlockState(cursor);
-					if (terrain.isReplaceable(current)
-							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE)) {
+					if (!current.hasTileEntity()
+							&& (terrain.isReplaceable(current)
+							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE))
+							&& chunk.getTileEntity(cursor) == null) {
 						IBlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
 						if (!GeomeGeology.changes(current, replacement)) continue;
 						chunk.setBlockState(cursor, replacement, false);
