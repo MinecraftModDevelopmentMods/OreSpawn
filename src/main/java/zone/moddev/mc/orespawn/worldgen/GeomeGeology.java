@@ -96,8 +96,7 @@ public final class GeomeGeology {
 			for (int dz = 0; dz < 16; dz++) {
 				int z = zOffset + dz;
 				int surfaceY = chunk.getTopBlockY(Heightmap.Type.WORLD_SURFACE_WG, dx, dz);
-				cursor.setPos(x, surfaceY, z);
-				Biome biome = world.getBiome(cursor);
+				Biome biome = TerrainBiomeLookup.atBlock(chunk.getBiomes(), x, surfaceY, z);
 				ResourceLocation biomeId = WorldIds.biome(biome);
 				if (!terrain.acceptsBiome(biomeId)) {
 					continue;
