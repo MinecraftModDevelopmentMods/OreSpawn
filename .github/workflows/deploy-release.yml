@@ -304,9 +304,22 @@ jobs:
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
       - name: Build, test, and audit once
+        env:
+          LOADER_NAME: ${{ needs.preflight.outputs.loader_name }}
         run: |
+          set -euo pipefail
           chmod +x ./gradlew
-          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon --stacktrace
+          if [[ "$LOADER_NAME" == "neoforge" ]]; then
+            # NeoGradle resolves model inputs during configuration under build/tmp.
+            # Cleaning in the same invocation removes those inputs before setup runs.
+            ./gradlew clean --no-daemon --stacktrace --max-workers=2
+            ./gradlew check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
+              --no-daemon --stacktrace --max-workers=2
+          else
+            # Preserve the established Forge release lifecycle.
+            ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
+              --no-daemon --stacktrace
+          fi
 
       - name: Stage the immutable release artifact
         id: artifact
