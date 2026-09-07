@@ -1,3 +1,11 @@
+Version 4.0.16.116051
+
+* Adopt the shared 4.0.16 release identity. Forge 1.16 has no server-side
+  GameTest harness, so the later GameTest lifecycle repair is not applicable
+  on this target.
+* Ordinary dedicated benchmark servers continue to stop automatically when
+  requested.
+
 Version 4.0.15.116051
 
 * Classify generated geology and public geology samples through the same
