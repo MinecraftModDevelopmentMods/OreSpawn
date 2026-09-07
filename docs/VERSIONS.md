@@ -53,7 +53,7 @@ Examples:
 | --- | --- | ---: | --- |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.14.4 | Forge | `114041` | `4.0.8.114041` |
-| 1.15.2 | Forge | `115021` | `4.0.12.115021` |
+| 1.15.2 | Forge | `115021` | `4.0.13.115021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -151,8 +151,9 @@ ordering repair and to 4.0.10 for the distinct Stable Layers actual-height
 eligibility repair. Forge 1.15.2 uses a static biome registry, so the dynamic
 registry repair released as 4.0.11 is not applicable there; it advances directly
 to 4.0.12 so public geology samples classify the same highest occupied block as
-chunk generation at vertical biome seams. A branch may therefore legitimately
-skip functional version numbers.
+chunk generation at vertical biome seams, then to 4.0.13 to restore API
+biome-filter parity and accept provider-namespaced geomes in the creation
+editor. A branch may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:
 
