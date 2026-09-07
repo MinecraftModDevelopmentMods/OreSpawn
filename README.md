@@ -95,9 +95,11 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Run Gradle with Java 17 from the repository root. Install the exact Temurin
-`8.0.502+7` toolchain used to compile production code and test fixtures for
-Minecraft 1.13.2; the build rejects a different Java 8 toolchain:
+Run Gradle with Java 17 from the repository root. Install exact Temurin
+`25.0.3+9` for ForgeGradle's Mavenizer and exact Temurin `8.0.502+7` for the
+Minecraft 1.13.2 compilation and fixture toolchain. Java 17 remains the Gradle
+runtime, while production bytecode remains Java 8; the build rejects a
+different Java 8 toolchain:
 
 ```powershell
 .\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
