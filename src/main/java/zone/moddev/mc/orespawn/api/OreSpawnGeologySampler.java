@@ -9,10 +9,10 @@ import zone.moddev.mc.orespawn.worldgen.Geology;
 import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.GeomeGeology;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
+import zone.moddev.mc.orespawn.worldgen.TerrainBiomeLookup;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
@@ -55,8 +55,8 @@ final class OreSpawnGeologySampler implements GeologySampler {
 
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
-		BlockPos position = new BlockPos(blockX, generationBiomeY(surfaceY, 0), blockZ);
-		Biome biome = level.getBiome(position);
+		int biomeY = generationBiomeY(surfaceY, 0);
+		Biome biome = TerrainBiomeLookup.atBlock(level.getBiomeManager(), blockX, biomeY, blockZ);
 		ResourceLocation biomeId = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY)
 				.getKey(biome);
 		if (biomeId == null) biomeId = new ResourceLocation("orespawn", "unregistered_biome");
