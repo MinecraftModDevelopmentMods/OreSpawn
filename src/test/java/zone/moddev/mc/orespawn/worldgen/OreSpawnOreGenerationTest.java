@@ -5,19 +5,65 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Random;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.Bootstrap;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 
 class OreSpawnOreGenerationTest {
+	static {
+		Bootstrap.bootStrap();
+	}
+
+	@Test
+	void biomeFiltersRetainUnknownDynamicRegistryKeys() {
+		RegistryKey<Biome> sodaOcean = RegistryKey.create(Registry.BIOME_REGISTRY,
+				new ResourceLocation("cakeworld", "soda_ocean"));
+		JsonObject rule = new JsonObject();
+		JsonArray ids = new JsonArray();
+		ids.add("cakeworld:soda_ocean");
+		rule.add("biome_ids", ids);
+
+		Set<?> resolved = OreSpawnOreGeneration.resolveBiomes(
+				rule, "biome_ids", "biome_dictionary");
+
+		assertEquals(Collections.singleton(sodaOcean), resolved);
+	}
+
+	@Test
+	void biomeFiltersMergeDictionaryKeys() {
+		RegistryKey<Biome> sodaOcean = RegistryKey.create(Registry.BIOME_REGISTRY,
+				new ResourceLocation("cakeworld", "soda_ocean"));
+		JsonObject rule = new JsonObject();
+		JsonArray dictionary = new JsonArray();
+		dictionary.add("OCEAN");
+		rule.add("biome_dictionary", dictionary);
+
+		Set<RegistryKey<Biome>> resolved = OreSpawnOreGeneration.resolveBiomes(
+				rule, "biome_ids", "biome_dictionary", type -> Collections.singleton(sodaOcean));
+
+		assertEquals(Collections.singleton(sodaOcean), resolved);
+		assertTrue(OreSpawnOreGeneration.acceptsBiome(resolved, Collections.emptySet(), sodaOcean));
+		assertFalse(OreSpawnOreGeneration.acceptsBiome(resolved, Collections.emptySet(), RegistryKey.create(
+				Registry.BIOME_REGISTRY, new ResourceLocation("cakeworld", "candy_plains"))));
+		assertFalse(OreSpawnOreGeneration.acceptsBiome(Collections.emptySet(), resolved, sodaOcean));
+		assertTrue(OreSpawnOreGeneration.acceptsBiome(Collections.emptySet(), resolved, RegistryKey.create(
+				Registry.BIOME_REGISTRY, new ResourceLocation("cakeworld", "candy_plains"))));
+	}
+
 	@Test
 	void fixedQuantityDoesNotConsumeRandomState() {
 		CountingRandom random = new CountingRandom(0);

@@ -164,6 +164,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		ChunkPos chunkPos = chunk.getPos();
 		int centerX = chunkPos.getMinBlockX() + 8;
 		int centerZ = chunkPos.getMinBlockZ() + 8;
+		RegistryKey<Biome> biomeKey = biomeId == null ? null
+				: RegistryKey.create(Registry.BIOME_REGISTRY, biomeId);
 		int geome = -1;
 		if (World.OVERWORLD.equals(dimension)) {
 			geome = classifier(worldSeed).classifyColumn(biome, biomeId, centerX, centerZ,
@@ -173,7 +175,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		boolean changed = false;
 		for (BakedOre ore : ores) {
 			if (retrogenOnly && !ore.retrogen) continue;
-			if (!ore.acceptsBiome(biome, biomeId)) {
+			if (!ore.acceptsBiome(biomeKey)) {
 				continue;
 			}
 			double frequency = ore.frequency;
@@ -445,17 +447,14 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				}
 			}
 		}
-		Set<ResourceLocation> includedBiomeIds = resolveBiomeIds(json, "biome_ids");
-		Set<ResourceLocation> excludedBiomeIds = resolveBiomeIds(json, "excluded_biome_ids");
-		Set<Biome> includedDictionaryBiomes = resolveBiomeDictionary(json, "biome_dictionary");
-		Set<Biome> excludedDictionaryBiomes = resolveBiomeDictionary(json,
-				"excluded_biome_dictionary");
+		Set<RegistryKey<Biome>> includedBiomes = resolveBiomes(json, "biome_ids", "biome_dictionary");
+		Set<RegistryKey<Biome>> excludedBiomes = resolveBiomes(json,
+				"excluded_biome_ids", "excluded_biome_dictionary");
 		return new BakedOre(output, deepOutput, deepOutputMaxY, outputs,
 				minY, maxY, Math.min(64.0D, frequency), minQuantity, maxQuantity,
 				pattern, heightDistribution, discardChanceOnAirExposure,
 				spread, verticalSpread, nodeSize,
-				hostBlocks, familyMask, geomeWeights, includedBiomeIds, excludedBiomeIds,
-				includedDictionaryBiomes, excludedDictionaryBiomes, retrogen);
+				hostBlocks, familyMask, geomeWeights, includedBiomes, excludedBiomes, retrogen);
 	}
 
 	private static BakedOutput[] bakeOutputs(JsonObject ore, BlockState fallback) {
@@ -513,32 +512,35 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		}
 	}
 
-	private static Set<ResourceLocation> resolveBiomeIds(JsonObject rule, String idsKey) {
-		Set<ResourceLocation> result = new HashSet<>();
+	static Set<RegistryKey<Biome>> resolveBiomes(JsonObject rule, String idsKey, String dictionaryKey) {
+		return resolveBiomes(rule, idsKey, dictionaryKey, BiomeTypeCompatibility::biomeKeys);
+	}
+
+	static Set<RegistryKey<Biome>> resolveBiomes(JsonObject rule, String idsKey, String dictionaryKey,
+			java.util.function.Function<String, Set<RegistryKey<Biome>>> dictionaryResolver) {
+		Set<RegistryKey<Biome>> result = new HashSet<>();
 		if (rule.has(idsKey) && rule.get(idsKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(idsKey)) {
 				ResourceLocation id = resource(element.getAsString());
-				if (id != null) result.add(id);
+				if (id != null) result.add(RegistryKey.create(Registry.BIOME_REGISTRY, id));
 			}
 		}
-		return result;
-	}
-
-	private static Set<Biome> resolveBiomeDictionary(JsonObject rule, String dictionaryKey) {
-		Set<Biome> result = Collections.newSetFromMap(new IdentityHashMap<Biome, Boolean>());
 		if (rule.has(dictionaryKey) && rule.get(dictionaryKey).isJsonArray()) {
 			for (JsonElement element : rule.getAsJsonArray(dictionaryKey)) {
 				try {
-					for (RegistryKey<Biome> key : net.minecraftforge.common.BiomeDictionary.getBiomes(
-							net.minecraftforge.common.BiomeDictionary.Type.getType(element.getAsString()))) {
-						Biome biome = ForgeRegistries.BIOMES.getValue(key.location());
-						if (biome != null) result.add(biome);
-					}
+					result.addAll(dictionaryResolver.apply(element.getAsString()));
 				} catch (RuntimeException ignored) {
 				}
 			}
 		}
 		return result;
+	}
+
+	static boolean acceptsBiome(Set<RegistryKey<Biome>> includedBiomes,
+			Set<RegistryKey<Biome>> excludedBiomes, RegistryKey<Biome> biome) {
+		if (biome == null) return includedBiomes.isEmpty() && excludedBiomes.isEmpty();
+		return !excludedBiomes.contains(biome)
+				&& (includedBiomes.isEmpty() || includedBiomes.contains(biome));
 	}
 
 	private static Set<Block> resolveTag(ResourceLocation tag) {
@@ -641,10 +643,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		final Map<Block, Double> hostBlocks;
 		final int familyMask;
 		final double[] geomeWeights;
-		final Set<ResourceLocation> includedBiomeIds;
-		final Set<ResourceLocation> excludedBiomeIds;
-		final Set<Biome> includedDictionaryBiomes;
-		final Set<Biome> excludedDictionaryBiomes;
+		final Set<RegistryKey<Biome>> includedBiomes;
+		final Set<RegistryKey<Biome>> excludedBiomes;
 		final boolean retrogen;
 
 		BakedOre(BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
@@ -653,9 +653,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				double discardChanceOnAirExposure,
 				int spread, int verticalSpread, int nodeSize,
 				Map<Block, Double> hostBlocks, int familyMask, double[] geomeWeights,
-				Set<ResourceLocation> includedBiomeIds, Set<ResourceLocation> excludedBiomeIds,
-				Set<Biome> includedDictionaryBiomes, Set<Biome> excludedDictionaryBiomes,
-				boolean retrogen) {
+				Set<RegistryKey<Biome>> includedBiomes,
+				Set<RegistryKey<Biome>> excludedBiomes, boolean retrogen) {
 			this.output = output;
 			this.deepOutput = deepOutput;
 			this.deepOutputMaxY = deepOutputMaxY;
@@ -674,10 +673,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			this.hostBlocks = hostBlocks;
 			this.familyMask = familyMask;
 			this.geomeWeights = geomeWeights;
-			this.includedBiomeIds = includedBiomeIds;
-			this.excludedBiomeIds = excludedBiomeIds;
-			this.includedDictionaryBiomes = includedDictionaryBiomes;
-			this.excludedDictionaryBiomes = excludedDictionaryBiomes;
+			this.includedBiomes = includedBiomes;
+			this.excludedBiomes = excludedBiomes;
 			this.retrogen = retrogen;
 		}
 
@@ -705,12 +702,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 					&& (familyMask & (1 << family.ordinal())) != 0;
 		}
 
-		boolean acceptsBiome(Biome biome, ResourceLocation biomeId) {
-			if (excludedBiomeIds.contains(biomeId) || excludedDictionaryBiomes.contains(biome)) {
-				return false;
-			}
-			return (includedBiomeIds.isEmpty() && includedDictionaryBiomes.isEmpty())
-					|| includedBiomeIds.contains(biomeId) || includedDictionaryBiomes.contains(biome);
+		boolean acceptsBiome(RegistryKey<Biome> biome) {
+			return OreSpawnOreGeneration.acceptsBiome(includedBiomes, excludedBiomes, biome);
 		}
 	}
 

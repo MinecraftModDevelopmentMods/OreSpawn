@@ -63,6 +63,7 @@ import net.minecraft.world.gen.placement.Placement;
 import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
+import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -102,6 +103,8 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID + ":surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID + ":surface_b");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID + ":dynamic_biome_geome");
+	private static final ResourceLocation PROBE_GEOME_ALTERNATIVE =
+			new ResourceLocation(MODID + ":dynamic_biome_geome_alternative");
 	private static final ResourceLocation DYNAMIC_FLUID = new ResourceLocation(MODID + ":fluid/dynamic_water");
 	private static final Block[] NATURAL_SOURCES = {
 			Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.COARSE_DIRT, Blocks.PODZOL,
@@ -151,6 +154,8 @@ public final class SurfaceProbeTestMod {
 
 	private void setup(FMLCommonSetupEvent event) {
 		event.enqueueWork(() -> {
+			BiomeDictionary.addTypes(RegistryKey.create(Registry.BIOME_REGISTRY, BIOME_A),
+					BiomeDictionary.Type.COLD);
 			terrainConfigured = registerConfigured("terrain_setup", TERRAIN_FEATURE.get());
 			structureConfigured = registerConfigured("structure_sentinels", STRUCTURE_FEATURE.get());
 			vegetationConfigured = registerConfigured("vegetation_sentinels", VEGETATION_FEATURE.get());
@@ -211,19 +216,34 @@ public final class SurfaceProbeTestMod {
 		provider.geome(PROBE_GEOME, geome -> geome
 				.baseWeight(0.0D)
 				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
+		provider.geome(PROBE_GEOME_ALTERNATIVE, geome -> geome
+				.baseWeight(0.0D)
+				.familyWeight(GeologyFamily.SEDIMENTARY, 1.0D));
 		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome"), blockId(Blocks.DIORITE),
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 1.0D);
+					rock.geomeWeight(PROBE_GEOME_ALTERNATIVE, 0.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
 				});
-		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.GRANITE),
+		provider.rock(new ResourceLocation(MODID + ":rock/dynamic_biome_alternative"), blockId(Blocks.GRANITE),
 				GeologyFamily.SEDIMENTARY, rock -> {
 					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
 					rock.geomeWeight(PROBE_GEOME, 0.0D);
+					rock.geomeWeight(PROBE_GEOME_ALTERNATIVE, 1.0D);
+					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 0.0D);
+				});
+		provider.rock(new ResourceLocation(MODID + ":rock/fallback"), blockId(Blocks.ANDESITE),
+				GeologyFamily.SEDIMENTARY, rock -> {
+					rock.dimensions(java.util.Collections.singleton(OPEN_ID));
+					rock.geomeWeight(PROBE_GEOME, 0.0D);
+					rock.geomeWeight(PROBE_GEOME_ALTERNATIVE, 0.0D);
 					for (ResourceLocation geome : BUILT_IN_GEOMES) rock.geomeWeight(geome, 1.0D);
 				});
-		provider.biome(BIOME_A, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
+		Map<ResourceLocation, Double> biomeAWeights = new LinkedHashMap<>();
+		biomeAWeights.put(PROBE_GEOME, 6.0D);
+		biomeAWeights.put(PROBE_GEOME_ALTERNATIVE, 14.0D);
+		provider.biome(BIOME_A, biomeAWeights);
 		provider.biome(BIOME_B, java.util.Collections.singletonMap(PROBE_GEOME, 100.0D));
 	}
 
@@ -238,6 +258,19 @@ public final class SurfaceProbeTestMod {
 		}
 		try {
 			root.addProperty("place_fluid_deposits", true);
+			root.addProperty("place_ores", true);
+			JsonObject dictionary = root.getAsJsonObject("biome_dictionary");
+			if (dictionary == null) {
+				dictionary = new JsonObject();
+				root.add("biome_dictionary", dictionary);
+			}
+			JsonObject cold = dictionary.getAsJsonObject("COLD");
+			if (cold == null) {
+				cold = new JsonObject();
+				dictionary.add("COLD", cold);
+			}
+			cold.addProperty(PROBE_GEOME.toString(), 8.0D);
+			addDynamicBiomeOre(root);
 			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
 			if (terrain == null) {
 				terrain = new JsonObject();
@@ -265,6 +298,49 @@ public final class SurfaceProbeTestMod {
 		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
 			throw new IllegalStateException("Could not reload the test-owned End geology profile");
 		}
+	}
+
+	private static void addDynamicBiomeOre(JsonObject root) {
+		JsonObject ores = root.getAsJsonObject("ores");
+		if (ores == null) {
+			ores = new JsonObject();
+			root.add("ores", ores);
+		}
+		JsonObject ore = new JsonObject();
+		ore.addProperty("block", blockId(Blocks.DIAMOND_BLOCK).toString());
+		ore.addProperty("enabled", true);
+		ore.addProperty("native_generation", false);
+		ore.addProperty("suppress_vanilla", false);
+		ore.addProperty("retrogen", false);
+		JsonObject dimensions = new JsonObject();
+		JsonObject end = new JsonObject();
+		end.addProperty("enabled", true);
+		end.addProperty("min_y", 16);
+		end.addProperty("max_y", 48);
+		end.addProperty("frequency", 16.0D);
+		end.addProperty("quantity", 8);
+		end.addProperty("pattern", "cluster");
+		end.addProperty("height_distribution", "uniform");
+		end.addProperty("discard_chance_on_air_exposure", 0.0D);
+		end.addProperty("spread", 4);
+		end.addProperty("vertical_spread", 3);
+		end.addProperty("node_size", 3);
+		end.add("host_families", new JsonArray());
+		JsonArray hosts = new JsonArray();
+		hosts.add(blockId(Blocks.DIORITE).toString());
+		hosts.add(blockId(Blocks.GRANITE).toString());
+		end.add("host_blocks", hosts);
+		end.add("host_tags", new JsonArray());
+		end.add("geomes", new JsonObject());
+		JsonArray biomes = new JsonArray();
+		biomes.add(BIOME_A.toString());
+		end.add("biome_ids", biomes);
+		end.add("excluded_biome_ids", new JsonArray());
+		end.add("biome_dictionary", new JsonArray());
+		end.add("excluded_biome_dictionary", new JsonArray());
+		dimensions.add(OPEN_ID.toString(), end);
+		ore.add("dimensions", dimensions);
+		ores.add(MODID + ":ore/dynamic_biome_filter", ore);
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
@@ -379,6 +455,8 @@ public final class SurfaceProbeTestMod {
 		long underwaterPockets = 0L;
 		long rawBedrock = 0L;
 		long rawBlockEntities = 0L;
+		long dictionaryPrimary = 0L;
+		long dictionaryAlternative = 0L;
 		BlockPos.Mutable pos = new BlockPos.Mutable();
 
 		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
@@ -428,8 +506,15 @@ public final class SurfaceProbeTestMod {
 						}
 						if (!roofed) {
 							for (int depth = 6; depth <= 8; depth++) {
-								assertBlock(chunk, pos, x, groundY - depth, z,
-										Blocks.DIORITE.defaultBlockState(), "dynamic-biome geome rock");
+								BlockState geologyState = chunk.getBlockState(pos.set(x, groundY - depth, z));
+								if (geologyState.is(Blocks.GRANITE)) {
+									dictionaryAlternative++;
+								} else if (geologyState.is(Blocks.DIORITE)) {
+									dictionaryPrimary++;
+								} else {
+									throw new IllegalStateException("Unexpected dynamic-biome geome rock at "
+											+ pos + " in " + biomeId + ": " + geologyState);
+								}
 								geology++;
 							}
 						}
@@ -461,6 +546,7 @@ public final class SurfaceProbeTestMod {
 			}
 		}
 
+		long dynamicBiomeOre = roofed ? 0L : auditDynamicBiomeOre(level);
 		if (top != EXPECTED_COLUMNS - 9 || underwater != 9 || filler != EXPECTED_FILLER
 				|| biomeA == 0 || biomeB == 0 || edgeChanges == 0 || sentinels != 9 * 4
 				|| geology != (roofed ? 0 : EXPECTED_FILLER)
@@ -470,7 +556,9 @@ public final class SurfaceProbeTestMod {
 						|| vegetationNaturalSources != EXPECTED_NATURAL_SOURCES
 						|| cavePockets != EXPECTED_NATURAL_SOURCES / 2
 						|| underwaterPockets != EXPECTED_NATURAL_SOURCES / 2
-						|| rawBedrock != 9 || rawBlockEntities != 9))) {
+						|| rawBedrock != 9 || rawBlockEntities != 9
+						|| dictionaryPrimary != EXPECTED_FILLER || dictionaryAlternative != 0
+						|| dynamicBiomeOre == 0))) {
 			throw new IllegalStateException("Incomplete surface audit for " + level.dimension().location()
 					+ ": top=" + top + ", underwater=" + underwater + ", filler=" + filler
 					+ ", biomeA=" + biomeA + ", biomeB=" + biomeB + ", edges=" + edgeChanges
@@ -482,13 +570,38 @@ public final class SurfaceProbeTestMod {
 					+ ", cavePockets=" + cavePockets
 					+ ", underwaterPockets=" + underwaterPockets
 					+ ", rawBedrock=" + rawBedrock
-					+ ", rawBlockEntities=" + rawBlockEntities);
+					+ ", rawBlockEntities=" + rawBlockEntities
+					+ ", dictionaryPrimary=" + dictionaryPrimary
+					+ ", dictionaryAlternative=" + dictionaryAlternative
+					+ ", dynamicBiomeOre=" + dynamicBiomeOre);
 		}
 		long aquiferFluid = roofed ? 0L : auditDynamicFluid(level);
 		return new AuditResult(top, underwater, filler, geology, ceiling, roofTop,
 				biomeA, biomeB, edgeChanges, sentinels, aquiferFluid,
 				rawNaturalSources, structureNaturalSources, vegetationNaturalSources,
-				cavePockets, underwaterPockets, rawBedrock, rawBlockEntities);
+				cavePockets, underwaterPockets, rawBedrock, rawBlockEntities,
+				dictionaryPrimary, dictionaryAlternative, dynamicBiomeOre);
+	}
+
+	private static long auditDynamicBiomeOre(ServerWorld level) {
+		BlockPos.Mutable pos = new BlockPos.Mutable();
+		long count = 0L;
+		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
+			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
+				Chunk chunk = level.getChunk(chunkX, chunkZ);
+				for (int x = chunk.getPos().getMinBlockX(); x <= chunk.getPos().getMaxBlockX(); x++) {
+					for (int z = chunk.getPos().getMinBlockZ(); z <= chunk.getPos().getMaxBlockZ(); z++) {
+						for (int y = 16; y <= 48; y++) {
+							if (chunk.getBlockState(pos.set(x, y, z)).is(Blocks.DIAMOND_BLOCK)) count++;
+						}
+					}
+				}
+			}
+		}
+		if (count == 0L) {
+			throw new IllegalStateException("Dynamic-registry biome filter produced no managed ore");
+		}
+		return count;
 	}
 
 	private static NaturalSourceAudit auditNaturalSources(ServerWorld level, IChunk chunk,
@@ -504,9 +617,8 @@ public final class SurfaceProbeTestMod {
 			int x = naturalX(minX, index);
 			int z = naturalZ(minZ, index);
 			int groundY = findMarkedGround(chunk, pos, x, z, 0, 256);
-			if (chunk.getBlockState(pos.set(x, groundY - 12, z)).is(Blocks.DIORITE)) {
-				rawConverted++;
-			}
+			BlockState converted = chunk.getBlockState(pos.set(x, groundY - 12, z));
+			if (converted.is(Blocks.DIORITE) || converted.is(Blocks.GRANITE)) rawConverted++;
 			Block pocket = chunk.getBlockState(pos.set(x, groundY - 11, z)).getBlock();
 			if (index < NATURAL_SOURCES.length / 2) {
 				if (pocket == Blocks.AIR) cavePreserved++;
@@ -683,6 +795,9 @@ public final class SurfaceProbeTestMod {
 			values.setProperty(prefix + "underwater_pockets", Long.toString(result.underwaterPockets()));
 			values.setProperty(prefix + "raw_bedrock", Long.toString(result.rawBedrock()));
 			values.setProperty(prefix + "raw_block_entities", Long.toString(result.rawBlockEntities()));
+			values.setProperty(prefix + "dictionary_primary", Long.toString(result.dictionaryPrimary()));
+			values.setProperty(prefix + "dictionary_alternative", Long.toString(result.dictionaryAlternative()));
+			values.setProperty(prefix + "dynamic_biome_ore", Long.toString(result.dynamicBiomeOre()));
 		}
 		return values;
 	}
@@ -944,12 +1059,16 @@ public final class SurfaceProbeTestMod {
 		private final long underwaterPockets;
 		private final long rawBedrock;
 		private final long rawBlockEntities;
+		private final long dictionaryPrimary;
+		private final long dictionaryAlternative;
+		private final long dynamicBiomeOre;
 
 		AuditResult(long top, long underwater, long filler, long geology, long ceiling,
 				long roofTop, int biomeA, int biomeB, int edgeChanges, int sentinels,
 				long aquiferFluid, long rawNaturalSources, long structureNaturalSources,
 				long vegetationNaturalSources, long cavePockets, long underwaterPockets,
-				long rawBedrock, long rawBlockEntities) {
+				long rawBedrock, long rawBlockEntities, long dictionaryPrimary,
+				long dictionaryAlternative, long dynamicBiomeOre) {
 			this.top = top;
 			this.underwater = underwater;
 			this.filler = filler;
@@ -968,6 +1087,9 @@ public final class SurfaceProbeTestMod {
 			this.underwaterPockets = underwaterPockets;
 			this.rawBedrock = rawBedrock;
 			this.rawBlockEntities = rawBlockEntities;
+			this.dictionaryPrimary = dictionaryPrimary;
+			this.dictionaryAlternative = dictionaryAlternative;
+			this.dynamicBiomeOre = dynamicBiomeOre;
 		}
 
 		long top() { return top; }
@@ -988,5 +1110,8 @@ public final class SurfaceProbeTestMod {
 		long underwaterPockets() { return underwaterPockets; }
 		long rawBedrock() { return rawBedrock; }
 		long rawBlockEntities() { return rawBlockEntities; }
+		long dictionaryPrimary() { return dictionaryPrimary; }
+		long dictionaryAlternative() { return dictionaryAlternative; }
+		long dynamicBiomeOre() { return dynamicBiomeOre; }
 	}
 }
