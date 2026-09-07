@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.9.116051`: the OreSpawn 4.0.9
+This branch builds target-qualified version `4.0.16.116051`: the OreSpawn 4.0.16
 feature set for Minecraft 1.16.5 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
@@ -95,9 +95,11 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Run Gradle with Java 17 from the repository root. Install the exact Temurin
-`8.0.502+7` toolchain used to compile production code and test fixtures for
-Minecraft 1.16.5; the build rejects a different Java 8 toolchain:
+Run Gradle with Java 17 from the repository root. Install exact Temurin
+`25.0.3+9` for ForgeGradle's Mavenizer and exact Temurin `8.0.502+7` for the
+Minecraft 1.16.5 compilation and fixture toolchain. Java 17 remains the Gradle
+runtime, while production bytecode remains Java 8; the build rejects a
+different Java 8 toolchain:
 
 ```powershell
 .\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon

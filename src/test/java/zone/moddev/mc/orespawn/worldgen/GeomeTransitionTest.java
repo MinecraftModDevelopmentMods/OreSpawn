@@ -6,16 +6,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Bootstrap;
 import net.minecraft.block.Blocks;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeAmbience;
+import net.minecraft.world.biome.BiomeGenerationSettings;
+import net.minecraft.world.biome.MobSpawnInfo;
 
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
 
 class GeomeTransitionTest {
+	static {
+		Bootstrap.bootStrap();
+	}
+
 	private static final ResourceLocation MOUNTAINS = new ResourceLocation("minecraft:mountains");
 
 	@Test
@@ -28,6 +38,39 @@ class GeomeTransitionTest {
 		BakedGeomeConfig config = config(weights);
 
 		assertEquals(1, config.pickGeome(null, MOUNTAINS, new double[2], 0.0D));
+	}
+
+	@Test
+	void explicitBiomeIdentifierWinsOverAliasedBiomeObjectIdentity() {
+		Biome aliasedBiome = testBiome();
+		ResourceLocation dynamicId = new ResourceLocation("cakeworld", "peppermint_pinewoods");
+		double[] identityWeights = { 12.0D, 1.0D };
+		double[] identifierWeights = { 1.0D, 12.0D };
+		Map<Biome, double[]> identity = new java.util.IdentityHashMap<>();
+		identity.put(aliasedBiome, identityWeights);
+		Map<ResourceLocation, double[]> identifiers = new LinkedHashMap<>();
+		identifiers.put(dynamicId, identifierWeights);
+		BakedGeomeConfig config = config(identity, identifiers);
+
+		assertEquals(1, config.pickGeome(aliasedBiome, dynamicId, new double[2], 0.0D),
+				"a stable dynamic biome key must override a conflicting object-identity alias");
+	}
+
+	@Test
+	void identifierFallbackRetainsDictionaryWeightContributions() {
+		Map<String, Integer> indexes = new LinkedHashMap<>();
+		indexes.put("cakeworld:peppermint_fold", 0);
+		indexes.put("cakeworld:rock_candy_uplift", 1);
+		ResourceLocation marshmallowPeaks = new ResourceLocation("cakeworld", "marshmallow_peaks");
+		Map<String, double[]> exact = new LinkedHashMap<>();
+		exact.put(marshmallowPeaks.toString(), new double[] { 6.0D, 14.0D });
+		Map<String, double[]> dictionary = new LinkedHashMap<>();
+		dictionary.put("COLD", new double[] { 8.0D, 0.0D });
+		Map<ResourceLocation, double[]> weights = GeomeConfig.bakeBiomeIdentifierWeights(indexes,
+				exact, dictionary, type -> Collections.singleton(marshmallowPeaks));
+
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[0]);
+		assertEquals(15.0D, weights.get(marshmallowPeaks)[1]);
 	}
 
 	@Test
@@ -77,6 +120,11 @@ class GeomeTransitionTest {
 	}
 
 	private static BakedGeomeConfig config(Map<ResourceLocation, double[]> biomeWeightsById) {
+		return config(Collections.emptyMap(), biomeWeightsById);
+	}
+
+	private static BakedGeomeConfig config(Map<Biome, double[]> biomeWeights,
+			Map<ResourceLocation, double[]> biomeWeightsById) {
 		double[] familyWeights = { 1.0D, 1.0D, 1.0D, 1.0D };
 		GeomeDefinition[] geomes = {
 				new GeomeDefinition("orespawn:first", 1.0D, familyWeights.clone()),
@@ -89,7 +137,27 @@ class GeomeTransitionTest {
 		FormationSettings formations = new FormationSettings(FormationSettings.Algorithm.STABLE_LAYERS,
 				256.0D, 100.0D, 8, 48.0D, 64.0D, 12.0D, 2, 0.85D);
 		return new BakedGeomeConfig(geomes, 384.0D, 1.15D, 0.9D, 0.45D,
-				Collections.emptyMap(), biomeWeightsById, rocks, formations);
+				biomeWeights, biomeWeightsById, rocks, formations);
+	}
+
+	private static Biome testBiome() {
+		BiomeAmbience effects = new BiomeAmbience.Builder()
+				.fogColor(0xC0D8FF)
+				.waterColor(0x3F76E4)
+				.waterFogColor(0x050533)
+				.skyColor(0x78A7FF)
+				.build();
+		return new Biome.Builder()
+				.precipitation(Biome.RainType.NONE)
+				.biomeCategory(Biome.Category.NONE)
+				.depth(0.0F)
+				.scale(0.0F)
+				.temperature(0.5F)
+				.downfall(0.5F)
+				.specialEffects(effects)
+				.mobSpawnSettings(MobSpawnInfo.EMPTY)
+				.generationSettings(BiomeGenerationSettings.EMPTY)
+				.build();
 	}
 
 	private static BakedGeomeConfig observedWorldConfig() {
