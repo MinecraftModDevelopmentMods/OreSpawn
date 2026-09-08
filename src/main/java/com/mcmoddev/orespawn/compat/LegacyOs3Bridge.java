@@ -75,16 +75,16 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
+import net.minecraftforge.fml.common.registry.IForgeRegistryEntry;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.RegistryBuilder;
 import zone.moddev.mc.orespawn.worldgen.LegacyOs3ProfileMigration;
 
 /**
@@ -97,11 +97,11 @@ public final class LegacyOs3Bridge {
 	private static final IForgeRegistry<IFeature> SAVED_FEATURES =
 			new RegistryBuilder<IFeature>()
 					.setName(new ResourceLocation("orespawn", "feature_registry"))
-					.setType(IFeature.class).setMaxID(4096).create();
+					.setType(IFeature.class).setIDRange(0, 4096).create();
 	private static final IForgeRegistry<IReplacementEntry> SAVED_REPLACEMENTS =
 			new RegistryBuilder<IReplacementEntry>()
 					.setName(new ResourceLocation("orespawn", "replacements_registry"))
-					.setType(IReplacementEntry.class).setMaxID(65535).create();
+					.setType(IReplacementEntry.class).setIDRange(0, 65535).create();
 	private static final LegacyApi API = new LegacyApi();
 	private static final FeatureRegistry FEATURES = new FeatureRegistry();
 	private static final List<String> REPORT = new ArrayList<>();
@@ -257,12 +257,13 @@ public final class LegacyOs3Bridge {
 		} else if (file.startsWith("_replacements")) {
 			mergeReplacementElement(API.embeddedReplacements, root);
 		} else if (root.isJsonObject()) {
+			JsonObject normalized = normalizeLegacyDocument(root.getAsJsonObject(), path);
 			JsonObject combined = API.embedded.computeIfAbsent(modId, ignored -> new JsonObject());
 			JsonObject combinedSpawns = object(combined, "spawns");
-			for (Map.Entry<String, JsonElement> spawn : object(root.getAsJsonObject(), "spawns").entrySet()) {
+			for (Map.Entry<String, JsonElement> spawn : object(normalized, "spawns").entrySet()) {
 				combinedSpawns.add(spawn.getKey(), new JsonParser().parse(spawn.getValue().toString()));
 			}
-			combined.addProperty("version", text(root.getAsJsonObject(), "version", "2.0")); combined.add("spawns", combinedSpawns);
+			combined.addProperty("version", text(normalized, "version", "2.0")); combined.add("spawns", combinedSpawns);
 		}
 		REPORT.add("resource_loaded=" + path);
 	}
@@ -351,6 +352,7 @@ public final class LegacyOs3Bridge {
 	}
 
 	private static void mergeLegacySource(Map<String, JsonObject> sources, String owner, JsonObject incoming) {
+		incoming = normalizeLegacyDocument(incoming, owner);
 		JsonObject target = sources.computeIfAbsent(owner, ignored -> new JsonObject());
 		target.addProperty("version", text(incoming, "version", "2.0"));
 		JsonObject targetSpawns = object(target, "spawns");
@@ -358,6 +360,69 @@ public final class LegacyOs3Bridge {
 			targetSpawns.add(spawn.getKey(), new JsonParser().parse(spawn.getValue().toString()));
 		}
 		target.add("spawns", targetSpawns);
+	}
+
+	/**
+	 * Mirrors the OS3 3.2.2 version-one reader for provider resources shipped by
+	 * contemporary 1.11 mods. The bridge's internal representation remains the
+	 * version-two {@code spawns} shape used by every later translation step.
+	 */
+	private static JsonObject normalizeLegacyDocument(JsonObject source, String sourceId) {
+		if (source.has("spawns") || !source.has("dimensions") || !source.get("dimensions").isJsonArray()) {
+			return source;
+		}
+		String version = text(source, "version", "");
+		if (!("1".equals(version) || "1.1".equals(version) || "1.2".equals(version))) return source;
+
+		JsonObject normalized = new JsonObject();
+		normalized.addProperty("version", "2.0");
+		JsonObject spawns = new JsonObject();
+		int ordinal = 0;
+		for (JsonElement dimensionElement : source.getAsJsonArray("dimensions")) {
+			if (!dimensionElement.isJsonObject()) continue;
+			JsonObject dimension = dimensionElement.getAsJsonObject();
+			JsonArray dimensions = new JsonArray();
+			if (dimension.has("dimension")) zone.moddev.mc.orespawn.util.JsonCopies.add(dimensions,
+					dimension.get("dimension").getAsInt());
+			for (JsonElement oreElement : array(dimension, "ores")) {
+				if (!oreElement.isJsonObject()) continue;
+				JsonObject legacy = oreElement.getAsJsonObject();
+				JsonObject spawn = new JsonObject();
+				spawn.addProperty("enabled", true);
+				spawn.addProperty("retrogen", true);
+				spawn.addProperty("feature", text(legacy, "feature", "default"));
+				spawn.addProperty("replaces", text(legacy, "replace_block",
+						text(legacy, "replaces", "default")));
+				spawn.add("dimensions", new JsonParser().parse(dimensions.toString()));
+				spawn.add("parameters", new JsonParser().parse(object(legacy, "parameters").toString()));
+				if (legacy.has("biomes")) spawn.add("biomes", new JsonParser().parse(legacy.get("biomes").toString()));
+
+				JsonArray blocks = new JsonArray();
+				if ("1.2".equals(version) && legacy.has("blocks") && legacy.get("blocks").isJsonArray()) {
+					blocks = new JsonParser().parse(legacy.get("blocks").toString()).getAsJsonArray();
+				} else {
+					String block = text(legacy, "block", text(legacy, "blockID", ""));
+					if (!block.isEmpty()) {
+						JsonObject output = new JsonObject(); output.addProperty("name", block);
+						if (legacy.has("metadata")) output.add("metadata", legacy.get("metadata"));
+						if (legacy.has("state")) output.add("state", legacy.get("state"));
+						output.addProperty("chance", legacy.has("chance") ? legacy.get("chance").getAsInt() : 100);
+						zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, output);
+					}
+				}
+				spawn.add("blocks", blocks);
+				String blockName = blocks.size() == 0 ? "" : text(blocks.get(0).getAsJsonObject(), "name", "");
+				String base = validId(blockName) ? safe(new ResourceLocation(blockName).getResourcePath()) : "ore";
+				String name = base;
+				while (spawns.has(name)) name = base + "_" + (++ordinal);
+				spawns.add(name, spawn);
+				ordinal++;
+			}
+		}
+		normalized.add("spawns", spawns);
+		REPORT.add("legacy_v1_normalized=" + sourceId + ":spawns="
+				+ zone.moddev.mc.orespawn.util.JsonCopies.size(spawns));
+		return normalized;
 	}
 
 	private static boolean hasLegacyConfig(Path directory) {
@@ -390,6 +455,7 @@ public final class LegacyOs3Bridge {
 
 	private static JsonObject translate(String providerModId, String sourceId, JsonObject source, Path legacyDirectory,
 			LegacyFlags flags) throws IOException {
+		source = normalizeLegacyDocument(source, sourceId);
 		JsonObject provider = new JsonObject();
 		provider.addProperty("schema_version", 4);
 		provider.addProperty("provider_modid", providerModId);
@@ -412,7 +478,7 @@ public final class LegacyOs3Bridge {
 				ores.add(new ResourceLocation(providerModId, path).toString(), migrated);
 			}
 		}
-		REPORT.add("provider_translated=" + sourceId + ":owner=" + providerModId + ":ores=" + ores.size());
+		REPORT.add("provider_translated=" + sourceId + ":owner=" + providerModId + ":ores=" + zone.moddev.mc.orespawn.util.JsonCopies.size(ores));
 		return provider;
 	}
 
@@ -428,7 +494,7 @@ public final class LegacyOs3Bridge {
 		ore.addProperty("native_generation", false);
 		ore.addProperty("retrogen", bool(spawn, "retrogen", false));
 		copyMetadata(first, ore);
-		if (flags.replaceVanilla && "minecraft".equals(new ResourceLocation(output).getNamespace())) {
+		if (flags.replaceVanilla && "minecraft".equals(new ResourceLocation(output).getResourceDomain())) {
 			ore.addProperty("suppress_vanilla", true);
 		}
 		JsonArray outputs = new JsonArray();
@@ -437,7 +503,7 @@ public final class LegacyOs3Bridge {
 			String block = text(old, "name", ""); if (!validId(block)) continue;
 			JsonObject value = new JsonObject(); value.addProperty("block", block);
 			value.addProperty("weight", Math.max(1, integer(old, "chance", 100)));
-			copyMetadata(old, value); outputs.add(value);
+			copyMetadata(old, value); zone.moddev.mc.orespawn.util.JsonCopies.add(outputs, value);
 		}
 		ore.add("outputs", outputs);
 		JsonObject dimensions = new JsonObject(); JsonObject selectors = new JsonObject();
@@ -450,12 +516,12 @@ public final class LegacyOs3Bridge {
 			for (int dimension : selection.ids) {
 				JsonObject placement = placement(modId, name, spawn, replacements, flags);
 				if (placement == null) return null;
-				dimensions.add(dimensionId(dimension), placement);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(dimensions, dimensionId(dimension), placement);
 			}
 		}
-		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
-		if (selectors.size() > 0) ore.add("dimension_selectors", selectors);
-		if (dimensions.size() == 0 && selectors.size() == 0) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) > 0) ore.add("dimensions", dimensions);
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) > 0) ore.add("dimension_selectors", selectors);
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0 && zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) == 0) {
 			REPORT.add("spawn_ignored=" + modId + ":" + name + ":no_dimensions"); return null;
 		}
 		if (bool(spawn, "retrogen", false)) REPORT.add("retrogen_requested=" + modId + ":" + name);
@@ -502,10 +568,10 @@ public final class LegacyOs3Bridge {
 		}
 		hosts = uniqueHosts(hosts);
 		if (hosts.size() == 0) {
-			hosts.add("minecraft:stone"); hosts.add("minecraft:netherrack"); hosts.add("minecraft:end_stone");
+			zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:stone"); zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:netherrack"); zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:end_stone");
 		}
-		result.add("host_blocks", hosts);
-		result.add("host_tags", new JsonArray()); result.add("host_families", new JsonArray());
+		zone.moddev.mc.orespawn.util.JsonCopies.add(result, "host_blocks", hosts);
+		zone.moddev.mc.orespawn.util.JsonCopies.add(result, "host_tags", new JsonArray()); zone.moddev.mc.orespawn.util.JsonCopies.add(result, "host_families", new JsonArray());
 		copyBiomeSelectors(spawn, result);
 		return result;
 	}
@@ -515,7 +581,7 @@ public final class LegacyOs3Bridge {
 		Set<String> seen = new LinkedHashSet<>();
 		for (JsonElement host : hosts) {
 			String identity = host.toString();
-			if (seen.add(identity)) result.add(new JsonParser().parse(identity));
+			if (seen.add(identity)) zone.moddev.mc.orespawn.util.JsonCopies.add(result, new JsonParser().parse(identity));
 		}
 		return result;
 	}
@@ -552,7 +618,7 @@ public final class LegacyOs3Bridge {
 			result.addProperty("fluid", "water");
 		}
 		for (Map.Entry<String, JsonElement> entry : configured.entrySet()) {
-			result.add(entry.getKey(), new JsonParser().parse(entry.getValue().toString()));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, entry.getKey(), new JsonParser().parse(entry.getValue().toString()));
 		}
 		return result;
 	}
@@ -633,7 +699,7 @@ public final class LegacyOs3Bridge {
 		if (source == null || !source.isJsonArray()) return;
 		for (JsonElement value : source.getAsJsonArray()) {
 			String text = value.getAsString();
-			if (validId(text)) ids.add(text); else if (text.matches("[A-Za-z0-9_]+")) dictionary.add(text.toUpperCase(java.util.Locale.ROOT));
+			if (validId(text)) zone.moddev.mc.orespawn.util.JsonCopies.add(ids, text); else if (text.matches("[A-Za-z0-9_]+")) zone.moddev.mc.orespawn.util.JsonCopies.add(dictionary, text.toUpperCase(java.util.Locale.ROOT));
 			else REPORT.add("biome_selector_ignored=" + text);
 		}
 	}
@@ -642,19 +708,19 @@ public final class LegacyOs3Bridge {
 		Set<Integer> result = new LinkedHashSet<>();
 		if (source == null || source.isJsonNull()) return new DimensionSelection(true, result);
 		if (source.isJsonArray()) {
-			for (JsonElement value : source.getAsJsonArray()) result.add(value.getAsInt());
+			for (JsonElement value : source.getAsJsonArray()) zone.moddev.mc.orespawn.util.JsonCopies.add(result, value.getAsInt());
 			return new DimensionSelection(result.isEmpty(), result);
 		}
 		if (source.isJsonObject()) {
 			JsonObject object = source.getAsJsonObject();
 			JsonArray included = array(object, "includes");
 			if (included.size() == 0) return new DimensionSelection(true, result);
-			for (JsonElement value : included) result.add(value.getAsInt());
+			for (JsonElement value : included) zone.moddev.mc.orespawn.util.JsonCopies.add(result, value.getAsInt());
 			for (JsonElement value : array(object, "excludes")) result.remove(value.getAsInt());
 			if (result.isEmpty()) REPORT.add("dimension_selection_empty=" + source);
 			return new DimensionSelection(false, result);
 		}
-		result.add(source.getAsInt()); return new DimensionSelection(false, result);
+		zone.moddev.mc.orespawn.util.JsonCopies.add(result, source.getAsInt()); return new DimensionSelection(false, result);
 	}
 
 	private static final class DimensionSelection {
@@ -687,7 +753,7 @@ public final class LegacyOs3Bridge {
 	private static void mergeReplacementElement(JsonObject result, JsonElement root) {
 		if (root.isJsonObject()) {
 			for (Map.Entry<String, JsonElement> entry : root.getAsJsonObject().entrySet()) {
-				if (entry.getValue().isJsonArray()) result.add(entry.getKey(), new JsonParser().parse(entry.getValue().toString()));
+				if (entry.getValue().isJsonArray()) zone.moddev.mc.orespawn.util.JsonCopies.add(result, entry.getKey(), new JsonParser().parse(entry.getValue().toString()));
 			}
 		} else if (root.isJsonArray()) {
 			for (JsonElement element : root.getAsJsonArray()) {
@@ -696,7 +762,7 @@ public final class LegacyOs3Bridge {
 				if (!name.isEmpty()) {
 					JsonArray values = result.has(name) && result.get(name).isJsonArray()
 							? result.getAsJsonArray(name) : new JsonArray();
-					values.add(new JsonParser().parse(entry.toString())); result.add(name, values);
+					zone.moddev.mc.orespawn.util.JsonCopies.add(values, new JsonParser().parse(entry.toString())); zone.moddev.mc.orespawn.util.JsonCopies.add(result, name, values);
 				}
 			}
 		}
@@ -706,7 +772,7 @@ public final class LegacyOs3Bridge {
 		JsonArray result = new JsonArray();
 		if (!replacements.has(name) || !replacements.get(name).isJsonArray()) {
 			if ("default".equals(name)) {
-				result.add("minecraft:stone"); result.add("minecraft:netherrack"); result.add("minecraft:end_stone");
+				zone.moddev.mc.orespawn.util.JsonCopies.add(result, "minecraft:stone"); zone.moddev.mc.orespawn.util.JsonCopies.add(result, "minecraft:netherrack"); zone.moddev.mc.orespawn.util.JsonCopies.add(result, "minecraft:end_stone");
 			}
 			return result;
 		}
@@ -732,8 +798,8 @@ public final class LegacyOs3Bridge {
 		else if ("minecraft:andesite".equals(block)) { block = "minecraft:stone"; explicit = 5; }
 		if (!validId(block)) return;
 		int value = explicit >= 0 ? explicit : metadata(block, serializedState);
-		if (value == 0) result.add(block);
-		else { JsonObject host = new JsonObject(); host.addProperty("block", block); host.addProperty("metadata", clamp(value, 0, 15)); result.add(host); }
+		if (value == 0) zone.moddev.mc.orespawn.util.JsonCopies.add(result, block);
+		else { JsonObject host = new JsonObject(); host.addProperty("block", block); host.addProperty("metadata", clamp(value, 0, 15)); zone.moddev.mc.orespawn.util.JsonCopies.add(result, host); }
 	}
 
 	private static void appendMineralogyRockHosts(JsonArray result) {
@@ -746,8 +812,8 @@ public final class LegacyOs3Bridge {
 			for (ItemStack stack : OreDictionary.getOres(oreName, false)) {
 				Block block = Block.getBlockFromItem(stack.getItem());
 				ResourceLocation id = block == null ? null : block.getRegistryName();
-				if (id != null && "mineralogy".equals(id.getNamespace()) && known.add(id.toString())) {
-					result.add(id.toString());
+				if (id != null && "mineralogy".equals(id.getResourceDomain()) && known.add(id.toString())) {
+					zone.moddev.mc.orespawn.util.JsonCopies.add(result, id.toString());
 				}
 			}
 		}
@@ -794,7 +860,7 @@ public final class LegacyOs3Bridge {
 	private static void writeReport(Path destination) {
 		try {
 			JsonObject report = new JsonObject(); report.addProperty("format", 1); report.addProperty("idempotent", true);
-			JsonArray rows = new JsonArray(); for (String row : REPORT) rows.add(row); report.add("entries", rows);
+			JsonArray rows = new JsonArray(); for (String row : REPORT) zone.moddev.mc.orespawn.util.JsonCopies.add(rows, row); report.add("entries", rows);
 			writeAtomicIfChanged(destination, report);
 			writeHumanUpgradeReport(destination.resolveSibling("orespawn-upgrade-report.txt"));
 		} catch (IOException failure) { LOGGER.error("Could not write OS3 migration report", failure); }
@@ -818,7 +884,7 @@ public final class LegacyOs3Bridge {
 			}
 		}
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.16.112021 Upgrade Report");
+		lines.add("OreSpawn 4.0.16.111021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.");
@@ -1007,7 +1073,7 @@ public final class LegacyOs3Bridge {
 			REPORT.add("programmatic_feature=" + featureName);
 		}
 		@Override public void addReplacement(IReplacementEntry replacementEntry) {
-			String name = replacementEntry.getRegistryName() == null ? "replacement_" + replacements.size() : replacementEntry.getRegistryName().toString();
+			String name = replacementEntry.getRegistryName() == null ? "replacement_" + zone.moddev.mc.orespawn.util.JsonCopies.size(replacements) : replacementEntry.getRegistryName().toString();
 			replacements.put(name, replacementEntry);
 			rememberReplacement(name, replacementEntry.getEntries());
 			registerSavedReplacement(replacementEntry);
@@ -1015,7 +1081,7 @@ public final class LegacyOs3Bridge {
 		@Override public Map<String, IReplacementEntry> getReplacements() { return Collections.unmodifiableMap(replacements); }
 		@Override public IReplacementEntry getReplacement(String replacementName) { return replacements.get(replacementName); }
 		@Override public List<ISpawnEntry> getSpawns(int dimensionID) {
-			List<ISpawnEntry> result = new ArrayList<>(); for (ISpawnEntry spawn : spawns.values()) if (spawn.dimensionAllowed(dimensionID)) result.add(spawn); return result;
+			List<ISpawnEntry> result = new ArrayList<>(); for (ISpawnEntry spawn : spawns.values()) if (spawn.dimensionAllowed(dimensionID)) zone.moddev.mc.orespawn.util.JsonCopies.add(result, spawn); return result;
 		}
 		@Override public ISpawnEntry getSpawn(String spawnName) { return spawns.get(spawnName); }
 		@Override public Map<String, ISpawnEntry> getAllSpawns() { return Collections.unmodifiableMap(spawns); }
@@ -1068,7 +1134,7 @@ public final class LegacyOs3Bridge {
 				entry.addProperty("name", blockState.getBlock().getRegistryName().toString());
 				int metadata = blockState.getBlock().getMetaFromState(blockState);
 				if (metadata != 0) entry.addProperty("metadata", metadata);
-				entries.add(entry);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(entries, entry);
 			}
 			embeddedReplacements.add(name, entries);
 		}
@@ -1158,8 +1224,8 @@ public final class LegacyOs3Bridge {
 				if (!"create".equals(name)) return proxy;
 			}
 			if (type == ISpawnBuilder.class && name.startsWith("addBlock")) {
-				if (arguments.length == 1 && arguments[0] instanceof IBlockDefinition) blocks.add((IBlockDefinition) arguments[0]);
-				else blocks.add(blockDefinition(name, arguments));
+				if (arguments.length == 1 && arguments[0] instanceof IBlockDefinition) zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, (IBlockDefinition) arguments[0]);
+				else zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, blockDefinition(name, arguments));
 				return proxy;
 			}
 			if (type == IReplacementBuilder.class && "addEntry".equals(name)) {
@@ -1208,7 +1274,8 @@ public final class LegacyOs3Bridge {
 				return new LegacyFeatureEntry(featureName, feature, merged);
 			}
 			if (type == IReplacementBuilder.class) {
-				String name = stringValue("setName", stringValue("setFromName", "replacement_" + api.replacements.size()));
+				String name = stringValue("setName", stringValue("setFromName",
+						"replacement_" + api.replacements.size()));
 				return new LegacyReplacementEntry(name, replacementStates);
 			}
 			if (type == ISpawnBuilder.class) {
@@ -1267,7 +1334,7 @@ public final class LegacyOs3Bridge {
 	private static final class LegacyBlockList implements IBlockList {
 		private final List<IBlockDefinition> blocks = new ArrayList<>(); private int total;
 		LegacyBlockList(List<IBlockDefinition> values) { for (IBlockDefinition value : values) addBlock(value); }
-		@Override public void addBlock(IBlockDefinition block) { if (block != null && block.isValid()) { blocks.add(block); total += Math.max(0, block.getChance()); } }
+		@Override public void addBlock(IBlockDefinition block) { if (block != null && block.isValid()) { zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, block); total += Math.max(0, block.getChance()); } }
 		@Override public IBlockState getRandomBlock(Random random) {
 			if (blocks.isEmpty()) return null; int selected = random.nextInt(Math.max(1, total));
 			for (IBlockDefinition block : blocks) { selected -= Math.max(0, block.getChance()); if (selected < 0) return block.getBlock(); }
@@ -1302,8 +1369,8 @@ public final class LegacyOs3Bridge {
 			JsonObject result = new JsonObject();
 			result.addProperty("accept_all", all);
 			result.addProperty("overworld_only", overworldOnly);
-			JsonArray ids = new JsonArray(); for (Integer id : allowed) ids.add(id); result.add("includes", ids);
-			JsonArray excluded = new JsonArray(); for (Integer id : denied) excluded.add(id); result.add("excludes", excluded);
+			JsonArray ids = new JsonArray(); for (Integer id : allowed) zone.moddev.mc.orespawn.util.JsonCopies.add(ids, id); zone.moddev.mc.orespawn.util.JsonCopies.add(result, "includes", ids);
+			JsonArray excluded = new JsonArray(); for (Integer id : denied) zone.moddev.mc.orespawn.util.JsonCopies.add(excluded, id); zone.moddev.mc.orespawn.util.JsonCopies.add(result, "excludes", excluded);
 			return result;
 		}
 	}
@@ -1335,13 +1402,13 @@ public final class LegacyOs3Bridge {
 		@Override public JsonElement serialize() {
 			JsonObject result = new JsonObject();
 			JsonArray includes = new JsonArray();
-			for (Biome biome : included) if (biome.getRegistryName() != null) includes.add(biome.getRegistryName().toString());
-			for (String type : includedTypes) includes.add(type);
+			for (Biome biome : included) if (biome.getRegistryName() != null) zone.moddev.mc.orespawn.util.JsonCopies.add(includes, biome.getRegistryName().toString());
+			for (String type : includedTypes) zone.moddev.mc.orespawn.util.JsonCopies.add(includes, type);
 			JsonArray excludes = new JsonArray();
-			for (Biome biome : excluded) if (biome.getRegistryName() != null) excludes.add(biome.getRegistryName().toString());
-			for (String type : excludedTypes) excludes.add(type);
-			result.add("includes", includes);
-			result.add("excludes", excludes);
+			for (Biome biome : excluded) if (biome.getRegistryName() != null) zone.moddev.mc.orespawn.util.JsonCopies.add(excludes, biome.getRegistryName().toString());
+			for (String type : excludedTypes) zone.moddev.mc.orespawn.util.JsonCopies.add(excludes, type);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "includes", includes);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "excludes", excludes);
 			return result;
 		}
 		private static boolean matchesType(Biome biome, Set<String> names) {
@@ -1447,22 +1514,22 @@ public final class LegacyOs3Bridge {
 			result.addProperty("replaces", replacement == null || replacement.getRegistryName() == null
 					? "default" : replacement.getRegistryName().toString());
 			JsonArray dimensionIds = new JsonArray();
-			if (!dimensionList.all) for (Integer id : dimensionList.allowed) dimensionIds.add(id);
-			result.add("dimensions", dimensionIds);
+			if (!dimensionList.all) for (Integer id : dimensionList.allowed) zone.moddev.mc.orespawn.util.JsonCopies.add(dimensionIds, id);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "dimensions", dimensionIds);
 			JsonObject biomeFilter = new JsonObject();
 			JsonArray included = new JsonArray();
 			JsonArray excluded = new JsonArray();
 			if (biomes instanceof LegacyBiomeLocation) {
 				LegacyBiomeLocation location = (LegacyBiomeLocation) biomes;
-				for (Biome biome : location.included) if (biome.getRegistryName() != null) included.add(biome.getRegistryName().toString());
-				for (String type : location.includedTypes) included.add(type);
-				for (Biome biome : location.excluded) if (biome.getRegistryName() != null) excluded.add(biome.getRegistryName().toString());
-				for (String type : location.excludedTypes) excluded.add(type);
+				for (Biome biome : location.included) if (biome.getRegistryName() != null) zone.moddev.mc.orespawn.util.JsonCopies.add(included, biome.getRegistryName().toString());
+				for (String type : location.includedTypes) zone.moddev.mc.orespawn.util.JsonCopies.add(included, type);
+				for (Biome biome : location.excluded) if (biome.getRegistryName() != null) zone.moddev.mc.orespawn.util.JsonCopies.add(excluded, biome.getRegistryName().toString());
+				for (String type : location.excludedTypes) zone.moddev.mc.orespawn.util.JsonCopies.add(excluded, type);
 			}
 			biomeFilter.add("includes", included);
 			biomeFilter.add("excludes", excluded);
-			result.add("biomes", biomeFilter);
-			result.add("parameters", new JsonParser().parse(feature.getFeatureParameters().toString()));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "biomes", biomeFilter);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "parameters", new JsonParser().parse(feature.getFeatureParameters().toString()));
 			JsonArray outputs = new JsonArray();
 			for (IBlockDefinition definition : ((LegacyBlockList) blocks).blocks) {
 				IBlockState state = definition.getBlock();
@@ -1472,10 +1539,10 @@ public final class LegacyOs3Bridge {
 				int metadata = state.getBlock().getMetaFromState(state);
 				if (metadata != 0) output.addProperty("metadata", metadata);
 				output.addProperty("chance", definition.getChance());
-				outputs.add(output);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(outputs, output);
 			}
 			if (outputs.size() == 0) return null;
-			result.add("blocks", outputs);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "blocks", outputs);
 			if (replacement != null && replacement.getRegistryName() != null) {
 				api.rememberReplacement(replacement.getRegistryName().toString(), replacement.getEntries());
 			}
@@ -1668,9 +1735,9 @@ public final class LegacyOs3Bridge {
 			result.addProperty("retrogen", retrogen);
 			result.addProperty("feature", normalized);
 			result.addProperty("replaces", replacementName);
-			result.add("dimensions", dimensions);
-			result.add("biomes", biomes == null ? LegacyBiomeLocation.all().serialize() : biomes.serialize());
-			result.add("parameters", feature.getParameters() == null
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "dimensions", dimensions);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "biomes", biomes == null ? LegacyBiomeLocation.all().serialize() : biomes.serialize());
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "parameters", feature.getParameters() == null
 					? new JsonObject() : new JsonParser().parse(feature.getParameters().toString()));
 
 			JsonArray outputs = new JsonArray();
@@ -1682,10 +1749,10 @@ public final class LegacyOs3Bridge {
 				int metadata = state.getBlock().getMetaFromState(state);
 				if (metadata != 0) output.addProperty("metadata", metadata);
 				output.addProperty("chance", Math.max(0, ore.getChance()));
-				outputs.add(output);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(outputs, output);
 			}
 			if (outputs.size() == 0) return null;
-			result.add("blocks", outputs);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, "blocks", outputs);
 			api.rememberReplacement(replacementName, replacements);
 			return result;
 		}
@@ -1712,7 +1779,7 @@ public final class LegacyOs3Bridge {
 				return null;
 			}
 			JsonArray result = new JsonArray();
-			for (Integer id : selected) result.add(id);
+			for (Integer id : selected) zone.moddev.mc.orespawn.util.JsonCopies.add(result, id);
 			return result;
 		}
 	}
@@ -1736,11 +1803,11 @@ public final class LegacyOs3Bridge {
 		private final Set<Biome> included = new LinkedHashSet<>(), excluded = new LinkedHashSet<>();
 		private final Set<String> includedTypes = new LinkedHashSet<>(), excludedTypes = new LinkedHashSet<>();
 		private BiomeLocation value;
-		@Override public BiomeBuilder whitelistBiome(Biome biome) { included.add(biome); return this; }
-		@Override public BiomeBuilder whitelistBiomeByName(String name) { Biome biome = validId(name) ? ForgeRegistries.BIOMES.getValue(new ResourceLocation(name)) : null; if (biome != null) included.add(biome); return this; }
+		@Override public BiomeBuilder whitelistBiome(Biome biome) { zone.moddev.mc.orespawn.util.JsonCopies.add(included, biome); return this; }
+		@Override public BiomeBuilder whitelistBiomeByName(String name) { Biome biome = validId(name) ? ForgeRegistries.BIOMES.getValue(new ResourceLocation(name)) : null; if (biome != null) zone.moddev.mc.orespawn.util.JsonCopies.add(included, biome); return this; }
 		@Override public BiomeBuilder whitelistBiomeByDictionary(String type) { includedTypes.add(type.toUpperCase(java.util.Locale.ROOT)); return this; }
-		@Override public BiomeBuilder blacklistBiome(Biome biome) { excluded.add(biome); return this; }
-		@Override public BiomeBuilder blacklistBiomeByName(String name) { Biome biome = validId(name) ? ForgeRegistries.BIOMES.getValue(new ResourceLocation(name)) : null; if (biome != null) excluded.add(biome); return this; }
+		@Override public BiomeBuilder blacklistBiome(Biome biome) { zone.moddev.mc.orespawn.util.JsonCopies.add(excluded, biome); return this; }
+		@Override public BiomeBuilder blacklistBiomeByName(String name) { Biome biome = validId(name) ? ForgeRegistries.BIOMES.getValue(new ResourceLocation(name)) : null; if (biome != null) zone.moddev.mc.orespawn.util.JsonCopies.add(excluded, biome); return this; }
 		@Override public BiomeBuilder blacklistBiomeByDictionary(String type) { excludedTypes.add(type.toUpperCase(java.util.Locale.ROOT)); return this; }
 		@Override public BiomeBuilder setFromBiomeLocation(BiomeLocation biomes) { value = biomes; return this; }
 		@Override public BiomeLocation getBiomes() { return value == null

@@ -102,6 +102,9 @@ def normalizeArchiveLineEndings = { details ->
 }
 
 minecraft {
+    if (gradle.startParameter.offline) {
+        mavenizerArguments.add('--offline')
+    }
     mappings channel: project.mapping_channel, version: project.mapping_version
     accessTransformer = 'META-INF/accesstransformer.cfg'
 
@@ -112,7 +115,9 @@ minecraft {
         }
         register('client')
         register('server') {
-            args '--nogui'
+            // Forge 13's legacy launcher expects the bare trailing token used
+            // by the official server command line: `java -jar forge.jar nogui`.
+            args 'nogui'
         }
     }
 }
@@ -326,7 +331,12 @@ version_checking {
             }
             runOptions.workingDir.set(process.workingDir)
             run.workingDir(process.workingDir)
-            run.args(process.args)
+            // Preserve the target run's bare nogui argument while adding any
+            // fixture-specific arguments. Replacing the argument list here
+            // caused every automated Forge 1.11 server to open its Swing GUI.
+            List<String> effectiveArgs = new ArrayList<>(originalArgs)
+            effectiveArgs.addAll(process.args)
+            run.setArgs(effectiveArgs)
             run.jvmArgs(process.jvmArgs)
             run.systemProperties(process.systemProperties)
             run.environment(process.environment)
@@ -1129,10 +1139,14 @@ task benchmarkIntegrationProcess(type: JavaExec, dependsOn: prepareWorldgenBench
         }
         configureFromForgeRun(delegate, 'runServer')
         doLast {
-            File latest = new File(benchmarkRunDirectory, 'logs/latest.log')
             String mode = project.findProperty('benchmarkMode') ?: 'sky'
-            if (!latest.isFile() || !latest.text.contains("ORESPAWN_BENCHMARK summary mode=${mode}")) {
-                throw new GradleException("Missing ${mode} worldgen benchmark summary: ${latest}")
+            String summary = "ORESPAWN_BENCHMARK summary mode=${mode}"
+            List<File> benchmarkLogs = [
+                    new File(benchmarkRunDirectory, 'logs/fml-server-latest.log'),
+                    new File(benchmarkRunDirectory, 'logs/latest.log')
+            ]
+            if (!benchmarkLogs.any { it.isFile() && it.getText('UTF-8').contains(summary) }) {
+                throw new GradleException("Missing ${mode} worldgen benchmark summary in ${benchmarkLogs}")
             }
             assertRuntimeLogsClean(benchmarkRunDirectory, "${mode} worldgen benchmark")
         }
@@ -1153,6 +1167,18 @@ tasks.named('processResources', ProcessResources) {
     }
     from('docs') {
         into 'META-INF/orespawn/docs'
+    }
+    // Pack format 2 is wrapped by Minecraft 1.11's LegacyV2Adapter, which
+    // translates a requested lower-case locale such as en_us.lang to the
+    // pre-1.11 en_US.lang spelling. Keep the canonical lower-case sources but
+    // use target-runtime names in processed production resources. Renaming the
+    // single copy also keeps Windows and case-sensitive CI archives identical.
+    filesMatching('assets/orespawn/lang/*.lang') {
+        def locale = name =~ /^([a-z]{2})_([a-z]{2})\.lang$/
+        if (!locale.matches()) {
+            throw new GradleException("Unexpected locale file name: ${name}")
+        }
+        name = "${locale.group(1)}_${locale.group(2).toUpperCase(java.util.Locale.ROOT)}.lang"
     }
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
@@ -1598,6 +1624,20 @@ tasks.register('verifyReleaseArtifacts') {
 			].each { required ->
 				if (!names.contains(required)) {
 					throw new GradleException("Release jar is missing ${required}")
+				}
+			}
+			fileTree('src/main/resources/assets/orespawn/lang') {
+				include '*.lang'
+			}.files.each { File source ->
+				def locale = source.name =~ /^([a-z]{2})_([a-z]{2})\.lang$/
+				if (!locale.matches()) {
+					throw new GradleException("Unexpected locale file name: ${source.name}")
+				}
+				String alias = "${locale.group(1)}_${locale.group(2).toUpperCase(java.util.Locale.ROOT)}.lang"
+				def entry = zip.getEntry("assets/orespawn/lang/${alias}")
+				if (entry == null || !java.util.Arrays.equals(source.bytes,
+						zip.getInputStream(entry).withCloseable { it.bytes })) {
+					throw new GradleException("Packaged LegacyV2 locale alias differs for ${alias}")
 				}
 			}
 			List<File> trackedDocs = trackedDocumentationFiles()

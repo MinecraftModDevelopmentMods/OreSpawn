@@ -46,6 +46,18 @@ class ReleaseWorkflowContractTest {
 		assertTrue(ci.contains("test ! -e \"$GRADLE_USER_HOME\""));
 		assertTrue(ci.contains("classes verifyLegacyFixtures"));
 		assertTrue(ci.contains("--rerun-tasks --offline --no-daemon --no-build-cache"));
+		assertTrue(build.contains("if (gradle.startParameter.offline)"));
+		assertTrue(build.contains("mavenizerArguments.add('--offline')"));
+		assertTrue(build.contains("Minecraft 1.11's LegacyV2Adapter"));
+		assertTrue(build.contains("Packaged LegacyV2 locale alias differs"));
+		assertTrue(build.contains("args 'nogui'"));
+		assertFalse(build.contains("args '--nogui'"));
+		assertTrue(build.contains("List<String> effectiveArgs = new ArrayList<>(originalArgs)"));
+		assertTrue(build.contains("run.setArgs(effectiveArgs)"));
+		assertFalse(build.contains("run.args(process.args)"));
+		assertTrue(build.contains("'-jar', forge, 'nogui'"));
+		assertTrue(build.contains("logs/fml-server-latest.log"));
+		assertTrue(build.contains("benchmarkLogs.any"));
 	}
 
 	private static String readWorkflow(String name) throws Exception {

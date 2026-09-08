@@ -33,14 +33,14 @@ import com.mcmoddev.orespawn.api.os3.OreBuilder;
 import com.mcmoddev.orespawn.api.os3.SpawnBuilder;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class LegacyOs3BridgeTest {
 	@TempDir Path temporary;
 
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -61,10 +61,10 @@ class LegacyOs3BridgeTest {
 			JsonObject spawn = new JsonObject(); spawn.addProperty("enabled", index != 4);
 			spawn.addProperty("retrogen", index == 1); spawn.addProperty("feature", patterns[index]);
 			spawn.addProperty("replaces", index == 0 ? "granite_only" : "default");
-			JsonArray dimensions = new JsonArray(); dimensions.add(index == 2 ? -1 : index == 3 ? 1 : 0);
+			JsonArray dimensions = new JsonArray(); zone.moddev.mc.orespawn.util.JsonCopies.add(dimensions, index == 2 ? -1 : index == 3 ? 1 : 0);
 			spawn.add("dimensions", dimensions);
 			JsonObject biomes = new JsonObject(); JsonArray includes = new JsonArray();
-			includes.add(index == 0 ? "minecraft:plains" : "FOREST"); biomes.add("includes", includes); spawn.add("biomes", biomes);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(includes, index == 0 ? "minecraft:plains" : "FOREST"); biomes.add("includes", includes); spawn.add("biomes", biomes);
 			JsonObject parameters = new JsonObject(); parameters.addProperty("frequency", index == 0 ? 0.375D : 50.0D);
 			parameters.addProperty("size", 9); parameters.addProperty("variation", 2);
 			parameters.addProperty("attemptsMin", 2); parameters.addProperty("attemptsMax", 2);
@@ -78,7 +78,7 @@ class LegacyOs3BridgeTest {
 		}
 
 		JsonObject provider = LegacyOs3Bridge.translateForTests("orespawn", source, legacy, config);
-		assertEquals(6, provider.getAsJsonObject("ores").size());
+		assertEquals(6, zone.moddev.mc.orespawn.util.JsonCopies.size(provider.getAsJsonObject("ores")));
 		for (int index = 0; index < patterns.length; index++) {
 			JsonObject ore = provider.getAsJsonObject("ores").getAsJsonObject("orespawn:legacy/pattern_" + index);
 			assertEquals(index == 4, !ore.get("enabled").getAsBoolean());
@@ -132,6 +132,24 @@ class LegacyOs3BridgeTest {
 				.getAsJsonObject("orespawn:all_except_nether_end");
 		assertEquals(255, placement.get("max_y").getAsInt());
 		assertEquals(3, placement.getAsJsonArray("host_blocks").size());
+
+		JsonObject v1 = new JsonParser().parse("{\"version\":1,\"dimensions\":["
+				+ "{\"dimension\":-1,\"ores\":[{\"block\":\"minecraft:gold_ore\","
+				+ "\"parameters\":{\"minHeight\":4,\"maxHeight\":40},\"feature\":\"default\","
+				+ "\"replace_block\":\"default\"}]},"
+				+ "{\"ores\":[{\"block\":\"minecraft:iron_ore\",\"feature\":\"default\","
+				+ "\"replace_block\":\"default\"}]}]}").getAsJsonObject();
+		JsonObject v1Provider = LegacyOs3Bridge.translateStandaloneForTests(
+				"basemetals", v1, temporary.resolve("missing"), temporary.resolve("missing.cfg"));
+		assertEquals(2, zone.moddev.mc.orespawn.util.JsonCopies.size(v1Provider.getAsJsonObject("ores")));
+		JsonObject netherOre = v1Provider.getAsJsonObject("ores")
+				.getAsJsonObject("orespawn:legacy/basemetals/gold_ore");
+		assertEquals("minecraft:gold_ore", netherOre.get("block").getAsString());
+		assertEquals(39, netherOre.getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:the_nether").get("max_y").getAsInt());
+		assertTrue(v1Provider.getAsJsonObject("ores")
+				.getAsJsonObject("orespawn:legacy/basemetals/iron_ore")
+				.has("dimension_selectors"));
 	}
 
 	@Test
