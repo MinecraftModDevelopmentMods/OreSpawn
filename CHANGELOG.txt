@@ -1,3 +1,12 @@
+Version 4.0.9.110021
+
+* Replace provider-declared natural terrain hosts during the existing early
+  geology scan before structures and vegetation can author matching blocks.
+* Keep air, liquids, bedrock, and block entities protected even when their
+  block IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
 Version 4.0.8.110021
 
 * Preserve all eight ore/fluid host, tag, and biome editor fields when saved values exceed Minecraft 1.10.2's default 32-character text limit.
