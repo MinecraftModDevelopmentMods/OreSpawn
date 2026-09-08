@@ -6,7 +6,9 @@ import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 
 /** Immutable setup-time resolution of one terrain replacement dimension. */
 final class BakedTerrainDimension {
@@ -36,6 +38,11 @@ final class BakedTerrainDimension {
 	}
 
 	boolean isReplaceable(IBlockState state) {
+		if (state.getMaterial() == Material.AIR || state.getMaterial().isLiquid()
+				|| state.getBlock() == Blocks.BEDROCK
+				|| state.getBlock().hasTileEntity(state)) {
+			return false;
+		}
 		if (smallHostSet != null) {
 			Block block = state.getBlock();
 			for (Block host : smallHostSet) {

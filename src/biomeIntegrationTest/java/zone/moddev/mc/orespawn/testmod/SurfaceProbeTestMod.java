@@ -85,10 +85,21 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID, "rock/spring_host");
 	private static final ProbeLiquid DEPOSIT_FLUID = new ProbeLiquid();
 	private static final BlockPos SPRING_POS = new BlockPos(1128, 32, 1128);
+	private static final IBlockState[] NATURAL_SOURCES = {
+			Blocks.DIRT.getStateFromMeta(0), Blocks.GRASS.getDefaultState(),
+			Blocks.DIRT.getStateFromMeta(1), Blocks.DIRT.getStateFromMeta(2),
+			Blocks.GRAVEL.getDefaultState(), Blocks.SAND.getStateFromMeta(0),
+			Blocks.SAND.getStateFromMeta(1), Blocks.CLAY.getDefaultState(),
+			Blocks.HARDENED_CLAY.getDefaultState(),
+			Blocks.STAINED_HARDENED_CLAY.getStateFromMeta(0),
+			Blocks.STAINED_HARDENED_CLAY.getStateFromMeta(1),
+			Blocks.STAINED_HARDENED_CLAY.getStateFromMeta(14)
+	};
 	private static final int MIN_CHUNK = 63;
 	private static final int MAX_CHUNK = 65;
 	private static final int COLUMNS = 9 * 16 * 16;
 	private static final int FILLER = COLUMNS * 3;
+	private static final int NATURAL_SOURCE_COUNT = 9 * NATURAL_SOURCES.length;
 	private static final int GROUND_Y = 200;
 	private static final int MARKER_Y = GROUND_Y - 5;
 	private static final int ROOF_UNDERSIDE_Y = 220;
@@ -98,6 +109,7 @@ public final class SurfaceProbeTestMod {
 	private static final String PHASE_PROPERTY = "surfaceprobe.integrationPhase";
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
+	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn", "stable_craton"),
 			new ResourceLocation("orespawn", "mountain_belt"),
@@ -167,6 +179,9 @@ public final class SurfaceProbeTestMod {
 		Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
 		ProbeGenerator.placeTerrain(chunk, chunkX << 4, chunkZ << 4,
 				world.provider.getDimension() == -1);
+		if (world.provider.getDimension() == 1) {
+			placeRawNaturalSources(world, chunk, chunkX << 4, chunkZ << 4);
+		}
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -220,8 +235,15 @@ public final class SurfaceProbeTestMod {
 				});
 		provider.biome(BIOME_A, Collections.singletonMap(PROBE_GEOME, 100.0D));
 		provider.biome(BIOME_B, Collections.singletonMap(PROBE_GEOME, 100.0D));
-		provider.terrainDimension(TerrainDimensionDefinition.builder(END)
-				.biomeNamespace(MODID).hostBlock(id(Blocks.END_STONE)).build());
+		TerrainDimensionDefinition.Builder terrain = TerrainDimensionDefinition.builder(END)
+				.biomeNamespace(MODID).hostBlock(id(Blocks.END_STONE));
+		for (Block block : Arrays.asList(Blocks.DIRT, Blocks.GRASS, Blocks.GRAVEL,
+				Blocks.SAND, Blocks.CLAY, Blocks.HARDENED_CLAY,
+				Blocks.STAINED_HARDENED_CLAY, Blocks.AIR, Blocks.WATER,
+				Blocks.BEDROCK, Blocks.CHEST)) {
+			terrain.hostBlock(id(block));
+		}
+		provider.terrainDimension(terrain.build());
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
@@ -323,6 +345,8 @@ public final class SurfaceProbeTestMod {
 
 	private static Audit audit(WorldServer world, boolean roofed) {
 		long dry = 0, wet = 0, filler = 0, geology = 0, ceiling = 0, roof = 0;
+		long rawNatural = 0, structureNatural = 0, vegetationNatural = 0;
+		long cavePockets = 0, underwaterPockets = 0, rawBedrock = 0, rawBlockEntities = 0;
 		int biomeA = 0, biomeB = 0, edges = 0, sentinels = 0;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		loadPopulationBorder(world);
@@ -375,17 +399,73 @@ public final class SurfaceProbeTestMod {
 					}
 				}
 				sentinels += auditSentinels(world, minX, minZ);
+				if (!roofed) {
+					NaturalSourceAudit natural = auditNaturalSources(world, chunk, cursor, minX, minZ);
+					rawNatural += natural.rawConverted;
+					structureNatural += natural.structurePreserved;
+					vegetationNatural += natural.vegetationPreserved;
+					cavePockets += natural.cavePreserved;
+					underwaterPockets += natural.underwaterPreserved;
+					rawBedrock += natural.bedrockPreserved;
+					rawBlockEntities += natural.blockEntityPreserved;
+				}
 			}
 		}
 		if (dry != COLUMNS - 9 || wet != 9 || filler != FILLER || biomeA == 0 || biomeB == 0
 				|| edges == 0 || sentinels != 36 || geology != (roofed ? 0 : FILLER)
-				|| (roofed && (ceiling != COLUMNS || roof != COLUMNS))) {
+				|| (roofed && (ceiling != COLUMNS || roof != COLUMNS))
+				|| (!roofed && (rawNatural != NATURAL_SOURCE_COUNT
+						|| structureNatural != NATURAL_SOURCE_COUNT
+						|| vegetationNatural != NATURAL_SOURCE_COUNT
+						|| cavePockets != NATURAL_SOURCE_COUNT / 2
+						|| underwaterPockets != NATURAL_SOURCE_COUNT / 2
+						|| rawBedrock != 9 || rawBlockEntities != 9))) {
 			throw new IllegalStateException("Incomplete surface audit: dry=" + dry + ", wet=" + wet
 					+ ", filler=" + filler + ", biomeA=" + biomeA + ", biomeB=" + biomeB
 					+ ", edges=" + edges + ", sentinels=" + sentinels + ", geology=" + geology
-					+ ", ceiling=" + ceiling + ", roof=" + roof);
+					+ ", ceiling=" + ceiling + ", roof=" + roof
+					+ ", rawNatural=" + rawNatural
+					+ ", structureNatural=" + structureNatural
+					+ ", vegetationNatural=" + vegetationNatural
+					+ ", cavePockets=" + cavePockets
+					+ ", underwaterPockets=" + underwaterPockets
+					+ ", rawBedrock=" + rawBedrock
+					+ ", rawBlockEntities=" + rawBlockEntities);
 		}
-		return new Audit(dry, wet, filler, geology, ceiling, roof, biomeA, biomeB, edges, sentinels);
+		return new Audit(dry, wet, filler, geology, ceiling, roof, biomeA, biomeB, edges, sentinels,
+				rawNatural, structureNatural, vegetationNatural, cavePockets,
+				underwaterPockets, rawBedrock, rawBlockEntities);
+	}
+
+	private static NaturalSourceAudit auditNaturalSources(WorldServer world, Chunk chunk,
+			BlockPos.MutableBlockPos cursor, int minX, int minZ) {
+		long raw = 0, structure = 0, vegetation = 0, cave = 0, underwater = 0;
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			int x = naturalX(minX, index), z = naturalZ(minZ, index);
+			if (chunk.getBlockState(cursor.setPos(x, GROUND_Y - 12, z)).getBlock() == Blocks.PRISMARINE) raw++;
+			IBlockState pocket = chunk.getBlockState(cursor.setPos(x, GROUND_Y - 11, z));
+			if (index < NATURAL_SOURCES.length / 2) {
+				if (pocket.getBlock() == Blocks.AIR) cave++;
+			} else if (pocket.getBlock() == Blocks.WATER) {
+				underwater++;
+			}
+			if (NATURAL_SOURCES[index].equals(chunk.getBlockState(
+					cursor.setPos(x, GROUND_Y - 16, z)))) structure++;
+			if (NATURAL_SOURCES[index].equals(chunk.getBlockState(
+					cursor.setPos(x, GROUND_Y - 20, z)))) vegetation++;
+		}
+		long bedrock = chunk.getBlockState(cursor.setPos(minX + 11, GROUND_Y - 24, minZ + 12))
+				.getBlock() == Blocks.BEDROCK ? 1 : 0;
+		BlockPos chestPos = new BlockPos(minX + 12, GROUND_Y - 24, minZ + 12);
+		long blockEntity = 0;
+		if (chunk.getBlockState(chestPos).getBlock() == Blocks.CHEST
+				&& world.getTileEntity(chestPos) instanceof TileEntityChest) {
+			ItemStack stack = ((TileEntityChest) world.getTileEntity(chestPos)).getStackInSlot(0);
+			if (stack.getItem() == Items.EMERALD && RAW_CHEST_ITEM_NAME.equals(stack.getDisplayName())) {
+				blockEntity = 1;
+			}
+		}
+		return new NaturalSourceAudit(raw, structure, vegetation, cave, underwater, bedrock, blockEntity);
 	}
 
 	private static void loadPopulationBorder(WorldServer world) {
@@ -463,6 +543,42 @@ public final class SurfaceProbeTestMod {
 			if (chunk.getBlockState(cursor.setPos(x, y, z)).getBlock() == Blocks.OBSIDIAN) return y + 5;
 		}
 		throw new IllegalStateException("Surface marker missing at " + x + "," + z);
+	}
+
+	private static void placeRawNaturalSources(World world, Chunk chunk, int minX, int minZ) {
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			int x = naturalX(minX, index), z = naturalZ(minZ, index);
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 12, z), NATURAL_SOURCES[index]);
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 11, z),
+					index < NATURAL_SOURCES.length / 2
+							? Blocks.AIR.getDefaultState() : Blocks.WATER.getDefaultState());
+		}
+		chunk.setBlockState(pos.setPos(minX + 11, GROUND_Y - 24, minZ + 12),
+				Blocks.BEDROCK.getDefaultState());
+		BlockPos chestPos = new BlockPos(minX + 12, GROUND_Y - 24, minZ + 12);
+		world.setBlockState(chestPos, Blocks.CHEST.getDefaultState(), 2);
+		if (world.getTileEntity(chestPos) instanceof TileEntityChest) {
+			ItemStack stack = new ItemStack(Items.EMERALD);
+			stack.setStackDisplayName(RAW_CHEST_ITEM_NAME);
+			((TileEntityChest) world.getTileEntity(chestPos)).setInventorySlotContents(0, stack);
+		}
+		chunk.markDirty();
+	}
+
+	private static void placeAuthoredNaturalSources(World world, int minX, int minZ, int depth) {
+		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
+			world.setBlockState(new BlockPos(naturalX(minX, index), GROUND_Y - depth,
+					naturalZ(minZ, index)), NATURAL_SOURCES[index], 2);
+		}
+	}
+
+	private static int naturalX(int minX, int index) {
+		return minX + 12 + index % 4;
+	}
+
+	private static int naturalZ(int minZ, int index) {
+		return minZ + 1 + index / 4;
 	}
 
 	private static void assertBlock(Chunk chunk, BlockPos.MutableBlockPos cursor,
@@ -560,6 +676,10 @@ public final class SurfaceProbeTestMod {
 			ItemStack stack = new ItemStack(Items.DIAMOND);
 			stack.setStackDisplayName(CHEST_ITEM_NAME);
 			((TileEntityChest) world.getTileEntity(chestPos)).setInventorySlotContents(0, stack);
+			if (world.provider.getDimension() == 1) {
+				placeAuthoredNaturalSources(world, minX, minZ, 16);
+				placeAuthoredNaturalSources(world, minX, minZ, 20);
+			}
 		}
 	}
 
@@ -603,11 +723,19 @@ public final class SurfaceProbeTestMod {
 	private static final class Audit {
 		final long dry, wet, filler, geology, ceiling, roof;
 		final int biomeA, biomeB, edges, sentinels;
+		final long rawNatural, structureNatural, vegetationNatural;
+		final long cavePockets, underwaterPockets, rawBedrock, rawBlockEntities;
 		Audit(long dry, long wet, long filler, long geology, long ceiling, long roof,
-				int biomeA, int biomeB, int edges, int sentinels) {
+				int biomeA, int biomeB, int edges, int sentinels,
+				long rawNatural, long structureNatural, long vegetationNatural,
+				long cavePockets, long underwaterPockets, long rawBedrock, long rawBlockEntities) {
 			this.dry = dry; this.wet = wet; this.filler = filler; this.geology = geology;
 			this.ceiling = ceiling; this.roof = roof; this.biomeA = biomeA;
 			this.biomeB = biomeB; this.edges = edges; this.sentinels = sentinels;
+			this.rawNatural = rawNatural; this.structureNatural = structureNatural;
+			this.vegetationNatural = vegetationNatural; this.cavePockets = cavePockets;
+			this.underwaterPockets = underwaterPockets; this.rawBedrock = rawBedrock;
+			this.rawBlockEntities = rawBlockEntities;
 		}
 		void put(Properties properties, String prefix) {
 			properties.setProperty(prefix + ".dry", Long.toString(dry));
@@ -620,10 +748,33 @@ public final class SurfaceProbeTestMod {
 			properties.setProperty(prefix + ".biome_b", Integer.toString(biomeB));
 			properties.setProperty(prefix + ".edges", Integer.toString(edges));
 			properties.setProperty(prefix + ".sentinels", Integer.toString(sentinels));
+			properties.setProperty(prefix + ".raw_natural_sources", Long.toString(rawNatural));
+			properties.setProperty(prefix + ".structure_natural_sources", Long.toString(structureNatural));
+			properties.setProperty(prefix + ".vegetation_natural_sources", Long.toString(vegetationNatural));
+			properties.setProperty(prefix + ".cave_pockets", Long.toString(cavePockets));
+			properties.setProperty(prefix + ".underwater_pockets", Long.toString(underwaterPockets));
+			properties.setProperty(prefix + ".raw_bedrock", Long.toString(rawBedrock));
+			properties.setProperty(prefix + ".raw_block_entities", Long.toString(rawBlockEntities));
 		}
 		@Override public String toString() {
 			return "Audit{dry=" + dry + ", wet=" + wet + ", filler=" + filler
 					+ ", geology=" + geology + ", ceiling=" + ceiling + ", sentinels=" + sentinels + "}";
+		}
+	}
+
+	private static final class NaturalSourceAudit {
+		final long rawConverted, structurePreserved, vegetationPreserved;
+		final long cavePreserved, underwaterPreserved, bedrockPreserved, blockEntityPreserved;
+		NaturalSourceAudit(long rawConverted, long structurePreserved,
+				long vegetationPreserved, long cavePreserved, long underwaterPreserved,
+				long bedrockPreserved, long blockEntityPreserved) {
+			this.rawConverted = rawConverted;
+			this.structurePreserved = structurePreserved;
+			this.vegetationPreserved = vegetationPreserved;
+			this.cavePreserved = cavePreserved;
+			this.underwaterPreserved = underwaterPreserved;
+			this.bedrockPreserved = bedrockPreserved;
+			this.blockEntityPreserved = blockEntityPreserved;
 		}
 	}
 }

@@ -1,3 +1,12 @@
+Version 4.0.9.112021
+
+* Replace provider-declared natural terrain hosts during the existing early
+  geology scan before structures and vegetation can author matching blocks.
+* Keep air, liquids, bedrock, and block entities protected even when their
+  block IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
 Version 4.0.8.112021
 
 * Preserve long host, tag, and biome-list values when OreSpawn editors load

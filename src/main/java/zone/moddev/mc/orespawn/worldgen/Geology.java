@@ -110,8 +110,10 @@ public class Geology {
 				for (; y >= 0; y--) {
 					cursor.setPos(x, y, z);
 					IBlockState current = chunk.getBlockState(cursor);
-					if (terrain.isReplaceable(current)
-							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE)) {
+					if (!current.getBlock().hasTileEntity(current)
+							&& (terrain.isReplaceable(current)
+							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE))
+							&& chunk.getTileEntity(cursor, Chunk.EnumCreateEntityType.CHECK) == null) {
 						IBlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
 						if (!GeomeGeology.changes(current, replacement)) continue;
 						chunk.setBlockState(cursor, replacement);
