@@ -18,6 +18,7 @@ public final class DocumentationExporter {
 	private static final String RESOURCE_ROOT = "/META-INF/orespawn/docs/";
 	private static final String[] FILES = {
 			"README.md",
+			"VERSIONS.md",
 			"PLAYER_GUIDE.md",
 			"DEVELOPER_GUIDE.md",
 			"CONFIGURATION.md",
