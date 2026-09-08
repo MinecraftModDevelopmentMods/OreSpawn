@@ -17,6 +17,11 @@ import java.util.LinkedHashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
@@ -33,6 +38,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
+import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDynamicLiquid;
@@ -61,6 +67,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -110,6 +117,8 @@ public final class SurfaceProbeTestMod {
 	private static final String MARKER_NAME = "surfaceprobe-integration.properties";
 	private static final String CHEST_ITEM_NAME = "surfaceprobe sentinel";
 	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
+	private static final Block WEATHER_SNOW_REPLACEMENT = Blocks.WOOL;
+	private static final Block WEATHER_ICE_REPLACEMENT = Blocks.PACKED_ICE;
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn", "stable_craton"),
 			new ResourceLocation("orespawn", "mountain_belt"),
@@ -210,6 +219,9 @@ public final class SurfaceProbeTestMod {
 		// opposite sides of the 1,024-block Tiny-region boundary.
 		addPalette(provider, "end_palette_1", END, false);
 		addPalette(provider, "nether_palette_1", NETHER, true);
+		provider.dimensionMaterials(new ResourceLocation(MODID, "materials/end"), END,
+				materials -> materials.snowBlock(id(WEATHER_SNOW_REPLACEMENT))
+						.iceBlock(id(WEATHER_ICE_REPLACEMENT)));
 		if (!OreSpawnApi.enqueue(provider.build())) {
 			throw new IllegalStateException("Could not enqueue the surfaceprobe provider");
 		}
@@ -239,11 +251,39 @@ public final class SurfaceProbeTestMod {
 				.biomeNamespace(MODID).hostBlock(id(Blocks.END_STONE));
 		for (Block block : Arrays.asList(Blocks.DIRT, Blocks.GRASS, Blocks.GRAVEL,
 				Blocks.SAND, Blocks.CLAY, Blocks.HARDENED_CLAY,
-				Blocks.STAINED_HARDENED_CLAY, Blocks.AIR, Blocks.WATER,
-				Blocks.BEDROCK, Blocks.CHEST)) {
+				Blocks.STAINED_HARDENED_CLAY)) {
 			terrain.hostBlock(id(block));
 		}
 		provider.terrainDimension(terrain.build());
+	}
+
+	@EventHandler
+	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
+		Path profile = worldRoot(event.getServer()).resolve("serverconfig")
+				.resolve("orespawn-worldgen.json");
+		JsonObject root;
+		try (BufferedReader reader = Files.newBufferedReader(profile)) {
+			root = new JsonParser().parse(reader).getAsJsonObject();
+		} catch (IOException | RuntimeException exception) {
+			throw new IllegalStateException("Could not read the test-owned End geology profile", exception);
+		}
+		try {
+			root.addProperty("place_fluid_deposits", true);
+			JsonObject terrain = root.getAsJsonObject("terrain_dimensions");
+			JsonObject end = terrain.getAsJsonObject(END.toString());
+			JsonArray hosts = end.getAsJsonArray("host_blocks");
+			for (Block block : Arrays.asList(Blocks.AIR, Blocks.WATER, Blocks.BEDROCK, Blocks.CHEST)) {
+				hosts.add(id(block).toString());
+			}
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
+			}
+		} catch (IOException | RuntimeException exception) {
+			throw new IllegalStateException("Could not write the test-owned End geology profile", exception);
+		}
+		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+			throw new IllegalStateException("Could not reload the test-owned End geology profile");
+		}
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
@@ -347,6 +387,8 @@ public final class SurfaceProbeTestMod {
 		long dry = 0, wet = 0, filler = 0, geology = 0, ceiling = 0, roof = 0;
 		long rawNatural = 0, structureNatural = 0, vegetationNatural = 0;
 		long cavePockets = 0, underwaterPockets = 0, rawBedrock = 0, rawBlockEntities = 0;
+		long exposedSnow = 0, surfaceIce = 0, buriedSnow = 0, buriedIce = 0;
+		long unconfiguredSnow = 0, unconfiguredIce = 0;
 		int biomeA = 0, biomeB = 0, edges = 0, sentinels = 0;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		loadPopulationBorder(world);
@@ -358,6 +400,8 @@ public final class SurfaceProbeTestMod {
 							+ chunkX + "," + chunkZ);
 				}
 				int minX = chunkX << 4, minZ = chunkZ << 4;
+				zone.moddev.mc.orespawn.worldgen.WorldMaterialWeather.onChunkLoad(
+						new net.minecraftforge.event.world.ChunkEvent.Load(chunk));
 				for (int localZ = 0; localZ < 16; localZ++) {
 					for (int localX = 0; localX < 16; localX++) {
 						int x = minX + localX, z = minZ + localZ;
@@ -409,17 +453,29 @@ public final class SurfaceProbeTestMod {
 					rawBedrock += natural.bedrockPreserved;
 					rawBlockEntities += natural.blockEntityPreserved;
 				}
+				WeatherMaterialAudit weather = auditWeatherMaterials(chunk, cursor, minX, minZ, roofed);
+				exposedSnow += weather.exposedSnowConverted;
+				surfaceIce += weather.surfaceIceConverted;
+				buriedSnow += weather.buriedSnowPreserved;
+				buriedIce += weather.buriedIcePreserved;
+				unconfiguredSnow += weather.unconfiguredSnowPreserved;
+				unconfiguredIce += weather.unconfiguredIcePreserved;
 			}
 		}
 		if (dry != COLUMNS - 9 || wet != 9 || filler != FILLER || biomeA == 0 || biomeB == 0
 				|| edges == 0 || sentinels != 36 || geology != (roofed ? 0 : FILLER)
-				|| (roofed && (ceiling != COLUMNS || roof != COLUMNS))
+				|| (roofed && (ceiling != COLUMNS || roof != COLUMNS
+						|| unconfiguredSnow != 9 || unconfiguredIce != 9
+						|| exposedSnow != 0 || surfaceIce != 0 || buriedSnow != 0 || buriedIce != 0))
 				|| (!roofed && (rawNatural != NATURAL_SOURCE_COUNT
 						|| structureNatural != NATURAL_SOURCE_COUNT
 						|| vegetationNatural != NATURAL_SOURCE_COUNT
 						|| cavePockets != NATURAL_SOURCE_COUNT / 2
 						|| underwaterPockets != NATURAL_SOURCE_COUNT / 2
-						|| rawBedrock != 9 || rawBlockEntities != 9))) {
+						|| rawBedrock != 9 || rawBlockEntities != 9
+						|| exposedSnow != 9 || surfaceIce != 9
+						|| buriedSnow != 9 || buriedIce != 9
+						|| unconfiguredSnow != 0 || unconfiguredIce != 0))) {
 			throw new IllegalStateException("Incomplete surface audit: dry=" + dry + ", wet=" + wet
 					+ ", filler=" + filler + ", biomeA=" + biomeA + ", biomeB=" + biomeB
 					+ ", edges=" + edges + ", sentinels=" + sentinels + ", geology=" + geology
@@ -430,11 +486,36 @@ public final class SurfaceProbeTestMod {
 					+ ", cavePockets=" + cavePockets
 					+ ", underwaterPockets=" + underwaterPockets
 					+ ", rawBedrock=" + rawBedrock
-					+ ", rawBlockEntities=" + rawBlockEntities);
+					+ ", rawBlockEntities=" + rawBlockEntities
+					+ ", exposedSnow=" + exposedSnow + ", surfaceIce=" + surfaceIce
+					+ ", buriedSnow=" + buriedSnow + ", buriedIce=" + buriedIce
+					+ ", unconfiguredSnow=" + unconfiguredSnow
+					+ ", unconfiguredIce=" + unconfiguredIce);
 		}
 		return new Audit(dry, wet, filler, geology, ceiling, roof, biomeA, biomeB, edges, sentinels,
 				rawNatural, structureNatural, vegetationNatural, cavePockets,
-				underwaterPockets, rawBedrock, rawBlockEntities);
+				underwaterPockets, rawBedrock, rawBlockEntities,
+				exposedSnow, surfaceIce, buriedSnow, buriedIce, unconfiguredSnow, unconfiguredIce);
+	}
+
+	private static WeatherMaterialAudit auditWeatherMaterials(Chunk chunk,
+			BlockPos.MutableBlockPos cursor, int minX, int minZ, boolean roofed) {
+		if (roofed) {
+			long snow = chunk.getBlockState(cursor.setPos(minX + 2, GROUND_Y + 11, minZ + 2))
+					.getBlock() == Blocks.SNOW_LAYER ? 1 : 0;
+			long ice = chunk.getBlockState(cursor.setPos(minX + 3, GROUND_Y + 11, minZ + 2))
+					.getBlock() == Blocks.ICE ? 1 : 0;
+			return new WeatherMaterialAudit(0, 0, 0, 0, snow, ice);
+		}
+		long snow = chunk.getBlockState(cursor.setPos(minX + 2, GROUND_Y + 1, minZ + 2))
+				.getBlock() == WEATHER_SNOW_REPLACEMENT ? 1 : 0;
+		long ice = chunk.getBlockState(cursor.setPos(minX + 3, GROUND_Y + 1, minZ + 2))
+				.getBlock() == WEATHER_ICE_REPLACEMENT ? 1 : 0;
+		long buriedSnow = chunk.getBlockState(cursor.setPos(minX + 2, GROUND_Y - 24, minZ + 3))
+				.getBlock() == Blocks.SNOW ? 1 : 0;
+		long buriedIce = chunk.getBlockState(cursor.setPos(minX + 3, GROUND_Y - 24, minZ + 3))
+				.getBlock() == Blocks.ICE ? 1 : 0;
+		return new WeatherMaterialAudit(snow, ice, buriedSnow, buriedIce, 0, 0);
 	}
 
 	private static NaturalSourceAudit auditNaturalSources(WorldServer world, Chunk chunk,
@@ -573,6 +654,25 @@ public final class SurfaceProbeTestMod {
 		}
 	}
 
+	private static void placeWeatherMaterialSentinels(World world, int minX, int minZ) {
+		if (world.provider.getDimension() == -1) {
+			world.setBlockState(new BlockPos(minX + 2, GROUND_Y + 11, minZ + 2),
+					Blocks.SNOW_LAYER.getDefaultState(), 2);
+			world.setBlockState(new BlockPos(minX + 3, GROUND_Y + 11, minZ + 2),
+					Blocks.ICE.getDefaultState(), 2);
+			return;
+		}
+		if (world.provider.getDimension() != 1) return;
+		world.setBlockState(new BlockPos(minX + 2, GROUND_Y + 1, minZ + 2),
+				Blocks.SNOW_LAYER.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(minX + 3, GROUND_Y + 1, minZ + 2),
+				Blocks.ICE.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(minX + 2, GROUND_Y - 24, minZ + 3),
+				Blocks.SNOW.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(minX + 3, GROUND_Y - 24, minZ + 3),
+				Blocks.ICE.getDefaultState(), 2);
+	}
+
 	private static int naturalX(int minX, int index) {
 		return minX + 12 + index % 4;
 	}
@@ -680,6 +780,7 @@ public final class SurfaceProbeTestMod {
 				placeAuthoredNaturalSources(world, minX, minZ, 16);
 				placeAuthoredNaturalSources(world, minX, minZ, 20);
 			}
+			placeWeatherMaterialSentinels(world, minX, minZ);
 		}
 	}
 
@@ -725,10 +826,14 @@ public final class SurfaceProbeTestMod {
 		final int biomeA, biomeB, edges, sentinels;
 		final long rawNatural, structureNatural, vegetationNatural;
 		final long cavePockets, underwaterPockets, rawBedrock, rawBlockEntities;
+		final long exposedSnow, surfaceIce, buriedSnow, buriedIce;
+		final long unconfiguredSnow, unconfiguredIce;
 		Audit(long dry, long wet, long filler, long geology, long ceiling, long roof,
 				int biomeA, int biomeB, int edges, int sentinels,
 				long rawNatural, long structureNatural, long vegetationNatural,
-				long cavePockets, long underwaterPockets, long rawBedrock, long rawBlockEntities) {
+				long cavePockets, long underwaterPockets, long rawBedrock, long rawBlockEntities,
+				long exposedSnow, long surfaceIce, long buriedSnow, long buriedIce,
+				long unconfiguredSnow, long unconfiguredIce) {
 			this.dry = dry; this.wet = wet; this.filler = filler; this.geology = geology;
 			this.ceiling = ceiling; this.roof = roof; this.biomeA = biomeA;
 			this.biomeB = biomeB; this.edges = edges; this.sentinels = sentinels;
@@ -736,6 +841,9 @@ public final class SurfaceProbeTestMod {
 			this.vegetationNatural = vegetationNatural; this.cavePockets = cavePockets;
 			this.underwaterPockets = underwaterPockets; this.rawBedrock = rawBedrock;
 			this.rawBlockEntities = rawBlockEntities;
+			this.exposedSnow = exposedSnow; this.surfaceIce = surfaceIce;
+			this.buriedSnow = buriedSnow; this.buriedIce = buriedIce;
+			this.unconfiguredSnow = unconfiguredSnow; this.unconfiguredIce = unconfiguredIce;
 		}
 		void put(Properties properties, String prefix) {
 			properties.setProperty(prefix + ".dry", Long.toString(dry));
@@ -755,10 +863,32 @@ public final class SurfaceProbeTestMod {
 			properties.setProperty(prefix + ".underwater_pockets", Long.toString(underwaterPockets));
 			properties.setProperty(prefix + ".raw_bedrock", Long.toString(rawBedrock));
 			properties.setProperty(prefix + ".raw_block_entities", Long.toString(rawBlockEntities));
+			properties.setProperty(prefix + ".exposed_snow_converted", Long.toString(exposedSnow));
+			properties.setProperty(prefix + ".surface_ice_converted", Long.toString(surfaceIce));
+			properties.setProperty(prefix + ".buried_snow_preserved", Long.toString(buriedSnow));
+			properties.setProperty(prefix + ".buried_ice_preserved", Long.toString(buriedIce));
+			properties.setProperty(prefix + ".unconfigured_snow_preserved", Long.toString(unconfiguredSnow));
+			properties.setProperty(prefix + ".unconfigured_ice_preserved", Long.toString(unconfiguredIce));
 		}
 		@Override public String toString() {
 			return "Audit{dry=" + dry + ", wet=" + wet + ", filler=" + filler
 					+ ", geology=" + geology + ", ceiling=" + ceiling + ", sentinels=" + sentinels + "}";
+		}
+	}
+
+	private static final class WeatherMaterialAudit {
+		final long exposedSnowConverted, surfaceIceConverted;
+		final long buriedSnowPreserved, buriedIcePreserved;
+		final long unconfiguredSnowPreserved, unconfiguredIcePreserved;
+		WeatherMaterialAudit(long exposedSnowConverted, long surfaceIceConverted,
+				long buriedSnowPreserved, long buriedIcePreserved,
+				long unconfiguredSnowPreserved, long unconfiguredIcePreserved) {
+			this.exposedSnowConverted = exposedSnowConverted;
+			this.surfaceIceConverted = surfaceIceConverted;
+			this.buriedSnowPreserved = buriedSnowPreserved;
+			this.buriedIcePreserved = buriedIcePreserved;
+			this.unconfiguredSnowPreserved = unconfiguredSnowPreserved;
+			this.unconfiguredIcePreserved = unconfiguredIcePreserved;
 		}
 	}
 

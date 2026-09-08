@@ -52,7 +52,7 @@ Examples:
 | Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.10.2 | Forge | `110021` | `4.0.6.110021` |
-| 1.12.2 | Forge | `112021` | `4.0.13.112021` |
+| 1.12.2 | Forge | `112021` | `4.0.14.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
@@ -149,8 +149,9 @@ Forge 1.12.2 then advances through 4.0.9 for safe natural-host replacement and
 4.0.10 for Stable Layers actual-height eligibility. Forge 1.12 uses a static,
 two-dimensional biome system, so the dynamic-registry and vertical sampler
 repairs released as 4.0.11 and 4.0.12 are not applicable; it advances directly
-to 4.0.13 for provider biome-filter parity and namespaced geome support.
-A branch may therefore legitimately skip functional version numbers.
+to 4.0.13 for provider biome-filter parity and namespaced geome support, then to
+4.0.14 so exposed one-layer Snow is included in configured weather-material
+conversion. A branch may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:
 
