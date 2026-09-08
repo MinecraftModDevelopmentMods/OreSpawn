@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 import zone.moddev.mc.orespawn.test.Forge25TestBootstrap;
 import net.minecraft.world.biome.Biome;
@@ -39,7 +40,7 @@ class BiomeSurfaceFeatureOrderTest {
 						Biome.GRASS_DIRT_GRAVEL_SURFACE)));
 
 		BiomeFeatureInstaller.installFeatures(biome, true, true, true, true, true, true);
-		assertTrue(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
+		assertFalse(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 				.contains(StoneReplacer.configuredFeature()));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.UNDERGROUND_ORES)
 				.contains(OreSpawnOreGeneration.configuredFeature()));
@@ -47,7 +48,11 @@ class BiomeSurfaceFeatureOrderTest {
 				.contains(FluidDepositFeature.configuredFeature()));
 		CompositeFeature<?, ?> surfaces = BiomeSurfaceFeature.configuredFeature();
 		CompositeFeature<?, ?> bedrock = FlatBedrockFeature.configuredFeature();
-		assertTrue(biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS).contains(surfaces));
+		List<CompositeFeature<?, ?>> local =
+				biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS);
+		assertTrue(local.size() >= 2);
+		assertTrue(local.get(0) == StoneReplacer.configuredFeature());
+		assertTrue(local.get(1) == surfaces);
 		assertFalse(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(surfaces));
 		assertTrue(biome.getFeatures(GenerationStage.Decoration.TOP_LAYER_MODIFICATION).contains(bedrock));
 		assertFalse(biome.getFeatures(GenerationStage.Decoration.LOCAL_MODIFICATIONS).contains(bedrock));

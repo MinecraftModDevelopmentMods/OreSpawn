@@ -1,3 +1,47 @@
+Version 4.0.16.113021
+
+* Adopt the shared 4.0.16 release identity. Forge 1.13 has neither
+  three-dimensional biome-cell attribution nor a server-side GameTest harness,
+  so the 4.0.15 attribution and 4.0.16 GameTest lifecycle repairs are not
+  applicable on this target.
+* Ordinary dedicated benchmark servers continue to stop automatically when
+  requested.
+
+Version 4.0.14.113021
+
+* Convert exposed one-layer vanilla Snow from the first free cell immediately
+  above Minecraft's motion-blocking surface when a dimension supplies a custom
+  snow material.
+* Retain the existing surface Ice conversion and leave buried or authored Snow
+  and Ice unchanged.
+
+Version 4.0.13.113021
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and worldgen
+  behaviour are unchanged.
+
+Version 4.0.10.113021
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve the shifted formation identity for layer, family, and rock choice
+  while preventing vanilla Stone fallback near dimension floors and ceilings.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.9.113021
+
+* Replace provider-declared natural terrain hosts during the existing geology
+  scan before structure and vegetation features can author matching blocks.
+* Keep air, fluids, bedrock, and block entities protected even when their block
+  IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
 Version 4.0.8.113021
 
 * Preserve long host, tag, and biome-list values when OreSpawn editors load
