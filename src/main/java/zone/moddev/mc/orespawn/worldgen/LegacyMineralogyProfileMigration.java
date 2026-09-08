@@ -30,7 +30,7 @@ import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 
 /**
  * Snapshots the exact legacy Mineralogy geology contract before OreSpawn owns
- * geology for an existing world. Mineralogy 1.10 and 1.12 used related but
+	 * geology for an existing world. Mineralogy 1.10, 1.11, and 1.12 used related but
  * distinct configs and rock orders, so their lineages are deliberately kept
  * separate instead of being treated as one generic Cyano preset.
  */
@@ -55,6 +55,18 @@ final class LegacyMineralogyProfileMigration {
 	private static final List<String> SEDIMENTARY_110_AFTER_COAL = Arrays.asList(
 			"mineralogy:chert", "mineralogy:gypsum", "mineralogy:chalk",
 			"mineralogy:rock_salt");
+
+	private static final List<String> IGNEOUS_111 = Arrays.asList(
+			"mineralogy:andesite", "mineralogy:basalt", "mineralogy:diorite",
+			"mineralogy:granite", "mineralogy:rhyolite", "mineralogy:pegmatite",
+			"mineralogy:pumice");
+	private static final List<String> SEDIMENTARY_111 = Arrays.asList(
+			"mineralogy:shale", "mineralogy:conglomerate", "mineralogy:dolomite",
+			"mineralogy:limestone", "mineralogy:marble", "minecraft:sandstone",
+			"mineralogy:chert", "mineralogy:gypsum");
+	private static final List<String> METAMORPHIC_111 = Arrays.asList(
+			"mineralogy:slate", "mineralogy:schist", "mineralogy:gneiss",
+			"mineralogy:phyllite", "mineralogy:amphibolite");
 
 	private static final List<String> IGNEOUS_112 = Arrays.asList(
 			"mineralogy:andesite", "mineralogy:basalt", "mineralogy:diorite",
@@ -86,6 +98,9 @@ final class LegacyMineralogyProfileMigration {
 		Map<String, String> values = readConfig(configPath);
 		boolean configFound = Files.isRegularFile(configPath);
 		Lineage lineage = lineage(identity.version, values);
+		boolean ambiguousLineage = lineage == Lineage.MINERALOGY_111
+				&& !isKnown111Version(identity.version)
+				&& !containsTargetHint(identity.version, "1.11");
 		boolean hybridConfig = values.containsKey("place_mineralogy_rock")
 				&& values.containsKey("realistic_coal_layers");
 		boolean enabled = lineage == Lineage.MINERALOGY_112
@@ -97,16 +112,18 @@ final class LegacyMineralogyProfileMigration {
 		int layerThickness = integer(values, "rock_layer_thickness", 8, 1, 255);
 
 		List<String> igneous = legacyList(lineage == Lineage.MINERALOGY_110
-				? IGNEOUS_110 : IGNEOUS_112, values,
+				? IGNEOUS_110 : lineage == Lineage.MINERALOGY_111 ? IGNEOUS_111 : IGNEOUS_112, values,
 				"igneous_whitelist", "igneous_blacklist");
 		List<String> metamorphic = legacyList(lineage == Lineage.MINERALOGY_110
-				? METAMORPHIC_110 : METAMORPHIC_112, values,
+				? METAMORPHIC_110 : lineage == Lineage.MINERALOGY_111 ? METAMORPHIC_111 : METAMORPHIC_112, values,
 				"metamorphic_whitelist", "metamorphic_blacklist");
 		List<String> sedimentaryBase;
 		if (lineage == Lineage.MINERALOGY_110) {
 			sedimentaryBase = new ArrayList<>(SEDIMENTARY_110_BEFORE_COAL);
 			if (realisticCoal) sedimentaryBase.add("minecraft:coal_ore");
 			sedimentaryBase.addAll(SEDIMENTARY_110_AFTER_COAL);
+		} else if (lineage == Lineage.MINERALOGY_111) {
+			sedimentaryBase = new ArrayList<>(SEDIMENTARY_111);
 		} else {
 			sedimentaryBase = new ArrayList<>(SEDIMENTARY_112);
 		}
@@ -132,7 +149,7 @@ final class LegacyMineralogyProfileMigration {
 		cyano.add("sedimentary_rocks", array(sedimentary));
 		root.add("cyano", cyano);
 
-		writeUpgradeReport(worldRoot, configDirectory, identity, lineage,
+		writeUpgradeReport(worldRoot, configDirectory, identity, lineage, ambiguousLineage,
 				configFound, hybridConfig, enabled, geomeSize, rockLayerNoise,
 				layerThickness, realisticCoal, igneous, metamorphic, sedimentary);
 
@@ -145,14 +162,14 @@ final class LegacyMineralogyProfileMigration {
 	}
 
 	private static void writeUpgradeReport(Path worldRoot, Path configDirectory,
-			MineralogyIdentity identity, Lineage lineage, boolean configFound,
+			MineralogyIdentity identity, Lineage lineage, boolean ambiguousLineage, boolean configFound,
 			boolean hybridConfig, boolean enabled, int geomeSize,
 			double rockLayerNoise, int layerThickness, boolean realisticCoal,
 			List<String> igneous, List<String> metamorphic, List<String> sedimentary) {
 		Path report = worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt");
 		List<String> missing = missingBlocks(igneous, metamorphic, sedimentary);
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.16.112021 Upgrade Report");
+		lines.add("OreSpawn 4.0.16.111021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Existing Mineralogy " + identity.version + " world detected.");
@@ -166,6 +183,11 @@ final class LegacyMineralogyProfileMigration {
 		lines.add("- Saved Mineralogy version: " + identity.version);
 		lines.add("- Selected config lineage: " + lineage.label);
 		lines.add("- Hybrid 1.10/1.12 keys found: " + hybridConfig);
+		lines.add("- Ambiguous lineage fallback: " + ambiguousLineage);
+		if (ambiguousLineage) {
+			lines.add("- WARNING: Saved metadata and configuration do not identify a unique legacy target; "
+					+ "using the native Minecraft 1.11 Mineralogy lineage.");
+		}
 		if (hybridConfig) {
 			lines.add("- Hybrid precedence: saved Mineralogy version and the native 1.12 enable flag "
 					+ "select behavior; 1.10 realistic coal is used only for the 1.10 lineage.");
@@ -180,7 +202,7 @@ final class LegacyMineralogyProfileMigration {
 		lines.add("- Rock layer noise: " + rockLayerNoise);
 		lines.add("- Rock layer thickness: " + layerThickness);
 		lines.add("- Realistic coal layers: " + realisticCoal
-				+ (lineage == Lineage.MINERALOGY_112 ? " (not supported by Mineralogy 1.12)" : ""));
+				+ (lineage == Lineage.MINERALOGY_110 ? "" : " (not supported by " + lineage.label + ")"));
 		lines.add("- Igneous rock order (" + igneous.size() + "): " + String.join(", ", igneous));
 		lines.add("- Metamorphic rock order (" + metamorphic.size() + "): " + String.join(", ", metamorphic));
 		lines.add("- Sedimentary rock order (" + sedimentary.size() + "): " + String.join(", ", sedimentary));
@@ -283,15 +305,28 @@ final class LegacyMineralogyProfileMigration {
 	private static Lineage lineage(String version, Map<String, String> values) {
 		String lower = version == null ? "" : version.toLowerCase(Locale.ROOT);
 		if (lower.contains("1.10")) return Lineage.MINERALOGY_110;
+		if (lower.contains("1.11")) return Lineage.MINERALOGY_111;
 		if (lower.contains("1.12")) return Lineage.MINERALOGY_112;
+		if (isKnown111Version(version)) return Lineage.MINERALOGY_111;
 		List<Integer> parts = versionParts(version);
 		if (parts.size() >= 2 && parts.get(0) == 3) {
 			if (parts.get(1) >= 8) return Lineage.MINERALOGY_112;
-			if (parts.get(1) <= 3) return Lineage.MINERALOGY_110;
+			if (parts.get(1) == 3 && parts.size() >= 3 && parts.get(2) >= 8) {
+				return Lineage.MINERALOGY_110;
+			}
 		}
 		if (values.containsKey("place_mineralogy_rock")) return Lineage.MINERALOGY_112;
 		if (values.containsKey("realistic_coal_layers")) return Lineage.MINERALOGY_110;
-		return Lineage.MINERALOGY_112;
+		return Lineage.MINERALOGY_111;
+	}
+
+	private static boolean isKnown111Version(String version) {
+		List<Integer> parts = versionParts(version);
+		return parts.size() >= 3 && parts.get(0) == 3 && parts.get(1) == 3 && parts.get(2) == 0;
+	}
+
+	private static boolean containsTargetHint(String version, String target) {
+		return version != null && version.toLowerCase(Locale.ROOT).contains(target);
 	}
 
 	private static List<Integer> versionParts(String version) {
@@ -299,7 +334,7 @@ final class LegacyMineralogyProfileMigration {
 		if (version == null) return result;
 		for (String text : version.split("[^0-9]+")) {
 			if (text.isEmpty()) continue;
-			try { result.add(Integer.parseInt(text)); }
+			try { zone.moddev.mc.orespawn.util.JsonCopies.add(result, Integer.parseInt(text)); }
 			catch (NumberFormatException ignored) { }
 		}
 		return result;
@@ -331,7 +366,7 @@ final class LegacyMineralogyProfileMigration {
 	private static List<String> legacyList(List<String> defaults, Map<String, String> values,
 			String whitelistKey, String blacklistKey) {
 		List<String> result = new ArrayList<>(defaults);
-		for (String id : splitIds(values.get(whitelistKey))) result.add(id);
+		for (String id : splitIds(values.get(whitelistKey))) zone.moddev.mc.orespawn.util.JsonCopies.add(result, id);
 		for (String id : splitIds(values.get(blacklistKey))) result.remove(id);
 		return result;
 	}
@@ -342,7 +377,7 @@ final class LegacyMineralogyProfileMigration {
 		for (String raw : configured.split(";")) {
 			String value = raw.trim();
 			if (value.isEmpty()) continue;
-			try { result.add(new ResourceLocation(value).toString()); }
+			try { zone.moddev.mc.orespawn.util.JsonCopies.add(result, new ResourceLocation(value).toString()); }
 			catch (RuntimeException e) {
 				LOGGER.warn("Ignoring invalid legacy Mineralogy rock registry name '{}'", value);
 			}
@@ -374,12 +409,13 @@ final class LegacyMineralogyProfileMigration {
 
 	private static JsonArray array(List<String> values) {
 		JsonArray result = new JsonArray();
-		for (String value : values) result.add(new JsonPrimitive(value));
+		for (String value : values) zone.moddev.mc.orespawn.util.JsonCopies.add(result, new JsonPrimitive(value));
 		return result;
 	}
 
 	private enum Lineage {
 		MINERALOGY_110("Mineralogy 1.10"),
+		MINERALOGY_111("Mineralogy 1.11"),
 		MINERALOGY_112("Mineralogy 1.12");
 
 		final String label;

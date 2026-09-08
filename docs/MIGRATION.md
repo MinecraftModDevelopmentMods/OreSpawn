@@ -1,6 +1,6 @@
 # Migration
 
-## OreSpawn 3 Compatibility On Minecraft 1.12.2
+## OreSpawn 3 Compatibility On Minecraft 1.11.2
 
 This branch ships a deprecated compatibility bridge for existing OreSpawn 3
 consumer jars. It preserves the compatible public descriptors from OreSpawn
@@ -21,13 +21,13 @@ unsupported entries, ambiguities, and any required user action. A clean second
 startup does not rewrite the result or repeat registration, retrogen, or
 generation.
 
-Minecraft 1.12 metadata states are preserved as block ID plus metadata; the
+Minecraft 1.11 metadata states are preserved as block ID plus metadata; the
 migrator does not invent post-flattening block IDs. Legacy Base Metals rules
 use stable provider identities when their outputs match uniquely. Mineralogy
 3 replacement rocks are accepted as ore hosts, but Mineralogy remains the
 authoritative geology engine when that legacy stack is installed.
 
-## Mineralogy 1.10 And 1.12 Geology Handoff
+## Mineralogy 1.10, 1.11, And 1.12 Geology Handoff
 
 An existing world must not silently switch geology engines when Mineralogy is
 updated to integrate with OreSpawn 4. If a generated world has no OreSpawn
@@ -35,7 +35,7 @@ world profile and its saved Forge mod list records Mineralogy 3 or earlier,
 OreSpawn creates the first world profile in `legacy` mode before generating
 new chunks.
 
-Mineralogy 1.10 and 1.12 used similar configuration files but not identical
+Mineralogy 1.10, 1.11, and 1.12 used similar configuration files but not identical
 contracts. OreSpawn therefore selects a lineage from the Mineralogy version in
 `level.dat` (or the recoverable `level.dat_old`) and then consumes:
 
@@ -43,6 +43,15 @@ contracts. OreSpawn therefore selects a lineage from the Mineralogy version in
 - every family whitelist and blacklist with the exact historical rock order;
 - `REALISTIC_COAL_LAYERS` only for the 1.10 lineage;
 - `PLACE_MINERALOGY_ROCK` only for native 1.12, including preserving `false`.
+
+Native Mineralogy 1.11.2 3.3.0 uses defaults `geome_size=100`,
+`rock_layer_noise=32`, `rock_layer_thickness=8`, geology enabled, and realistic
+coal disabled. Its exact rock order is Andesite, Basalt, Diorite, Granite,
+Rhyolite, Pegmatite, Pumice; Shale, Conglomerate, Dolomite, Limestone, Marble,
+Sandstone, Chert, Gypsum; Slate, Schist, Gneiss, Phyllite, Amphibolite. Known
+saved-version and configuration signals select the matching lineage. A
+genuinely ambiguous file on this target uses native 1.11 and records that choice
+as a warning in the deterministic report.
 
 A carried 1.10 file can become hybrid after Mineralogy 1.12 normalizes its own
 Forge configuration. In that case the saved world version takes precedence:
@@ -140,7 +149,7 @@ IDs into OreSpawn's canonical IDs, preserving edited rules and removing
 duplicate placement. Revision 9 recognizes the later-port deep-biased defaults
 so a profile copied from a newer OreSpawn branch can still be migrated safely.
 
-On Minecraft 1.12.2, revision 10 converts only untouched managed-ore signatures
+On Minecraft 1.11.2, revision 10 converts only untouched managed-ore signatures
 to the target's native height range, frequency, quantity, pattern, and exposure
 behavior. It also restores the separate Badlands gold rule. Hand-edited rules
 and explicitly stored Custom values are preserved.

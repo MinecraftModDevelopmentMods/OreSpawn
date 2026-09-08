@@ -20,12 +20,12 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class LegacyMineralogyGeologyParityTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -57,6 +57,45 @@ class LegacyMineralogyGeologyParityTest {
 					Geology os4 = new Geology(seed, 144.0D, 41.5D, 11, true,
 							states(igneous), states(metamorphic), states(sedimentary));
 					assertSamplerParity("1.10 Cyano", seed, sampler, os4);
+				}
+			} finally {
+				reset(igneousList, originalIgneous.toArray(new Block[0]));
+				reset(metamorphicList, originalMetamorphic.toArray(new Block[0]));
+				reset(sedimentaryList, originalSedimentary.toArray(new Block[0]));
+				thickness.setInt(null, originalThickness);
+			}
+		}
+	}
+
+	@Test
+	void native111SamplerMatchesHistoricalMineralogyExactly() throws Exception {
+		try (PublishedMineralogy published = PublishedMineralogy.open(
+				"orespawn.mineralogy111Oracle", "cyano.mineralogy.worldgen.Geology")) {
+			Class<?> mineralogy = published.load("cyano.mineralogy.Mineralogy");
+			List<Block> igneousList = published.blockList(mineralogy, "igneousStones");
+			List<Block> metamorphicList = published.blockList(mineralogy, "metamorphicStones");
+			List<Block> sedimentaryList = published.blockList(mineralogy, "sedimentaryStones");
+			List<Block> originalIgneous = new ArrayList<>(igneousList);
+			List<Block> originalMetamorphic = new ArrayList<>(metamorphicList);
+			List<Block> originalSedimentary = new ArrayList<>(sedimentaryList);
+			Field thickness = mineralogy.getField("GEOM_LAYER_THICKNESS");
+			int originalThickness = thickness.getInt(null);
+			try {
+				Block[] igneous = { Blocks.STONE, Blocks.OBSIDIAN, Blocks.NETHERRACK };
+				Block[] metamorphic = { Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE };
+				Block[] sedimentary = { Blocks.SANDSTONE, Blocks.GRAVEL, Blocks.COAL_ORE };
+				reset(igneousList, igneous);
+				reset(metamorphicList, metamorphic);
+				reset(sedimentaryList, sedimentary);
+				thickness.setInt(null, 8);
+
+				for (long seed : seeds()) {
+					PublishedSampler sampler = published.newSampler(
+							new Class<?>[] { long.class, double.class, double.class },
+							seed, 100.0D, 32.0D);
+					Geology os4 = new Geology(seed, 100.0D, 32.0D, 8, false,
+							states(igneous), states(metamorphic), states(sedimentary));
+					assertSamplerParity("1.11 Cyano", seed, sampler, os4);
 				}
 			} finally {
 				reset(igneousList, originalIgneous.toArray(new Block[0]));

@@ -36,7 +36,7 @@ class LegacyConfigMigratorTest {
 
 		assertNotNull(migrated);
 		JsonObject ores = migrated.getAsJsonObject("ores");
-		assertEquals(11, ores.size());
+		assertEquals(11, zone.moddev.mc.orespawn.util.JsonCopies.size(ores));
 		int selectorRules = 0;
 		for (String id : JsonCopies.keys(ores)) {
 			JsonObject ore = ores.getAsJsonObject(id);
@@ -80,7 +80,7 @@ class LegacyConfigMigratorTest {
 				temporary.resolve("orespawn-worldgen.json"), defaults);
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
 		JsonObject placement = rule(ore(migratedOres, "clamped", "test_ore"));
-		assertEquals(2, migratedOres.size());
+		assertEquals(2, zone.moddev.mc.orespawn.util.JsonCopies.size(migratedOres));
 		assertEquals(255, placement.get("max_y").getAsInt());
 		assertEquals(20, placement.get("min_quantity").getAsInt());
 		assertEquals(64, placement.get("max_quantity").getAsInt());
@@ -118,7 +118,7 @@ class LegacyConfigMigratorTest {
 						? java.util.Arrays.asList("basemetals:ore/copper") : null);
 
 		JsonObject migratedOres = migrated.getAsJsonObject("ores");
-		assertEquals(1, migratedOres.size());
+		assertEquals(1, zone.moddev.mc.orespawn.util.JsonCopies.size(migratedOres));
 		assertTrue(migratedOres.has("basemetals:ore/copper"));
 		JsonObject migratedCopper = migratedOres.getAsJsonObject("basemetals:ore/copper");
 		assertFalse(migratedCopper.get("enabled").getAsBoolean());
@@ -149,7 +149,7 @@ class LegacyConfigMigratorTest {
 				temporary.resolve("orespawn-worldgen.json"), defaults,
 				(owner, output) -> java.util.Arrays.asList(
 						"orespawn:legacy/iron_ore", "orespawn:legacy/another_iron"));
-		assertEquals(2, migrated.getAsJsonObject("ores").size());
+		assertEquals(2, zone.moddev.mc.orespawn.util.JsonCopies.size(migrated.getAsJsonObject("ores")));
 		assertTrue(migrated.getAsJsonObject("ores").has("orespawn:legacy/iron_ore"));
 		assertFalse(migrated.getAsJsonObject("ores").has("orespawn:legacy/orespawn/iron_ore"));
 		assertTrue(read(temporary.resolve("orespawn-migration/migration-report.txt"))
@@ -244,7 +244,7 @@ class LegacyConfigMigratorTest {
 		spawn.addProperty("feature", "default");
 		spawn.addProperty("replaces", "default");
 		JsonArray dimensions = new JsonArray();
-		if (dimension != null) dimensions.add(dimension);
+		if (dimension != null) zone.moddev.mc.orespawn.util.JsonCopies.add(dimensions, dimension);
 		spawn.add("dimensions", dimensions);
 		JsonObject parameters = new JsonObject();
 		parameters.addProperty("size", size);

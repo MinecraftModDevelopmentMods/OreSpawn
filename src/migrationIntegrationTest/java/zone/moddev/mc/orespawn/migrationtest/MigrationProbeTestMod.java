@@ -10,12 +10,13 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.TreeMap;
 
 import com.google.gson.JsonArray;
@@ -56,6 +57,13 @@ import net.minecraftforge.event.world.ChunkDataEvent;
 /** Build-only OS3 migration driver; never packaged with OreSpawn. */
 @Mod(modid = MigrationProbeTestMod.MODID, name = "OreSpawn Migration Probe", version = "1")
 public final class MigrationProbeTestMod {
+	private static final Set<String> MINECRAFT_112_ONLY_REGISTRY_NAMES = new HashSet<>(Arrays.asList(
+			"black_glazed_terracotta", "blue_glazed_terracotta", "brown_glazed_terracotta",
+			"concrete", "concrete_powder", "cyan_glazed_terracotta", "gray_glazed_terracotta",
+			"green_glazed_terracotta", "knowledge_book", "light_blue_glazed_terracotta",
+			"lime_glazed_terracotta", "magenta_glazed_terracotta", "orange_glazed_terracotta",
+			"pink_glazed_terracotta", "purple_glazed_terracotta", "red_glazed_terracotta",
+			"silver_glazed_terracotta", "white_glazed_terracotta", "yellow_glazed_terracotta"));
 	static final String MODID = "migrationprobe";
 	private static final int MIN_SOURCE_CHUNK = -4;
 	private static final int MAX_SOURCE_CHUNK = 4;
@@ -91,7 +99,9 @@ public final class MigrationProbeTestMod {
 			throw new IllegalStateException("Missing migration family/phase");
 		}
 		for (int dimension : new int[] { 0, -1, 1 }) {
-			if (dimension != 0) DimensionManager.keepDimensionLoaded(dimension, true);
+			if (dimension != 0 && DimensionManager.getWorld(dimension) == null) {
+				DimensionManager.initDimension(dimension);
+			}
 			WorldServer world = requireWorld(server, dimension);
 			forceRegion(world, MIN_SOURCE_CHUNK, MAX_SOURCE_CHUNK);
 			forceRegion(world, MIN_RESERVED_CHUNK - 1, MAX_RESERVED_CHUNK + 1);
@@ -182,8 +192,8 @@ public final class MigrationProbeTestMod {
 		server.saveAllWorlds(false);
 		for (Ticket ticket : tickets) ForgeChunkManager.releaseTicket(ticket);
 		tickets.clear();
-		DimensionManager.keepDimensionLoaded(-1, false);
-		DimensionManager.keepDimensionLoaded(1, false);
+		DimensionManager.unloadWorld(-1);
+		DimensionManager.unloadWorld(1);
 		server.saveAllWorlds(false);
 		server.initiateShutdown();
 	}
@@ -198,24 +208,27 @@ public final class MigrationProbeTestMod {
 
 	private boolean isLegacyMineralogyFixture() {
 		return "legacy-mineralogy-110".equals(family)
+				|| "legacy-mineralogy-111".equals(family)
 				|| "legacy-mineralogy-112".equals(family)
 				|| "current-112-stack-postfix".equals(family);
 	}
 
 	private void validateLegacyMineralogy(Path worldRoot, Properties marker) throws IOException {
 		boolean lineage110 = "legacy-mineralogy-110".equals(family);
+		boolean lineage111 = "legacy-mineralogy-111".equals(family);
 		boolean current112Stack = "current-112-stack-postfix".equals(family);
 		Path config = worldRoot.getParent().resolve("config/mineralogy.cfg");
 		Path profile = worldRoot.resolve("serverconfig/orespawn-worldgen.json");
 		Path report = worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt");
 		JsonObject root = readJson(profile);
 		JsonObject cyano = root.getAsJsonObject("cyano");
-		String expectedLineage = lineage110 ? "Mineralogy 1.10" : "Mineralogy 1.12";
-		boolean expectedEnabled = lineage110 || current112Stack;
+		String expectedLineage = lineage110 ? "Mineralogy 1.10"
+				: lineage111 ? "Mineralogy 1.11" : "Mineralogy 1.12";
+		boolean expectedEnabled = lineage110 || lineage111 || current112Stack;
 		boolean expectedCoal = lineage110;
-		int expectedGeomeSize = current112Stack ? 100 : lineage110 ? 144 : 128;
-		double expectedNoise = current112Stack ? 32.0D : lineage110 ? 41.5D : 37.25D;
-		int expectedThickness = current112Stack ? 8 : lineage110 ? 11 : 9;
+		int expectedGeomeSize = lineage110 ? 144 : lineage111 || current112Stack ? 100 : 128;
+		double expectedNoise = lineage110 ? 41.5D : lineage111 || current112Stack ? 32.0D : 37.25D;
+		int expectedThickness = lineage110 ? 11 : lineage111 || current112Stack ? 8 : 9;
 		if (!"legacy".equals(root.get("geology_mode").getAsString()) || cyano == null
 				|| !expectedLineage.equals(cyano.get("legacy_lineage").getAsString())
 				|| cyano.get("enabled").getAsBoolean() != expectedEnabled
@@ -229,16 +242,25 @@ public final class MigrationProbeTestMod {
 					+ " world was not pinned to its exact Cyano settings: " + cyano);
 		}
 		JsonArray igneous = cyano.getAsJsonArray("igneous_rocks");
+		JsonArray metamorphic = cyano.getAsJsonArray("metamorphic_rocks");
 		JsonArray sedimentary = cyano.getAsJsonArray("sedimentary_rocks");
-		assertRockOrder(igneous, 13,
-				lineage110 ? "mineralogy:diabase" : "mineralogy:andesite",
-				"mineralogy:pumice");
-		if (lineage110) {
+		if (lineage111) {
+			assertExactRockOrder(igneous, "mineralogy:andesite", "mineralogy:basalt",
+					"mineralogy:diorite", "mineralogy:granite", "mineralogy:rhyolite",
+					"mineralogy:pegmatite", "mineralogy:pumice");
+			assertExactRockOrder(sedimentary, "mineralogy:shale", "mineralogy:conglomerate",
+					"mineralogy:dolomite", "mineralogy:limestone", "mineralogy:marble",
+					"minecraft:sandstone", "mineralogy:chert", "mineralogy:gypsum");
+			assertExactRockOrder(metamorphic, "mineralogy:slate", "mineralogy:schist",
+					"mineralogy:gneiss", "mineralogy:phyllite", "mineralogy:amphibolite");
+		} else if (lineage110) {
+			assertRockOrder(igneous, 13, "mineralogy:diabase", "mineralogy:pumice");
 			if (sedimentary.size() != 12
 					|| !"minecraft:coal_ore".equals(sedimentary.get(7).getAsString())) {
 				throw new IllegalStateException("Mineralogy 1.10 realistic coal order was not retained");
 			}
 		} else {
+			assertRockOrder(igneous, 13, "mineralogy:andesite", "mineralogy:pumice");
 			if (sedimentary.size() != 12
 					|| !"mineralogy:rock_salt".equals(sedimentary.get(10).getAsString())
 					|| !"mineralogy:rock_salt".equals(sedimentary.get(11).getAsString())) {
@@ -260,6 +282,17 @@ public final class MigrationProbeTestMod {
 			if ("fresh".equals(phase)) marker.setProperty(file[0], hash);
 			else if (!hash.equals(marker.getProperty(file[0]))) {
 				throw new IllegalStateException("Legacy Mineralogy migration changed on reload: " + file[1]);
+			}
+		}
+	}
+
+	private static void assertExactRockOrder(JsonArray rocks, String... expected) {
+		if (rocks == null || rocks.size() != expected.length) {
+			throw new IllegalStateException("Unexpected native Mineralogy 1.11 rock order: " + rocks);
+		}
+		for (int i = 0; i < expected.length; i++) {
+			if (!expected[i].equals(rocks.get(i).getAsString())) {
+				throw new IllegalStateException("Unexpected native Mineralogy 1.11 rock order: " + rocks);
 			}
 		}
 	}
@@ -313,8 +346,9 @@ public final class MigrationProbeTestMod {
 				{ "nickel_ore", "0", "orespawn:all_except_nether_end", "32", "95", "1.0" },
 				{ "platinum_ore", "0", "orespawn:all_except_nether_end", "1", "31", "0.125" }
 		};
-		if (ores.size() != expected.length) {
-			throw new IllegalStateException("Expected 11 Base Metals rules, found " + ores.size());
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(ores) != expected.length) {
+			throw new IllegalStateException("Expected 11 Base Metals rules, found "
+					+ zone.moddev.mc.orespawn.util.JsonCopies.size(ores));
 		}
 		for (String[] rule : expected) {
 			String oreName = rule[0];
@@ -580,8 +614,14 @@ public final class MigrationProbeTestMod {
 			if (!key.startsWith("registry.block.") && !key.startsWith("registry.item.")) continue;
 			String registryName = key.substring(key.indexOf('.', 9) + 1);
 			ResourceLocation id = new ResourceLocation(registryName);
-			if (!"minecraft".equals(id.getNamespace()) && !"basemetals".equals(id.getNamespace())
-					&& !"mineralogy".equals(id.getNamespace())) continue;
+			if (!"minecraft".equals(id.getResourceDomain()) && !"basemetals".equals(id.getResourceDomain())
+					&& !"mineralogy".equals(id.getResourceDomain())) continue;
+			// This disposable corpus was last saved by Minecraft 1.12.2. Its
+			// vanilla-only additions cannot exist in 1.11.2 and Forge removes them
+			// after creating a backup. Keep every mod-owned and shared vanilla
+			// mapping under exact comparison.
+			if ("minecraft".equals(id.getResourceDomain())
+					&& MINECRAFT_112_ONLY_REGISTRY_NAMES.contains(id.getResourcePath())) continue;
 			int numeric = key.startsWith("registry.block.")
 					? Block.getIdFromBlock(ForgeRegistries.BLOCKS.getValue(id))
 					: Item.getIdFromItem(ForgeRegistries.ITEMS.getValue(id));

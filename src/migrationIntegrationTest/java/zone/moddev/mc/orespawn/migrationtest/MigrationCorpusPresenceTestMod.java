@@ -8,6 +8,6 @@ import net.minecraftforge.fml.common.Mod;
  * generator or allowing it to stop the qualification server.
  */
 @Mod(modid = "orespawnmigrationcorpus", name = "OreSpawn Migration Corpus Placeholder",
-		version = "1.0.0", acceptedMinecraftVersions = "[1.12.2]")
+		version = "1.0.0", acceptedMinecraftVersions = "[1.11.2]")
 public final class MigrationCorpusPresenceTestMod {
 }

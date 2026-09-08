@@ -163,7 +163,7 @@ final class LegacyConfigMigrator {
 			output.addProperty("block", block);
 			if (metadata != 0) output.addProperty("metadata", metadata);
 			output.addProperty("weight", Math.max(0, integer(old, "chance", 100)));
-			outputs.add(output);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(outputs, output);
 		}
 		if (primary == null) return null;
 		ore.addProperty("block", primary);
@@ -229,12 +229,12 @@ final class LegacyConfigMigrator {
 				if (id != null) dimensions.add(id, JsonCopies.copy(rule));
 			}
 		}
-		if (dimensions.size() == 0 && selectors.size() == 0) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0 && zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) == 0) {
 			report.add("Skipped " + name + ": no supported dimension mapping could be inferred.");
 			return null;
 		}
-		if (dimensions.size() > 0) ore.add("dimensions", dimensions);
-		if (selectors.size() > 0) ore.add("dimension_selectors", selectors);
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) > 0) ore.add("dimensions", dimensions);
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) > 0) ore.add("dimension_selectors", selectors);
 		return ore;
 	}
 
@@ -249,9 +249,9 @@ final class LegacyConfigMigrator {
 	private static void addLegacyHosts(JsonElement replaces, JsonObject rule) {
 		JsonArray hosts = new JsonArray();
 		if (replaces == null || (replaces.isJsonPrimitive() && "default".equals(replaces.getAsString()))) {
-			hosts.add("minecraft:stone");
-			hosts.add("minecraft:netherrack");
-			hosts.add("minecraft:end_stone");
+			zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:stone");
+			zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:netherrack");
+			zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:end_stone");
 		} else if (replaces.isJsonArray()) {
 			for (JsonElement element : replaces.getAsJsonArray()) {
 				if (!element.isJsonObject()) continue;
@@ -260,12 +260,12 @@ final class LegacyConfigMigrator {
 				String name = legacyBlockName(oldName);
 				if (!name.isEmpty() && !name.startsWith("ore:")) {
 					int metadata = legacyMetadata(oldName, string(old, "state", ""), old);
-					if (metadata == 0) hosts.add(name);
+					if (metadata == 0) zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, name);
 					else {
 						JsonObject host = new JsonObject();
 						host.addProperty("block", name);
 						host.addProperty("metadata", metadata);
-						hosts.add(host);
+						zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, host);
 					}
 				}
 			}
@@ -291,8 +291,8 @@ final class LegacyConfigMigrator {
 		JsonArray dictionary = target.has(dictionaryKey) ? target.getAsJsonArray(dictionaryKey) : new JsonArray();
 		for (JsonElement value : source.getAsJsonArray(sourceKey)) {
 			String text = value.getAsString();
-			if (text.indexOf(':') >= 0) ids.add(text);
-			else dictionary.add(text.toUpperCase(Locale.ROOT));
+			if (text.indexOf(':') >= 0) zone.moddev.mc.orespawn.util.JsonCopies.add(ids, text);
+			else zone.moddev.mc.orespawn.util.JsonCopies.add(dictionary, text.toUpperCase(Locale.ROOT));
 		}
 		if (ids.size() > 0) target.add(idsKey, ids);
 		if (dictionary.size() > 0) target.add(dictionaryKey, dictionary);
