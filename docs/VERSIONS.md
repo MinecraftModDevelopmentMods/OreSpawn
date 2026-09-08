@@ -52,7 +52,7 @@ Examples:
 | Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.10.2 | Forge | `110021` | `4.0.6.110021` |
-| 1.12.2 | Forge | `112021` | `4.0.9.112021` |
+| 1.12.2 | Forge | `112021` | `4.0.10.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
@@ -145,6 +145,8 @@ remain on their target-qualified 4.0.6 versions.
 
 If a different branch later receives a separate fix, it uses the next unused
 Bug number, such as `4.0.8`, even if the `4.0.7` fix was not applicable to it.
+Forge 1.12.2 then advances through 4.0.9 for safe natural-host replacement and
+4.0.10 for Stable Layers actual-height eligibility.
 A branch may therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:
