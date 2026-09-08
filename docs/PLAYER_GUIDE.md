@@ -55,7 +55,7 @@ safely instead of breaking world creation.
   opts them in.
 
 **World Materials** applies across an entire dimension. **Aquifer Fluid**
-changes the normal below-sea-level fluid. Minecraft 1.12.2 exposes only that
+changes the normal below-sea-level fluid. Minecraft 1.11.2 exposes only that
 single generator fluid, so the later-format **Deep Aquifer** values remain
 stored but their controls are disabled on this branch. Snow and ordinary ice
 can also be replaced. Use **Fluid Deposits**, not World Materials, for
@@ -88,11 +88,11 @@ Changes normally affect only chunks generated afterward. Existing terrain is
 not rewritten. Ore and flat-bedrock retrogen must be enabled deliberately;
 rock strata are never retro-generated.
 
-For an existing Mineralogy 1.10 or 1.12 world, OreSpawn automatically keeps
+For an existing Mineralogy 1.10, 1.11, or 1.12 world, OreSpawn automatically keeps
 the matching **Cyano (Legacy)** layout when it creates that world's first OS4
 profile. The old layer sizes, rock lists, enabled state, and applicable coal
 setting are copied into the world before new chunks generate. A carried 1.10
-config and a native 1.12 config are handled separately, even if an upgrade has
+config and native 1.11/1.12 configs are handled separately, even if an upgrade has
 left both generations of keys in the file. Fresh worlds still use the current
 recommended engine.
 

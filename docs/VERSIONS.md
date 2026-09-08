@@ -52,6 +52,7 @@ Examples:
 | Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.10.2 | Forge | `110021` | `4.0.6.110021` |
+| 1.11.2 | Forge | `111021` | `4.0.16.111021` |
 | 1.12.2 | Forge | `112021` | `4.0.16.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
@@ -140,19 +141,20 @@ same `Major.Minor.Bug` may be shared by functionally equivalent ports.
 
 If a released branch receives a bug fix that other branches do not require,
 only the affected branch's Bug number is incremented. For example, Forge
-1.13.2 may move from `4.0.6.113021` to `4.0.7.113021` while unaffected branches
-remain on their target-qualified 4.0.6 versions.
+1.12.2 moved from `4.0.6.112021` to `4.0.7.112021` for its target-only packaged
+runtime repair while unaffected branches remained on their target-qualified
+4.0.6 versions.
 
 If a different branch later receives a separate fix, it uses the next unused
 Bug number, such as `4.0.8`, even if the `4.0.7` fix was not applicable to it.
-Forge 1.12.2 then advances through 4.0.9 for safe natural-host replacement and
-4.0.10 for Stable Layers actual-height eligibility. Forge 1.12 uses a static,
-two-dimensional biome system, so the dynamic-registry and vertical sampler
-repairs released as 4.0.11 and 4.0.12 are not applicable; it advances directly
+Forge 1.11.2 and 1.12.2 then advance through 4.0.9 for safe natural-host
+replacement and 4.0.10 for Stable Layers actual-height eligibility. Both use a
+static, two-dimensional biome system, so the dynamic-registry and vertical sampler
+repairs released as 4.0.11 and 4.0.12 are not applicable; they advance directly
 to 4.0.13 for provider biome-filter parity and namespaced geome support, then to
 4.0.14 so exposed one-layer Snow is included in configured weather-material
-conversion. Forge 1.12 has no Y-sensitive biome-cell attribution or server-side
-GameTest harness, so 4.0.15 and the GameTest lifecycle portion of 4.0.16 are not
+conversion. Forge 1.11 and 1.12 have no Y-sensitive biome-cell attribution or
+server-side GameTest harness, so 4.0.15 and the GameTest lifecycle portion of 4.0.16 are not
 applicable; it adopts the shared 4.0.16 identity while retaining ordinary
 benchmark auto-stop. A branch may therefore legitimately skip functional version
 numbers.

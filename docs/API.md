@@ -1,7 +1,7 @@
 # Java API
 
-This branch targets Minecraft 1.12.2 and Forge 14. Public examples therefore
-use the public `ResourceLocation(String, String)` constructor. Forge 14 has no
+This branch targets Minecraft 1.11.2 and Forge 13. Public examples therefore
+use the public `ResourceLocation(String, String)` constructor. Forge 13 has no
 `DeferredRegister`, so provider mods use OreSpawn's API-major-1
 `BiomeRegistrar` while provider JSON, profiles, schemas, and biome meanings
 remain identical to later ports.
@@ -12,7 +12,7 @@ implementation detail. API major version is available as
 `OreSpawn-API-Version`.
 
 Provider mods must depend on the full OreSpawn mod at compile time and
-runtime. Forge 1.12 declares the mandatory dependency on the mod annotation,
+runtime. Forge 1.11 declares the mandatory dependency on the mod annotation,
 for example:
 
 ```java
@@ -154,9 +154,10 @@ Y query. Sampling is read-only and is intended for gameplay decisions,
 diagnostics, and compatible generation outside OreSpawn's block loops.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
-Forge 14 custom-pattern mods attach a generic
-`RegistryEvent.Register<OrePatternType>` listener to their mod event bus and
-register named values into `OreSpawnPatternRegistry.REGISTRY_NAME`. An
+Forge 13 does not replay registry events for a custom registry created during
+pre-initialization. A custom-pattern mod with a required OreSpawn dependency
+registers its named `OrePatternType` directly through
+`OreSpawnPatternRegistry.registry()` during its own pre-initialization. An
 `OrePatternType` contains a codec and a compiler from decoded settings to
 `CompiledOrePattern`. Reference it from an ore dimension with
 `pattern(patternId, settingsJson)`. OreSpawn decodes and compiles once while
