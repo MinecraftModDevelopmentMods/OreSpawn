@@ -51,7 +51,7 @@ Examples:
 
 | Minecraft | Loader | Target | Example full version |
 | --- | --- | ---: | --- |
-| 1.10.2 | Forge | `110021` | `4.0.14.110021` |
+| 1.10.2 | Forge | `110021` | `4.0.16.110021` |
 | 1.12.2 | Forge | `112021` | `4.0.6.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
@@ -145,7 +145,15 @@ remain on their target-qualified 4.0.6 versions.
 
 If a different branch later receives a separate fix, it uses the next unused
 Bug number, such as `4.0.8`, even if the `4.0.7` fix was not applicable to it.
-A branch may therefore legitimately skip functional version numbers.
+Forge 1.10 uses a static, two-dimensional biome system, so the dynamic-registry
+and vertical sampler repairs released as 4.0.11 and 4.0.12 are not applicable;
+it advances directly to 4.0.13 for provider biome-filter parity and namespaced
+geome support, then to 4.0.14 so exposed one-layer Snow is included in configured
+weather-material conversion. It also has no Y-sensitive three-dimensional
+biome-cell attribution or server-side GameTest harness, so 4.0.15 and the
+GameTest lifecycle portion of 4.0.16 are not applicable. It adopts the shared
+4.0.16 identity while retaining ordinary benchmark auto-stop. A branch may
+therefore legitimately skip functional version numbers.
 
 This provides three useful guarantees:
 

@@ -1,3 +1,12 @@
+Version 4.0.16.110021
+
+* Adopt the shared 4.0.16 release identity. Forge 1.10 has neither
+  three-dimensional biome-cell attribution nor a server-side GameTest harness,
+  so the 4.0.15 attribution and 4.0.16 GameTest lifecycle repairs are not
+  applicable on this target.
+* Ordinary dedicated benchmark servers continue to stop automatically when
+  requested.
+
 Version 4.0.14.110021
 
 * Convert exposed one-layer Snow at the first free height (`top + 1`) while

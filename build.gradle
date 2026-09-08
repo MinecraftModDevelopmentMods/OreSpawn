@@ -357,6 +357,7 @@ level-name=surface-integration-world
 level-seed=zsjpxah
 level-type=default
 online-mode=false
+server-port=0
 allow-nether=true
 generate-structures=false
 spawn-protection=0
@@ -398,6 +399,26 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
         if (!(result.getProperty('dynamic_fluid_placements') ?: '0').isInteger()
                 || result.getProperty('dynamic_fluid_placements').toInteger() <= 0) {
             throw new GradleException("Dynamic fluid-deposit probe did not place any blocks: ${marker}")
+        }
+        [
+                'end.raw_natural_sources': '108',
+                'end.structure_natural_sources': '108',
+                'end.vegetation_natural_sources': '108',
+                'end.cave_pockets': '54',
+                'end.underwater_pockets': '54',
+                'end.raw_bedrock': '9',
+                'end.raw_block_entities': '9',
+                'end.exposed_snow_converted': '9',
+                'end.surface_ice_converted': '9',
+                'end.buried_snow_preserved': '9',
+                'end.buried_ice_preserved': '9',
+                'nether.unconfigured_snow_preserved': '9',
+                'nether.unconfigured_ice_preserved': '9'
+        ].each { key, expected ->
+            if (result.getProperty(key) != expected) {
+                throw new GradleException("Unexpected surface integration result ${key}: "
+                        + "expected ${expected}, found ${result.getProperty(key)}")
+            }
         }
         File latest = new File(surfaceIntegrationRunDirectory, 'logs/latest.log')
         if (!latest.isFile() || latest.text.contains('Tried to assign a mutable BlockPos')) {
@@ -816,6 +837,20 @@ tasks.named('processResources', ProcessResources) {
     filesMatching(archiveTextPatterns, normalizeArchiveLineEndings)
 }
 
+def prepareEclipseResources = tasks.register('prepareEclipseResources') {
+    group = 'ide'
+    description = 'Copies Gradle-processed production resources into Eclipse merged output.'
+    dependsOn tasks.named('processResources')
+    doLast {
+        // Eclipse owns bin/main, so copy into it without declaring the
+        // directory as a Gradle output or deleting compiled classes.
+        project.copy {
+            from(layout.buildDirectory.dir('resources/main'))
+            into(layout.projectDirectory.dir('bin/main'))
+        }
+    }
+}
+
 tasks.named('jar', Jar) {
     archiveClassifier = 'deobf'
     destinationDirectory = layout.buildDirectory.dir('libs-dev')
@@ -925,7 +960,7 @@ tasks.register('verifyReleaseConfiguration') {
     description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
 
     doLast {
-        if (project.mod_version != '4.0.14.110021'
+        if (project.mod_version != '4.0.16.110021'
                 || project.mod_group != expectedMavenGroup) {
             throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
         }
@@ -953,8 +988,8 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyOs3ProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.14.110021')) {
-                throw new GradleException("Authoritative release location does not contain 4.0.14.110021: ${path}")
+            if (!file(path).getText('UTF-8').contains('4.0.16.110021')) {
+                throw new GradleException("Authoritative release location does not contain 4.0.16.110021: ${path}")
             }
         }
         if (!file('docs/API.md').getText('UTF-8').contains('orespawn@[4.0.6,5.0.0)')) {
@@ -1359,6 +1394,7 @@ tasks.register('isolateEclipseProductionRuns') {
     description = 'Marks ordinary ForgeGradle 7 Eclipse launches as production-only.'
     dependsOn tasks.named('genEclipseRuns')
     dependsOn tasks.named('configureEclipseBuildship')
+    dependsOn prepareEclipseResources
 
     doLast {
         obsoleteForgeGradle2EclipseLaunches.each { String name, String mainClass ->
@@ -1413,6 +1449,22 @@ tasks.register('verifyEclipseProductionClasspath') {
                     || !java.util.Arrays.equals(source.bytes, eclipseCopy.bytes)) {
                 throw new GradleException("Eclipse documentation differs for ${relative}")
             }
+        }
+        [
+                'mcmod.info',
+                'META-INF/orespawn/docs/README.md',
+                'META-INF/orespawn/docs/VERSIONS.md'
+        ].each { relative ->
+            File required = new File(eclipseResources, relative)
+            if (!required.isFile()) {
+                throw new GradleException(
+                        "Eclipse production output is missing processed resource ${relative}")
+            }
+        }
+        String eclipseMetadata = new File(eclipseResources, 'mcmod.info').getText('UTF-8')
+        if (!eclipseMetadata.contains("\"version\": \"${project.version}\"")
+                || !eclipseMetadata.contains("\"mcversion\": \"${minecraft_version}\"")) {
+            throw new GradleException('Eclipse mcmod.info retains unexpanded build placeholders')
         }
         List<File> launchFiles = fileTree(project.projectDir) {
             include 'runClient.launch'
