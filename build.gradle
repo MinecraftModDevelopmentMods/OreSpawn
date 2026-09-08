@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.jar.Manifest
@@ -43,6 +44,9 @@ if (versionParts[3] != expectedTargetVersion) {
 ext.functional_version = versionParts[0..2].join('.')
 ext.display_version = project.mod_version
 ext.release_tag = project.mod_version
+def expectedMavenGroup = 'zone.moddev.mc.orespawn'
+def expectedMavenArtifact = 'OreSpawn'
+def expectedMavenCoordinate = "${expectedMavenGroup}:${expectedMavenArtifact}:${project.version}"
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(8)
@@ -104,7 +108,7 @@ minecraft {
         }
         register('client')
         register('server') {
-            args '--nogui'
+            args 'nogui'
         }
     }
 }
@@ -766,6 +770,34 @@ task benchmarkIntegrationProcess(type: JavaExec, dependsOn: prepareWorldgenBench
     }
 }
 
+def trackedDocumentationFiles = {
+    fileTree('docs') { include '**/*' }.files.findAll { it.isFile() }
+            .sort { project.relativePath(it) }
+}
+def documentationRelativePath = { File source ->
+    file('docs').toPath().relativize(source.toPath()).toString().replace('\\', '/')
+}
+
+tasks.register('verifyDocumentationParity') {
+    group = 'verification'
+    description = 'Verifies every tracked guide has an identical processed production resource.'
+    dependsOn tasks.named('processResources')
+    doLast {
+        List<File> tracked = trackedDocumentationFiles()
+        if (tracked.size() != 21) {
+            throw new GradleException("Expected 21 tracked documentation files, found ${tracked.size()}")
+        }
+        tracked.each { File source ->
+            String relative = documentationRelativePath(source)
+            File processed = layout.buildDirectory.file(
+                    "resources/main/META-INF/orespawn/docs/${relative}").get().asFile
+            if (!processed.isFile() || !java.util.Arrays.equals(source.bytes, processed.bytes)) {
+                throw new GradleException("Processed documentation differs for ${relative}")
+            }
+        }
+    }
+}
+
 tasks.named('processResources', ProcessResources) {
     filteringCharset = 'UTF-8'
     inputs.property('version', project.version)
@@ -797,7 +829,7 @@ tasks.named('jar', Jar) {
                 'Implementation-Vendor'     : 'SkyBlade1978',
                 'OreSpawn-API-Version'      : '1',
                 'FMLAT'                     : 'accesstransformer.cfg',
-                'Maven-Artifact'             : "${project.group}:${base.archivesName.get()}:${project.version}",
+                'Maven-Artifact'             : expectedMavenCoordinate,
                 'Built-On-Java'              : '8',
                 'Built-On'                   : "${project.minecraft_version}-${project.forge_version}"
         ])
@@ -893,7 +925,8 @@ tasks.register('verifyReleaseConfiguration') {
     description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
 
     doLast {
-        if (project.mod_version != '4.0.10.110021') {
+        if (project.mod_version != '4.0.10.110021'
+                || project.mod_group != expectedMavenGroup) {
             throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
         }
         if (project.minecraft_version != '1.10.2'
@@ -906,8 +939,8 @@ tasks.register('verifyReleaseConfiguration') {
                 || project.java_version != '8' || project.gradle_java_version != '17') {
             throw new GradleException('Unexpected dispatcher target metadata')
         }
-        if (project.group.toString() != 'zone.moddev.mc.orespawn'
-                || base.archivesName.get() != 'OreSpawn'
+        if (project.group.toString() != expectedMavenGroup
+                || base.archivesName.get() != expectedMavenArtifact
                 || project.curseforge_project_id != '245586') {
             throw new GradleException('Unexpected Maven or CurseForge publication identity')
         }
@@ -1013,6 +1046,18 @@ tasks.register('verifyReleaseArtifacts') {
                     throw new GradleException("Release jar is missing ${required}")
                 }
             }
+            List<File> trackedDocs = trackedDocumentationFiles()
+            if (trackedDocs.size() != 21) {
+                throw new GradleException("Expected 21 tracked documentation files, found ${trackedDocs.size()}")
+            }
+            trackedDocs.each { File source ->
+                String relative = documentationRelativePath(source)
+                def entry = zip.getEntry("META-INF/orespawn/docs/${relative}")
+                if (entry == null || !java.util.Arrays.equals(source.bytes,
+                        zip.getInputStream(entry).withCloseable { it.bytes })) {
+                    throw new GradleException("Packaged documentation differs for ${relative}")
+                }
+            }
 
             String metadata = zip.getInputStream(zip.getEntry('mcmod.info'))
                     .getText(StandardCharsets.UTF_8.name())
@@ -1044,6 +1089,7 @@ tasks.register('verifyReleaseArtifacts') {
                     || manifest.getValue('Implementation-Version') != project.mod_version
                     || manifest.getValue('OreSpawn-API-Version') != '1'
                     || manifest.getValue('FMLAT') != 'accesstransformer.cfg'
+                    || manifest.getValue('Maven-Artifact') != expectedMavenCoordinate
                     || manifest.getValue('Implementation-Timestamp') != null
                     || manifest.getValue('Timestamp') != null) {
                 throw new GradleException('Release manifest identity/API/FMLAT is incorrect or volatile')
@@ -1161,8 +1207,8 @@ def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId = project.group.toString()
-            artifactId = base.archivesName.get()
+            groupId = expectedMavenGroup
+            artifactId = expectedMavenArtifact
             version = project.version.toString()
             if (preparedReleaseDir.isPresent()) {
                 File prepared = file(preparedReleaseDir.get())
@@ -1208,6 +1254,26 @@ publishing {
     }
 }
 
+tasks.register('verifyMavenCoordinates') {
+    group = 'verification'
+    description = 'Verifies the generated POM uses OreSpawn\'s mod-specific Maven namespace.'
+    dependsOn tasks.named('generatePomFileForMavenJavaPublication')
+    doLast {
+        File pomFile = layout.buildDirectory.file(
+                'publications/mavenJava/pom-default.xml').get().asFile
+        if (!pomFile.isFile()) {
+            throw new GradleException("Generated Maven POM does not exist: ${pomFile}")
+        }
+        def pom = new XmlSlurper(false, false).parse(pomFile)
+        def actual = [pom.groupId.text(), pom.artifactId.text(), pom.version.text()]
+        def expected = [expectedMavenGroup, expectedMavenArtifact, project.version.toString()]
+        if (project.group.toString() != expectedMavenGroup || actual != expected) {
+            throw new GradleException("Expected Maven coordinate ${expected.join(':')}, "
+                    + "found ${actual.join(':')}")
+        }
+    }
+}
+
 tasks.register('validateMavenReleaseCredentials') {
     group = 'publishing'
     description = 'Prevents Maven publication from targeting a local or incomplete repository.'
@@ -1227,11 +1293,17 @@ tasks.register('validateMavenReleaseCredentials') {
 
 tasks.withType(PublishToMavenRepository).configureEach {
     dependsOn tasks.named('validateMavenReleaseCredentials')
+    dependsOn tasks.named('verifyMavenCoordinates')
     if (preparedReleaseDir.isPresent()) {
         dependsOn tasks.named('verifyPreparedReleaseArtifacts')
     } else {
         dependsOn tasks.named('verifyReleaseArtifacts')
     }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyMavenCoordinates')
+    dependsOn tasks.named('verifyDocumentationParity')
 }
 
 idea {
@@ -1329,6 +1401,19 @@ tasks.register('verifyEclipseProductionClasspath') {
         if (!buildshipPreferences.isFile()) {
             throw new GradleException('Missing Eclipse Buildship project preferences')
         }
+        File eclipseResources = file('bin/main')
+        List<File> trackedDocs = trackedDocumentationFiles()
+        if (trackedDocs.size() != 21) {
+            throw new GradleException("Expected 21 tracked documentation files, found ${trackedDocs.size()}")
+        }
+        trackedDocs.each { File source ->
+            String relative = documentationRelativePath(source)
+            File eclipseCopy = new File(eclipseResources, "META-INF/orespawn/docs/${relative}")
+            if (!eclipseCopy.isFile()
+                    || !java.util.Arrays.equals(source.bytes, eclipseCopy.bytes)) {
+                throw new GradleException("Eclipse documentation differs for ${relative}")
+            }
+        }
         List<File> launchFiles = fileTree(project.projectDir) {
             include 'runClient.launch'
             include 'runServer.launch'
@@ -1364,6 +1449,10 @@ tasks.register('verifyEclipseProductionClasspath') {
             }
             if (!contents.contains('PROJECT_ATTR" value="OreSpawn"')) {
                 throw new GradleException("${launch.name} targets the wrong Eclipse project")
+            }
+            if (launch.name.toLowerCase().contains('server')
+                    && (!contents.contains('nogui') || contents.contains('--nogui'))) {
+                throw new GradleException("${launch.name} does not use Forge 1.10's bare nogui argument")
             }
         }
     }

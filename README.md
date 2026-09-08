@@ -109,8 +109,12 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Run Gradle with JDK 17 from the repository root. The build uses a Java 8
-toolchain for compilation and every executable Minecraft/Forge gate:
+Run Gradle with exact Temurin `17.0.1+12` from the repository root. Install
+exact Temurin `25.0.3+9` for ForgeGradle's Mavenizer and exact Temurin
+`8.0.502+7` for Minecraft 1.10.2 production and fixture compilation. Java 17
+remains the Gradle runtime and production bytecode remains Java 8; the build
+rejects a different Java 8 toolchain. Hosted CI also proves an online bootstrap
+from an empty Gradle home followed by an offline replay from that same cache:
 
 ```powershell
 .\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
