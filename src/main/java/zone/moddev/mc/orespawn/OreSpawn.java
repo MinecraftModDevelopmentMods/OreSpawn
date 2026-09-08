@@ -52,7 +52,7 @@ public class OreSpawn {
 
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = "4.0.10.112021";
+	public static final String VERSION = "4.0.13.112021";
 
 	private static final Logger LOGGER = LogManager.getLogger();
 

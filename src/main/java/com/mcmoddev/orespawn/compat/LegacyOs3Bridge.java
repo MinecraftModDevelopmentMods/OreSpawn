@@ -818,7 +818,7 @@ public final class LegacyOs3Bridge {
 			}
 		}
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.10.112021 Upgrade Report");
+		lines.add("OreSpawn 4.0.13.112021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.");

@@ -119,7 +119,9 @@ identity, but that shifted coordinate never makes an out-of-range world block
 eligible or rejects an otherwise legal world height.
 
 Geomes contain a non-negative `base` weight and non-negative weights for each
-rock family. Biome and biome-dictionary maps multiply those geome weights.
+rock family. Keys may retain the legacy unnamespaced form or use a provider
+resource ID such as `examplemod:crystal_basin`; the creation editor preserves
+both forms. Biome and biome-dictionary maps multiply those geome weights.
 Missing optional-mod biome IDs are ignored during baking.
 
 Terrain dimensions require `enabled`, `host_blocks`, and `host_tags`.
