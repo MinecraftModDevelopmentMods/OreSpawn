@@ -1,3 +1,11 @@
+Version 4.0.14.110021
+
+* Convert exposed one-layer Snow at the first free height (`top + 1`) while
+  retaining full-Snow and Ice conversion at the surface and two blocks below.
+* Preserve buried or authored weather materials, unsafe source states and later
+  structure or vegetation output.
+* Existing profiles, chunks, API major 1 and schemas remain unchanged.
+
 Version 4.0.13.110021
 
 * Give the public ore-dimension builder the exact biome include/exclude and
