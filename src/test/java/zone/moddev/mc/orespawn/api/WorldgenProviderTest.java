@@ -317,8 +317,9 @@ class WorldgenProviderTest {
 			assertEquals("[\"SPOOKY\"]",
 					rule.getAsJsonArray("excluded_biome_dictionary").toString());
 		}
-		ore.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString())
-				.getAsJsonArray("biome_ids").add("minecraft:forest");
+		zone.moddev.mc.orespawn.util.JsonCopies.add(ore.getAsJsonObject("dimensions")
+				.getAsJsonObject(overworld.toString())
+				.getAsJsonArray("biome_ids"), "minecraft:forest");
 		assertEquals("[\"minecraft:plains\"]", provider.toJson().getAsJsonObject("ores")
 				.getAsJsonObject("examplemod:ore/examplemod/filtered_ore")
 				.getAsJsonObject("dimensions").getAsJsonObject(overworld.toString())

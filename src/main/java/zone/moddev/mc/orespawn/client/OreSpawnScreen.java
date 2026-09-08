@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.text.ITextComponent;
 
-/** Shared target-native helpers for the Minecraft 1.12 screen contract. */
+/** Shared target-native helpers for the Minecraft 1.11 screen contract. */
 abstract class OreSpawnScreen extends GuiScreen {
 	protected final ITextComponent title;
 	protected final Minecraft minecraft = Minecraft.getMinecraft();

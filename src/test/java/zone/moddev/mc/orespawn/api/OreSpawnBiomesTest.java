@@ -13,13 +13,13 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
-/** Forge 14 contract coverage for both public biome registration routes. */
+/** Forge 13 contract coverage for both public biome registration routes. */
 class OreSpawnBiomesTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -35,7 +35,7 @@ class OreSpawnBiomesTest {
 		assertEquals(new ResourceLocation("test_copy", "copied"), registered.getId());
 		assertEquals(source.getBaseHeight(), copy.getBaseHeight());
 		assertEquals(source.getHeightVariation(), copy.getHeightVariation());
-		assertEquals(1.35F, copy.getDefaultTemperature());
+		assertEquals(1.35F, copy.getTemperature());
 		assertEquals(0.15F, copy.getRainfall());
 		assertEquals(source.getWaterColor(), copy.getWaterColor());
 		assertEquals(source.topBlock, copy.topBlock);
@@ -61,7 +61,7 @@ class OreSpawnBiomesTest {
 		assertEquals(false, biome.canRain());
 		assertEquals(0.1F, biome.getBaseHeight());
 		assertEquals(0.2F, biome.getHeightVariation());
-		assertEquals(1.35F, biome.getDefaultTemperature());
+		assertEquals(1.35F, biome.getTemperature());
 		assertEquals(0.15F, biome.getRainfall());
 		assertEquals(0x654321, biome.getWaterColor());
 	}

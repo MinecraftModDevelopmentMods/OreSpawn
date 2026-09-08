@@ -32,7 +32,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
 /** Build-only client probe. It is compiled and packaged outside every release artifact. */
 @Mod(modid = ClientProbeTestMod.MODID, name = "OreSpawn Client Probe", version = "1",
-		acceptedMinecraftVersions = "[1.12.2]", dependencies = "required-after:orespawn")
+		acceptedMinecraftVersions = "[1.11.2]", dependencies = "required-after:orespawn")
 public final class ClientProbeTestMod {
 	static final String MODID = "clientprobe";
 	private static final String WORLD_DIRECTORY = "client-smoke-world";
@@ -329,7 +329,7 @@ public final class ClientProbeTestMod {
 		values.setProperty("reload_rendered", Boolean.toString(reloadWorldFrames >= 8));
 		values.setProperty("world_directory", WORLD_DIRECTORY);
 		try (FileOutputStream output = new FileOutputStream(new File("client-smoke-pass.properties"))) {
-			values.store(output, "OreSpawn Forge 1.12.2 client integration gate");
+			values.store(output, "OreSpawn Forge 1.11.2 client integration gate");
 		}
 	}
 

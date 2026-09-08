@@ -82,8 +82,8 @@ final class OreDimensionScreen extends OreSpawnScreen {
 				externalPatternId = GeologyEditorSession.string(configured.getAsJsonObject(), "type", "orespawn:vein");
 				ResourceLocation id = new ResourceLocation(externalPatternId);
 				externalPattern = true;
-				pattern = "orespawn".equals(id.getNamespace())
-						? OrePattern.fromConfigName(id.getPath()) : OrePattern.VEIN;
+				pattern = "orespawn".equals(id.getResourceDomain())
+						? OrePattern.fromConfigName(id.getResourcePath()) : OrePattern.VEIN;
 			} else {
 				pattern = OrePattern.fromConfigName(GeologyEditorSession.string(rule, "pattern", "vein"));
 			}
@@ -347,7 +347,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 			}
 			JsonArray familyArray = new JsonArray();
 			for (RockFamily family : RockFamily.values()) {
-				if (families.contains(family)) familyArray.add(family.configName);
+				if (families.contains(family)) zone.moddev.mc.orespawn.util.JsonCopies.add(familyArray, family.configName);
 			}
 			rule.add("host_families", familyArray);
 			if (!hostBlocks.getValue().trim().equals(originalHostBlocksText)) rule.add("host_blocks", blocks);
@@ -388,7 +388,7 @@ final class OreDimensionScreen extends OreSpawnScreen {
 			String id = token.trim();
 			if (id.isEmpty()) continue;
 			new ResourceLocation(id);
-			result.add(id);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, id);
 		}
 		return result;
 	}

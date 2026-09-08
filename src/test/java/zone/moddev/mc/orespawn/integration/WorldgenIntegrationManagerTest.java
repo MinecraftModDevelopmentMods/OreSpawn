@@ -15,12 +15,12 @@ import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class WorldgenIntegrationManagerTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -131,7 +131,7 @@ class WorldgenIntegrationManagerTest {
 		rule.add("host_families", new JsonArray());
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		if (withHost) tags.add("forge:stone");
+		if (withHost) zone.moddev.mc.orespawn.util.JsonCopies.add(tags, "forge:stone");
 		rule.add("host_tags", tags);
 		JsonObject dimensions = new JsonObject();
 		dimensions.add("minecraft:overworld", rule);

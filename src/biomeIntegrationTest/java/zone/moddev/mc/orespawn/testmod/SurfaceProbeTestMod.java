@@ -37,6 +37,7 @@ import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
+import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
@@ -56,8 +57,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeDecorator;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.ChunkGeneratorFlat;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.gen.ChunkProviderFlat;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
@@ -76,9 +77,9 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
-/** Independent Forge 1.12 provider-surface and exact-biome regression fixture. */
+/** Independent Forge 1.11 provider-surface and exact-biome regression fixture. */
 @Mod(modid = SurfaceProbeTestMod.MODID, name = "OreSpawn Surface Probe",
-		version = "1.0.0", acceptedMinecraftVersions = "[1.12.2]",
+		version = "1.0.0", acceptedMinecraftVersions = "[1.11.2]",
 		dependencies = "required-after:orespawn@[4.0.6,5.0.0)")
 public final class SurfaceProbeTestMod {
 	static final String MODID = "surfaceprobe";
@@ -130,9 +131,7 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("orespawn", "glacial_highland")
 	};
 
-	private static final OrePatternType EXTERNAL_PATTERN = OrePatternType.create(
-			StandardPatternSettings.CODEC, settings -> context -> false)
-			.setRegistryName(MODID, "external_probe");
+	private static OrePatternType externalPattern;
 
 	private final BiomeRegistrar registrar = OreSpawnBiomes.registrar(MODID);
 	private final BiomeReference surfaceA = OreSpawnBiomes.blankAndRegister(registrar,
@@ -165,21 +164,23 @@ public final class SurfaceProbeTestMod {
 		event.getRegistry().register(DEPOSIT_FLUID);
 	}
 
-	@SubscribeEvent
-	public void registerPatterns(RegistryEvent.Register<OrePatternType> event) {
-		event.getRegistry().register(EXTERNAL_PATTERN);
-	}
-
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
+		// Forge 13 creates OreSpawn's custom registry during OreSpawn pre-init and
+		// does not emit a later Register event for it. Construct and register the
+		// external fixture type only after that registry exists.
+		externalPattern = OrePatternType.create(
+				StandardPatternSettings.CODEC, settings -> context -> false)
+				.setRegistryName(MODID, "external_probe");
+		OreSpawnPatterns.registry().register(externalPattern);
 		GameRegistry.registerWorldGenerator(new ProbeGenerator(), 1000);
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public void placeControlledTerrain(DecorateBiomeEvent.Pre event) {
 		World world = event.getWorld();
-		int chunkX = event.getChunkPos().x;
-		int chunkZ = event.getChunkPos().z;
+		int chunkX = event.getPos().getX() >> 4;
+		int chunkZ = event.getPos().getZ() >> 4;
 		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
 				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
 				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
@@ -196,8 +197,8 @@ public final class SurfaceProbeTestMod {
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void verifySurfaceStage(DecorateBiomeEvent.Pre event) {
 		World world = event.getWorld();
-		int chunkX = event.getChunkPos().x;
-		int chunkZ = event.getChunkPos().z;
+		int chunkX = event.getPos().getX() >> 4;
+		int chunkZ = event.getPos().getZ() >> 4;
 		if ((world.provider.getDimension() != 1 && world.provider.getDimension() != -1)
 				|| chunkX < MIN_CHUNK || chunkX > MAX_CHUNK
 				|| chunkZ < MIN_CHUNK || chunkZ > MAX_CHUNK) return;
@@ -273,7 +274,7 @@ public final class SurfaceProbeTestMod {
 			JsonObject end = terrain.getAsJsonObject(END.toString());
 			JsonArray hosts = end.getAsJsonArray("host_blocks");
 			for (Block block : Arrays.asList(Blocks.AIR, Blocks.WATER, Blocks.BEDROCK, Blocks.CHEST)) {
-				hosts.add(id(block).toString());
+				zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, id(block).toString());
 			}
 			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
 				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
@@ -377,7 +378,7 @@ public final class SurfaceProbeTestMod {
 			world = DimensionManager.getWorld(dimension);
 		}
 		if (world == null) throw new IllegalStateException("Missing dimension " + dimension);
-		if (world.getChunkProvider().chunkGenerator instanceof ChunkGeneratorFlat) {
+		if (world.getChunkProvider().chunkGenerator instanceof ChunkProviderFlat) {
 			throw new IllegalStateException("surfaceprobe requires normal-noise dimension " + dimension);
 		}
 		return world;
@@ -411,7 +412,7 @@ public final class SurfaceProbeTestMod {
 						Material material = material(biomeId, roofed);
 						float temperature = BIOME_A.equals(biomeId) ? 1.35F : 0.7F;
 						float rainfall = BIOME_A.equals(biomeId) ? 0.15F : 0.8F;
-						if (Float.compare(biome.getDefaultTemperature(), temperature) != 0
+						if (Float.compare(biome.getTemperature(), temperature) != 0
 								|| Float.compare(biome.getRainfall(), rainfall) != 0) {
 							throw new IllegalStateException("Climate mismatch for " + biomeId + " at " + cursor);
 						}
@@ -606,7 +607,7 @@ public final class SurfaceProbeTestMod {
 			}
 		}
 		if (OreSpawnPatternRegistry.registry().getValue(
-				new ResourceLocation(MODID, "external_probe")) != EXTERNAL_PATTERN) {
+				new ResourceLocation(MODID, "external_probe")) != externalPattern) {
 			throw new IllegalStateException("Fixture external ore pattern did not register");
 		}
 	}
@@ -630,12 +631,12 @@ public final class SurfaceProbeTestMod {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
 			int x = naturalX(minX, index), z = naturalZ(minZ, index);
-			chunk.setBlockState(pos.setPos(x, GROUND_Y - 12, z), NATURAL_SOURCES[index]);
-			chunk.setBlockState(pos.setPos(x, GROUND_Y - 11, z),
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 12, z).toImmutable(), NATURAL_SOURCES[index]);
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 11, z).toImmutable(),
 					index < NATURAL_SOURCES.length / 2
 							? Blocks.AIR.getDefaultState() : Blocks.WATER.getDefaultState());
 		}
-		chunk.setBlockState(pos.setPos(minX + 11, GROUND_Y - 24, minZ + 12),
+		chunk.setBlockState(pos.setPos(minX + 11, GROUND_Y - 24, minZ + 12).toImmutable(),
 				Blocks.BEDROCK.getDefaultState());
 		BlockPos chestPos = new BlockPos(minX + 12, GROUND_Y - 24, minZ + 12);
 		world.setBlockState(chestPos, Blocks.CHEST.getDefaultState(), 2);
@@ -798,7 +799,7 @@ public final class SurfaceProbeTestMod {
 		ProbeLiquid() {
 			super(net.minecraft.block.material.Material.LAVA);
 			setRegistryName(MODID, "dynamic_tick_probe");
-			setTranslationKey(MODID + ".dynamic_tick_probe");
+			setUnlocalizedName(MODID + ".dynamic_tick_probe");
 		}
 
 		@Override
@@ -815,9 +816,8 @@ public final class SurfaceProbeTestMod {
 	private static final class ProbeDecorator extends BiomeDecorator {
 		@Override
 		public void decorate(World world, Random random, Biome biome, BlockPos pos) {
-			net.minecraft.util.math.ChunkPos chunkPos = new net.minecraft.util.math.ChunkPos(pos);
-			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, chunkPos));
-			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, chunkPos));
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, pos));
+			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, pos));
 		}
 	}
 

@@ -216,7 +216,7 @@ public final class GeomeDistributionSampler {
 		int biomeIndex = 0;
 		for (Entry<String, Biome> entry : biomes.entrySet()) {
 			ResourceLocation biomeId = new ResourceLocation(entry.getKey());
-			add(namespaceCounts, biomeId.getNamespace());
+			add(namespaceCounts, biomeId.getResourceDomain());
 			if (!config.hasDistinctBiomeWeights(entry.getValue())) {
 				neutralBiomes.add(entry.getKey());
 			}
@@ -240,7 +240,7 @@ public final class GeomeDistributionSampler {
 			}
 			report.append("  ").append(entry.getKey())
 					.append(" types=").append(biomeTypes(biomeId))
-					.append(" temperature=").append(format(entry.getValue().getDefaultTemperature()))
+					.append(" temperature=").append(format(entry.getValue().getTemperature()))
 					.append(" downfall=").append(format(entry.getValue().getRainfall()))
 					.append(" dominant=").append(config.dominantBiomeWeight(entry.getValue()))
 					.append(" weights=").append(config.describeBiomeWeights(entry.getValue()))

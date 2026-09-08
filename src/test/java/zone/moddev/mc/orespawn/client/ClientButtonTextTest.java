@@ -64,7 +64,7 @@ class ClientButtonTextTest {
 		}
 
 		assertTrue(missing.isEmpty(),
-				"Client labels must exist in OreSpawn or Minecraft 1.12: " + missing);
+				"Client labels must exist in OreSpawn or Minecraft 1.11: " + missing);
 	}
 
 	@Test

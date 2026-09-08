@@ -16,14 +16,11 @@ import zone.moddev.mc.orespawn.api.OreSpawnPatternRegistry;
 import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.RegistryBuilder;
 
 /** Registry and allocation-free implementations of OreSpawn's built-in patterns. */
 public final class OreSpawnPatterns {
@@ -31,7 +28,7 @@ public final class OreSpawnPatterns {
 			new RegistryBuilder<OrePatternType>()
 					.setName(OreSpawnPatternRegistry.REGISTRY_NAME)
 					.setType(OrePatternType.class)
-					.disableSaving()
+					.setIDRange(0, 255)
 					.create();
 	private static final Map<ResourceLocation, Supplier<OrePatternType>> TYPES = new LinkedHashMap<>();
 	private static boolean attached;
@@ -55,7 +52,13 @@ public final class OreSpawnPatterns {
 			throw new IllegalStateException("Ore pattern registry already attached");
 		}
 		attached = true;
-		MinecraftForge.EVENT_BUS.register(OreSpawnPatterns.class);
+		// Forge 13 does not replay a Register event for a custom registry created
+		// during mod pre-initialization. Populate it immediately while it is still
+		// mutable; the registry remains exposed through the same public API.
+		for (Map.Entry<ResourceLocation, Supplier<OrePatternType>> entry : TYPES.entrySet()) {
+			OrePatternType type = entry.getValue().get();
+			REGISTRY.register(type.setRegistryName(entry.getKey()));
+		}
 	}
 
 	public static IForgeRegistry<OrePatternType> registry() {
@@ -88,7 +91,7 @@ public final class OreSpawnPatterns {
 					? rule.getAsJsonObject("pattern") : null;
 			ResourceLocation id = patternId(pattern == null
 					? string(rule, "pattern", "vein") : string(pattern, "type", ""));
-			return OreSpawn.MODID.equals(id.getNamespace());
+			return OreSpawn.MODID.equals(id.getResourceDomain());
 		} catch (RuntimeException e) {
 			return false;
 		}
@@ -106,14 +109,6 @@ public final class OreSpawnPatterns {
 			if (value == null) throw new IllegalStateException("Ore pattern is not registered yet: " + id);
 			return value;
 		};
-	}
-
-	@SubscribeEvent
-	public static void registerTypes(RegistryEvent.Register<OrePatternType> event) {
-		for (Map.Entry<ResourceLocation, Supplier<OrePatternType>> entry : TYPES.entrySet()) {
-			OrePatternType type = entry.getValue().get();
-			event.getRegistry().register(type.setRegistryName(entry.getKey()));
-		}
 	}
 
 	private static CompiledOrePattern decode(OrePatternType type, JsonObject settings) {

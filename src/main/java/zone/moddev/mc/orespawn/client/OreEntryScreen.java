@@ -130,11 +130,11 @@ final class OreEntryScreen extends OreSpawnScreen {
 		rule.addProperty("node_size", 4);
 		if ("minecraft:the_end".equals(id)) {
 			JsonArray blocks = new JsonArray();
-			blocks.add("minecraft:end_stone");
+			zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, "minecraft:end_stone");
 			rule.add("host_blocks", blocks);
 		} else {
 			JsonArray tags = new JsonArray();
-			tags.add("minecraft:the_nether".equals(id)
+			zone.moddev.mc.orespawn.util.JsonCopies.add(tags, "minecraft:the_nether".equals(id)
 					? "forge:netherrack" : "forge:stone");
 			rule.add("host_tags", tags);
 		}

@@ -237,7 +237,7 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 			rule.addProperty("min_solid_cover", parsedCover);
 			rule.addProperty("min_solid_shell", parsedShell);
 			JsonArray familyValues = new JsonArray();
-			for (RockFamily family : families) familyValues.add(family.configName);
+			for (RockFamily family : families) zone.moddev.mc.orespawn.util.JsonCopies.add(familyValues, family.configName);
 			rule.add("host_families", familyValues);
 			rule.add("host_blocks", blocks);
 			rule.add("host_tags", tags);
@@ -279,21 +279,21 @@ final class FluidDepositDimensionScreen extends OreSpawnScreen {
 		List<String> result = new ArrayList<>();
 		for (JsonElement value : element.getAsJsonArray()) {
 			if (value.isJsonObject() && !objectKey.isEmpty()) {
-				result.add(GeologyEditorSession.string(value.getAsJsonObject(), objectKey, ""));
-			} else result.add(value.getAsString());
+				zone.moddev.mc.orespawn.util.JsonCopies.add(result, GeologyEditorSession.string(value.getAsJsonObject(), objectKey, ""));
+			} else zone.moddev.mc.orespawn.util.JsonCopies.add(result, value.getAsString());
 		}
 		return String.join(", ", result);
 	}
 
 	private static JsonArray ids(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(new ResourceLocation(value).toString());
+		for (String value : split(text)) zone.moddev.mc.orespawn.util.JsonCopies.add(result, new ResourceLocation(value).toString());
 		return result;
 	}
 
 	private static JsonArray strings(String text) {
 		JsonArray result = new JsonArray();
-		for (String value : split(text)) result.add(value);
+		for (String value : split(text)) zone.moddev.mc.orespawn.util.JsonCopies.add(result, value);
 		return result;
 	}
 

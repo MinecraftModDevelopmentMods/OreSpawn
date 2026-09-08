@@ -14,12 +14,12 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
 
 /**
- * Forge 1.12 biome registration helpers for provider mods. The registrar keeps
+ * Forge 1.11 biome registration helpers for provider mods. The registrar keeps
  * the same deferred declaration semantics as later OreSpawn ports while using
- * Forge 14 registry events and {@link Biome.BiomeProperties}.
+ * Forge 13 registry events and {@link Biome.BiomeProperties}.
  */
 public final class OreSpawnBiomes {
 	private OreSpawnBiomes() {
@@ -64,7 +64,7 @@ public final class OreSpawnBiomes {
 		Biome.BiomeProperties properties = new Biome.BiomeProperties(name)
 				.setBaseHeight(source.getBaseHeight())
 				.setHeightVariation(source.getHeightVariation())
-				.setTemperature(source.getDefaultTemperature())
+				.setTemperature(source.getTemperature())
 				.setRainfall(source.getRainfall())
 				.setWaterColor(source.getWaterColor());
 		if (!source.canRain()) properties.setRainDisabled();

@@ -45,14 +45,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Mod(modid = OreSpawn.MODID, name = OreSpawn.NAME, version = OreSpawn.VERSION,
-		acceptedMinecraftVersions = "[1.12.2]")
+		acceptedMinecraftVersions = "[1.11.2]")
 public class OreSpawn {
 	@Mod.Instance(OreSpawn.MODID)
 	public static OreSpawn instance;
 
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = "4.0.16.112021";
+	public static final String VERSION = "4.0.16.111021";
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -72,7 +72,7 @@ public class OreSpawn {
 		OreSpawnPatterns.register();
 		LegacyOs3Bridge.initialize(event);
 		MinecraftForge.EVENT_BUS.register(RuntimeEvents.INSTANCE);
-		// Forge 1.12 posts DecorateBiomeEvent.Pre on EVENT_BUS even though the
+		// Forge 1.11 posts DecorateBiomeEvent.Pre on EVENT_BUS even though the
 		// event's own documentation names TERRAIN_GEN_BUS. Register the
 		// deduplicated coordinator on both native buses so the early surface and
 		// geology pass runs before ores, structures, and vegetation.

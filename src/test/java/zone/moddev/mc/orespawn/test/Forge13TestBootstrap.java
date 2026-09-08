@@ -2,11 +2,11 @@ package zone.moddev.mc.orespawn.test;
 
 import net.minecraft.init.Bootstrap;
 
-/** Initializes vanilla's static registries for isolated Forge 14 unit tests. */
-public final class Forge14TestBootstrap {
+/** Initializes vanilla's static registries for isolated Forge 13 unit tests. */
+public final class Forge13TestBootstrap {
 	private static boolean initialized;
 
-	private Forge14TestBootstrap() {
+	private Forge13TestBootstrap() {
 	}
 
 	public static synchronized void registerVanilla() {

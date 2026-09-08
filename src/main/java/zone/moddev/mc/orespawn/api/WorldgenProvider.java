@@ -228,14 +228,14 @@ public final class WorldgenProvider {
 
 		private void requireOwned(Collection<ResourceLocation> ids, String type) {
 			for (ResourceLocation id : ids) {
-				if (!modId.equals(id.getNamespace())) {
+				if (!modId.equals(id.getResourceDomain())) {
 					throw new IllegalStateException("Provider " + modId + " does not own " + type + " " + id);
 				}
 			}
 		}
 
 		private ResourceLocation ownedId(String kind, ResourceLocation output) {
-			return new ResourceLocation(modId, kind + "/" + output.getNamespace() + "/" + output.getPath());
+			return new ResourceLocation(modId, kind + "/" + output.getResourceDomain() + "/" + output.getResourcePath());
 		}
 	}
 
@@ -301,8 +301,8 @@ public final class WorldgenProvider {
 			json.addProperty("max_y", maxY);
 			json.addProperty("weight", weight);
 			json.addProperty("ore_replaceable", oreReplaceable);
-			json.add("geomes", weights(geomes));
-			json.add("dimensions", ids(dimensions));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "geomes", weights(geomes));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "dimensions", ids(dimensions));
 			return json;
 		}
 
@@ -394,19 +394,19 @@ public final class WorldgenProvider {
 			json.addProperty("retrogen", retrogen);
 			if (!outputs.isEmpty()) {
 				JsonArray values = new JsonArray();
-				for (OreOutputDefinition output : outputs) values.add(output.toJson());
-				json.add("outputs", values);
+				for (OreOutputDefinition output : outputs) zone.moddev.mc.orespawn.util.JsonCopies.add(values, output.toJson());
+				zone.moddev.mc.orespawn.util.JsonCopies.add(json, "outputs", values);
 			}
 			if (deepOutput != null) {
 				json.addProperty("deep_output", deepOutput.toString());
 				json.addProperty("deep_output_max_y", deepOutputMaxY);
 			}
-			if (!dimensions.isEmpty()) json.add("dimensions", object(dimensions));
+			if (!dimensions.isEmpty()) zone.moddev.mc.orespawn.util.JsonCopies.add(json, "dimensions", object(dimensions));
 			JsonObject selectors = new JsonObject();
 			for (Entry<OreDimensionSelector, OreDimensionDefinition> entry : dimensionSelectors.entrySet()) {
 				selectors.add(entry.getKey().id().toString(), entry.getValue().toJson());
 			}
-			if (selectors.size() > 0) json.add("dimension_selectors", selectors);
+			if (zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) > 0) zone.moddev.mc.orespawn.util.JsonCopies.add(json, "dimension_selectors", selectors);
 			return json;
 		}
 
@@ -614,7 +614,7 @@ public final class WorldgenProvider {
 				JsonObject configuredPattern = new JsonObject();
 				configuredPattern.addProperty("type", patternType.toString());
 				configuredPattern.add("settings", JsonCopies.copy(patternSettings));
-				json.add("pattern", configuredPattern);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(json, "pattern", configuredPattern);
 			}
 			json.addProperty("height_distribution", heightDistribution.configName());
 			json.addProperty("discard_chance_on_air_exposure", discardChanceOnAirExposure);
@@ -622,15 +622,15 @@ public final class WorldgenProvider {
 			json.addProperty("vertical_spread", verticalSpread);
 			json.addProperty("node_size", nodeSize);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) { families.add(family.configName()); }
-			json.add("host_families", families);
-			json.add("geomes", weights(geomes));
-			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
-			json.add("host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
-			json.add("biome_ids", ids(biomeIds));
-			json.add("excluded_biome_ids", ids(excludedBiomeIds));
-			json.add("biome_dictionary", strings(biomeDictionary));
-			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
+			for (GeologyFamily family : hostFamilies) { zone.moddev.mc.orespawn.util.JsonCopies.add(families, family.configName()); }
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_families", families);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "geomes", weights(geomes));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_ids", ids(biomeIds));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "excluded_biome_ids", ids(excludedBiomeIds));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_dictionary", strings(biomeDictionary));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "excluded_biome_dictionary", strings(excludedBiomeDictionary));
 			return json;
 		}
 
@@ -751,7 +751,7 @@ public final class WorldgenProvider {
 			JsonObject json = new JsonObject();
 			json.addProperty("block", block.toString());
 			json.addProperty("enabled", enabled);
-			json.add("dimensions", object(dimensions));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "dimensions", object(dimensions));
 			return json;
 		}
 
@@ -872,15 +872,15 @@ public final class WorldgenProvider {
 			json.addProperty("min_solid_cover", minSolidCover);
 			json.addProperty("min_solid_shell", minSolidShell);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) families.add(family.configName());
-			json.add("host_families", families);
-			json.add("host_blocks", ids(hostBlocks));
-			json.add("host_tags", ids(hostTags));
-			json.add("biome_ids", ids(biomeIds));
-			json.add("excluded_biome_ids", ids(excludedBiomeIds));
-			json.add("biome_dictionary", strings(biomeDictionary));
-			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
-			json.add("geomes", weights(geomes));
+			for (GeologyFamily family : hostFamilies) zone.moddev.mc.orespawn.util.JsonCopies.add(families, family.configName());
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_families", families);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_blocks", ids(hostBlocks));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_tags", ids(hostTags));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_ids", ids(biomeIds));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "excluded_biome_ids", ids(excludedBiomeIds));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_dictionary", strings(biomeDictionary));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "excluded_biome_dictionary", strings(excludedBiomeDictionary));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "geomes", weights(geomes));
 			return json;
 		}
 
@@ -1037,12 +1037,12 @@ public final class WorldgenProvider {
 		public JsonObject toJson() {
 			JsonObject json = new JsonObject();
 			json.addProperty("enabled", enabled);
-			json.add("biome_ids", ids(biomeIds));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_ids", ids(biomeIds));
 			JsonArray namespaces = new JsonArray();
-			for (String namespace : biomeNamespaces) { namespaces.add(namespace); }
-			json.add("biome_namespaces", namespaces);
-			json.add("host_blocks", ids(hostBlocks));
-			json.add("host_tags", ids(hostTags));
+			for (String namespace : biomeNamespaces) { zone.moddev.mc.orespawn.util.JsonCopies.add(namespaces, namespace); }
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biome_namespaces", namespaces);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_blocks", ids(hostBlocks));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "host_tags", ids(hostTags));
 			return json;
 		}
 
@@ -1108,7 +1108,7 @@ public final class WorldgenProvider {
 			json.addProperty("waviness", waviness.configName());
 			json.addProperty("edge_irregularity", edge.configName());
 			json.addProperty("formation_continuity", continuity.configName());
-			json.add("custom", JsonCopies.copy(custom));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "custom", JsonCopies.copy(custom));
 			return json;
 		}
 
@@ -1266,11 +1266,11 @@ public final class WorldgenProvider {
 			json.addProperty("name_key", nameKey);
 			json.addProperty("description_key", descriptionKey);
 			JsonArray mods = new JsonArray();
-			for (String mod : requiredMods) { mods.add(mod); }
-			json.add("required_mods", mods);
+			for (String mod : requiredMods) { zone.moddev.mc.orespawn.util.JsonCopies.add(mods, mod); }
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "required_mods", mods);
 			json.addProperty("auto_select", autoSelect);
 			json.addProperty("auto_select_priority", autoSelectPriority);
-			json.add("profile", JsonCopies.copy(profile));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "profile", JsonCopies.copy(profile));
 			return json;
 		}
 
@@ -1284,7 +1284,7 @@ public final class WorldgenProvider {
 			private final JsonObject profile = new JsonObject();
 			private Builder(ResourceLocation id) {
 				this.id = Objects.requireNonNull(id, "id");
-				nameKey = "orespawn.template." + id.getNamespace() + "." + id.getPath();
+				nameKey = "orespawn.template." + id.getResourceDomain() + "." + id.getResourcePath();
 				descriptionKey = nameKey + ".description";
 			}
 			public Builder translationKeys(String name, String description) { nameKey = name; descriptionKey = description; return this; }
@@ -1324,7 +1324,7 @@ public final class WorldgenProvider {
 	private static <T extends JsonDefinition> JsonObject object(Map<ResourceLocation, T> values) {
 		JsonObject json = new JsonObject();
 		for (Map.Entry<ResourceLocation, T> entry : values.entrySet()) {
-			json.add(entry.getKey().toString(), entry.getValue().toJson());
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, entry.getKey().toString(), entry.getValue().toJson());
 		}
 		return json;
 	}
@@ -1339,7 +1339,7 @@ public final class WorldgenProvider {
 
 	private static JsonArray ids(Collection<ResourceLocation> values) {
 		JsonArray json = new JsonArray();
-		for (ResourceLocation value : values) { json.add(value.toString()); }
+		for (ResourceLocation value : values) { zone.moddev.mc.orespawn.util.JsonCopies.add(json, value.toString()); }
 		return json;
 	}
 
@@ -1402,9 +1402,9 @@ public final class WorldgenProvider {
 			json.addProperty("region_size", regionSize.configName());
 			json.addProperty("coverage", coverage);
 			json.addProperty("fallback_weight", fallbackWeight);
-			json.add("include_namespaces", strings(includedNamespaces));
-			json.add("exclude_namespaces", strings(excludedNamespaces));
-			json.add("biomes", object(biomes));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "include_namespaces", strings(includedNamespaces));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "exclude_namespaces", strings(excludedNamespaces));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "biomes", object(biomes));
 			return json;
 		}
 
@@ -1502,13 +1502,13 @@ public final class WorldgenProvider {
 			JsonObject json = new JsonObject();
 			json.addProperty("enabled", enabled);
 			json.addProperty("weight", weight);
-			json.add("similar_biomes", ids(similarBiomes));
-			json.add("required_similar_biomes", ids(requiredSimilarBiomes));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "similar_biomes", ids(similarBiomes));
+			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "required_similar_biomes", ids(requiredSimilarBiomes));
 			json.addProperty("min_temperature", minTemperature);
 			json.addProperty("max_temperature", maxTemperature);
 			json.addProperty("min_downfall", minDownfall);
 			json.addProperty("max_downfall", maxDownfall);
-			if (surface != null) json.add("surface", surface.toJson());
+			if (surface != null) zone.moddev.mc.orespawn.util.JsonCopies.add(json, "surface", surface.toJson());
 			return json;
 		}
 
@@ -1685,7 +1685,7 @@ public final class WorldgenProvider {
 
 	private static JsonArray strings(Collection<String> values) {
 		JsonArray json = new JsonArray();
-		for (String value : values) { json.add(value); }
+		for (String value : values) { zone.moddev.mc.orespawn.util.JsonCopies.add(json, value); }
 		return json;
 	}
 
@@ -1695,12 +1695,12 @@ public final class WorldgenProvider {
 		for (ResourceLocation value : values) {
 			Double weight = weights.get(value);
 			if (weight == null || weight.doubleValue() == 1.0D) {
-				json.add(value.toString());
+				zone.moddev.mc.orespawn.util.JsonCopies.add(json, value.toString());
 			} else {
 				JsonObject entry = new JsonObject();
 				entry.addProperty(idKey, value.toString());
 				entry.addProperty("weight", weight);
-				json.add(entry);
+				zone.moddev.mc.orespawn.util.JsonCopies.add(json, entry);
 			}
 		}
 		return json;
@@ -1722,7 +1722,7 @@ public final class WorldgenProvider {
 	private static String requireModId(String value) {
 		Objects.requireNonNull(value, "modId");
 		ResourceLocation probe = new ResourceLocation(value, "provider");
-		if (!probe.getNamespace().equals(value)) {
+		if (!probe.getResourceDomain().equals(value)) {
 			throw new IllegalArgumentException("Invalid mod ID: " + value);
 		}
 		return value;

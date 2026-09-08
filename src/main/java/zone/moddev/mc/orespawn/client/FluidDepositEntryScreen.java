@@ -124,8 +124,8 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		rule.add("host_families", new JsonArray());
 		JsonArray blocks = new JsonArray();
 		JsonArray tags = new JsonArray();
-		if ("minecraft:the_end".equals(id)) blocks.add("minecraft:end_stone");
-		else tags.add("minecraft:the_nether".equals(id)
+		if ("minecraft:the_end".equals(id)) zone.moddev.mc.orespawn.util.JsonCopies.add(blocks, "minecraft:end_stone");
+		else zone.moddev.mc.orespawn.util.JsonCopies.add(tags, "minecraft:the_nether".equals(id)
 				? "forge:netherrack" : "forge:stone");
 		rule.add("host_blocks", blocks);
 		rule.add("host_tags", tags);

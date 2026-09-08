@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class FluidDepositFeatureTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test
@@ -29,7 +29,7 @@ class FluidDepositFeatureTest {
 				"moddev", "mc", "orespawn", "worldgen", "FluidDepositFeature.java")),
 				StandardCharsets.UTF_8);
 		assertTrue(source.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
-		assertTrue(source.contains("world.setBlockState(cursor, deposit.output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(source.contains("world.setBlockState(cursor.toImmutable(), deposit.output, GENERATION_WRITE_FLAGS)"));
 		assertFalse(source.contains("chunk.setBlockState(cursor, deposit.output)"));
 	}
 
@@ -37,7 +37,7 @@ class FluidDepositFeatureTest {
 	void explicitBiomeFiltersBakeAsStaticRegistryIds() {
 		JsonObject rule = new JsonObject();
 		JsonArray ids = new JsonArray();
-		ids.add("minecraft:cold_ocean");
+		zone.moddev.mc.orespawn.util.JsonCopies.add(ids, "minecraft:cold_ocean");
 		rule.add("biome_ids", ids);
 
 		ResourceLocation expected = new ResourceLocation("minecraft", "cold_ocean");

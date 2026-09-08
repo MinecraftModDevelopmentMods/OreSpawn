@@ -170,7 +170,7 @@ final class GeologyEditorSession {
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id == null || assigned.contains(id.toString()) || isWorldgenAliasSource(id.toString())
-					|| (!mod.isEmpty() && !mod.equals(id.getNamespace()))
+					|| (!mod.isEmpty() && !mod.equals(id.getResourceDomain()))
 					|| (!query.isEmpty() && !id.toString().toLowerCase(Locale.ROOT).contains(query))
 					|| !isSelectable(block, showAll)) {
 				continue;
@@ -213,7 +213,7 @@ final class GeologyEditorSession {
 		for (Block block : ForgeRegistries.BLOCKS.getValues()) {
 			ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
 			if (id != null && block != Blocks.AIR && Item.getItemFromBlock(block) != Items.AIR) {
-				namespaces.add(id.getNamespace());
+				namespaces.add(id.getResourceDomain());
 			}
 		}
 		List<String> result = new ArrayList<>();
@@ -303,7 +303,7 @@ final class GeologyEditorSession {
 		dimension.add("biome_ids", new JsonArray());
 		dimension.add("biome_namespaces", new JsonArray());
 		JsonArray hosts = new JsonArray();
-		hosts.add("minecraft:stone");
+		zone.moddev.mc.orespawn.util.JsonCopies.add(hosts, "minecraft:stone");
 		dimension.add("host_blocks", hosts);
 		dimension.add("host_tags", new JsonArray());
 		section("terrain_dimensions").add("minecraft:overworld", dimension);
@@ -318,7 +318,7 @@ final class GeologyEditorSession {
 		JsonObject ore = new JsonObject();
 		ore.addProperty("enabled", true);
 		ResourceLocation blockId = new ResourceLocation(canonicalId);
-		ore.addProperty("source_mod", blockId.getNamespace());
+		ore.addProperty("source_mod", blockId.getResourceDomain());
 		JsonObject dimensions = new JsonObject();
 		JsonObject overworld = defaultOreDimension();
 		dimensions.add("minecraft:overworld", overworld);
@@ -454,7 +454,7 @@ final class GeologyEditorSession {
 		if (palette == null) return;
 		JsonObject biomes = object(palette, "biomes");
 		biomes.remove(biomeId);
-		if (biomes.size() == 0) palette.addProperty("enabled", false);
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(biomes) == 0) palette.addProperty("enabled", false);
 	}
 
 	String dimensionMaterialsId(String dimensionId) {
@@ -553,7 +553,7 @@ final class GeologyEditorSession {
 					entry.getValue().getAsJsonObject(), "block", ""))) return entry.getKey();
 		}
 		ResourceLocation fluid = new ResourceLocation(canonicalId);
-		String baseId = "orespawn:fluid_deposit/" + fluid.getNamespace() + "/" + fluid.getPath();
+		String baseId = "orespawn:fluid_deposit/" + fluid.getResourceDomain() + "/" + fluid.getResourcePath();
 		String ruleId = baseId;
 		for (int suffix = 2; section("fluid_deposits").has(ruleId); suffix++) {
 			ruleId = baseId + "_" + suffix;
@@ -584,12 +584,12 @@ final class GeologyEditorSession {
 		rule.addProperty("min_solid_shell", 1);
 		JsonArray families = new JsonArray();
 		if (terrainActive) {
-			for (RockFamily family : RockFamily.values()) families.add(family.configName);
+			for (RockFamily family : RockFamily.values()) zone.moddev.mc.orespawn.util.JsonCopies.add(families, family.configName);
 		}
 		rule.add("host_families", families);
 		rule.add("host_blocks", new JsonArray());
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		zone.moddev.mc.orespawn.util.JsonCopies.add(tags, "forge:stone");
 		rule.add("host_tags", tags);
 		rule.add("biome_ids", new JsonArray());
 		rule.add("excluded_biome_ids", new JsonArray());
@@ -764,7 +764,7 @@ final class GeologyEditorSession {
 					? ore.getAsJsonObject("dimensions") : new JsonObject();
 			JsonObject selectors = ore.has("dimension_selectors") && ore.get("dimension_selectors").isJsonObject()
 					? ore.getAsJsonObject("dimension_selectors") : new JsonObject();
-			if (dimensions.size() == 0 && selectors.size() == 0) {
+			if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0 && zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) == 0) {
 				errors.add("Ore has no dimension rules: " + entry.getKey());
 				continue;
 			}
@@ -854,7 +854,7 @@ final class GeologyEditorSession {
 			}
 			if (!bool(deposit, "enabled", true)) continue;
 			if (!deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()
-					|| deposit.getAsJsonObject("dimensions").size() == 0) {
+					|| zone.moddev.mc.orespawn.util.JsonCopies.size(deposit.getAsJsonObject("dimensions")) == 0) {
 				errors.add("Fluid deposit has no dimension rules: " + entry.getKey());
 				continue;
 			}
@@ -908,7 +908,7 @@ final class GeologyEditorSession {
 			if (!bool(palette, "enabled", true)) continue;
 			JsonObject biomes = palette.has("biomes") && palette.get("biomes").isJsonObject()
 					? palette.getAsJsonObject("biomes") : new JsonObject();
-			if (biomes.size() == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
+			if (zone.moddev.mc.orespawn.util.JsonCopies.size(biomes) == 0) errors.add("Enabled biome palette has no biomes: " + entry.getKey());
 			for (Entry<String, JsonElement> biome : biomes.entrySet()) {
 				if (!validResource(biome.getKey())
 						|| ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null
@@ -960,7 +960,7 @@ final class GeologyEditorSession {
 				: string(rule, "pattern", "vein");
 		ResourceLocation id = value.indexOf(':') >= 0 ? new ResourceLocation(value)
 				: new ResourceLocation("orespawn", value);
-		OrePattern.fromConfigName(id.getPath());
+		OrePattern.fromConfigName(id.getResourcePath());
 	}
 
 	private static void validateRuleGeomes(List<String> errors, JsonObject rules, JsonObject geomes, String label) {
@@ -1041,11 +1041,11 @@ final class GeologyEditorSession {
 		dimension.addProperty("node_size", 4);
 		JsonArray families = new JsonArray();
 		for (RockFamily family : RockFamily.values()) {
-			families.add(family.configName);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(families, family.configName);
 		}
 		dimension.add("host_families", families);
 		JsonArray tags = new JsonArray();
-		tags.add("forge:stone");
+		zone.moddev.mc.orespawn.util.JsonCopies.add(tags, "forge:stone");
 		dimension.add("host_tags", tags);
 		return dimension;
 	}

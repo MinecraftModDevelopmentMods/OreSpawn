@@ -12,7 +12,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.fml.common.IWorldGenerator;
@@ -22,7 +22,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import com.mcmoddev.orespawn.compat.LegacyOs3Bridge;
 
 /**
- * Ordered Forge 1.12 generation coordinator. Terrain events provide the normal
+ * Ordered Forge 1.11 generation coordinator. Terrain events provide the normal
  * early path; IWorldGenerator is a deduplicated fallback for custom generators
  * which omit those Forge hooks.
  */
@@ -39,7 +39,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	@SubscribeEvent
 	public void beforeBiomeDecoration(DecorateBiomeEvent.Pre event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
-		ChunkPos pos = event.getChunkPos();
+		ChunkPos pos = new ChunkPos(event.getPos());
 		generateEarly(event.getWorld(), pos.x, pos.z, event.getRand());
 	}
 

@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 import zone.moddev.mc.orespawn.OreSpawn;
 
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.fml.common.registry.IForgeRegistry;
 
 /** Stable entry point for mods that register codec-backed ore patterns. */
 public final class OreSpawnPatternRegistry {

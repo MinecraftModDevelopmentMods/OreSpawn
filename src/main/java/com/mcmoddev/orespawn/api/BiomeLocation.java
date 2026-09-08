@@ -17,7 +17,7 @@ public interface BiomeLocation {
 
 	default ImmutableList<Biome> getBiomes() {
 		ImmutableList.Builder<Biome> result = ImmutableList.builder();
-		for (Biome biome : ForgeRegistries.BIOMES.getValuesCollection()) {
+		for (Biome biome : ForgeRegistries.BIOMES.getValues()) {
 			if (matches(biome)) result.add(biome);
 		}
 		return result.build();

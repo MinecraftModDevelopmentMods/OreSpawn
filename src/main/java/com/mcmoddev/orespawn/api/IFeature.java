@@ -9,8 +9,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.IChunkGenerator;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraft.world.chunk.IChunkGenerator;
+import net.minecraftforge.fml.common.registry.IForgeRegistryEntry;
 
 /**
  * Compatibility union. Each historical generate descriptor is a default so a

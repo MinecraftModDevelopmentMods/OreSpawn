@@ -1,16 +1,17 @@
 package zone.moddev.mc.orespawn.util;
 
-import zone.moddev.mc.orespawn.util.JsonCopies;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 /**
  * Gson-version-neutral defensive copying for configuration data.
  *
- * <p>Minecraft 1.12.2 bundles a Gson version where {@code deepCopy()} is not
+	 * <p>Minecraft 1.11.2 bundles a Gson version where {@code deepCopy()},
+	 * primitive {@code JsonArray.add} overloads, and {@code JsonObject.size()}
+	 * are not public API.
  * public. Keeping the compatibility shim here avoids changing any public JSON
  * contracts or relying on a newer Gson at runtime.</p>
  */
@@ -47,5 +48,46 @@ public final class JsonCopies {
 			result.add(entry.getKey());
 		}
 		return result;
+	}
+
+	/** Returns the member count without depending on newer Gson APIs. */
+	public static int size(JsonObject source) {
+		return source.entrySet().size();
+	}
+
+	public static int size(java.util.Collection<?> source) {
+		return source.size();
+	}
+
+	public static int size(java.util.Map<?, ?> source) {
+		return source.size();
+	}
+
+	public static void add(JsonObject target, String key, JsonElement value) {
+		target.add(key, value);
+	}
+
+	public static <T> boolean add(java.util.Collection<T> target, T value) {
+		return target.add(value);
+	}
+
+	public static void add(JsonArray target, JsonElement value) {
+		target.add(value);
+	}
+
+	public static void add(JsonArray target, String value) {
+		target.add(value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+	}
+
+	public static void add(JsonArray target, Number value) {
+		target.add(value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+	}
+
+	public static void add(JsonArray target, Boolean value) {
+		target.add(value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
+	}
+
+	public static void add(JsonArray target, Character value) {
+		target.add(value == null ? JsonNull.INSTANCE : new JsonPrimitive(value));
 	}
 }

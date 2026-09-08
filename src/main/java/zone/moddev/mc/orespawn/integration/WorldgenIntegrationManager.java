@@ -76,7 +76,7 @@ public final class WorldgenIntegrationManager {
 	private WorldgenIntegrationManager() {
 	}
 
-	/** Forge 1.12 has no object-valued IMC, so the API submits before baking. */
+	/** Forge 1.11 has no object-valued IMC, so the API submits before baking. */
 	public static synchronized boolean submitApiProvider(WorldgenProvider provider) {
 		if (provider == null) throw new IllegalArgumentException("provider cannot be null");
 		if (frozen) throw new IllegalStateException("OreSpawn provider registration is closed");
@@ -135,10 +135,10 @@ public final class WorldgenIntegrationManager {
 		frozen = true;
 		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
 			LOGGER.info("OreSpawn worldgen provider '{}' revision {} is active with {} rocks, {} ores, {} fluid deposits, {} biome palettes, and {} templates",
-					provider.modId, provider.revision, provider.section("rocks").size(),
-					provider.section("ores").size(), provider.section("fluid_deposits").size(),
-					provider.section("biome_palettes").size(),
-					provider.section("templates").size());
+					provider.modId, provider.revision, zone.moddev.mc.orespawn.util.JsonCopies.size(provider.section("rocks")),
+					zone.moddev.mc.orespawn.util.JsonCopies.size(provider.section("ores")), zone.moddev.mc.orespawn.util.JsonCopies.size(provider.section("fluid_deposits")),
+					zone.moddev.mc.orespawn.util.JsonCopies.size(provider.section("biome_palettes")),
+					zone.moddev.mc.orespawn.util.JsonCopies.size(provider.section("templates")));
 		}
 	}
 
@@ -314,7 +314,7 @@ public final class WorldgenIntegrationManager {
 			return;
 		}
 		JsonObject deposits = object(result, "fluid_deposits");
-		if (deposits.size() != 1) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(deposits) != 1) {
 			return;
 		}
 		JsonElement depositElement = deposits.entrySet().iterator().next().getValue();
@@ -326,7 +326,7 @@ public final class WorldgenIntegrationManager {
 		if (dimensions.has("minecraft:overworld")
 				&& dimensions.get("minecraft:overworld").isJsonObject()) {
 			dimension = dimensions.getAsJsonObject("minecraft:overworld");
-		} else if (dimensions.size() == 1
+		} else if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 1
 				&& dimensions.entrySet().iterator().next().getValue().isJsonObject()) {
 			dimension = dimensions.entrySet().iterator().next().getValue().getAsJsonObject();
 		}
@@ -454,7 +454,7 @@ public final class WorldgenIntegrationManager {
 					throw new JsonSyntaxException("provider schema 1 is ore-only; found " + section);
 				}
 			}
-			if (optionalObject(root, "ores").size() == 0) {
+			if (zone.moddev.mc.orespawn.util.JsonCopies.size(optionalObject(root, "ores")) == 0) {
 				throw new JsonSyntaxException("provider schema 1 must declare ores");
 			}
 		}
@@ -468,7 +468,7 @@ public final class WorldgenIntegrationManager {
 		int entries = 0;
 		for (String section : MERGED_SECTIONS) {
 			JsonObject values = optionalObject(root, section);
-			entries += values.size();
+			entries += zone.moddev.mc.orespawn.util.JsonCopies.size(values);
 			for (Entry<String, JsonElement> entry : values.entrySet()) {
 				if (!entry.getValue().isJsonObject()) {
 					throw new JsonSyntaxException(section + " entry is not an object: " + entry.getKey());
@@ -498,7 +498,7 @@ public final class WorldgenIntegrationManager {
 			}
 		}
 		JsonObject templates = optionalObject(root, "templates");
-		entries += templates.size();
+		entries += zone.moddev.mc.orespawn.util.JsonCopies.size(templates);
 		for (Entry<String, JsonElement> entry : templates.entrySet()) {
 			validateOwnedId(providerId, entry.getKey(), "templates");
 			validateTemplate(entry.getKey(), entry.getValue());
@@ -513,7 +513,7 @@ public final class WorldgenIntegrationManager {
 
 	private static void validateOwnedId(String providerId, String idText, String section) {
 		ResourceLocation id = new ResourceLocation(idText);
-		if (!providerId.equals(id.getNamespace())) {
+		if (!providerId.equals(id.getResourceDomain())) {
 			throw new JsonSyntaxException(section + " entry is outside provider namespace: " + id);
 		}
 	}
@@ -547,7 +547,7 @@ public final class WorldgenIntegrationManager {
 		if (ore.has("outputs")) validateOutputs(idText, ore.get("outputs"));
 		JsonObject dimensions = optionalObject(ore, "dimensions");
 		JsonObject selectors = optionalObject(ore, "dimension_selectors");
-		if (dimensions.size() == 0 && selectors.size() == 0) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0 && zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) == 0) {
 			throw new JsonSyntaxException("ore has no dimensions or dimension selectors: " + idText);
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
@@ -677,7 +677,7 @@ public final class WorldgenIntegrationManager {
 		}
 		validateMetadata(deposit, "metadata", id);
 		JsonObject dimensions = requiredObject(deposit, "dimensions");
-		if (dimensions.size() == 0) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0) {
 			throw new JsonSyntaxException("fluid deposit has no dimensions: " + id);
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
@@ -754,7 +754,7 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("selected-namespace biome palette has no namespaces: " + id);
 		}
 		JsonObject biomes = requiredObject(palette, "biomes");
-		if (biomes.size() == 0) {
+		if (zone.moddev.mc.orespawn.util.JsonCopies.size(biomes) == 0) {
 			throw new JsonSyntaxException("enabled biome palette has no biomes: " + id);
 		}
 		for (Entry<String, JsonElement> entry : biomes.entrySet()) {
@@ -895,9 +895,9 @@ public final class WorldgenIntegrationManager {
 				}
 			}
 			TEMPLATES.put(id, new TemplateDefinition(id,
-					string(json, "name_key", "orespawn.template." + id.getNamespace() + '.' + id.getPath()),
-					string(json, "description_key", "orespawn.template." + id.getNamespace() + '.'
-							+ id.getPath() + ".description"),
+					string(json, "name_key", "orespawn.template." + id.getResourceDomain() + '.' + id.getResourcePath()),
+					string(json, "description_key", "orespawn.template." + id.getResourceDomain() + '.'
+							+ id.getResourcePath() + ".description"),
 					JsonCopies.copy(json.getAsJsonObject("profile")), available,
 					bool(json, "auto_select", false),
 					integer(json, "auto_select_priority", 0)));
@@ -1005,7 +1005,7 @@ public final class WorldgenIntegrationManager {
 		Set<String> result = new LinkedHashSet<>();
 		if (element != null && element.isJsonArray()) {
 			for (JsonElement value : element.getAsJsonArray()) {
-				result.add(value.getAsString());
+				zone.moddev.mc.orespawn.util.JsonCopies.add(result, value.getAsString());
 			}
 		}
 		return result;
@@ -1016,7 +1016,7 @@ public final class WorldgenIntegrationManager {
 		Collections.sort(sorted);
 		JsonArray result = new JsonArray();
 		for (String value : sorted) {
-			result.add(value);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, value);
 		}
 		return result;
 	}

@@ -15,7 +15,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.fml.common.registry.IForgeRegistryEntry;
 
 /** Allocation-light compatibility base retaining both published OS3 ABIs. */
 public class FeatureBase extends IForgeRegistryEntry.Impl<IFeature> {

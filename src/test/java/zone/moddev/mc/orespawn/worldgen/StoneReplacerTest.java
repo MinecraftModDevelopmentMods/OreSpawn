@@ -10,12 +10,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class StoneReplacerTest {
 	@BeforeAll
 	static void bootstrapMinecraftRegistries() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test

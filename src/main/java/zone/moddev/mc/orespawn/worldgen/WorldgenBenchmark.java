@@ -36,7 +36,7 @@ public final class WorldgenBenchmark {
 	}
 
 	public static void register() {
-		// Lifecycle calls are wired by OreSpawn on Forge 1.12.
+		// Lifecycle calls are wired by OreSpawn on Forge 1.11.
 	}
 
 	public static boolean isVanillaBaseline() {
@@ -130,10 +130,10 @@ public final class WorldgenBenchmark {
 		if (id == null) {
 			throw new IllegalArgumentException("Invalid benchmark dimension: " + configured);
 		}
-		if (!"legacy".equals(id.getNamespace()) || !id.getPath().startsWith("dimension_")) {
+		if (!"legacy".equals(id.getResourceDomain()) || !id.getResourcePath().startsWith("dimension_")) {
 			throw new IllegalArgumentException("Unknown benchmark dimension: " + configured);
 		}
-		try { return Integer.parseInt(id.getPath().substring("dimension_".length())); }
+		try { return Integer.parseInt(id.getResourcePath().substring("dimension_".length())); }
 		catch (NumberFormatException e) { throw new IllegalArgumentException("Unknown benchmark dimension: " + configured); }
 	}
 

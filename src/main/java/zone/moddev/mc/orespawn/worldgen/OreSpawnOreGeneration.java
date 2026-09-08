@@ -46,7 +46,7 @@ import org.apache.logging.log4j.Logger;
 
 /** One dynamic feature for every OreSpawn-managed ore and dimension. */
 public final class OreSpawnOreGeneration {
-	/** Forge 1.12 worldgen write: send the update but suppress observer cascades. */
+	/** Forge 1.11 worldgen write: send the update but suppress observer cascades. */
 	private static final int GENERATION_WRITE_FLAGS = 2 | 16;
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final OreSpawnOreGeneration FEATURE = new OreSpawnOreGeneration();
@@ -254,7 +254,7 @@ public final class OreSpawnOreGeneration {
 			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
 			JsonObject selectors = objectOrEmpty(oreJson, "dimension_selectors");
-			if (output == null || output == Blocks.AIR || (dimensions.size() == 0 && selectors.size() == 0)) {
+			if (output == null || output == Blocks.AIR || (zone.moddev.mc.orespawn.util.JsonCopies.size(dimensions) == 0 && zone.moddev.mc.orespawn.util.JsonCopies.size(selectors) == 0)) {
 				reportBakeProblem("Ignoring invalid OreSpawn-managed ore '{}'", oreEntry.getKey());
 				continue;
 			}
@@ -534,7 +534,7 @@ public final class OreSpawnOreGeneration {
 
 	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		String path = tag.getPath();
+		String path = tag.getResourcePath();
 		if ("stone".equals(path) || "base_stone_overworld".equals(path)) result.add(Blocks.STONE);
 		if ("netherrack".equals(path) || "base_stone_nether".equals(path)) result.add(Blocks.NETHERRACK);
 		for (ItemStack stack : OreDictionary.getOres(path, false)) {
@@ -863,7 +863,9 @@ public final class OreSpawnOreGeneration {
 			}
 			IBlockState output = ore.outputAt(y, random);
 			if (world == null) chunk.setBlockState(cursor, output);
-			else world.setBlockState(cursor, output, GENERATION_WRITE_FLAGS);
+			// Forge 13 may pass this position directly to a block callback. Never
+			// let the reusable generation cursor escape into scheduled tick data.
+			else world.setBlockState(cursor.toImmutable(), output, GENERATION_WRITE_FLAGS);
 			return true;
 		}
 

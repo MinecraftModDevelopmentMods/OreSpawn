@@ -24,7 +24,7 @@ public class OreSpawnBlockMatcher implements Predicate<IBlockState> {
 			value.addProperty("name", state.getBlock().getRegistryName().toString());
 			int metadata = state.getBlock().getMetaFromState(state);
 			if (metadata != 0) value.addProperty("metadata", metadata);
-			result.add(value);
+			zone.moddev.mc.orespawn.util.JsonCopies.add(result, value);
 		}
 		return result;
 	}

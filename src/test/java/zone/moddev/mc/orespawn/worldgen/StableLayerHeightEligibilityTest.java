@@ -8,13 +8,13 @@ import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
 
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.GeomeDefinition;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig.RockEntry;
 
 class StableLayerHeightEligibilityTest {
 	static {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@Test

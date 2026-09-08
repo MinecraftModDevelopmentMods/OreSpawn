@@ -89,7 +89,8 @@ final class BiomeReferenceScreen extends OreSpawnScreen {
 		Set<String> selected = selected();
 		if (!selected.add(id)) selected.remove(id);
 		JsonArray array = new JsonArray();
-		selected.stream().sorted().forEach(array::add);
+		selected.stream().sorted().forEach(value ->
+				zone.moddev.mc.orespawn.util.JsonCopies.add(array, value));
 		placement.add(key, array);
 	}
 

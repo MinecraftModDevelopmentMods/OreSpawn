@@ -197,9 +197,9 @@ public final class FluidDepositFeature {
 						cursor.setPos(x, y, z);
 						// Output was validated while baking; keep a final runtime guard for registry oddities.
 						if (deposit.output.getBlock() != Blocks.AIR && isFluidBlock(deposit.output)) {
-							// Forge's world write snapshots MutableBlockPos before onBlockAdded can
-							// schedule a dynamic-fluid tick. Direct Chunk writes leak this cursor.
-							world.setBlockState(cursor, deposit.output, GENERATION_WRITE_FLAGS);
+							// Forge 13 may pass the supplied position to onBlockAdded, where a
+							// dynamic fluid schedules it. Snapshot the reusable cursor explicitly.
+							world.setBlockState(cursor.toImmutable(), deposit.output, GENERATION_WRITE_FLAGS);
 							changed = true;
 						}
 					}
@@ -376,7 +376,8 @@ public final class FluidDepositFeature {
 		double[] geomeWeights = new double[geomeCount];
 		java.util.Arrays.fill(geomeWeights, 1.0D);
 		boolean usesGeomeWeights = config != null && rule.has("geomes")
-				&& rule.get("geomes").isJsonObject() && rule.getAsJsonObject("geomes").size() > 0;
+				&& rule.get("geomes").isJsonObject()
+				&& zone.moddev.mc.orespawn.util.JsonCopies.size(rule.getAsJsonObject("geomes")) > 0;
 		if (usesGeomeWeights) {
 			for (Map.Entry<String, JsonElement> entry : rule.getAsJsonObject("geomes").entrySet()) {
 				int index = config.geomeIndex(entry.getKey());
@@ -427,7 +428,7 @@ public final class FluidDepositFeature {
 
 	private static Set<Block> resolveTag(ResourceLocation tag) {
 		Set<Block> result = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
-		String path = tag.getPath();
+		String path = tag.getResourcePath();
 		if ("stone".equals(path) || "base_stone_overworld".equals(path)) result.add(Blocks.STONE);
 		if ("netherrack".equals(path) || "base_stone_nether".equals(path)) result.add(Blocks.NETHERRACK);
 		for (ItemStack stack : OreDictionary.getOres(path, false)) {

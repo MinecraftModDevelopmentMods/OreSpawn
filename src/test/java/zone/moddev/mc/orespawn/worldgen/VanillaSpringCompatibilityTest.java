@@ -13,12 +13,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.init.Blocks;
-import zone.moddev.mc.orespawn.test.Forge14TestBootstrap;
+import zone.moddev.mc.orespawn.test.Forge13TestBootstrap;
 
 class VanillaSpringCompatibilityTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
-		Forge14TestBootstrap.registerVanilla();
+		Forge13TestBootstrap.registerVanilla();
 	}
 
 	@AfterEach
@@ -57,7 +57,7 @@ class VanillaSpringCompatibilityTest {
 		String legacyFeatures = new String(Files.readAllBytes(Paths.get("src", "main", "java",
 				"com", "mcmoddev", "orespawn", "api", "FeatureBase.java")), StandardCharsets.UTF_8);
 		assertTrue(oreGeneration.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
-		assertTrue(oreGeneration.contains("setBlockState(cursor, output, GENERATION_WRITE_FLAGS)"));
+		assertTrue(oreGeneration.contains("setBlockState(cursor.toImmutable(), output, GENERATION_WRITE_FLAGS)"));
 		assertTrue(legacyFeatures.contains("GENERATION_WRITE_FLAGS = 2 | 16"));
 		assertTrue(legacyFeatures.contains("setBlockState(pos, output, GENERATION_WRITE_FLAGS)"));
 		assertTrue(legacyFeatures.contains("setBlockState(pos, ore, GENERATION_WRITE_FLAGS)"));

@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
-/** Extends Forge 1.12's native ore-host predicate with baked provider rocks. */
+/** Extends Forge 1.11's native ore-host predicate with baked provider rocks. */
 public final class VanillaSpringCompatibility {
 	private static volatile Set<Block> providerRocks = Collections.emptySet();
 
