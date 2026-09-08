@@ -155,13 +155,10 @@ public final class ClientProbeTestMod {
 				case 8:
 					if (minecraft.world != null && minecraft.player != null && reloadWorldFrames >= 8
 							&& stateTicks >= 100) {
-						stopIntegratedServer(minecraft);
-						nextState(9);
-					}
-					break;
-				case 9:
-					if (minecraft.world == null && !minecraft.isIntegratedServerRunning()) {
 						writeMarker();
+						// Let Minecraft's normal client shutdown own the final integrated-server
+						// disconnect. A second manual loadWorld(null) can leave already-scheduled
+						// 1.12 entity packets targeting a world that has just been removed.
 						minecraft.shutdown();
 						nextState(10);
 					}
