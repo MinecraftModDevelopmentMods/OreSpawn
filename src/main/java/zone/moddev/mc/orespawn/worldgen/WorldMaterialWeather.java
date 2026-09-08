@@ -55,6 +55,12 @@ public final class WorldMaterialWeather {
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int top = chunk.getHeightValue(localX, localZ) - 1;
+				if (materials.snow != null && top + 1 < 256) {
+					cursor.setPos(minX + localX, top + 1, minZ + localZ);
+					if (chunk.getBlockState(cursor).getBlock() == Blocks.SNOW_LAYER) {
+						chunk.setBlockState(cursor, materials.snow);
+					}
+				}
 				for (int offset = 0; offset <= 2; offset++) {
 					cursor.setPos(minX + localX, top - offset, minZ + localZ);
 					IBlockState state = chunk.getBlockState(cursor);

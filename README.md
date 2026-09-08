@@ -10,7 +10,7 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.0.8.112021`: the OreSpawn 4.0.8
+This branch builds target-qualified version `4.0.16.112021`: the OreSpawn 4.0.16
 feature set for Minecraft 1.12.2 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
@@ -107,9 +107,12 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-Run Gradle with Java 17 from the repository root. Install the exact Temurin
-`8.0.502+7` toolchain used to compile production code and test fixtures for
-Minecraft 1.12.2; the build rejects a different Java 8 toolchain:
+Run Gradle with exact Temurin `17.0.1+12` from the repository root. Install
+exact Temurin `25.0.3+9` for ForgeGradle's Mavenizer and exact Temurin
+`8.0.502+7` for Minecraft 1.12.2 production and fixture compilation. Java 17
+remains the Gradle runtime and production bytecode remains Java 8; the build
+rejects a different Java 8 toolchain. Hosted CI also proves an online bootstrap
+from an empty Gradle home followed by an offline replay from that same cache:
 
 ```powershell
 .\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
