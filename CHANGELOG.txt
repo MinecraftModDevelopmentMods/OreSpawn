@@ -1,1 +1,99 @@
-Version 3.2.1
+Version 4.0.16.111021
+
+* Adopt the shared 4.0.16 release identity. Forge 1.11 has neither
+  three-dimensional biome-cell attribution nor a server-side GameTest harness,
+  so the 4.0.15 attribution and 4.0.16 GameTest lifecycle repairs are not
+  applicable on this target.
+* Ordinary dedicated benchmark servers continue to stop automatically when
+  requested.
+
+Version 4.0.14.111021
+
+* Convert exposed one-layer vanilla Snow from the first free cell immediately
+  above Minecraft's motion-blocking surface when a dimension supplies a custom
+  snow material.
+* Retain the existing surface Ice conversion and leave buried or authored Snow
+  and Ice unchanged.
+
+Version 4.0.13.111021
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and worldgen
+  behaviour are unchanged.
+
+Version 4.0.10.111021
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve shifted formation identity for layer, family, and rock choice while
+  preventing vanilla Stone fallback near the Y 0/255 dimension bounds.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.9.111021
+
+* Replace provider-declared natural terrain hosts during the existing early
+  geology scan before structures and vegetation can author matching blocks.
+* Keep air, liquids, bedrock, and block entities protected even when their
+  block IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.8.111021
+
+* Preserve long host, tag, and biome-list values when OreSpawn editors load
+  and save an existing profile without user changes.
+* Add reproducible ForgeGradle 7 builds and guarded Maven, CurseForge, and
+  GitHub release automation.
+* Retain packaged access-transformer declaration and exact Forge 13 runtime
+  qualification. Version 4.0.7 was a Forge 1.12.2-only repair.
+
+Version 4.0.6.111021
+
+* Adopt target-qualified four-component versions so Minecraft and loader compatibility can be identified from the mod version.
+* Establish the OS4 product line on Minecraft 1.11.2 and Forge 13.20.1.2588
+  using Java 8 bytecode and the modern ForgeGradle 7 release pipeline.
+* Add a deprecated OS3 binary/configuration compatibility bridge for existing
+  3.2.2 and 3.3.1 consumers, translating plugins and registrations into one
+  deduplicated OS4 scheduler with atomic backups and an idempotent report.
+* Preserve 1.11 metadata block states, legacy dimension/biome selectors,
+  weighted outputs, retrogen flags, vanilla suppression, and flat bedrock.
+* Keep existing Mineralogy 3 worlds on the matching Cyano engine contract,
+  distinguishing carried 1.10, native 1.11, and native 1.12 configurations,
+  exact rock order, disabled geology, family lists, and realistic coal behavior.
+* Write deterministic human-readable upgrade reports for consumed OS3 and
+  Mineralogy configuration alongside the detailed machine-readable report.
+* Fix provider top and filler materials being generated one block below exposed ground.
+* Apply underwater materials from the corrected ground and ceiling materials to roof undersides.
+* Preserve trees, vegetation, structures and block entities by running surface replacement before late features.
+* Preserve exact custom-biome rules and stagger close Stable Layers geome boundaries.
+* Retain the target-native Edge Detail and managed vanilla-ore defaults for Minecraft 1.11.2.
+* Apply vanilla-ore suppression at Forge's final standard event priority so
+  later ordinary mod listeners cannot re-enable claimed vanilla ore features.
+* Keep air-exposure inspection inside the active chunk so edge candidates do
+  not load neighbouring chunks or depend on neighbour-generation order.
+* Place dynamic fluid deposits through Forge's world-write path so scheduled
+  liquid ticks cannot retain OreSpawn's reusable generation cursor.
+* Adapt geology, surfaces, ores, fluids, bedrock and static biome overlays to
+  Forge 1.11 terrain and registry events with one deduplicated IWorldGenerator.
+* Retain the OreSpawn biome registrar and deferred handles on Forge 1.11 registry events.
+* Preserve vanilla springs in provider rocks through Forge's native terrain hooks.
+* Preserve Forge 1.11.2 editor backgrounds, tooltip clearing, legacy `.name`
+  translations, non-vanilla world-button identity, and explicit navigation.
+* Existing chunks are not rewritten; the correction applies while generating new chunks.
+
+Version 4.0.5
+
+* Complete native translations for every shipped non-English locale
+* Add automatic fresh-and-reload validation for provider-owned custom biomes
+* Verify both biome-registration helpers and the Forge 1.11 registrar lifecycle
+* Confirm Minecraft 1.11.2 ResourceLocation documentation and ForgeGradle 7 workflow
+* Preserve public API major 1 and provider/global/world schemas 4/6/5
+
+Version 3.3.1
+
+* Fix several bugs
+* Add ability to completely replace oregeneration (By popular request)

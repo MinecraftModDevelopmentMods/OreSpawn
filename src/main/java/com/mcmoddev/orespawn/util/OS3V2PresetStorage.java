@@ -1,42 +1,20 @@
 package com.mcmoddev.orespawn.util;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonParser;
 
+/** Deprecated OS3 3.2 preset container. */
 public class OS3V2PresetStorage {
-	private final Map<String, Map<String, JsonElement>> storage;
-
-	public OS3V2PresetStorage() {
-		storage = new TreeMap<>();
+	private final Map<String, Map<String, JsonElement>> storage = new LinkedHashMap<>();
+	public void setSymbolSection(String symbol, String section, JsonElement value) {
+		storage.computeIfAbsent(symbol, key -> new LinkedHashMap<>()).put(section, new JsonParser().parse(value.toString()));
 	}
-
-	public void setSymbolSection(String sectionName, String itemName, JsonElement value) {
-		Map<String, JsonElement> temp = storage.getOrDefault(sectionName, new HashMap<String, JsonElement>());
-		temp.put(itemName, value);
-		storage.put(sectionName, temp);
+	public JsonElement getSymbolSection(String symbol, String section) {
+		Map<String, JsonElement> values = storage.get(symbol); return values == null ? null : values.get(section);
 	}
-
-	public JsonElement getSymbolSection(String sectionName, String itemName) {
-		if (storage.containsKey(sectionName) && storage.get(sectionName).containsKey(itemName)) {
-			return storage.get(sectionName).get(itemName);
-		} else {
-			return new JsonPrimitive(itemName);
-		}
-	}
-
-	public void copy(OS3V2PresetStorage dest) {
-		storage.entrySet().stream()
-		.forEach(ensm -> {
-			String section = ensm.getKey();
-			ensm.getValue().entrySet().forEach(ensje -> dest.setSymbolSection(section, ensje.getKey(), ensje.getValue()));
-		});
-	}
-
-	public void clear() {
-		this.storage.clear();
-	}
+	public void copy(OS3V2PresetStorage source) { clear(); source.storage.forEach((s, values) -> values.forEach((k, v) -> setSymbolSection(s, k, v))); }
+	public void clear() { storage.clear(); }
 }

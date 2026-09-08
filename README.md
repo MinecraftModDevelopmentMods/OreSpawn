@@ -1,146 +1,145 @@
-# OreSpawn
-Minecraft library mod that provides better control over the spawning of ores in Minecraft.
+[![Discord](https://img.shields.io/badge/Discord-MMD-green.svg?style=flat&logo=Discord)](https://discord.moddev.zone)
+[![CurseForge downloads](https://cf.way2muchnoise.eu/full_mmd-orespawn_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Supported Minecraft versions](https://cf.way2muchnoise.eu/versions/Minecraft_mmd-orespawn_all.svg)](https://www.curseforge.com/minecraft/mc-mods/mmd-orespawn)
+[![Build, test, and audit](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml/badge.svg?branch=master-1.11.2)](https://github.com/MinecraftModDevelopmentMods/OreSpawn/actions/workflows/ci.yml?query=branch%3Amaster-1.11.2)
 
-## How it works
-Ore Spawn parses all of the .json files found in `orespawn` and adds ore generators to the game based on those files. The JSON structure looks like this:
+# MMD OreSpawn
 
-```json
-[
-  {
-    "dimension": -1,
-    "ores": [
-      {
-        "block": "minecraft:quartz_ore",
-        "size": 15,
-        "variation": 4,
-        "frequency": 7,
-        "min_height": 0,
-        "max_height": 128
-      }
-    ]
-  },
-  {
-    "ores": [
-      {
-        "block": "minecraft:coal_ore",
-        "size": 25,
-        "variation": 12,
-        "frequency": 20,
-        "min_height": 0,
-        "max_height": 128
-      },
-      {
-        "block": "minecraft:iron_ore",
-        "size": 8,
-        "variation": 4,
-        "frequency": 20,
-        "min_height": 0,
-        "max_height": 64
-      },
-      {
-        "block": "minecraft:gold_ore",
-        "size": 8,
-        "variation": 2,
-        "frequency": 2,
-        "min_height": 0,
-        "max_height": 32
-      },
-      {
-        "block": "minecraft:diamond_ore",
-        "size": 6,
-        "variation": 3,
-        "frequency": 8,
-        "min_height": 0,
-        "max_height": 16
-      },
-      {
-        "block": "minecraft:lapis_ore",
-        "size": 5,
-        "variation": 2,
-        "frequency": 1,
-        "min_height": 0,
-        "max_height": 32
-      },
-      {
-        "block": "minecraft:emerald_ore",
-        "size": 1,
-        "variation": 0,
-        "frequency": 8,
-        "min_height": 4,
-        "max_height": 32,
-        "biomes": [
-          "minecraft:extreme_hills",
-          "minecraft:smaller_extreme_hills"
-        ]
-      },
-      {
-        "block": "minecraft:dirt",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:gravel",
-        "size": 112,
-        "variation": 50,
-        "frequency": 8,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=granite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=diorite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      },
-      {
-        "block": "minecraft:stone",
-        "state": "variant=andesite",
-        "size": 112,
-        "variation": 50,
-        "frequency": 10,
-        "min_height": 0,
-        "max_height": 255
-      }
-    ]
-  }
-]
+OreSpawn 4 is a provider-driven world-generation engine for Minecraft 1.11.2.
+It gives mods and modpacks one place to configure ores, deposit shapes, optional
+rock strata and geomes, provider-owned underground fluid deposits, biome
+palettes and world materials, flat bedrock, and bounded ore retrogen.
+
+This branch builds target-qualified version `4.0.16.111021`: the OreSpawn 4.0.16
+feature set for Minecraft 1.11.2 and Forge. See the
+[versioning policy](docs/VERSIONS.md) for the encoding and release convention.
+
+Its deprecated OS3 compatibility layer imports OreSpawn 3 configuration and
+keeps existing OreSpawn 3 consumer jars working while translating their rules
+into the OreSpawn 4 scheduler. It preserves ranged legacy block budgets,
+metadata block states, exclusive legacy height ceilings, and the historical
+"all dimensions except Nether and End" policy used by mods such as Base
+Metals. OreSpawn never schedules both the original OS3 generator and its OS4
+translation.
+
+This is not the unrelated mod that adds mobs and dimensions under the same
+name.
+
+## What Happens When It Is Installed?
+
+OreSpawn is deliberately passive on its own. It does not replace stone, remove
+vanilla ores, or change the Nether merely because the jar is installed. A
+provider mod or a modpack profile must opt features in.
+
+Mineralogy 6 is the first full provider. It supplies its rocks, ores, crude-oil
+deposit, geomes, biome influences, and recommended settings to OreSpawn. An
+ore-only provider such as Base Metals can supply ores and host tags without
+enabling rock layers or biome replacement. A total-conversion provider can add
+biomes and replace surfaces, aquifer fluids, snow, and ice without depending on
+TerraBlender.
+
+## Players And Server Owners
+
+When a provider exposes world settings, use **OreSpawn...** on the Create World
+screen. **Recommended Defaults** restores the settings supplied by the
+installed mods and pack. The in-game **Help & Guide** explains the controls.
+
+Important files:
+
+| Location | Purpose |
+|---|---|
+| `config/orespawn-worldgen.json` | Defaults for newly created worlds |
+| `<world>/serverconfig/orespawn-worldgen.json` | Complete settings snapshot for one world |
+| `config/<modid>-orespawn.json` | Optional modpack override for one provider |
+| `config/orespawn-migration/migration-report.txt` | Deterministic OS3 import report and required actions |
+| `config/orespawn-guide/README.md` | Guide exported automatically on first load |
+
+Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
+separate opt-in features; OreSpawn never retro-generates rock strata.
+
+When an existing world records Mineralogy 3 or earlier and has no OreSpawn 4
+world profile, OreSpawn preserves that world's Cyano geology contract before
+new chunks generate. It distinguishes carried Mineralogy 1.10, native
+Mineralogy 1.11, and native Mineralogy 1.12 configuration, including the
+different ordered rock families, `REALISTIC_COAL_LAYERS`, and
+`PLACE_MINERALOGY_ROCK`. A hybrid file created while upgrading is interpreted
+using the Mineralogy version saved with the world; a genuinely ambiguous file
+on this target uses the native 1.11 lineage and records a warning. Fresh worlds
+still use the installed provider's recommended
+engine; selecting Sky for an upgraded world is an explicit choice which may
+create an old/new terrain seam.
+
+After an upgrade, read `config/orespawn-upgrade-report.txt` for translated OS3
+rules and `<world>/serverconfig/orespawn-upgrade-report.txt` for the Mineralogy
+handoff. The reports list the sources, selected lineage, preserved values and
+anything needing review without rewriting existing chunks.
+
+To move a configured single-player world to a dedicated server, copy the
+world's `serverconfig/orespawn-worldgen.json` with the world and install the
+same provider mods on the server.
+
+## Mod And Modpack Integration
+
+Mods can provide declarative rules in either of these ways:
+
+- package `assets/<modid>/orespawn/provider.json` in the mod jar;
+- call `OreSpawnApi.enqueue(WorldgenProvider)` during normal Forge 1.11
+  initialization, before post-initialization freezes provider discovery.
+
+Modpacks can override a provider with `config/<modid>-orespawn.json`. A present
+override is authoritative and fails closed when invalid, so a broken pack file
+cannot silently disable another mod's native ore generation.
+
+Only `zone.moddev.mc.orespawn.api` is supported Java API. API major version `1`
+is also recorded in the jar manifest as `OreSpawn-API-Version`.
+
+Start with:
+
+- [Player guide](docs/PLAYER_GUIDE.md)
+- [Developer guide](docs/DEVELOPER_GUIDE.md)
+- [Configuration reference](docs/CONFIGURATION.md)
+- [Provider JSON guide](docs/PROVIDERS.md)
+- [Java API guide](docs/API.md)
+- [Biome and world-material guide](docs/BIOMES.md)
+- [Versioning and release policy](docs/VERSIONS.md)
+- [Schemas and examples](docs/README.md)
+
+The full documentation bundle is packaged under `META-INF/orespawn/docs/` and
+exported to `config/orespawn-guide/` without overwriting existing files.
+
+## Building
+
+Run Gradle with exact Temurin `17.0.1+12` from the repository root. Install
+exact Temurin `25.0.3+9` for ForgeGradle's Mavenizer and exact Temurin
+`8.0.502+7` for Minecraft 1.11.2 production and fixture compilation. Java 17
+remains the Gradle runtime and production bytecode remains Java 8; the build
+rejects a different Java 8 toolchain. Hosted CI also proves an online bootstrap
+from an empty Gradle home followed by an offline replay from that same cache:
+
+```powershell
+.\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon
+.\gradlew.bat genEclipseRuns verifyEclipseProductionClasspath --no-daemon
 ```
 
-### dimension
-The number ID of a dimension. Don't specify any dimension to target all dimensions *that are not already specified*.
-### ores
-Array of JSON objects specifying ore generators for this dimension
-### block
-Text ID of a block (the same you would use in the /give command)
-### state
-The state of a block (typically used for colored blocks)
-### size
-The number of blocks to spawn. Unlike the default Minecraft world settings JSON, this is the actually number of blocks that will spawn.
-### variation
-How much to randomly vary the number of blocks spawned (I recommend making this value 50% of the *size* value)
-### frequency
-How often, per chunk, to attempt to spawn this ore block. This value can be a fraction less than 1. If this value is between 0 and 1, then not every chunk will have a spawn in it. For example, a frequency of 0.1 means that there will be one attempt to spawn the ore per 10 chunks.
-### min_height
-The lowest Y-coordinate that the ore is allowed to spawn at
-### max_height
-The highest Y-coordinate that the ore is allowed to spawn at
-### biomes
-If this array is not empty, then the biomes in which the ore will spawn is restricted to those specified by ID in this array.
+`build` runs the standard `check` lifecycle. In addition to the JUnit suite,
+that lifecycle packages a test-only provider mod and verifies 2,304 exposed
+surface columns per built-in normal-noise End and Nether dimension, including
+underwater, immediate filler, and ceiling-underside behavior. It also proves
+later vegetation, structures, and block entities
+survive, validates provider-rock vanilla springs and an external ore-pattern
+registration, then reopens and checks the exact saved world. The fixture is
+not included in OreSpawn's published jars.
 
-# API
-Adding OreSpawn support to your mod is not hard. Look at `VanillaOreSpawn.java` for an example.
+Import or refresh the project with Eclipse Buildship, then run
+`genEclipseRuns` and `verifyEclipseProductionClasspath`. This branch uses
+ForgeGradle 7.0.34, the Gradle 9.6.1 wrapper, Forge 13.20.1.2588, the
+`stable_32` MCP mappings, and pack format 2. Ordinary Eclipse launches exclude
+tests and fixtures. Published jars are deterministic, SRG-reobfuscated for the
+Forge 1.11 runtime, audited for their access transformer and contents, and
+accompanied by SHA-256 checksums.
+
+Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
+Public developer and AI integration guidance lives in `docs/` and is included
+in the built jar.
+
+OreSpawn is licensed under LGPL-2.1.

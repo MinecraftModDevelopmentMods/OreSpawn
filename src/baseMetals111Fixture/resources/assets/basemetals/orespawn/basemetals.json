@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "dimensions": [
+    {
+      "dimension": -1,
+      "ores": [
+        {"block":"basemetals:coldiron_ore","parameters":{"size":8,"variation":4,"frequency":5.0,"minHeight":0,"maxHeight":128},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:adamantine_ore","parameters":{"size":8,"variation":4,"frequency":2.0,"minHeight":0,"maxHeight":128},"feature":"default","replace_block":"default"}
+      ]
+    },
+    {
+      "dimension": 1,
+      "ores": [
+        {"block":"basemetals:starsteel_ore","parameters":{"size":8,"variation":4,"frequency":5.0,"minHeight":0,"maxHeight":255},"feature":"default","replace_block":"default"}
+      ]
+    },
+    {
+      "ores": [
+        {"block":"basemetals:copper_ore","parameters":{"size":8,"variation":4,"frequency":10.0,"minHeight":0,"maxHeight":96},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:silver_ore","parameters":{"size":8,"variation":4,"frequency":4.0,"minHeight":0,"maxHeight":32},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:tin_ore","parameters":{"size":8,"variation":4,"frequency":10.0,"minHeight":0,"maxHeight":128},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:lead_ore","parameters":{"size":8,"variation":4,"frequency":5.0,"minHeight":0,"maxHeight":64},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:zinc_ore","parameters":{"size":8,"variation":4,"frequency":5.0,"minHeight":0,"maxHeight":96},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:mercury_ore","parameters":{"size":8,"variation":4,"frequency":3.0,"minHeight":0,"maxHeight":32},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:nickel_ore","parameters":{"size":8,"variation":4,"frequency":1.0,"minHeight":32,"maxHeight":96},"feature":"default","replace_block":"default"},
+        {"block":"basemetals:platinum_ore","parameters":{"size":8,"variation":4,"frequency":0.125,"minHeight":1,"maxHeight":32},"feature":"default","replace_block":"default"}
+      ]
+    }
+  ]
+}

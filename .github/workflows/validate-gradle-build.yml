@@ -1,0 +1,23 @@
+name: Validate Gradle Wrapper
+
+on:
+  push:
+    branches:
+      - master-1.11.2
+      - 'feature/**'
+  pull_request:
+    branches:
+      - master-1.11.2
+
+permissions:
+  contents: read
+
+jobs:
+  validation:
+    name: Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Validate wrapper integrity
+        uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6

@@ -1,15 +1,16 @@
 [
   {
     "modid": "orespawn",
-    "name": "OreSpawn",
-    "description": "A customizable ore-spawning system that uses JSON files to specify custom ore generation",
+    "name": "MMD OreSpawn",
+    "description": "Configurable, provider-driven terrain, ore, and deposit generation.",
     "version": "${version}",
-    "authorList": [
-      "dshadowwolf",
-      "iLexiconn",
-      "jriwanek",
-      "DrCyano"
-    ],
-    "credits": "The MMD community"
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/MinecraftModDevelopmentMods/OreSpawn",
+    "updateUrl": "",
+    "authorList": ["SkyBlade1978", "dshadowwolf", "the MMD Team"],
+    "credits": "cyano and the Minecraft Mod Development community",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": ["required-after:forge@[13.20.1.2588,)"]
   }
 ]

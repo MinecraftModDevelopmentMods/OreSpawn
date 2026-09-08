@@ -1,41 +1,36 @@
 package com.mcmoddev.orespawn.util;
 
-import com.mcmoddev.orespawn.OreSpawn;
+import com.google.common.base.Optional;
+import com.mcmoddev.orespawn.api.exceptions.BadStateValueException;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 
-public class StateUtil {
-	private StateUtil() {
-		throw new InstantiationError("This class cannot be instantiated!");
-	}
+/** Deprecated metadata-state parser used by published OS3 integrations. */
+@Deprecated
+public final class StateUtil {
+	private StateUtil() { throw new InstantiationError("This class cannot be instantiated"); }
 
 	public static String serializeState(IBlockState state) {
-		String string = state.toString();
-		string = string.substring(string.indexOf('[') + 1, string.length() - (string.endsWith("]") ? 1 : 0));
-
-		if (string.equals(state.getBlock().getRegistryName().toString())) {
-			string = "normal";
-		}
-		
-		OreSpawn.LOGGER.fatal("State is %s (for block %s)", string, state.getBlock().getRegistryName());
-		return string;
+		String value = state.toString();
+		int start = value.indexOf('[');
+		return start < 0 ? "normal" : value.substring(start + 1, value.endsWith("]") ? value.length() - 1 : value.length());
 	}
 
-	public static IBlockState deserializeState(Block block, String state) {
-		for (IBlockState validState : block.getBlockState().getValidStates()) {
-			String string = validState.toString();
-			string = string.substring(string.indexOf('[') + 1, string.length() - (string.endsWith("]") ? 1 : 0));
-
-			if (string.equals(block.getRegistryName().toString())) {
-				string = "";
-			}
-
-			if (state.equals(string)) {
-				return validState;
-			}
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static IBlockState deserializeState(Block block, String serialized) throws BadStateValueException {
+		if (serialized == null || serialized.isEmpty() || "normal".equals(serialized)) return block.getDefaultState();
+		IBlockState state = block.getDefaultState();
+		for (String assignment : serialized.split(",")) {
+			String[] parts = assignment.trim().split("=", 2);
+			if (parts.length != 2) throw new BadStateValueException("Malformed block state: " + assignment);
+			IProperty property = block.getBlockState().getProperty(parts[0]);
+			if (property == null) throw new BadStateValueException(parts[0] + " is not a known property of " + block.getRegistryName());
+			Optional<? extends Comparable> value = property.parseValue(parts[1]);
+			if (!value.isPresent()) throw new BadStateValueException(parts[1] + " is not valid for " + parts[0]);
+			state = state.withProperty(property, value.get());
 		}
-
-		return null;
+		return state;
 	}
 }

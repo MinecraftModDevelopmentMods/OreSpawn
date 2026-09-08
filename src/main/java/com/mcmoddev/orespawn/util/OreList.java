@@ -1,70 +1,40 @@
 package com.mcmoddev.orespawn.util;
 
-import java.util.Comparator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.mcmoddev.orespawn.api.os3.OreBuilder;
+
 import net.minecraft.block.state.IBlockState;
 
+/** OS3 3.2 weighted output container retained for unchanged feature binaries. */
 public class OreList {
-	private List<Integer> myChanceList;
-	private List<OreBuilder> myCopy;
-
-	private Integer listCount = 0;
-
-	public OreList() {
-		this.myChanceList = new LinkedList<>();
-		this.myCopy = new LinkedList<>();
-	}
+	private final List<OreBuilder> values = new ArrayList<>();
+	private int total;
 
 	public void build(List<OreBuilder> ores) {
-		ores.stream().sorted(Comparator.comparingInt(OreBuilder::getChance))
-		.forEach(ob -> { myChanceList.add(ob.getChance()); myCopy.add(ob); });
-
-		this.listCount = myChanceList.stream().mapToInt(Integer::intValue).max().getAsInt();
-	}
-
-	public OreBuilder getRandomOre(Random rand) {
-		int v = rand.nextInt(this.listCount);
-
-		int c = 0;
-
-		for (Integer i : this.myChanceList) {
-			c += i;
-
-			if (c > v) {
-				OreBuilder rv = this.getOreWithChance(i);
-
-				if (rv == null) {
-					break;
-				} else {
-					return rv;
-				}
+		values.clear(); total = 0;
+		for (OreBuilder ore : ores) {
+			if (ore != null && ore.getOre() != null && ore.getChance() > 0) {
+				values.add(ore); total += ore.getChance();
 			}
 		}
-
-		return this.getMaxChanceOre();
 	}
 
-	private OreBuilder getMaxChanceOre() {
-		return this.getOreWithChance(this.myChanceList.stream().mapToInt(Integer::intValue).max().getAsInt());
-	}
-
-	private OreBuilder getOreWithChance(int intValue) {
-		for (OreBuilder o : this.myCopy) {
-			if (o.getChance() == intValue) {
-				return o;
-			}
+	public OreBuilder getRandomOre(Random random) {
+		if (values.isEmpty()) return null;
+		int selected = random.nextInt(Math.max(1, total));
+		for (OreBuilder value : values) {
+			selected -= value.getChance(); if (selected < 0) return value;
 		}
-
-		return null;
+		return values.get(values.size() - 1);
 	}
 
 	public ImmutableList<IBlockState> getOres() {
-		return ImmutableList.copyOf(this.myCopy.stream().map(OreBuilder::getOre).distinct().collect(Collectors.toList()));
+		ImmutableList.Builder<IBlockState> result = ImmutableList.builder();
+		for (OreBuilder value : values) result.add(value.getOre());
+		return result.build();
 	}
 }

@@ -1,6 +1,6 @@
 {
-  "pack":{
-    "pack_format":2,
-    "description":"Ore Spawn"
-  }
+    "pack": {
+        "description": "OreSpawn resources for Minecraft 1.11.2",
+        "pack_format": 2
+    }
 }

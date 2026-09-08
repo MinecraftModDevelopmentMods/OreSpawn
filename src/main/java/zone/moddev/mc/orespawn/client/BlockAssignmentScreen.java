@@ -1,0 +1,71 @@
+package zone.moddev.mc.orespawn.client;
+
+import zone.moddev.mc.orespawn.worldgen.RockFamily;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
+
+final class BlockAssignmentScreen extends OreSpawnScreen {
+	private final GuiScreen parent;
+	private final GeologyEditorSession session;
+	private final String blockId;
+	private ITextComponent error;
+
+	BlockAssignmentScreen(GuiScreen parent, GeologyEditorSession session, String blockId) {
+		super(new TextComponentTranslation("screen.orespawn.assign_block"));
+		this.parent = parent;
+		this.session = session;
+		String canonicalId = session.canonicalBlockId(blockId);
+		this.blockId = canonicalId == null ? blockId : canonicalId;
+	}
+
+	@Override
+	protected void init() {
+		OreSpawnScreenLayout.beginHelp(this);
+		int left = width / 2 - 155;
+		int right = width / 2 + 5;
+		addRockButton(left, 70, "tab.orespawn.sedimentary", RockFamily.SEDIMENTARY);
+		addRockButton(right, 70, "tab.orespawn.metamorphic", RockFamily.METAMORPHIC);
+		addRockButton(left, 98, "value.orespawn.intrusive", RockFamily.IGNEOUS_INTRUSIVE);
+		addRockButton(right, 98, "value.orespawn.volcanic", RockFamily.IGNEOUS_VOLCANIC);
+		OreSpawnScreenLayout.explain(this, addButton(new Button(left, 126, 310, 20,
+				new TextComponentTranslation("tab.orespawn.ores"), button -> assignOre())),
+				"tooltip.orespawn.assignment.ore");
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20, DialogTexts.GUI_CANCEL,
+				button -> onClose()));
+	}
+
+	private void addRockButton(int x, int y, String labelKey, RockFamily family) {
+		OreSpawnScreenLayout.explain(this, addButton(new Button(x, y, 150, 20,
+				new TextComponentTranslation(labelKey), button -> assignRock(family))),
+				"tooltip.orespawn.assignment.rock_family");
+	}
+
+	private void assignRock(RockFamily family) {
+		session.assignRock(blockId, family);
+		if (session.section("rocks").has(blockId)) minecraft.displayGuiScreen(parent);
+		else error = new TextComponentString("Unknown or unsuitable block: " + blockId);
+	}
+
+	private void assignOre() {
+		session.assignOre(blockId);
+		if (session.section("ores").has(blockId)) minecraft.displayGuiScreen(parent);
+		else error = new TextComponentString("Unknown or unsuitable block: " + blockId);
+	}
+
+	@Override
+	public void onClose() {
+		minecraft.displayGuiScreen(parent);
+	}
+
+	@Override
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+		drawCenteredString(font, new TextComponentString(blockId), width / 2, 42, 0xDDDDDD);
+		if (error != null) drawCenteredString(font, error, width / 2, 155, 0xFF5555);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
+	}
+}

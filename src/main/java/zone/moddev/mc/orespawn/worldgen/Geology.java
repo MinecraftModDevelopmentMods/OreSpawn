@@ -1,0 +1,193 @@
+package zone.moddev.mc.orespawn.worldgen;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import zone.moddev.mc.orespawn.worldgen.math.PerlinNoise2D;
+
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.World;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.biome.Biome;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+public class Geology {
+	private static final Logger LOGGER = LogManager.getLogger();
+	private final PerlinNoise2D geomeNoiseLayer;
+	private final PerlinNoise2D rockNoiseLayer;
+	private final short[] whiteNoiseArray;
+	private final IBlockState[] igneousStones;
+	private final IBlockState[] metamorphicStones;
+	private final IBlockState[] sedimentaryStones;
+	private final int layerThickness;
+	private final boolean realisticCoalLayers;
+
+	public Geology(long seed, double geomeSize, double rockLayerSize, int layerThickness,
+			BakedGeomeConfig config) {
+		this(seed, geomeSize, rockLayerSize, layerThickness, false,
+				config.statesForFamily(RockFamily.IGNEOUS_INTRUSIVE, RockFamily.IGNEOUS_VOLCANIC),
+				config.statesForFamily(RockFamily.METAMORPHIC),
+				config.statesForFamily(RockFamily.SEDIMENTARY));
+	}
+
+	Geology(long seed, WorldGeologyProfile profile, BakedGeomeConfig config) {
+		this(seed, profile.cyanoGeomeSize(), profile.cyanoRockLayerNoise(),
+				profile.cyanoLayerThickness(), profile.cyanoRealisticCoalLayers(),
+				resolveRockOrder(profile, "igneous_rocks",
+						config.statesForFamily(RockFamily.IGNEOUS_INTRUSIVE, RockFamily.IGNEOUS_VOLCANIC)),
+				resolveRockOrder(profile, "metamorphic_rocks",
+						config.statesForFamily(RockFamily.METAMORPHIC)),
+				resolveRockOrder(profile, "sedimentary_rocks",
+						config.statesForFamily(RockFamily.SEDIMENTARY)));
+	}
+
+	Geology(long seed, double geomeSize, double rockLayerSize, int layerThickness,
+			boolean realisticCoalLayers, IBlockState[] igneousStones,
+			IBlockState[] metamorphicStones, IBlockState[] sedimentaryStones) {
+		this.layerThickness = layerThickness;
+		this.realisticCoalLayers = realisticCoalLayers;
+		int rockLayerUndertones = 4;
+		int undertoneMultiplier = 1 << (rockLayerUndertones - 1);
+		geomeNoiseLayer = new PerlinNoise2D(~seed, 128, (float) geomeSize, 2);
+		rockNoiseLayer = new PerlinNoise2D(seed, (float) (4 * undertoneMultiplier),
+				(float) (rockLayerSize * undertoneMultiplier), rockLayerUndertones);
+
+		Random random = new Random(seed);
+		whiteNoiseArray = new short[256];
+		for (int i = 0; i < whiteNoiseArray.length; i++) {
+			whiteNoiseArray[i] = (short) random.nextInt(0x7FFF);
+		}
+
+		this.igneousStones = igneousStones;
+		this.metamorphicStones = metamorphicStones;
+		this.sedimentaryStones = sedimentaryStones;
+	}
+
+	public Block getStoneAt(int x, int y, int z) {
+		float geome = geomeNoiseLayer.valueAt(x, z) + y;
+		int rockValue = (int) rockNoiseLayer.valueAt(x, z) + y;
+		if (geome < -64) {
+			return pickStateFromList(rockValue, igneousStones).getBlock();
+		} else if (geome < 64) {
+			return pickStateFromList(rockValue, metamorphicStones).getBlock();
+		}
+
+		return pickStateFromList(rockValue, sedimentaryStones).getBlock();
+	}
+
+	public void replaceStoneInChunk(World world, Chunk chunk, BakedTerrainDimension terrain) {
+		ChunkPos chunkPos = chunk.getPos();
+		int xOffset = chunkPos.getXStart();
+		int zOffset = chunkPos.getZStart();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		boolean changed = false;
+
+		for (int dx = 0; dx < 16; dx++) {
+			int x = xOffset + dx;
+			for (int dz = 0; dz < 16; dz++) {
+				int z = zOffset + dz;
+				int y = chunk.getHeightValue(dx, dz) - 1;
+				if (terrain.hasBiomeFilter()) {
+					cursor.setPos(x, y, z);
+					Biome biome = world.getBiome(cursor);
+					ResourceLocation biomeId = WorldIds.biome(biome);
+					if (!terrain.acceptsBiome(biomeId)) {
+						continue;
+					}
+				}
+				int baseRockVal = (int) rockNoiseLayer.valueAt(x, z);
+				int geomeBase = (int) geomeNoiseLayer.valueAt(x, z);
+
+				for (; y >= 0; y--) {
+					cursor.setPos(x, y, z);
+					IBlockState current = chunk.getBlockState(cursor);
+					if (!current.getBlock().hasTileEntity(current)
+							&& (terrain.isReplaceable(current)
+							|| (realisticCoalLayers && current.getBlock() == Blocks.COAL_ORE))
+							&& chunk.getTileEntity(cursor, Chunk.EnumCreateEntityType.CHECK) == null) {
+						IBlockState replacement = pickReplacement(baseRockVal, geomeBase, y);
+						if (!GeomeGeology.changes(current, replacement)) continue;
+						chunk.setBlockState(cursor, replacement);
+						changed = true;
+					}
+				}
+			}
+		}
+
+		if (changed) {
+			chunk.markDirty();
+		}
+	}
+
+	private IBlockState pickReplacement(int baseRockVal, int geomeBase, int y) {
+		int geome = geomeBase + y;
+		if (geome < -32) {
+			return pickStateFromList(baseRockVal + y, igneousStones);
+		} else if (geome < 32) {
+			return pickStateFromList(baseRockVal + y, metamorphicStones);
+		}
+
+		return pickStateFromList(baseRockVal + y, sedimentaryStones);
+	}
+
+	public Block[] getStoneColumn(int x, int z, int height) {
+		Block[] column = new Block[height];
+		int baseRockVal = (int) rockNoiseLayer.valueAt(x, z);
+		double geomeBase = geomeNoiseLayer.valueAt(x, z);
+		for (int y = 0; y < column.length; y++) {
+			double geome = geomeBase + y;
+			if (geome < -32) {
+				column[y] = pickStateFromList(baseRockVal + y, igneousStones).getBlock();
+			} else if (geome < 32) {
+				column[y] = pickStateFromList(baseRockVal + y + 3, metamorphicStones).getBlock();
+			} else {
+				column[y] = pickStateFromList(baseRockVal + y + 5, sedimentaryStones).getBlock();
+			}
+		}
+		return column;
+	}
+
+	private IBlockState pickStateFromList(int value, IBlockState[] list) {
+		if (list.length == 0) {
+			return Blocks.STONE.getDefaultState();
+		}
+
+		return list[whiteNoiseArray[(value / layerThickness) & 0xFF] % list.length];
+	}
+
+	static IBlockState[] resolveRockOrder(WorldGeologyProfile profile, String key,
+			IBlockState[] fallback) {
+		if (!profile.hasCyanoRockOrder(key)) return fallback;
+		List<IBlockState> states = new ArrayList<>();
+		for (String idText : profile.cyanoRockOrder(key)) {
+			try {
+				ResourceLocation id = new ResourceLocation(idText);
+				Block block = ForgeRegistries.BLOCKS.containsKey(id)
+						? ForgeRegistries.BLOCKS.getValue(id) : null;
+				if (block != null && block != Blocks.AIR) {
+					states.add(block.getDefaultState());
+				} else {
+					LOGGER.warn("Legacy Cyano rock '{}' is not registered and will be omitted", id);
+				}
+			} catch (RuntimeException e) {
+				LOGGER.warn("Legacy Cyano rock registry name '{}' is invalid and will be omitted", idText);
+			}
+		}
+		if (states.isEmpty()) {
+			LOGGER.warn("No snapshotted legacy Cyano rocks for '{}' are registered; "
+					+ "using the matching provider family as a safe fallback", key);
+			return fallback;
+		}
+		return states.toArray(new IBlockState[states.size()]);
+	}
+
+}
