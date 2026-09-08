@@ -17,8 +17,8 @@ public class PerlinNoise2D {
 		for (int i = 0; i < layers.length; i++) {
 			seed = scramble(seed);
 			layers[i] = new NoiseLayer2D(seed, initialSize, initialRange);
-			initialSize *= 0.5;
-			initialRange *= 0.5;
+			initialSize *= 0.5F;
+			initialRange *= 0.5F;
 		}
 	}
 
