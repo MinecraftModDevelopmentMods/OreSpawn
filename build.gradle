@@ -112,7 +112,7 @@ minecraft {
         }
         register('client')
         register('server') {
-            args '--nogui'
+            args 'nogui'
         }
     }
 }
@@ -280,6 +280,9 @@ tasks.named('check') {
 }
 def configureFromForgeRun = { JavaExec process, String runTaskName ->
     process.actions.clear()
+    if (runTaskName == 'runServer') {
+        process.setArgs(['nogui'])
+    }
     process.dependsOn {
         JavaExec run = tasks.getByName(runTaskName) as JavaExec
         run.taskDependencies.getDependencies(run)
@@ -1330,7 +1333,7 @@ tasks.register('verifyReleaseConfiguration') {
     description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
 
     doLast {
-        if (project.mod_version != '4.0.16.112021'
+        if (project.mod_version != '4.0.17.112021'
                 || project.mod_group != expectedMavenGroup) {
             throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
         }
@@ -1357,8 +1360,8 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyOs3ProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.16.112021')) {
-                throw new GradleException("Authoritative release location does not contain 4.0.16.112021: ${path}")
+            if (!file(path).getText('UTF-8').contains('4.0.17.112021')) {
+                throw new GradleException("Authoritative release location does not contain 4.0.17.112021: ${path}")
             }
         }
         if (!file('docs/API.md').getText('UTF-8').contains('orespawn@[4.0.6,5.0.0)')) {
@@ -1421,6 +1424,7 @@ tasks.register('verifyReleaseArtifacts') {
                 ['src/test/', 'src/biomeIntegrationTest/', 'src/migrationIntegrationTest/',
                  'src/clientIntegrationTest/', 'src/os1AbiFixture/', 'src/os3AbiFixture/',
                  'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
+                 'codec-conflict/', 'LegacyApiConsumer',
                  'org/junit/', 'org/mockito/', 'net/bytebuddy/'].each { forbidden ->
                     if (candidateZip.entries().any { it.name.contains(forbidden) }) {
                         throw new GradleException(
@@ -1787,6 +1791,9 @@ tasks.register('isolateEclipseProductionRuns') {
             contents = contents.replace(
                     'key="MC_VERSION" value="${MC_VERSION}"',
                     "key=\"MC_VERSION\" value=\"${minecraft_version}\"")
+            contents = contents.replace(
+                    'key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="--nogui"',
+                    'key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="nogui"')
             launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
         }
 
@@ -1862,6 +1869,10 @@ tasks.register('verifyEclipseProductionClasspath') {
         }.files as List<File>
         allGeneratedLaunches.each { launch ->
             String contents = launch.getText('UTF-8')
+            if (contents.contains('--nogui')) {
+                throw new GradleException(
+                        "${launch.name} uses invalid legacy server argument --nogui; expected bare nogui")
+            }
             if (contents.contains('${MC_VERSION}')) {
                 throw new GradleException(
                         "${launch.name} retains ForgeGradle's unresolved MC_VERSION token")

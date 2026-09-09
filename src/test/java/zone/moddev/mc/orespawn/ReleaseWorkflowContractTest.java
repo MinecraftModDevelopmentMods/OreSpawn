@@ -27,6 +27,11 @@ class ReleaseWorkflowContractTest {
 		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 		assertFalse(build.contains("Mavenizer compatibility"));
+		assertTrue(build.contains("args 'nogui'"));
+		assertFalse(build.contains("args '--nogui'"));
+		assertTrue(build.contains("process.setArgs(['nogui'])"));
+		assertTrue(build.contains("PROGRAM_ARGUMENTS\" value=\"--nogui"));
+		assertTrue(build.contains("contents.contains('--nogui')"));
 
 		String ci = readWorkflow("ci.yml");
 		String codeql = readWorkflow("codeql-analysis.yml");

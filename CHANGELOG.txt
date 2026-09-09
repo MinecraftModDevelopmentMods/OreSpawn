@@ -1,3 +1,12 @@
+Version 4.0.17.112021
+
+* Avoid a client-startup IncompatibleClassChangeError when another legacy
+  modpack component supplies an interface-shaped Mojang serialization Codec
+  ahead of OreSpawn's 1.12 compatibility adapter.
+* Preserve OreSpawn's existing public Codec descriptors and ordinary Forge 14
+  behaviour while decoding built-in pattern settings through an internal
+  class/interface-neutral bridge.
+
 Version 4.0.16.112021
 
 * Adopt the shared 4.0.16 release identity. Forge 1.12 has neither
