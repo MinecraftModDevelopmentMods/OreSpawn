@@ -112,8 +112,15 @@ A rock requires `enabled`, `family`, `depth_peak`, `depth_spread`, `min_y`,
 is omitted. `dimensions` limits membership, and `geomes` multiplies selection
 weight by province. A weight of zero prevents selection in that context.
 
+`min_y` and `max_y` are inclusive actual-world height limits. Stable Layers
+may shift a layer vertically to preserve its formation, family, and lithology
+identity, but that shifted coordinate never makes an out-of-range world block
+eligible or rejects an otherwise legal world height.
+
 Geomes contain a non-negative `base` weight and non-negative weights for each
-rock family. Biome and biome-dictionary maps multiply those geome weights.
+rock family. Keys may retain the legacy unnamespaced form or use a provider
+resource ID such as `examplemod:crystal_basin`; the creation editor preserves
+both forms. Biome and biome-dictionary maps multiply those geome weights.
 Missing optional-mod biome IDs are ignored during baking.
 
 Terrain dimensions require `enabled`, `host_blocks`, and `host_tags`.

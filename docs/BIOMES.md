@@ -137,6 +137,13 @@ Surface correction is generation-only. Installing or updating OreSpawn does
 not rewrite already generated chunks; travel into new terrain to see a changed
 provider surface definition.
 
+Provider-declared `terrain_dimensions.host_blocks` are resolved by the single
+terrain scan at the start of Forge 1.10's early generation coordinator,
+immediately before provider surfaces. Matching natural blocks already present
+in base terrain are eligible for geology; matching blocks authored later by
+structures or vegetation are not. Air, liquids, bedrock, and block-entity
+states remain protected even if a provider mistakenly lists their block IDs.
+
 Dimension materials support the ordinary aquifer fluid and replacements for
 vanilla snow and ice. Minecraft 1.10.2 has one exposed generator-fluid field,
 so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and

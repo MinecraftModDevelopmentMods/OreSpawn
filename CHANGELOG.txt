@@ -1,3 +1,47 @@
+Version 4.0.16.110021
+
+* Adopt the shared 4.0.16 release identity. Forge 1.10 has neither
+  three-dimensional biome-cell attribution nor a server-side GameTest harness,
+  so the 4.0.15 attribution and 4.0.16 GameTest lifecycle repairs are not
+  applicable on this target.
+* Ordinary dedicated benchmark servers continue to stop automatically when
+  requested.
+
+Version 4.0.14.110021
+
+* Convert exposed one-layer Snow at the first free height (`top + 1`) while
+  retaining full-Snow and Ice conversion at the surface and two blocks below.
+* Preserve buried or authored weather materials, unsafe source states and later
+  structure or vegetation output.
+* Existing profiles, chunks, API major 1 and schemas remain unchanged.
+
+Version 4.0.13.110021
+
+* Give the public ore-dimension builder the exact biome include/exclude and
+  biome-dictionary filter support already available in provider JSON.
+* Accept valid namespaced geome IDs in both creation-editor validation paths
+  while preserving legacy unnamespaced geome keys.
+* API major 1, schemas, existing profiles, generated chunks, and world behaviour
+  are unchanged.
+
+Version 4.0.10.110021
+
+* Evaluate Stable Layers rock min_y and max_y bounds against actual world Y
+  instead of the vertically shifted formation coordinate.
+* Preserve shifted formation identity for layer, family, and rock choice while
+  preventing vanilla Stone fallback near the Y 0/255 dimension bounds.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
+Version 4.0.9.110021
+
+* Replace provider-declared natural terrain hosts during the existing early
+  geology scan before structures and vegetation can author matching blocks.
+* Keep air, liquids, bedrock, and block entities protected even when their
+  block IDs are mistakenly declared as terrain hosts.
+* Apply the correction only while generating new chunks; existing chunks and
+  saved profiles remain unchanged.
+
 Version 4.0.8.110021
 
 * Preserve all eight ore/fluid host, tag, and biome editor fields when saved values exceed Minecraft 1.10.2's default 32-character text limit.

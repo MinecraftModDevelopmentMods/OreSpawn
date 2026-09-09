@@ -134,7 +134,9 @@ public final class BiomeSurfaceFeature {
 				|| block == Blocks.SAND || block == Blocks.GRAVEL || block == Blocks.NETHERRACK
 				|| block == Blocks.END_STONE) return true;
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(WorldIds.dimension(world));
-		return terrain != null && terrain.isReplaceable(state);
+		if (terrain != null && terrain.isReplaceable(state)) return true;
+		BakedGeomeConfig geology = GeomeConfig.baked(WorldIds.dimension(world));
+		return geology != null && geology.familyOf(state) != null;
 	}
 
 	private static long pack(int high, int low) {
