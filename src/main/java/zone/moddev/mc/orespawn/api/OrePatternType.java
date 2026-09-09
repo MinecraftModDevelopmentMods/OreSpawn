@@ -5,8 +5,6 @@ import java.util.function.Function;
 
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
@@ -35,11 +33,14 @@ public final class OrePatternType extends IForgeRegistryEntry.Impl<OrePatternTyp
 	}
 
 	public CompiledOrePattern decode(JsonElement configuration) {
-		DataResult<?> result = codec.parse(JsonOps.INSTANCE, configuration);
-		Object value = result.result().orElseThrow(() -> new IllegalArgumentException(
-				"Invalid settings for ore pattern " + getRegistryName() + ": "
-						+ result.error().map(Object::toString).orElse("unknown codec error")));
-		return compile(value);
+		try {
+			return compile(LegacyCodecBridge.decode(codec, configuration));
+		} catch (RuntimeException exception) {
+			String detail = exception.getMessage() == null
+					? exception.getClass().getSimpleName() : exception.getMessage();
+			throw new IllegalArgumentException("Invalid settings for ore pattern "
+					+ getRegistryName() + ": " + detail, exception);
+		}
 	}
 
 	private CompiledOrePattern compile(Object configuration) {
