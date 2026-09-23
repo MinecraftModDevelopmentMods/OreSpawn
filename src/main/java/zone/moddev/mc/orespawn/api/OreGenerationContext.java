@@ -16,6 +16,15 @@ import net.minecraft.util.ResourceLocation;
  * original {@link OrePlacementContext} contract remain binary compatible.</p>
  */
 public interface OreGenerationContext extends OrePlacementContext {
+	/**
+	 * Attempts placement using a stable identity shared by every slice of one
+	 * logical deposit body. Implementations compiled before this overload retain
+	 * the original placement behaviour.
+	 */
+	default boolean tryPlace(int x, int y, int z, long outputIdentity) {
+		return tryPlace(x, y, z);
+	}
+
 	/** Stable seed of the world being generated. */
 	long worldSeed();
 

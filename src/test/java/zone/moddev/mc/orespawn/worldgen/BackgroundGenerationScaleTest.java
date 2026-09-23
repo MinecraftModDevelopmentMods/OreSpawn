@@ -24,6 +24,17 @@ class BackgroundGenerationScaleTest {
 	}
 
 	@Test
+	void declaredMaterialsScaleOnlyTheStandardPlacementChannel() {
+		ResourceLocation material = new ResourceLocation("orespawn:iron");
+		assertEquals(0.15D, OreSpawnOreGeneration.channelBackgroundScale(material,
+				new ResourceLocation("orespawn:standard"), 0.15D, 0.75D));
+		assertEquals(1.0D, OreSpawnOreGeneration.channelBackgroundScale(material,
+				new ResourceLocation("realisticdeposits:district"), 0.15D, 0.75D));
+		assertEquals(0.75D, OreSpawnOreGeneration.channelBackgroundScale(null,
+				new ResourceLocation("orespawn:standard"), 0.15D, 0.75D));
+	}
+
+	@Test
 	void lowestControllerScaleWinsForTheSamePrimaryResource() {
 		Map<Block, Double> scales = new IdentityHashMap<>();
 		Block output = new Block(Material.ROCK);

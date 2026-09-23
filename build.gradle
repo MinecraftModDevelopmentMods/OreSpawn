@@ -558,6 +558,9 @@ task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
         if (result.getProperty('reload_verified') != 'true') {
             throw new GradleException("Surface integration reload was not verified: ${marker}")
         }
+        if (result.getProperty('ore_sources_reset_verified') != 'true') {
+            throw new GradleException("Ore-source editor/profile/generation integration was not verified: ${marker}")
+        }
         if (!(result.getProperty('dynamic_fluid_placements') ?: '0').isInteger()
                 || result.getProperty('dynamic_fluid_placements').toInteger() <= 0) {
             throw new GradleException("Dynamic fluid-deposit probe did not place any blocks: ${marker}")
@@ -901,11 +904,13 @@ task clientIntegrationProcess(type: JavaExec, dependsOn: prepareClientIntegratio
                 || result.getProperty('world_settings_opened') != 'true'
                 || result.getProperty('mods_directory_rendered') != 'true'
                 || result.getProperty('directory_stack_validated') != 'true'
+                || result.getProperty('ore_sources_validated') != 'true'
+                || result.getProperty('ore_sources_layout_validated') != 'true'
                 || result.getProperty('long_editor_roundtrip') != 'true'
                 || Integer.parseInt(result.getProperty('editor_routes', '0')) < 5) {
             throw new GradleException("Client integration result is incomplete: ${marker}")
         }
-        assertRuntimeLogsClean(clientIntegrationRunDirectory, 'client integration fresh/reload phases')
+		assertRuntimeLogsClean(clientIntegrationRunDirectory, 'client integration fresh/reload phases')
     }
 }
 
@@ -1374,14 +1379,14 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('OreSpawn API major must remain 1')
         }
         if (!file('src/main/java/zone/moddev/mc/orespawn/worldgen/GeomeConfig.java')
-                .getText('UTF-8').contains('SCHEMA_VERSION = 6')
+                .getText('UTF-8').contains('SCHEMA_VERSION = 8')
                 || !file('src/main/java/zone/moddev/mc/orespawn/worldgen/WorldGeologyProfile.java')
-                .getText('UTF-8').contains('SCHEMA_VERSION = 5')) {
-            throw new GradleException('Global/world schema versions must remain 6/5')
+                .getText('UTF-8').contains('SCHEMA_VERSION = 7')) {
+            throw new GradleException('Global/world schema versions must remain 8/7')
         }
         def providerSchema = new JsonSlurper().parse(file('docs/schemas/orespawn-provider.schema.json'))
-        if (!(providerSchema.properties.schema_version.enum as List).contains(4)) {
-            throw new GradleException('Provider schema must continue to support schema version 4')
+        if (!(providerSchema.properties.schema_version.enum as List).containsAll([4, 5])) {
+            throw new GradleException('Provider schema must support schema versions 4 and 5')
         }
     }
 }
@@ -1426,7 +1431,7 @@ tasks.register('verifyReleaseArtifacts') {
                 ['src/test/', 'src/biomeIntegrationTest/', 'src/migrationIntegrationTest/',
                  'src/clientIntegrationTest/', 'src/os1AbiFixture/', 'src/os3AbiFixture/',
                  'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
-                 'codec-conflict/', 'LegacyApiConsumer',
+				 'codec-conflict/', 'LegacyApiConsumer', 'OreSourceEditorProbeBridge',
                  'org/junit/', 'org/mockito/', 'net/bytebuddy/'].each { forbidden ->
                     if (candidateZip.entries().any { it.name.contains(forbidden) }) {
                         throw new GradleException(
@@ -1897,8 +1902,8 @@ tasks.register('verifyEclipseProductionClasspath') {
                 'src/test', 'bin/test', 'build/classes/java/test',
                 'biomeIntegrationTest', 'migrationIntegrationTest', 'clientIntegrationTest',
                 'os1AbiFixture', 'os3AbiFixture', 'surfaceprobe', 'migrationprobe', 'clientprobe',
-                'junit-', 'opentest4j-', 'junit-platform-',
-                'Mineralogy-1.10.2-3.3.8.26.jar', 'Mineralogy-1.12.2-3.8.0.53.jar'
+				'OreSourceEditorProbeBridge', 'junit-', 'opentest4j-', 'junit-platform-',
+				'Mineralogy-1.10.2-3.3.8.26.jar', 'Mineralogy-1.12.2-3.8.0.53.jar'
         ]
         launchFiles.each { launch ->
             String contents = launch.getText('UTF-8').replace('\\', '/')

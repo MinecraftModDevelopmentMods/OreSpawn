@@ -14,6 +14,7 @@ import java.lang.reflect.Field;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,14 @@ class WorldgenIntegrationManagerTest {
 		JsonObject solidFluid = biomeProvider(4, "minecraft:stone");
 		assertThrows(JsonSyntaxException.class,
 				() -> WorldgenIntegrationManager.validateProvider("examplemod", solidFluid));
+	}
+
+	@Test
+	void sourceArbitrationFieldsRequireProviderSchemaFive() {
+		assertDoesNotThrow(() -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", oreSourceProvider(5)));
+		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", oreSourceProvider(4)));
 	}
 
 	@Test
@@ -224,6 +233,35 @@ class WorldgenIntegrationManagerTest {
 		JsonObject materials = new JsonObject();
 		materials.add("examplemod:materials/test", material);
 		root.add("dimension_materials", materials);
+		return root;
+	}
+
+	private static JsonObject oreSourceProvider(int schema) {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", schema);
+		root.addProperty("provider_modid", "examplemod");
+		root.addProperty("provider_revision", 1);
+		JsonObject rule = new JsonObject();
+		// This test exercises only the schema gate. Pattern decoding is covered by
+		// the provider validation tests that install the OreSpawn pattern registry.
+		rule.addProperty("enabled", false);
+		rule.addProperty("min_y", 0);
+		rule.addProperty("max_y", 64);
+		rule.addProperty("frequency", 1.0D);
+		rule.addProperty("quantity", 8);
+		rule.addProperty("placement_channel", "orespawn:standard");
+		JsonArray hosts = new JsonArray();
+		hosts.add(new JsonPrimitive("minecraft:stone"));
+		rule.add("host_blocks", hosts);
+		JsonObject ore = new JsonObject();
+		ore.addProperty("block", "minecraft:iron_ore");
+		ore.addProperty("material", "orespawn:iron");
+		JsonObject dimensions = new JsonObject();
+		dimensions.add("minecraft:overworld", rule);
+		ore.add("dimensions", dimensions);
+		JsonObject ores = new JsonObject();
+		ores.add("examplemod:iron", ore);
+		root.add("ores", ores);
 		return root;
 	}
 }

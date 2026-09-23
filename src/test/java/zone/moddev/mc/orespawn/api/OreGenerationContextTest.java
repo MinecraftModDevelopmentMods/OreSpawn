@@ -25,6 +25,13 @@ class OreGenerationContextTest {
 		assertFalse(baseMethods.contains("chunkX"));
 		assertFalse(baseMethods.contains("chunkZ"));
 		assertFalse(baseMethods.contains("geologySampler"));
+		assertEquals(boolean.class, method(OrePlacementContext.class, "tryPlace",
+				int.class, int.class, int.class).getReturnType());
+	}
+
+	private static Method method(Class<?> owner, String name, Class<?>... parameters) {
+		try { return owner.getMethod(name, parameters); }
+		catch (ReflectiveOperationException missing) { throw new AssertionError(missing); }
 	}
 
 	@Test
@@ -36,6 +43,8 @@ class OreGenerationContextTest {
 		assertEquals(int.class, OreGenerationContext.class.getMethod("chunkZ").getReturnType());
 		assertEquals(Optional.class,
 				OreGenerationContext.class.getMethod("geologySampler").getReturnType());
+		assertTrue(OreGenerationContext.class.getMethod("tryPlace",
+				int.class, int.class, int.class, long.class).isDefault());
 	}
 
 	@Test

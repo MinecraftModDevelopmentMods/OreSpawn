@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
+import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
@@ -280,6 +281,11 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 			validationError = new net.minecraft.util.text.TextComponentString(errors.get(0));
 			return;
 		}
+		if (session.oreMaterialGroupsChanged()
+				&& !GeomeConfig.persistOreMaterialGroups(session.oreMaterialGroupsCopy())) {
+			validationError = new TextComponentTranslation("error.orespawn.ore_source.defaults_write");
+			return;
+		}
 		WorldGeologyProfileManager.setPendingNewWorldProfile(session.profile());
 		minecraft.displayGuiScreen(parent);
 	}
@@ -288,9 +294,8 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 		WorldGeologyProfile selected = session.profile().withSelection(
 				geologyMode, horizontalSize, verticalThickness, waviness,
 				edgeIrregularity, formationContinuity, placeFluidDeposits);
-		com.google.gson.JsonObject root = selected.rootCopy();
-		root.addProperty("manage_vanilla_ores", manageVanillaOres);
-		session.applyProfile(selected.withRoot(root));
+		session.applyProfile(selected);
+		session.setManageVanillaOres(manageVanillaOres);
 	}
 
 	private void openMaterials() {

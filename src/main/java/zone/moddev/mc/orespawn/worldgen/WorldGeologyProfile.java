@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 /** A complete, self-contained snapshot of the geology settings for one world. */
 public final class WorldGeologyProfile {
-	public static final int SCHEMA_VERSION = 5;
+	public static final int SCHEMA_VERSION = 7;
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -39,6 +39,11 @@ public final class WorldGeologyProfile {
 	private WorldGeologyProfile(JsonObject root, GeologyMode fallbackMode, boolean fallbackFluidDeposits) {
 		this.root = JsonCopies.copy(root);
 		FluidDepositMigration.normalize(this.root);
+		OreMaterialGroups.initialize(this.root);
+		if (!this.root.has(OreSourcePolicies.SECTION)
+				|| !this.root.get(OreSourcePolicies.SECTION).isJsonObject()) {
+			this.root.add(OreSourcePolicies.SECTION, new JsonObject());
+		}
 		this.root.addProperty("schema_version", SCHEMA_VERSION);
 		geologyMode = enumValue(this.root, "geology_mode", GeologyMode.class, fallbackMode);
 		placeFluidDeposits = booleanValue(this.root, "place_fluid_deposits", fallbackFluidDeposits);
@@ -67,6 +72,7 @@ public final class WorldGeologyProfile {
 	public static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
 			GeologyMode geologyMode, boolean placeFluidDeposits) {
 		JsonObject root = JsonCopies.copy(globalRoot);
+		OreSourcePolicies.initialize(root, false);
 		if (!root.has("geology_mode")) {
 			root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
 		}
@@ -81,14 +87,15 @@ public final class WorldGeologyProfile {
 		if (schema >= SCHEMA_VERSION) {
 			return new WorldGeologyProfile(json, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
-		if (schema == 2 || schema == 3 || schema == 4) {
+		if (schema >= 2) {
 			JsonObject migrated = JsonCopies.copy(json);
 			for (String key : new String[] { "terrain_dimensions", "providers",
-					"biome_palettes", "dimension_materials" }) {
+					"biome_palettes", "dimension_materials", OreMaterialGroups.SECTION }) {
 				if (!migrated.has(key) && fallback.root.has(key)) {
 					migrated.add(key, JsonCopies.copy(fallback.root.get(key)));
 				}
 			}
+			OreSourcePolicies.initialize(migrated, true);
 			return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeFluidDeposits);
 		}
 
@@ -98,6 +105,10 @@ public final class WorldGeologyProfile {
 		copyIfPresent(json, migrated, "geology_mode");
 		copyIfPresent(json, migrated, "place_crude_oil");
 		copyIfPresent(json, migrated, "formations");
+		// A schema-one file belongs to an existing world. Do not inherit a fresh
+		// install's automatic consolidation choices from the fallback snapshot.
+		migrated.remove(OreSourcePolicies.SECTION);
+		OreSourcePolicies.initialize(migrated, true);
 		return new WorldGeologyProfile(migrated, fallback.geologyMode, fallback.placeFluidDeposits);
 	}
 
@@ -260,7 +271,9 @@ public final class WorldGeologyProfile {
 			return configured;
 		}
 		int hash = 17;
-		for (String key : new String[] { "ores", "fluid_deposits", "flat_bedrock", "providers" }) {
+		for (String key : new String[] { "ores", OreMaterialGroups.SECTION,
+				"ore_source_policies", "fluid_deposits",
+				"flat_bedrock", "providers" }) {
 			if (root.has(key)) {
 				hash = (31 * hash) + root.get(key).toString().hashCode();
 			}

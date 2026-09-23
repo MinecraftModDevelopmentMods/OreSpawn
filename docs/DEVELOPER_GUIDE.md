@@ -15,6 +15,7 @@
 | Inspect active geology at runtime | `GeologyProfileView` and `GeologySampler` |
 | Build a deterministic region-scale ore pattern | `OreGenerationContext` |
 | Replace or blend background ore generation | `backgroundGenerationScale` |
+| Share equivalent ore outputs without multiplying placement | Provider schema 5 `material` and `placement_channel` |
 | Add an add-on settings screen | Client-only `WorldSettingsExtensionRegistry` |
 
 Strata are optional. If no enabled terrain dimension has eligible rocks,
@@ -24,7 +25,7 @@ blocks or tags.
 
 ## Provider JSON Quick Start
 
-Put a schema-4 file in your mod jar at:
+Put a schema-5 file in your mod jar at:
 
 ```text
 src/main/resources/assets/examplemod/orespawn/provider.json
@@ -36,12 +37,13 @@ stone without enabling strata:
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "ores": {
     "examplemod:ore/tin": {
       "block": "examplemod:tin_ore",
+      "material": "orespawn:tin",
       "enabled": true,
       "source_mod": "examplemod",
       "dimensions": {
@@ -53,6 +55,7 @@ stone without enabling strata:
           "min_quantity": 4,
           "max_quantity": 11,
           "pattern": "vein",
+          "placement_channel": "orespawn:standard",
           "height_distribution": "triangle",
           "host_tags": ["forge:stone"]
         }
@@ -93,6 +96,7 @@ public void init(FMLInitializationEvent event) {
     ResourceLocation tin = new ResourceLocation("examplemod", "tin_ore");
     WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
         .ore(tin, ore -> ore
+            .material(new ResourceLocation("orespawn", "tin"))
             .retrogen(false)
 			.dimensionSelector(OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END,
 				placement -> placement
@@ -100,6 +104,7 @@ public void init(FMLInitializationEvent event) {
 					.attempts(6.0)
 					.quantityRange(4, 11)
                 .pattern(OrePattern.VEIN)
+                .placementChannel(new ResourceLocation("orespawn", "standard"))
                 .heightDistribution(OreHeightDistribution.TRIANGLE)
 					.biome(new ResourceLocation("minecraft", "plains"))
 					.biomeDictionary("FOREST")
@@ -122,6 +127,13 @@ needs different settings; the explicit rule overrides the selector there.
 Ore dimension builders support the same exact-ID and biome-dictionary include
 and exclude filters as provider JSON and fluid-deposit builders.
 
+Give equivalent ores the same canonical `.material(...)`. A placement channel
+identifies an independent generation engine: built-in patterns default to
+`orespawn:standard`, while a custom pattern defaults to its pattern-type ID.
+OreSpawn can then consolidate one placement budget while retaining weighted
+whole-vein output choice. Do not use a block ID as a material merely because
+the names happen to match; use a stable semantic material ID.
+
 ## Region-scale custom patterns
 
 OreSpawn 4.1 supplies compiled patterns with `OreGenerationContext`, a subtype
@@ -135,6 +147,12 @@ Render only the part of a deterministic body that intersects `chunkX()` and
 `isFluid(...)` and `tryPlace(...)`; Forge 1.10 deliberately restricts those
 operations to the current chunk. Perform definition parsing and expensive
 setup in the registered pattern compiler, not its placement callback.
+
+When placing a multi-chunk body, call
+`tryPlace(x, y, z, stableBodyIdentity)`. The overload is binary-compatible with
+existing patterns and makes OreSpawn select one output source for the entire
+body. The identity must be stable for the deposit and independent of chunk
+generation order.
 
 ## Add-on world settings
 

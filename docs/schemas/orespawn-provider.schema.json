@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["schema_version", "provider_modid", "provider_revision"],
   "properties": {
-    "schema_version": { "enum": [1, 2, 3, 4] },
+    "schema_version": { "enum": [1, 2, 3, 4, 5] },
     "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "provider_revision": { "type": "integer", "minimum": 1 },
     "merge_new_entries_into_existing_worlds": { "type": "boolean" },

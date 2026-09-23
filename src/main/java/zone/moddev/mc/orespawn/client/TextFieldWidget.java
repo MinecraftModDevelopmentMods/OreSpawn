@@ -48,6 +48,17 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 		field.setMaxStringLength(length);
 	}
 
+	void setBounds(int x, int y, int width, int height) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		field.x = x;
+		field.y = y;
+		field.width = width;
+		field.height = height;
+	}
+
 	void func_212954_a(Consumer<String> responder) {
 		field.setGuiResponder(new net.minecraft.client.gui.GuiPageButtonList.GuiResponder() {
 			@Override public void setEntryValue(int id, boolean value) { }

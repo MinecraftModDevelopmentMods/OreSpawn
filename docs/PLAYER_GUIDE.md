@@ -46,6 +46,42 @@ safely instead of breaking world creation.
   region.
 - **Manage Vanilla Ores** lets OreSpawn replace vanilla ore features with the
   configured OreSpawn rules. Leave it off to keep normal Minecraft placement.
+- **Ore Sources** opens the material-group editor beside **Add Block**. Compact
+  scrolling lists keep relevant groups on the left and the deduplicated union
+  of installed ore blocks represented by their aliases on the right. Ordinary
+  one-alias, one-output entries are hidden until **Show All** is selected. Red
+  groups need attention, yellow groups have a saved rule and green entries need
+  no action:
+  **Balanced** shares them equally, **Single** uses one, **Custom** enables a
+  weighted subset, and **Keep Original** preserves every old placement rule and
+  restores the output and placement selections present when the editor opened.
+  Groups needing attention sort first. Saving a consolidated rule clears that
+  attention state. To keep an unchanged red Keep Original policy, press
+  **Accept**; it marks the group reviewed without changing its outputs or
+  placement rules. It is saved only when the main editor's **Done** is used.
+  **Reset All** asks for confirmation, removes pending custom groups and source
+  choices, and rebuilds the built-in and inferred groups from the currently
+  loaded ores. Main-editor **Cancel** still discards that reset.
+  The cog beside a group opens its friendly
+  name, Ore Dictionary aliases and **Placement Rules**. Outputs decide which
+  block is used; Placement Rules decide the frequency, shape, depth and host
+  restrictions for each managed channel. A single managed source is read-only;
+  a row with multiple sources shows the choice count and can be clicked to
+  cycle the source after Balanced, Single or Custom is selected. Under Keep
+  Original the row is informational because every rule remains independent.
+  Hover the Placement Rules help or
+  a rule row to see whether it is fixed, selectable, missing, or inactive under
+  Keep Original.
+  Empty custom groups can be deleted immediately. A populated custom group can
+  be dissolved after a second confirmation, returning all aliases to their
+  inferred or curated groups. Automatically discovered groups cannot be
+  deleted, while the curated Sulfur and Aluminum groups can be reset.
+  Turning **Manage Vanilla Ores** on makes native vanilla rules available here
+  immediately. When it is off, OreSpawn will not let a vanilla ore alias be
+  moved into another group; the screen tells you to enable vanilla management
+  first.
+  Independent external generators
+  are explained but never offered as controllable placement sources.
 - **Mods** opens a paginated directory of loaded OreSpawn integrations. It
   reports the Forge mod version, native OS4 or legacy OS1-OS3 lineage, provider
   schema/revision and current status. Historical profile owners that are not
@@ -79,6 +115,25 @@ the installed default while preserving depth and deposit shape. Patterns decide
 whether a deposit is compact, vein-like, clustered, cloud-like, or below a
 fluid. Hosts decide which blocks, tags, or configured rock families it may
 replace.
+
+When two or more OreSpawn-managed rules represent one material, open **Ore
+Sources...**. The list reports the material, dimension, candidate count and
+whether it is Consolidated, Separate, Review required, Missing source, or also
+has External generation. Open a material to choose one placement source for
+each independent channel and enable one or more weighted output sources.
+
+Consolidated mode uses one placement budget, so three sulfur blocks do not mean
+three times as much sulfur. Each vein uses one selected output instead of a
+salt-and-pepper mixture. Custom region-scale deposit engines remain on their
+own placement channel and can keep one output across every chunk of a deposit.
+External native generators are explained but never disabled by OreSpawn.
+
+New worlds automatically consolidate only reviewed high-confidence MMD
+conflicts. Existing worlds start with conflicts Separate so their established
+frequency remains unchanged. Missing selected mods stay visible and are
+restored automatically if reinstalled. These edits stay pending until the main
+OreSpawn editor's **Done** is pressed; its **Cancel** discards them. Changes
+affect only newly generated chunks and never retrogen existing terrain.
 
 Removing a rock from generation does not unregister its block or recipes. It
 only prevents that rock appearing in newly generated terrain.

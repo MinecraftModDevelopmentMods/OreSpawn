@@ -205,7 +205,7 @@ public final class WorldgenIntegrationManager {
 					|| RESOURCE_PROVIDERS.containsKey(providerId)
 					|| FILE_PROVIDER_IDS.contains(providerId);
 			result.add(new ProviderIntegrationInfo(providerId, nativeOs4, hasProvider,
-					root == null ? (api == null ? -1 : 4) : integer(root, "schema_version", -1),
+					root == null ? (api == null ? -1 : 5) : integer(root, "schema_version", -1),
 					root == null ? (api == null ? -1 : api.revision())
 							: integer(root, "provider_revision", -1),
 					getProviderStatus(providerId), INVALID_PROVIDERS.contains(providerId), legacy));
@@ -505,7 +505,7 @@ public final class WorldgenIntegrationManager {
 
 	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
-		if (schema != 1 && schema != 2 && schema != 3 && schema != 4) {
+		if (schema != 1 && schema != 2 && schema != 3 && schema != 4 && schema != 5) {
 			throw new JsonSyntaxException("unsupported schema_version");
 		}
 		if (!providerId.equals(string(root, "provider_modid", ""))) {
@@ -554,7 +554,7 @@ public final class WorldgenIntegrationManager {
 				if ("rocks".equals(section)) {
 					validateRock(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("ores".equals(section)) {
-					validateOre(entry.getKey(), entry.getValue().getAsJsonObject());
+					validateOre(entry.getKey(), entry.getValue().getAsJsonObject(), schema);
 				} else if ("geomes".equals(section)) {
 					validateGeome(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("biome_rules".equals(section)) {
@@ -609,7 +609,11 @@ public final class WorldgenIntegrationManager {
 		validateWeights(optionalObject(rock, "geomes"));
 	}
 
-	private static void validateOre(String idText, JsonObject ore) {
+	private static void validateOre(String idText, JsonObject ore, int schema) {
+		if (schema < 5 && ore.has("material")) {
+			throw new JsonSyntaxException("ore material requires provider schema 5");
+		}
+		if (ore.has("material")) new ResourceLocation(string(ore, "material", ""));
 		String blockId = string(ore, "block", idText);
 		Block output = block(blockId);
 		if (output == null || output == Blocks.AIR) {
@@ -625,19 +629,25 @@ public final class WorldgenIntegrationManager {
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
 			new ResourceLocation(entry.getKey());
-			validateOreRule(idText, entry);
+			validateOreRule(idText, entry, schema);
 		}
 		for (Entry<String, JsonElement> entry : selectors.entrySet()) {
 			OreDimensionSelector.fromId(new ResourceLocation(entry.getKey()));
-			validateOreRule(idText, entry);
+			validateOreRule(idText, entry, schema);
 		}
 	}
 
-	private static void validateOreRule(String idText, Entry<String, JsonElement> entry) {
+	private static void validateOreRule(String idText, Entry<String, JsonElement> entry, int schema) {
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("ore dimension is not an object: " + entry.getKey());
 			}
 			JsonObject rule = entry.getValue().getAsJsonObject();
+			if (schema < 5 && rule.has("placement_channel")) {
+				throw new JsonSyntaxException("ore placement_channel requires provider schema 5");
+			}
+			if (rule.has("placement_channel")) {
+				new ResourceLocation(string(rule, "placement_channel", ""));
+			}
 			if (!bool(rule, "enabled", true)) return;
 			int minY = integer(rule, "min_y", Integer.MIN_VALUE);
 			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
