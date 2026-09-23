@@ -142,11 +142,12 @@ chunk coordinates let an add-on derive a stable region/deposit identity that
 does not depend on chunk generation order. `geologySampler()` provides the
 active OreSpawn geology where one is configured.
 
-Render only the part of a deterministic body that intersects `chunkX()` and
+Render the part of a deterministic body reachable from `chunkX()` and
 `chunkZ()`. All reads and writes must still pass through `inside(...)`,
-`isFluid(...)` and `tryPlace(...)`; Forge 1.10 deliberately restricts those
-operations to the current chunk. Perform definition parsing and expensive
-setup in the registered pattern compiler, not its placement callback.
+`isFluid(...)` and `tryPlace(...)`; on Forge 1.12 ordinary generation may use
+Minecraft's already-loaded writable worldgen region, while retrogen is limited
+to the chunk being updated. Perform definition parsing and expensive setup in
+the registered pattern compiler, not its placement callback.
 
 When placing a multi-chunk body, call
 `tryPlace(x, y, z, stableBodyIdentity)`. The overload is binary-compatible with

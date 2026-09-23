@@ -1,3 +1,105 @@
+Version 4.1.0.112021
+
+* Clarify dimension-wide material controls and replace light-equivalent custom
+  aquifer-fluid injection with an exact one-shot generation mask, preserving
+  surfaces, caves and later decorator fluids while keeping generation near the
+  native path. Differently lit fluids retain the compatible generator path.
+* Replace the first-palette-only biome editor with a responsive biome directory
+  that reports every loaded, referenced and missing biome once, together with
+  palette ownership, effective order, placement count and surface conflicts.
+  Its dimension selector filters routine entries through Forge biome domains
+  while retaining explicit placement, replacement and missing-provider rules.
+* Add exact one-to-one biome replacements for newly generated terrain through a
+  reserved terminal palette which always runs after ordinary provider/profile
+  palettes. Replacement chains flatten, cycles are rejected and missing targets
+  remain dormant until their owning mod returns. Valid unmanaged targets no
+  longer produce a misleading warning or duplicate new-terrain notice.
+* Expose palette enablement, placement weights, climate and dependency limits,
+  surfaces, namespace scope, region size, coverage, fallback weight, dimension
+  materials and geome influences without adding arbitrary weighted biome output.
+* Add confirmed biome, palette, dimension and all-biome resets. Active providers
+  return to their shipped defaults, user-only palettes are removed and entries
+  owned by missing providers are preserved; all changes retain Done/Cancel
+  editor-session semantics and never rewrite existing chunks.
+* Add Ore Sources policies that group equivalent configured outputs by material
+  and dimension while keeping ordinary and custom placement channels independent.
+* Consolidate only reviewed high-confidence MMD conflicts for new worlds;
+  upgraded worlds retain their previous separate placement and output behaviour.
+* Select one weighted output for an entire ordinary vein or custom deposit body
+  using stable world/deposit identity, including safe missing-mod restoration.
+* Replace the technical Ore Sources list/detail flow with compact independently
+  scrolling group and output lists that remain visible together at compact
+  resolutions. The default view hides harmless single-source entries behind
+  a compact Show All control; red groups need attention, yellow groups have a saved rule and
+  green entries need no action. Each group has a cog for its name and aliases.
+* Rename the old Advanced channel controls to Placement Rules and explain their
+  separate ownership of frequency, shape, depth and host restrictions. Single
+  managed sources are read-only, multiple sources are selectable and external
+  generators remain excluded.
+* Add Keep Original, Balanced, Single and Custom output modes. Reviewed fresh
+  MMD conflicts balance every eligible output through one placement budget;
+  inactive provider definitions remain selectable outputs without contributing
+  another placement rule. Returning to Keep Original restores the output and
+  placement selections from when the editor was opened. An explicit Accept
+  action keeps that policy unchanged while clearing its pending review state;
+  the main editor's Done action remains the persistence boundary.
+* Keep tooltips inside the available side of the screen and move Placement
+  Rules guidance into a compact help tooltip, with an explicit fixed,
+  selectable, missing or Keep Original status instead of an unexplained
+  disabled control. Keep the group-name label inline, expand the alias list by
+  two rows and reduce the Placement Rules list by one row at compact sizes.
+* Ship curated Sulfur/Sulphur and Aluminum/Aluminium groups, keep Niter and
+  Saltpeter distinct, deduplicate identical registry states, and allow confirmed
+  alias reassignment plus stable custom groups. Group edits are saved to the
+  world and future-world defaults only when the main editor's Done is accepted.
+* Ignore missing historical external-candidate records when the same registry
+  state is now supplied by a loaded managed provider, preventing resolved
+  groups from remaining falsely red while retaining the dormant record.
+* Keep Group Settings validation visible on a dedicated bottom row, with the
+  Done action in the lower-right corner and full clipped messages available by
+  tooltip during confirmed Ore Dictionary alias reassignment.
+* Prevent Balanced, Single or Custom consolidation when a material group has
+  no active OreSpawn-managed placement rule, retaining the review action and
+  Keep Original behaviour instead of entering an unresolved red policy.
+* Refresh Ore Sources immediately when Manage Vanilla Ores changes. Native
+  vanilla rules become usable placement sources while it is enabled; while it
+  is disabled, attempts to move their Ore Dictionary aliases are rejected with
+  guidance instead of creating a policy OreSpawn cannot enforce.
+* Reconcile output candidates, placement choices and review state immediately
+  after every group edit. Keep Original now exposes every moved candidate,
+  Accept clears only the edited group's review, and placement rows report their
+  available choice count while remaining inactive until consolidation.
+* Restrict Delete to empty custom groups. Populated custom groups use a
+  confirmed Dissolve Group action that restores every alias to its inferred or
+  curated group; discovered groups remain non-deletable facts.
+* Keep reassigned source policies dormant when a saved custom group is reopened,
+  so their former inferred groups do not reappear as false conflicts. Add a
+  confirmed Reset All action that restores built-in and inferred Ore Sources
+  defaults inside the pending editor session without rewriting existing chunks.
+* Add provider schema 5 material and placement-channel declarations, global
+  schema 8 and world-profile schema 7 while retaining older readable schemas.
+* Add an extended, binary-compatible ore generation context exposing stable
+  world seed, dimension and current-chunk identity to compiled pattern add-ons.
+* Expose the active geology sampler to patterns when the generated dimension
+  has OreSpawn geology, including identical identity during supported retrogen.
+* Replace per-add-on world-settings buttons with one fixed Mods directory that
+  lists loaded native OS4, legacy OS1-OS3 and UI-only integrations with their
+  mod version, provider lineage, revision and status.
+* Add a packaged cog action for add-on-owned configuration screens, including
+  pagination, disabled-state explanations, safe failure handling and a return
+  path through the Mods directory.
+* Preserve the original three-argument client registration descriptor while
+  adding one-screen-per-mod `registerConfigScreen` registration.
+* Add optional per-resource background-generation scaling for controller
+  patterns, including deterministic vanilla gating and lowest-controller wins.
+* Let structural providers keep newly introduced entries out of existing world
+  profiles while retaining the historical merge behavior by default.
+* Guarantee geology column sampling does not load or generate neighbouring
+  chunks.
+* Preserve API major 1, provider schemas 1-4, existing pattern binaries,
+  migration behaviour and generated chunks while advancing active schemas to
+  provider 5, global 8 and world profile 7.
+
 Version 4.0.17.112021
 
 * Avoid a client-startup IncompatibleClassChangeError when another legacy

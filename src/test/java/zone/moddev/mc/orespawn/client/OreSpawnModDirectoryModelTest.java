@@ -30,7 +30,7 @@ class OreSpawnModDirectoryModelTest {
 				"directory_ui_only", parent -> new GuiScreen() { });
 
 		List<LoadedMod> loaded = Arrays.asList(
-				new LoadedMod("orespawn", "MMD OreSpawn", "4.1.0.110021"),
+				new LoadedMod("orespawn", "MMD OreSpawn", "4.1.0.112021"),
 				new LoadedMod("directory_realistic", "Realistic Deposits", "0.1.0.110021"),
 				new LoadedMod("directory_base", "Base Metals", "2.5.0-beta5"),
 				new LoadedMod("directory_mineralogy", "Mineralogy", "6.0.2.110021"),

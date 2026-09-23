@@ -98,17 +98,23 @@ dormant instead of breaking world creation.
   **Replace in new terrain with...** creates an exact terminal replacement.
   This affects only newly generated chunks and never unregisters the source or
   disables another mod's decoration. Use **Palettes** for mode, scope, region
-  size, coverage, fallback and namespace controls. World Materials and Geome
-  Influences remain available from the same directory. Confirmed biome,
+  size, coverage, fallback and namespace controls. The dimension-named
+  Materials control sits with the dimension selector because it is not a
+  property of the selected biome. Geome Influences remains available from the
+  selected-biome side. Confirmed biome,
   palette, dimension and all-biome resets stay pending until the main editor's
   **Done** action; **Cancel** discards them.
 
-**World Materials** applies across an entire dimension. **Aquifer Fluid**
-changes the normal below-sea-level fluid. Minecraft 1.12.2 exposes only that
-single generator fluid, so the later-format **Deep Aquifer** values remain
-stored but their controls are disabled on this branch. Snow and ordinary ice
-can also be replaced. Use **Fluid Deposits**, not World Materials, for
-occasional underground lakes or pockets.
+**Overworld Materials**, or the corresponding dimension-named button, applies
+to every biome in that dimension's newly generated terrain. It is not limited
+to the biome selected on the right and never rewrites existing chunks.
+**Aquifer Fluid** changes the normal below-sea-level terrain fluid. Fluids with
+native-equivalent lighting use the fast substitution path; an unusual luminous
+or differently opaque fluid uses the compatible generator path and may be
+slower. Minecraft 1.12.2 exposes only one generator fluid, so the later-format
+**Deep Aquifer** values remain stored but their controls are disabled on this
+branch. Snow and ordinary ice can also be replaced. Use **Fluid Deposits**, not
+dimension materials, for occasional underground lakes or pockets.
 
 ## Rocks, Ores, And Other Mods
 

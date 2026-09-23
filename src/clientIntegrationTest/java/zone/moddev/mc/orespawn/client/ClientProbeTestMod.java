@@ -83,7 +83,7 @@ public final class ClientProbeTestMod {
 	@SubscribeEvent
 	public void onWorldRendered(RenderWorldLastEvent event) {
 		if (state == 6) firstWorldFrames++;
-		if (state == 8) reloadWorldFrames++;
+		if (state == 9) reloadWorldFrames++;
 	}
 
 	@SubscribeEvent
@@ -156,21 +156,25 @@ public final class ClientProbeTestMod {
 				case 6:
 					if (minecraft.world != null && minecraft.player != null && firstWorldFrames >= 8
 							&& stateTicks >= 100) {
-						stopIntegratedServer(minecraft);
+						beginIntegratedDisconnect(minecraft);
 						nextState(7);
 					}
 					break;
 				case 7:
-					if (stateTicks >= 20) {
-						if (minecraft.world != null || minecraft.isIntegratedServerRunning()) {
-							minecraft.loadWorld(null);
-						}
-						minecraft.launchIntegratedServer(WORLD_DIRECTORY, "OreSpawn Client Smoke",
-								new WorldSettings(0L, GameType.CREATIVE, false, false, WorldType.DEFAULT));
+					if (stateTicks >= 20 && (minecraft.getConnection() == null
+							|| !minecraft.getConnection().getNetworkManager().isChannelOpen())) {
+						finishIntegratedDisconnect(minecraft);
 						nextState(8);
 					}
 					break;
 				case 8:
+					if (minecraft.world == null && !minecraft.isIntegratedServerRunning() && stateTicks >= 20) {
+						minecraft.launchIntegratedServer(WORLD_DIRECTORY, "OreSpawn Client Smoke",
+								new WorldSettings(0L, GameType.CREATIVE, false, false, WorldType.DEFAULT));
+						nextState(9);
+					}
+					break;
+				case 9:
 					if (minecraft.world != null && minecraft.player != null && reloadWorldFrames >= 8
 							&& stateTicks >= 100) {
 						writeMarker();
@@ -762,11 +766,15 @@ public final class ClientProbeTestMod {
 				+ screen.getClass().getSimpleName());
 	}
 
-	private static void stopIntegratedServer(Minecraft minecraft) {
-		// Ask the integrated server to stop while retaining the client world until
-		// the server and its queued play packets have drained. Clearing the world in
-		// this tick races Forge 1.12 packet tasks against a null client world.
-		if (minecraft.world != null) minecraft.world.sendQuittingDisconnectingPacket();
+	private static void beginIntegratedDisconnect(Minecraft minecraft) {
+		// Close the network channel first, then leave the client world available while
+		// already-scheduled 1.12 packets drain. Removing the world in this same tick can
+		// make those packets dereference a cleared NetHandlerPlayClient world.
+		minecraft.world.sendQuittingDisconnectingPacket();
+	}
+
+	private static void finishIntegratedDisconnect(Minecraft minecraft) {
+		minecraft.loadWorld(null);
 		minecraft.displayGuiScreen(new GuiMainMenu());
 	}
 

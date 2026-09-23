@@ -10,11 +10,15 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.0.17.112021`: the OreSpawn 4.0.17
-feature set for Minecraft 1.12.2 and Forge. This release avoids a startup
-linkage failure when a legacy modpack supplies an interface-shaped Mojang
-serialization `Codec` ahead of OreSpawn's compatibility adapter. See the
-[versioning policy](docs/VERSIONS.md) for the encoding and release convention.
+This branch builds target-qualified version `4.1.0.112021`: the OreSpawn 4.1.0
+feature set for Minecraft 1.12.2 and Forge. It adds stable generation identity,
+non-loading geology sampling, per-resource background control, existing-world
+provider merge policy, an Ore Sources arbiter for equivalent provider ores, a
+biome directory with exact new-terrain replacement overrides, and a client
+world-settings extension point for add-ons such as Realistic Deposits. It also
+retains the Forge 1.12 Cleanroom-compatible Codec bridge while preserving API
+major 1. See the [versioning policy](docs/VERSIONS.md) for the encoding and
+release convention.
 
 Its deprecated OS3 compatibility layer imports OreSpawn 3 configuration and
 keeps existing OreSpawn 3 consumer jars working while translating their rules
@@ -50,6 +54,27 @@ client configuration hook. It shows each mod's version, integration lineage,
 provider revision and status; its cog opens an add-on-owned configuration
 screen when one is available. The in-game **Help & Guide** explains the other
 controls.
+
+On the ORES tab, **Ore Sources...** opens a material-group editor with compact,
+independently scrolling group and output lists. Routine one-alias, one-output
+entries are hidden behind **Show All**. Red groups need review, yellow groups
+have a saved policy, and green entries need no action. **Balanced**, **Single**
+and **Custom** use one managed placement budget and choose one output for a
+whole vein or stable custom-deposit body; **Keep Original** preserves each
+active rule. A group's cog edits its friendly name, exact Ore Dictionary aliases
+and Placement Rules. Custom groups can be dissolved deterministically, and
+**Reset All** restores inferred and curated defaults. All changes remain pending
+until the main editor's **Done** action; Cancel discards them.
+
+**Biomes** opens a directory covering every loaded, referenced and missing
+biome, all palettes in their effective order, replacement status, surfaces and
+placement constraints. Exact replacements apply only to newly generated
+terrain through a final reserved palette; chains flatten, cycles are rejected,
+and missing targets remain dormant until their mod returns. Dimension materials
+are shown beside the dimension selector because they apply to every biome in
+that dimension. Light-equivalent aquifer fluids use a compact generation mask
+and pre-decoration substitution, while fluids with different light properties
+retain the compatible generator path. Existing chunks are never rewritten.
 
 Important files:
 
@@ -133,7 +158,10 @@ underwater, immediate filler, and ceiling-underside behavior. It also proves
 later vegetation, structures, and block entities
 survive, validates provider-rock vanilla springs and an external ore-pattern
 registration, then reopens and checks the exact saved world. The fixture is
-not included in OreSpawn's published jars.
+not included in OreSpawn's published jars. It also verifies multiple palettes,
+an unmanaged loaded biome, exact new-terrain replacement, unchanged old chunks,
+Ore Sources persistence/reset behavior, dimension-scoped materials, and
+fresh/reload profile and generation parity.
 
 Import or refresh the project with Eclipse Buildship, then run
 `genEclipseRuns` and `verifyEclipseProductionClasspath`. This branch uses

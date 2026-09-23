@@ -151,10 +151,20 @@ ignored when absent. If a required similar biome is absent, that output entry
 is disabled with one setup warning. Surface fields are `top_block`,
 `filler_block`, `underwater_block`, `ceiling_block`, and `filler_depth`.
 
-Dimension-material rules may set `default_fluid`, `deep_aquifer_fluid`,
-`deep_aquifer_max_y`, `snow_block`, and `ice_block`. Fluid IDs must resolve to
-blocks with non-empty fluid states. These substitutions are opt-in; a dimension
-with no matching rule retains its native generator and weather materials.
+Dimension-material rules apply to every biome in their selected dimension and
+may set `default_fluid`, `deep_aquifer_fluid`, `deep_aquifer_max_y`,
+`snow_block`, and `ice_block`. Fluid IDs must resolve to blocks with non-empty
+fluid states. These substitutions are opt-in, affect only newly generated
+terrain and perform no retrogen; a dimension with no matching rule retains its
+native generator and weather materials.
+
+For a `default_fluid` with the native fluid's opacity and emitted light,
+OreSpawn records the exact native aquifer cells during terrain construction and
+substitutes only those cells before decoration. Later lakes, springs and fluids
+placed by decorators are not included. A fluid with different lighting uses a
+slower direct-generator compatibility path so lighting remains correct.
+Unsupported independent chunk generators are detected and left unchanged.
+
 Minecraft 1.12.2 exposes one generator fluid, so this branch applies
 `default_fluid` only. It retains `deep_aquifer_fluid` and
 `deep_aquifer_max_y` in provider and world profiles for cross-version

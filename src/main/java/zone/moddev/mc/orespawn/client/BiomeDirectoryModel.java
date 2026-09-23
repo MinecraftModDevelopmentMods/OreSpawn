@@ -1,5 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,6 +30,7 @@ final class BiomeDirectoryModel {
 	private static final String OVERWORLD = "minecraft:overworld";
 	private static final String NETHER = "minecraft:the_nether";
 	private static final String END = "minecraft:the_end";
+	private static final Method BIOME_NAME = findBiomeNameMethod();
 
 	private BiomeDirectoryModel() { }
 
@@ -41,12 +44,34 @@ final class BiomeDirectoryModel {
 		mods.putIfAbsent("minecraft", new ModInfo("minecraft", "Minecraft", "1.12.2"));
 		for (Entry<ResourceLocation, Biome> entry : ForgeRegistries.BIOMES.getEntries()) {
 			ModInfo owner = mods.get(entry.getKey().getNamespace());
-			loaded.add(new LoadedBiome(entry.getKey().toString(), entry.getValue().getBiomeName(),
+			loaded.add(new LoadedBiome(entry.getKey().toString(), biomeName(entry.getKey(), entry.getValue()),
 					owner == null ? entry.getKey().getNamespace() : owner.name,
 					owner == null ? "?" : owner.version, routineDimension(entry.getValue())));
 		}
 		return assemble(profile, defaults.biomePalettesCopy(),
 				defaults.activeProviderIds(), loaded, dimensions);
+	}
+
+	private static String biomeName(ResourceLocation id, Biome biome) {
+		if (BIOME_NAME == null) return friendly(id.toString());
+		try {
+			return (String) BIOME_NAME.invoke(biome);
+		} catch (IllegalAccessException | InvocationTargetException exception) {
+			return friendly(id.toString());
+		}
+	}
+
+	private static Method findBiomeNameMethod() {
+		for (String name : new String[] { "getBiomeName", "func_185359_l" }) {
+			try {
+				Method method = Biome.class.getDeclaredMethod(name);
+				method.setAccessible(true);
+				return method;
+			} catch (NoSuchMethodException ignored) {
+				// Development and packaged 1.12 runtimes expose different names.
+			}
+		}
+		return null;
 	}
 
 	static Snapshot assemble(JsonObject profile, JsonObject providerPalettes,
