@@ -9,7 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
 /**
- * Small Forge 1.10-native text list with independent row and scrollbar input.
+ * Small Forge 1.12-native text list with independent row and scrollbar input.
  * It deliberately avoids GuiSlot, whose legacy coordinate handling assumes a
  * full-width screen and is unsuitable for two adjacent panes.
  */

@@ -55,6 +55,13 @@ override that selector and prevent duplicate placement.
 The builder emits provider schema 4. Legacy provider schemas 1-3 remain
 readable. Schema 4 is required for biome palettes and dimension materials.
 
+OreSpawn 4.1's biome directory and exact replacement layer add no public Java
+API methods or descriptors. Providers continue to declare ordinary schema-4
+biome palettes and dimension materials through the existing builders below.
+The editor's provider-default snapshot and terminal override palette are
+implementation details; add-ons must not depend on their client classes or
+reserved `orespawn:ui/biome_overrides/` IDs.
+
 Provider-owned fluid deposits are declarative and may target several dimensions:
 
 ```java

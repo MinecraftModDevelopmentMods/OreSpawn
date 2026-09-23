@@ -12,6 +12,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.gen.ChunkGeneratorOverworld;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -47,6 +49,10 @@ public final class VanillaSpringCompatibility {
 
 	static void replaceVanillaSpringPass(DecorateBiomeEvent.Decorate event) {
 		if (providerRocks.isEmpty() || event.getResult() == Event.Result.DENY) return;
+		World world = event.getWorld();
+		if (!(world instanceof WorldServer)
+				|| !(((WorldServer) world).getChunkProvider().chunkGenerator
+						instanceof ChunkGeneratorOverworld)) return;
 		Block fluid;
 		int attempts;
 		if (event.getType() == DecorateBiomeEvent.Decorate.EventType.LAKE_WATER) {
@@ -56,7 +62,7 @@ public final class VanillaSpringCompatibility {
 		} else {
 			return;
 		}
-		World world = event.getWorld(); java.util.Random random = event.getRand();
+		java.util.Random random = event.getRand();
 		BlockPos origin = event.getPos();
 		for (int attempt = 0; attempt < attempts; attempt++) {
 			int x = random.nextInt(16) + 8;
@@ -70,6 +76,11 @@ public final class VanillaSpringCompatibility {
 	}
 
 	static boolean generate(Block fluid, World world, java.util.Random random, BlockPos pos) {
+		// Never query an unloaded neighbour while the current chunk is populating.
+		// That would cascade generation across an edge before Forge is ready.
+		if (!loaded(world, pos) || !loaded(world, pos.up()) || !loaded(world, pos.down())
+				|| !loaded(world, pos.west()) || !loaded(world, pos.east())
+				|| !loaded(world, pos.north()) || !loaded(world, pos.south())) return false;
 		if (!accepts(world, pos.up(), world.getBlockState(pos.up()))
 				|| !accepts(world, pos.down(), world.getBlockState(pos.down()))) return false;
 		IBlockState current = world.getBlockState(pos);
@@ -86,5 +97,9 @@ public final class VanillaSpringCompatibility {
 			world.immediateBlockTick(pos, state, random);
 		}
 		return true;
+	}
+
+	private static boolean loaded(World world, BlockPos pos) {
+		return world.isBlockLoaded(pos, false);
 	}
 }

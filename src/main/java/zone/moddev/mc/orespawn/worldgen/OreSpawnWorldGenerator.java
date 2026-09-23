@@ -14,6 +14,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
+import net.minecraftforge.event.terraingen.ChunkGeneratorEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.eventhandler.Event;
@@ -34,6 +35,11 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	private final Set<ChunkKey> legacyComplete = concurrentSet();
 
 	private OreSpawnWorldGenerator() {
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void captureNativeAquifer(ChunkGeneratorEvent.ReplaceBiomeBlocks event) {
+		AquiferMaterialSubstitution.capture(event);
 	}
 
 	@SubscribeEvent
@@ -91,6 +97,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 		if (!earlyComplete.add(key)) return;
 		Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
 		// Explicit order is the 1.12 equivalent of LOCAL_MODIFICATIONS.
+		AquiferMaterialSubstitution.apply(world, chunk);
 		StoneReplacer.FEATURE.generate(world, chunk, random);
 		BiomeSurfaceFeature.FEATURE.generate(world, chunk, random);
 		FluidDepositFeature.FEATURE.generate(world, chunk, random);
@@ -107,6 +114,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	public void clear() {
+		AquiferMaterialSubstitution.clear();
 		earlyComplete.clear();
 		oreComplete.clear();
 		legacyComplete.clear();

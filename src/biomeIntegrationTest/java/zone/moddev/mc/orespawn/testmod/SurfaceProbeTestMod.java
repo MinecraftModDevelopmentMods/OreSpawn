@@ -49,6 +49,7 @@ import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
 import zone.moddev.mc.orespawn.client.OreSourceEditorProbeBridge;
+import zone.moddev.mc.orespawn.client.BiomeEditorProbeBridge;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
@@ -100,6 +101,7 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation OVERWORLD = new ResourceLocation("minecraft", "overworld");
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID, "surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID, "surface_b");
+	private static final ResourceLocation BIOME_UNMANAGED = new ResourceLocation(MODID, "unmanaged");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID, "exact_biome");
 	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID, "rock/spring_host");
 	private static final ResourceLocation STANDARD_CHANNEL = new ResourceLocation("orespawn", "standard");
@@ -108,6 +110,8 @@ public final class SurfaceProbeTestMod {
 	private static final int ORE_MAX_CHUNK = 84;
 	private static final int RESET_MIN_CHUNK = 88;
 	private static final int RESET_MAX_CHUNK = 92;
+	private static final int OVERRIDE_MIN_CHUNK = 68;
+	private static final int OVERRIDE_MAX_CHUNK = 70;
 	private static final ProbeLiquid DEPOSIT_FLUID = new ProbeLiquid();
 	private static final Map<String, Block[]> SOURCE_BLOCKS = sourceBlocks();
 	private static final Map<String, OrePatternType> SOURCE_PATTERNS = sourcePatterns();
@@ -242,6 +246,8 @@ public final class SurfaceProbeTestMod {
 			"surface_a", properties -> configure(properties, 1.35F, 0.15F));
 	private final BiomeReference surfaceB = OreSpawnBiomes.blankAndRegister(registrar,
 			"surface_b", properties -> configure(properties, 0.7F, 0.8F));
+	private final BiomeReference unmanaged = OreSpawnBiomes.blankAndRegister(registrar,
+			"unmanaged", properties -> configure(properties, 0.8F, 0.4F));
 	private final Set<String> preparedTerrain = new LinkedHashSet<>();
 
 	public SurfaceProbeTestMod() {
@@ -261,6 +267,8 @@ public final class SurfaceProbeTestMod {
 		surfaceB.get().decorator = new ProbeDecorator();
 		BiomeDictionary.addTypes(surfaceA.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
 		BiomeDictionary.addTypes(surfaceB.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
+		// This fixture is the unmanaged entry for the End directory exercised below.
+		BiomeDictionary.addTypes(unmanaged.get(), BiomeDictionary.Type.END);
 	}
 
 	@SubscribeEvent
@@ -329,6 +337,7 @@ public final class SurfaceProbeTestMod {
 		// This stable palette id makes seed zero select both fixture biomes on
 		// opposite sides of the 1,024-block Tiny-region boundary.
 		addPalette(provider, "end_palette_1", END, false);
+		addNoOpPalette(provider, "end_palette_2", END);
 		addPalette(provider, "nether_palette_1", NETHER, true);
 		provider.dimensionMaterials(new ResourceLocation(MODID, "materials/end"), END,
 				materials -> materials.snowBlock(id(WEATHER_SNOW_REPLACEMENT))
@@ -443,6 +452,17 @@ public final class SurfaceProbeTestMod {
 								.temperature(-2.0D, 2.0D).downfall(0.0D, 1.0D).surface(b)));
 	}
 
+	private static void addNoOpPalette(WorldgenProvider.Builder provider, String name,
+			ResourceLocation dimension) {
+		provider.biomePalette(new ResourceLocation(MODID, name), dimension,
+				palette -> palette.mode(BiomePlacementMode.AUGMENT)
+						.scope(BiomeReplacementScope.SELECTED_NAMESPACES)
+						.includeNamespace("unmatchedfixture")
+						.regionSize(BiomeRegionSize.TINY).coverage(1.0D).fallbackWeight(1.0D)
+						.biome(BIOME_A, biome -> biome.weight(1.0D))
+						.biome(BIOME_B, biome -> biome.weight(1.0D)));
+	}
+
 	private static BiomeSurfaceDefinition surface(Block top, Block filler,
 			Block underwater, Block ceiling) {
 		BiomeSurfaceDefinition.Builder builder = BiomeSurfaceDefinition.builder()
@@ -492,6 +512,7 @@ public final class SurfaceProbeTestMod {
 		}
 		results.put("end", audit(requireWorld(server, 1), false));
 		results.put("nether", audit(requireWorld(server, -1), true));
+		BiomeCount override = verifyBiomeOverride(server, phase, results.get("end"));
 		ResourceLocation spring = auditSpring(overworld, phase);
 		int dynamicFluidPlacements = DEPOSIT_FLUID.placements();
 		if ("fresh".equals(phase) && dynamicFluidPlacements <= 0) {
@@ -508,6 +529,10 @@ public final class SurfaceProbeTestMod {
 		current.setProperty("dynamic_fluid_placements", "fresh".equals(phase)
 				? Integer.toString(dynamicFluidPlacements)
 				: previous.getProperty("dynamic_fluid_placements"));
+		current.setProperty("biome_override.biome_a", Integer.toString(override.biomeA));
+		current.setProperty("biome_override.biome_b", Integer.toString(override.biomeB));
+		current.setProperty("biome_override_verified", Boolean.toString(
+				override.biomeA == 0 && override.biomeB == override.total));
 		if (previous == null) {
 			write(marker, current);
 		} else {
@@ -530,6 +555,60 @@ public final class SurfaceProbeTestMod {
 		LOGGER.info("SURFACEPROBE PASS phase={} end={} nether={}",
 				phase, results.get("end"), results.get("nether"));
 		server.initiateShutdown();
+	}
+
+	private static BiomeCount verifyBiomeOverride(MinecraftServer server, String phase,
+			Audit original) {
+		WorldServer end = requireWorld(server, 1);
+		if ("fresh".equals(phase)) {
+			Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+			JsonObject edited = BiomeEditorProbeBridge.replace(
+					WorldGeologyProfileManager.activeProfile().rootCopy(), END.toString(),
+					BIOME_A.toString(), BIOME_B.toString(), BIOME_UNMANAGED.toString());
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(edited, writer);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Could not persist biome replacement", exception);
+			}
+			if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+				throw new IllegalStateException("Could not reload biome replacement");
+			}
+			BiomeCount unchanged = countBiomes(end, MIN_CHUNK, MAX_CHUNK, false);
+			if (unchanged.biomeA != original.biomeA || unchanged.biomeB != original.biomeB) {
+				throw new IllegalStateException("Biome replacement rewrote existing chunks: " + unchanged);
+			}
+			generateSquare(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK, false);
+		}
+		BiomeCount generated = countBiomes(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK, true);
+		if (generated.biomeA != 0 || generated.biomeB != generated.total) {
+			throw new IllegalStateException("Terminal biome override did not control new terrain: "
+					+ generated);
+		}
+		return generated;
+	}
+
+	private static BiomeCount countBiomes(WorldServer world, int minimum, int maximum,
+			boolean requireGenerated) {
+		int a = 0, b = 0, total = 0;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = minimum; chunkZ <= maximum; chunkZ++) {
+			for (int chunkX = minimum; chunkX <= maximum; chunkX++) {
+				Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
+				if (requireGenerated && !chunk.isLoaded()) {
+					throw new IllegalStateException("Biome override chunk was not generated at "
+							+ chunkX + "," + chunkZ);
+				}
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					ResourceLocation id = world.getBiome(cursor.setPos(
+							(chunkX << 4) + x, 64, (chunkZ << 4) + z)).getRegistryName();
+					if (BIOME_A.equals(id)) a++;
+					else if (BIOME_B.equals(id)) b++;
+					else throw new IllegalStateException("Unexpected biome in override audit: " + id);
+					total++;
+				}
+			}
+		}
+		return new BiomeCount(a, b, total);
 	}
 
 	private static void assertPersistedOreSourceModes(JsonObject root, boolean reset) {
@@ -1217,6 +1296,18 @@ public final class SurfaceProbeTestMod {
 				}
 			}
 			properties.setProperty(prefix + "total", Integer.toString(total));
+		}
+	}
+
+	private static final class BiomeCount {
+		final int biomeA, biomeB, total;
+		BiomeCount(int biomeA, int biomeB, int total) {
+			this.biomeA = biomeA;
+			this.biomeB = biomeB;
+			this.total = total;
+		}
+		@Override public String toString() {
+			return "BiomeCount{a=" + biomeA + ", b=" + biomeB + ", total=" + total + "}";
 		}
 	}
 

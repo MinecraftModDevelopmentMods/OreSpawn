@@ -162,6 +162,31 @@ portability, but the editor keeps those controls disabled and generation does
 not use a distinct deep fluid.
 See `BIOMES.md` for complete examples and practical guidance.
 
+### Biome directory overrides
+
+The editor reads all `biome_palettes` entries for a dimension in their stored
+order. It does not rewrite or publicly prioritize ordinary palettes. Exact
+one-to-one user replacements are encoded as
+`orespawn:ui/biome_overrides/<dimension>` using the existing palette schema:
+`mode: replace`, `scope: all`, `coverage: 1.0`, `fallback_weight: 0.0`, with
+each target's exact sources in `similar_biomes`. OreSpawn always bakes this
+reserved palette after the ordinary entries regardless of JSON order.
+
+Only loaded biomes can be selected in the GUI, although an already saved rule
+whose target becomes unavailable is retained. That dormant rule leaves the
+source unchanged and automatically becomes active when the target is loaded
+again. Replacement chains are stored as terminal mappings; self-replacements
+and cycles are invalid. These rules control new terrain only and do not disable
+external biome generators, decorators, structures, mobs or registry entries.
+
+Biome reset operations use an internal immutable snapshot of currently loaded
+provider defaults. A biome reset restores that biome's active provider entries;
+a palette reset restores the matching active provider palette; dimension/all
+resets remove user/profile-only biome palettes and restore active provider
+palettes and materials. Definitions owned by providers which are currently
+missing remain untouched. The pending editor copy is written to global defaults
+or the world profile only when the main editor's **Done** action succeeds.
+
 ## Ore Fields
 
 An ore has `enabled`, one output `block` or weighted `outputs`, and at least one

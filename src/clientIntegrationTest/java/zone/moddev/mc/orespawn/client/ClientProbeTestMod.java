@@ -765,7 +765,7 @@ public final class ClientProbeTestMod {
 	private static void stopIntegratedServer(Minecraft minecraft) {
 		// Ask the integrated server to stop while retaining the client world until
 		// the server and its queued play packets have drained. Clearing the world in
-		// this tick races Forge 1.10 packet tasks against a null client world.
+		// this tick races Forge 1.12 packet tasks against a null client world.
 		if (minecraft.world != null) minecraft.world.sendQuittingDisconnectingPacket();
 		minecraft.displayGuiScreen(new GuiMainMenu());
 	}

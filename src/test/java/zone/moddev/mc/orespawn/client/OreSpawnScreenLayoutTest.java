@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,7 +28,7 @@ class OreSpawnScreenLayoutTest {
 					.sorted()
 					.collect(Collectors.toList());
 		}
-		assertEquals(27, screens.size(), "Review this render-order gate when screens are added or removed");
+		assertEquals(28, screens.size(), "Review this render-order gate when screens are added or removed");
 		for (Path screen : screens) {
 			String source = new String(Files.readAllBytes(screen), StandardCharsets.UTF_8);
 			int render = source.indexOf(
@@ -192,6 +193,91 @@ class OreSpawnScreenLayoutTest {
 				"leaving Material Groups must not persist future-world defaults");
 		assertTrue(groups.contains("minecraft.displayGuiScreen(parent)"),
 				"Done and Escape return to the pending ORES editor session");
+	}
+
+	@Test
+	void biomeDirectoryUsesTwoPanesAt426AndResponsivePagesAt320() throws Exception {
+		List<String> dimensions = Arrays.asList(
+				"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end");
+		assertEquals("minecraft:the_nether",
+				BiomeWorldMaterialsScreen.nextDimension(dimensions, "minecraft:overworld"));
+		assertEquals("minecraft:the_end",
+				BiomeWorldMaterialsScreen.nextDimension(dimensions, "minecraft:the_nether"));
+		assertEquals("minecraft:overworld",
+				BiomeWorldMaterialsScreen.nextDimension(dimensions, "minecraft:the_end"));
+		assertEquals(406, BiomeWorldMaterialsScreen.contentWidth(426));
+		assertEquals(174, BiomeWorldMaterialsScreen.leftPaneWidth(426));
+		assertEquals(161, BiomeWorldMaterialsScreen.listHeight(265));
+		assertEquals(213, BiomeWorldMaterialsScreen.materialsButtonY(265));
+		assertEquals(300, BiomeWorldMaterialsScreen.contentWidth(320));
+		assertEquals(132, BiomeWorldMaterialsScreen.leftPaneWidth(320));
+		assertEquals(136, BiomeWorldMaterialsScreen.listHeight(240));
+		assertEquals(188, BiomeWorldMaterialsScreen.materialsButtonY(240));
+		assertEquals(24, BiomeWorldMaterialsScreen.detailTop(false),
+				"the two-pane detail must align with the top controls");
+		assertEquals(34, BiomeWorldMaterialsScreen.detailTop(true),
+				"the compact detail must remain below its Back button");
+		assertEquals(95, BiomeWorldMaterialsScreen.detailRuleTop(false, false));
+		assertEquals(119, BiomeWorldMaterialsScreen.detailRuleTop(false, true));
+		assertEquals(139, BiomeWorldMaterialsScreen.detailRuleTop(false, true, 2),
+				"a two-line replacement validation error must reserve space above Placement Rules");
+		assertEquals(107, BiomeWorldMaterialsScreen.detailMessageTop(false, true));
+		assertTrue(BiomeWorldMaterialsScreen.detailRuleTop(false, true, 2) - 10
+				>= BiomeWorldMaterialsScreen.detailMessageTop(false, true) + 20,
+				"the Placement Rules label must clear both warning lines");
+		assertEquals(189, BiomeWorldMaterialsScreen.controlsTop(265,
+				BiomeWorldMaterialsScreen.detailRuleTop(false, true, 2)),
+				"validation errors must reduce the rule list rather than push footer controls down");
+		assertTrue(BiomeWorldMaterialsScreen.controlsTop(265,
+				BiomeWorldMaterialsScreen.detailRuleTop(false, true, 2)) + 44 < 265 - 28,
+				"detail controls must remain above Done at the tested window height");
+		assertTrue(BiomeWorldMaterialsScreen.detailRuleTop(false, false) - 10
+				>= BiomeWorldMaterialsScreen.detailTop(false) + 59,
+				"the Placement Rules label must clear the replacement button");
+		String source = screenSource("BiomeWorldMaterialsScreen.java");
+		assertTrue(source.contains("TWO_PANE_MINIMUM = 400"));
+		assertTrue(source.contains("new CompactScrollList(this, left, CONTENT_TOP"));
+		assertTrue(source.contains("if (compact) compactDetail = true"));
+		assertTrue(source.contains("button.orespawn.show_all"));
+		assertTrue(source.contains("button.orespawn.biome.hide_routine"));
+		assertTrue(source.contains("button.orespawn.dimension_materials_named"));
+		assertTrue(source.contains("materialsButtonY(height), leftWidth, 20"),
+				"dimension materials belong to the dimension/list pane");
+		assertTrue(source.contains("tooltip.orespawn.biome.dimension"));
+		assertTrue(source.contains("value.orespawn.dimension.the_nether"));
+		assertTrue(source.contains("\"< \" + dimensionName(dimension).getUnformattedText() + \" >\""));
+		assertTrue(source.contains("button.orespawn.biome.replace_new_terrain"));
+		assertTrue(source.contains("button.orespawn.biome.leave_original"));
+		assertTrue(source.contains("tooltip.orespawn.biome.no_retrogen"));
+		assertTrue(source.contains("detailMessageLines"));
+		assertFalse(source.contains("warning.orespawn.biome.target_not_declared"),
+				"a working replacement must not display a provider-ownership warning");
+		assertFalse(source.contains("label.orespawn.biome.new_terrain_only"),
+				"the replacement status already explains that the change affects new terrain");
+		assertFalse(source.contains("height - 39, 0xFF5555"),
+				"replacement feedback must not be drawn behind the footer controls");
+		assertTrue(source.contains("new BiomePlacementScreen"));
+		assertTrue(source.contains("new BiomePaletteScreen"));
+		assertTrue(source.contains("new DimensionMaterialsScreen"));
+		assertTrue(source.contains("new GeomeBiomeScreen"));
+		String materials = screenSource("DimensionMaterialsScreen.java");
+		assertTrue(materials.contains("label.orespawn.dimension_materials.scope"));
+		assertTrue(materials.contains("BiomeWorldMaterialsScreen.dimensionName(dimension)"));
+	}
+
+	@Test
+	void paletteSettingsExposeEveryExistingPaletteControl() throws Exception {
+		String settings = screenSource("BiomePaletteSettingsScreen.java");
+		for (String field : new String[] { "enabled", "mode", "scope", "region_size",
+				"coverage", "fallback_weight", "include_namespaces", "exclude_namespaces" }) {
+			assertTrue(settings.contains("\"" + field + "\""), field);
+		}
+		String palettes = screenSource("BiomePaletteScreen.java");
+		assertTrue(palettes.contains("session.biomeDirectory().palettes(dimension)"));
+		assertTrue(palettes.contains("resetBiomePalette"));
+		assertTrue(palettes.contains("resetBiomeDimension"));
+		assertTrue(palettes.contains("resetAllBiomeManagement"));
+		assertFalse(palettes.contains("button.orespawn.add_biome"));
 	}
 
 	private static String screenSource(String name) throws Exception {

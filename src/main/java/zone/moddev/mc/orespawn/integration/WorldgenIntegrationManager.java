@@ -166,6 +166,32 @@ public final class WorldgenIntegrationManager {
 		return Collections.unmodifiableSet(new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
 	}
 
+	/**
+	 * Returns a detached snapshot of the currently loaded provider-owned biome
+	 * defaults. This is an internal editor/reset contract; callers can mutate the
+	 * returned JSON copies without changing registered providers.
+	 */
+	public static synchronized BiomeProviderDefaultsSnapshot biomeProviderDefaults() {
+		JsonObject palettes = new JsonObject();
+		JsonObject materials = new JsonObject();
+		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
+			copyOwnedDefaults(provider, "biome_palettes", palettes);
+			copyOwnedDefaults(provider, "dimension_materials", materials);
+		}
+		return new BiomeProviderDefaultsSnapshot(palettes, materials,
+				new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
+	}
+
+	private static void copyOwnedDefaults(ProviderDefinition provider, String section,
+			JsonObject target) {
+		for (Entry<String, JsonElement> entry : provider.section(section).entrySet()) {
+			if (!entry.getValue().isJsonObject()) continue;
+			JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
+			value.addProperty("source_provider", provider.modId);
+			target.add(entry.getKey(), value);
+		}
+	}
+
 	/** Records a loaded legacy integration at the point where its source is identified. */
 	public static synchronized void recordLegacyLineage(String providerModId, int orespawnGeneration) {
 		if (providerModId == null || !MOD_ID.matcher(providerModId).matches()
@@ -1169,6 +1195,25 @@ public final class WorldgenIntegrationManager {
 		public ProviderStatus status() { return status; }
 		public boolean rejected() { return rejected; }
 		public List<Integer> legacyLineages() { return legacyLineages; }
+	}
+
+	/** Immutable, copy-on-read provider defaults used only by OreSpawn's editor. */
+	public static final class BiomeProviderDefaultsSnapshot {
+		private final JsonObject palettes;
+		private final JsonObject materials;
+		private final Set<String> activeProviders;
+
+		private BiomeProviderDefaultsSnapshot(JsonObject palettes, JsonObject materials,
+				Set<String> activeProviders) {
+			this.palettes = JsonCopies.copy(palettes);
+			this.materials = JsonCopies.copy(materials);
+			this.activeProviders = Collections.unmodifiableSet(
+					new LinkedHashSet<>(activeProviders));
+		}
+
+		public JsonObject biomePalettesCopy() { return JsonCopies.copy(palettes); }
+		public JsonObject dimensionMaterialsCopy() { return JsonCopies.copy(materials); }
+		public Set<String> activeProviderIds() { return activeProviders; }
 	}
 
 	public static final class TemplateDefinition {

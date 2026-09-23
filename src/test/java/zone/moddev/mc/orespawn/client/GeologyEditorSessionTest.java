@@ -15,7 +15,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
+import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager.BiomeProviderDefaultsSnapshot;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
@@ -163,6 +166,14 @@ class GeologyEditorSessionTest {
 		assertEquals(1, session.section("fluid_deposits").size());
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
+	}
+
+	@Test
+	void fluidPickerRejectsDecorativeBlocksThatOnlyUseWaterMaterial() {
+		Block decorativeWaterBlock = new Block(Material.WATER) { };
+
+		assertFalse(GeologyEditorSession.isFluidBlock(decorativeWaterBlock));
+		assertTrue(GeologyEditorSession.isFluidBlock(Blocks.WATER));
 	}
 
 	@Test
@@ -601,6 +612,135 @@ class GeologyEditorSessionTest {
 		assertEquals("separate", group.status);
 		assertFalse(group.needsAttention());
 		assertEquals(before, profile.rootCopy(), "Deriving the visible status must not rewrite the profile");
+	}
+
+	@Test
+	void dimensionResetRestoresActiveProvidersRemovesLocalRulesAndPreservesMissingProviders()
+			throws Exception {
+		JsonObject defaults = new JsonObject();
+		JsonObject defaultPalettes = new JsonObject();
+		defaultPalettes.add("active:palette", biomePalette("active", "minecraft:plains", 1.0D));
+		JsonObject defaultMaterials = new JsonObject();
+		defaultMaterials.add("active:materials", dimensionMaterials("active", "minecraft:water"));
+		BiomeProviderDefaultsSnapshot snapshot = providerDefaults(defaultPalettes, defaultMaterials,
+				java.util.Collections.singleton("active"));
+
+		JsonObject root = WorldGeologyProfile.recommended(false).rootCopy();
+		JsonObject palettes = new JsonObject();
+		palettes.add("active:palette", biomePalette("active", "minecraft:plains", 9.0D));
+		palettes.add("user:palette", biomePalette("", "minecraft:desert", 1.0D));
+		palettes.add("missing:palette", biomePalette("missing", "minecraft:forest", 3.0D));
+		root.add("biome_palettes", palettes);
+		JsonObject materials = new JsonObject();
+		materials.add("active:materials", dimensionMaterials("active", "minecraft:lava"));
+		materials.add("user:materials", dimensionMaterials("", "minecraft:lava"));
+		materials.add("missing:materials", dimensionMaterials("missing", "minecraft:lava"));
+		root.add("dimension_materials", materials);
+		BiomeReplacementRules.set(root, "minecraft:overworld", "minecraft:plains", "minecraft:desert");
+		WorldGeologyProfile original = WorldGeologyProfile.fromJson(root,
+				WorldGeologyProfile.recommended(false));
+		JsonObject originalBytes = original.rootCopy();
+		GeologyEditorSession session = new GeologyEditorSession(original,
+				java.util.Collections.singleton("minecraft:overworld"), snapshot);
+
+		session.resetBiomeDimension("minecraft:overworld");
+
+		assertEquals(defaultPalettes.get("active:palette"),
+				session.section("biome_palettes").get("active:palette"));
+		assertFalse(session.section("biome_palettes").has("user:palette"));
+		assertTrue(session.section("biome_palettes").has("missing:palette"));
+		assertTrue(session.biomeReplacements("minecraft:overworld").isEmpty());
+		assertEquals(defaultMaterials.get("active:materials"),
+				session.section("dimension_materials").get("active:materials"));
+		assertFalse(session.section("dimension_materials").has("user:materials"));
+		assertTrue(session.section("dimension_materials").has("missing:materials"));
+		assertEquals(originalBytes, original.rootCopy(),
+				"reset must stay pending until the main editor saves");
+	}
+
+	@Test
+	void selectedBiomeResetRestoresOnlyItsProviderPlacementsAndClearsItsOverride()
+			throws Exception {
+		JsonObject defaultPalettes = new JsonObject();
+		defaultPalettes.add("active:palette", biomePalette("active", "minecraft:plains", 1.0D));
+		BiomeProviderDefaultsSnapshot snapshot = providerDefaults(defaultPalettes,
+				new JsonObject(), java.util.Collections.singleton("active"));
+		JsonObject root = WorldGeologyProfile.recommended(false).rootCopy();
+		JsonObject palettes = new JsonObject();
+		palettes.add("active:palette", biomePalette("active", "minecraft:plains", 8.0D));
+		JsonObject local = biomePalette("", "minecraft:plains", 4.0D);
+		local.getAsJsonObject("biomes").add("minecraft:desert",
+				biomePlacement(2.0D));
+		palettes.add("user:palette", local);
+		root.add("biome_palettes", palettes);
+		BiomeReplacementRules.set(root, "minecraft:overworld", "minecraft:plains", "minecraft:desert");
+		GeologyEditorSession session = new GeologyEditorSession(
+				WorldGeologyProfile.fromJson(root, WorldGeologyProfile.recommended(false)),
+				java.util.Collections.singleton("minecraft:overworld"), snapshot);
+
+		session.resetBiome("minecraft:overworld", "minecraft:plains");
+
+		assertEquals(1.0D, session.biomePlacementByPalette("active:palette", "minecraft:plains")
+				.get("weight").getAsDouble());
+		assertFalse(session.biomePaletteById("user:palette").getAsJsonObject("biomes")
+				.has("minecraft:plains"));
+		assertTrue(session.biomePaletteById("user:palette").getAsJsonObject("biomes")
+				.has("minecraft:desert"));
+		assertFalse(session.biomeReplacements("minecraft:overworld").containsKey("minecraft:plains"));
+	}
+
+	@Test
+	void replacementRoundTripIsExactAndDoesNotMutateTheUnsavedProfile() {
+		WorldGeologyProfile original = WorldGeologyProfile.recommended(false);
+		JsonObject before = original.rootCopy();
+		GeologyEditorSession session = new GeologyEditorSession(original);
+
+		session.replaceBiome("minecraft:overworld", "minecraft:plains", "minecraft:desert");
+		WorldGeologyProfile saved = session.profile();
+		WorldGeologyProfile reopened = WorldGeologyProfile.fromJson(saved.toJson(),
+				WorldGeologyProfile.recommended(false));
+
+		assertEquals("minecraft:desert", new GeologyEditorSession(reopened)
+				.biomeReplacements("minecraft:overworld").get("minecraft:plains"));
+		assertEquals(saved.toJson(), reopened.toJson());
+		assertEquals(before, original.rootCopy(), "Cancel must retain the original bytes");
+	}
+
+	private static BiomeProviderDefaultsSnapshot providerDefaults(JsonObject palettes,
+			JsonObject materials, java.util.Set<String> active) throws Exception {
+		java.lang.reflect.Constructor<BiomeProviderDefaultsSnapshot> constructor =
+				BiomeProviderDefaultsSnapshot.class.getDeclaredConstructor(
+						JsonObject.class, JsonObject.class, java.util.Set.class);
+		constructor.setAccessible(true);
+		return constructor.newInstance(palettes, materials, active);
+	}
+
+	private static JsonObject biomePalette(String owner, String biome, double weight) {
+		JsonObject palette = new JsonObject();
+		palette.addProperty("dimension", "minecraft:overworld");
+		palette.addProperty("enabled", true);
+		if (!owner.isEmpty()) palette.addProperty("source_provider", owner);
+		JsonObject biomes = new JsonObject();
+		biomes.add(biome, biomePlacement(weight));
+		palette.add("biomes", biomes);
+		return palette;
+	}
+
+	private static JsonObject biomePlacement(double weight) {
+		JsonObject placement = new JsonObject();
+		placement.addProperty("enabled", true);
+		placement.addProperty("weight", weight);
+		placement.add("similar_biomes", new JsonArray());
+		placement.add("required_similar_biomes", new JsonArray());
+		return placement;
+	}
+
+	private static JsonObject dimensionMaterials(String owner, String fluid) {
+		JsonObject materials = new JsonObject();
+		materials.addProperty("dimension", "minecraft:overworld");
+		if (!owner.isEmpty()) materials.addProperty("source_provider", owner);
+		materials.addProperty("default_fluid", fluid);
+		return materials;
 	}
 
 	private static WorldGeologyProfile profileWithOreSourcePolicy() {
