@@ -3,6 +3,9 @@ package zone.moddev.mc.orespawn.client;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -45,6 +48,9 @@ public final class ClientProbeTestMod {
 	private int reloadWorldFrames;
 	private int editorFrames;
 	private boolean worldSettingsOpened;
+	private boolean modsDirectoryRendered;
+	private boolean directoryStackValidated =
+			System.getProperty("clientprobe.expectedMods", "").trim().isEmpty();
 	private boolean longEditorRoundTrip;
 
 	@Mod.EventHandler
@@ -64,6 +70,7 @@ public final class ClientProbeTestMod {
 	@SubscribeEvent
 	public void onScreenDrawn(GuiScreenEvent.DrawScreenEvent.Post event) {
 		if (event.getGui() instanceof OreSpawnScreen) editorFrames++;
+		if (event.getGui() instanceof OreSpawnModsScreen) modsDirectoryRendered = true;
 	}
 
 	@SubscribeEvent
@@ -100,6 +107,7 @@ public final class ClientProbeTestMod {
 					if (minecraft.currentScreen instanceof OreSpawnWorldSettingsScreen && editorFrames >= 2) {
 						worldSettingsOpened = true;
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.currentScreen);
+						validateExpectedDirectory(minecraft.currentScreen);
 						validateLongEditorRoundTrip(minecraft, minecraft.currentScreen);
 						nextState(3);
 					}
@@ -171,6 +179,57 @@ public final class ClientProbeTestMod {
 		}
 	}
 
+	private void validateExpectedDirectory(GuiScreen root) {
+		String configured = System.getProperty("clientprobe.expectedMods", "").trim();
+		if (configured.isEmpty()) return;
+		List<String> expected = Arrays.asList(configured.split(","));
+		List<OreSpawnModDirectoryModel.Entry> entries = OreSpawnModDirectoryModel.snapshot();
+		List<String> actual = new ArrayList<>();
+		for (OreSpawnModDirectoryModel.Entry entry : entries) actual.add(entry.modId);
+		if (!expected.equals(actual)) {
+			throw new IllegalStateException("Unexpected OreSpawn Mods directory order: expected "
+					+ expected + " but found " + actual);
+		}
+		for (OreSpawnModDirectoryModel.Entry entry : entries) {
+			if (entry.version == null || entry.version.trim().isEmpty() || "?".equals(entry.version)) {
+				throw new IllegalStateException("Missing Forge mod version for " + entry.modId);
+			}
+			if ("basemetals".equals(entry.modId)) {
+				if (entry.nativeOs4() || entry.legacyLineages().isEmpty()) {
+					throw new IllegalStateException("Base Metals did not retain its legacy lineage");
+				}
+			} else if (!entry.nativeOs4() || entry.schemaVersion() != 4
+					|| entry.providerRevision() < 1) {
+				throw new IllegalStateException("Missing native OS4 schema/revision for " + entry.modId);
+			}
+			boolean shouldConfigure = "realisticdeposits".equals(entry.modId);
+			if (entry.configurable() != shouldConfigure) {
+				throw new IllegalStateException("Unexpected cog availability for " + entry.modId);
+			}
+			if (shouldConfigure) {
+				OreSpawnModsScreen directory = new OreSpawnModsScreen(root, entries);
+				GuiScreen child = entry.extension.createScreen(directory);
+				if (child == null || !child.getClass().getName().endsWith("RealisticDepositsConfigScreen")) {
+					throw new IllegalStateException("Realistic Deposits did not create its config screen");
+				}
+				try {
+					Minecraft minecraft = Minecraft.getMinecraft();
+					WorldSettingsExtensionNavigation.open(directory, child);
+					Method escape = GuiScreen.class.getDeclaredMethod("keyTyped", char.class, int.class);
+					escape.setAccessible(true);
+					escape.invoke(child, '\0', org.lwjgl.input.Keyboard.KEY_ESCAPE);
+					if (minecraft.currentScreen != directory) {
+						throw new IllegalStateException("Add-on Escape did not return to the Mods directory");
+					}
+					minecraft.displayGuiScreen(root);
+				} catch (ReflectiveOperationException failure) {
+					throw new IllegalStateException("Could not exercise add-on Escape", failure);
+				}
+			}
+		}
+		directoryStackValidated = true;
+	}
+
 	private Button nextNavigationButton(OreSpawnWorldSettingsScreen root) {
 		for (GuiButton widget : root.buttons) {
 			if (!(widget instanceof Button) || widget instanceof CycleButton) continue;
@@ -186,6 +245,7 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(OreSpawnScreen screen) {
 		for (GuiButton widget : screen.buttons) {
+			if (widget instanceof CogButton) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
@@ -322,6 +382,8 @@ public final class ClientProbeTestMod {
 	private void writeMarker() throws IOException {
 		Properties values = new Properties();
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
+		values.setProperty("mods_directory_rendered", Boolean.toString(modsDirectoryRendered));
+		values.setProperty("directory_stack_validated", Boolean.toString(directoryStackValidated));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
 		values.setProperty("editor_routes", Integer.toString(editorRoutes.size()));
 		values.setProperty("editor_classes", editorRoutes.toString());

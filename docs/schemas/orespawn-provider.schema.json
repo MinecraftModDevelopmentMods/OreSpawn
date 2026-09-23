@@ -7,6 +7,7 @@
     "schema_version": { "enum": [1, 2, 3, 4] },
     "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "provider_revision": { "type": "integer", "minimum": 1 },
+    "merge_new_entries_into_existing_worlds": { "type": "boolean" },
     "rocks": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rock" } },
     "ores": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/ore" } },
     "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/fluidDeposit" } },

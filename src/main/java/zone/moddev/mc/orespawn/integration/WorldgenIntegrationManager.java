@@ -67,6 +67,7 @@ public final class WorldgenIntegrationManager {
 	private static final Map<String, JsonObject> FILE_PROVIDERS = new LinkedHashMap<>();
 	private static final Map<String, ProviderDefinition> ACTIVE_PROVIDERS = new LinkedHashMap<>();
 	private static final Map<ResourceLocation, TemplateDefinition> TEMPLATES = new LinkedHashMap<>();
+	private static final Map<String, Set<Integer>> LEGACY_LINEAGES = new LinkedHashMap<>();
 	private static final Set<String> INVALID_PROVIDERS = new HashSet<>();
 	private static final Set<String> FILE_PROVIDER_IDS = new HashSet<>();
 	private static boolean initialized;
@@ -165,15 +166,77 @@ public final class WorldgenIntegrationManager {
 		return Collections.unmodifiableSet(new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
 	}
 
+	/** Records a loaded legacy integration at the point where its source is identified. */
+	public static synchronized void recordLegacyLineage(String providerModId, int orespawnGeneration) {
+		if (providerModId == null || !MOD_ID.matcher(providerModId).matches()
+				|| orespawnGeneration < 1 || orespawnGeneration > 3) {
+			return;
+		}
+		LEGACY_LINEAGES.computeIfAbsent(providerModId, ignored -> new LinkedHashSet<>())
+				.add(orespawnGeneration);
+	}
+
+	/** Returns immutable provider metadata for the client-side mod directory. */
+	public static synchronized List<ProviderIntegrationInfo> providerIntegrations() {
+		Set<String> providerIds = new LinkedHashSet<>();
+		providerIds.addAll(API_PROVIDERS.keySet());
+		providerIds.addAll(RESOURCE_PROVIDERS.keySet());
+		providerIds.addAll(FILE_PROVIDER_IDS);
+		providerIds.addAll(ACTIVE_PROVIDERS.keySet());
+		providerIds.addAll(INVALID_PROVIDERS);
+		providerIds.addAll(LEGACY_LINEAGES.keySet());
+		List<String> sorted = new ArrayList<>(providerIds);
+		Collections.sort(sorted);
+		List<ProviderIntegrationInfo> result = new ArrayList<>();
+		for (String providerId : sorted) {
+			JsonObject root = FILE_PROVIDERS.get(providerId);
+			if (root == null) root = RESOURCE_PROVIDERS.get(providerId);
+			ProviderDefinition active = ACTIVE_PROVIDERS.get(providerId);
+			if (root == null && active != null) root = active.root;
+			WorldgenProvider api = API_PROVIDERS.get(providerId);
+			List<Integer> legacy = new ArrayList<>(LEGACY_LINEAGES.getOrDefault(
+					providerId, Collections.emptySet()));
+			Collections.sort(legacy);
+			boolean hasApiOrResource = api != null
+					|| RESOURCE_PROVIDERS.containsKey(providerId);
+			boolean nativeOs4 = hasApiOrResource
+					|| (FILE_PROVIDER_IDS.contains(providerId) && legacy.isEmpty());
+			boolean hasProvider = root != null || api != null
+					|| RESOURCE_PROVIDERS.containsKey(providerId)
+					|| FILE_PROVIDER_IDS.contains(providerId);
+			result.add(new ProviderIntegrationInfo(providerId, nativeOs4, hasProvider,
+					root == null ? (api == null ? -1 : 4) : integer(root, "schema_version", -1),
+					root == null ? (api == null ? -1 : api.revision())
+							: integer(root, "provider_revision", -1),
+					getProviderStatus(providerId), INVALID_PROVIDERS.contains(providerId), legacy));
+		}
+		return Collections.unmodifiableList(result);
+	}
+
 	/** Merge new provider-owned defaults without overwriting pack or world values. */
 	public static synchronized boolean mergeProviderDefinitions(JsonObject target) {
+		return mergeProviderDefinitions(target, false);
+	}
+
+	/**
+	 * Merge provider definitions into an already-created world's saved profile.
+	 * Providers may opt out so structural configuration is captured only when a
+	 * new world is created.
+	 */
+	public static synchronized boolean mergeProviderDefinitionsIntoExistingWorld(JsonObject target) {
+		return mergeProviderDefinitions(target, true);
+	}
+
+	private static boolean mergeProviderDefinitions(JsonObject target, boolean existingWorld) {
 		JsonObject manifests = object(target, "providers");
 		JsonObject legacyOreManifests = object(target, "ore_providers");
 		boolean changed = false;
 
 		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
 			JsonObject manifest = object(manifests, provider.modId);
-			if (!bool(manifest, "profile_defaults_applied", false)
+			boolean mergeNewEntries = !existingWorld
+					|| bool(provider.root, "merge_new_entries_into_existing_worlds", true);
+			if (mergeNewEntries && !bool(manifest, "profile_defaults_applied", false)
 					&& provider.root.has("profile_defaults")
 					&& provider.root.get("profile_defaults").isJsonObject()) {
 				mergeOverlay(target, provider.root.getAsJsonObject("profile_defaults"));
@@ -193,7 +256,7 @@ public final class WorldgenIntegrationManager {
 
 				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
 					String id = entry.getKey();
-					if (!targetSection.has(id) && !known.contains(id)) {
+					if (mergeNewEntries && !targetSection.has(id) && !known.contains(id)) {
 						JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
 						if (!"biome_rules".equals(sectionName)) {
 							value.addProperty("source_provider", provider.modId);
@@ -201,7 +264,9 @@ public final class WorldgenIntegrationManager {
 						targetSection.add(id, value);
 						changed = true;
 					}
-					known.add(id);
+					if (targetSection.has(id)) {
+						known.add(id);
+					}
 					if (targetSection.has(id) && targetSection.get(id).isJsonObject()) {
 						targetSection.getAsJsonObject(id).remove("orphaned_provider");
 					}
@@ -410,14 +475,7 @@ public final class WorldgenIntegrationManager {
 			if (INVALID_PROVIDERS.contains(providerId)) {
 				continue;
 			}
-			JsonObject root = FILE_PROVIDERS.get(providerId);
-			if (root == null) {
-				root = RESOURCE_PROVIDERS.get(providerId);
-			}
-			if (root == null) {
-				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
-				root = apiProvider == null ? null : apiProvider.toJson();
-			}
+			JsonObject root = selectedProviderRoot(providerId);
 			if (root == null || !Loader.isModLoaded(providerId)) {
 				continue;
 			}
@@ -435,6 +493,16 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
+	private static JsonObject selectedProviderRoot(String providerId) {
+		JsonObject root = FILE_PROVIDERS.get(providerId);
+		if (root == null) root = RESOURCE_PROVIDERS.get(providerId);
+		if (root == null) {
+			WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
+			root = apiProvider == null ? null : apiProvider.toJson();
+		}
+		return root;
+	}
+
 	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
 		if (schema != 1 && schema != 2 && schema != 3 && schema != 4) {
@@ -445,6 +513,11 @@ public final class WorldgenIntegrationManager {
 		}
 		if (integer(root, "provider_revision", -1) < 1) {
 			throw new JsonSyntaxException("provider_revision must be at least 1");
+		}
+		if (root.has("merge_new_entries_into_existing_worlds")
+				&& (!root.get("merge_new_entries_into_existing_worlds").isJsonPrimitive()
+						|| !root.getAsJsonPrimitive("merge_new_entries_into_existing_worlds").isBoolean())) {
+			throw new JsonSyntaxException("merge_new_entries_into_existing_worlds must be boolean");
 		}
 		if (schema == 1) {
 			for (String section : new String[] { "rocks", "geomes", "biome_rules",
@@ -570,12 +643,15 @@ public final class WorldgenIntegrationManager {
 			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
 			double frequency = decimal(rule, "frequency", -1.0D);
 			double discardChance = decimal(rule, "discard_chance_on_air_exposure", 0.0D);
+			double backgroundScale = decimal(rule, "background_generation_scale", 1.0D);
 			int[] quantities = validateQuantityRange(rule);
 			int minQuantity = quantities[0];
 			int maxQuantity = quantities[1];
 			if (minY < -2048 || maxY > 2048 || minY > maxY || frequency < 0.0D
 					|| frequency > 64.0D || !Double.isFinite(discardChance)
 					|| discardChance < 0.0D || discardChance > 1.0D
+					|| !Double.isFinite(backgroundScale) || backgroundScale < 0.0D
+					|| backgroundScale > 1.0D
 					|| minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64) {
 				throw new JsonSyntaxException("invalid ore placement for " + idText + " in " + entry.getKey());
 			}
@@ -1049,6 +1125,40 @@ public final class WorldgenIntegrationManager {
 		JsonObject section(String name) {
 			return optionalObject(root, name);
 		}
+	}
+
+	/** Immutable internal-facing metadata used to describe one OreSpawn integration. */
+	public static final class ProviderIntegrationInfo {
+		private final String modId;
+		private final boolean nativeOs4;
+		private final boolean provider;
+		private final int schemaVersion;
+		private final int providerRevision;
+		private final ProviderStatus status;
+		private final boolean rejected;
+		private final List<Integer> legacyLineages;
+
+		public ProviderIntegrationInfo(String modId, boolean nativeOs4, boolean provider,
+				int schemaVersion, int providerRevision, ProviderStatus status,
+				boolean rejected, List<Integer> legacyLineages) {
+			this.modId = modId;
+			this.nativeOs4 = nativeOs4;
+			this.provider = provider;
+			this.schemaVersion = schemaVersion;
+			this.providerRevision = providerRevision;
+			this.status = status;
+			this.rejected = rejected;
+			this.legacyLineages = Collections.unmodifiableList(new ArrayList<>(legacyLineages));
+		}
+
+		public String modId() { return modId; }
+		public boolean nativeOs4() { return nativeOs4; }
+		public boolean hasProvider() { return provider; }
+		public int schemaVersion() { return schemaVersion; }
+		public int providerRevision() { return providerRevision; }
+		public ProviderStatus status() { return status; }
+		public boolean rejected() { return rejected; }
+		public List<Integer> legacyLineages() { return legacyLineages; }
 	}
 
 	public static final class TemplateDefinition {

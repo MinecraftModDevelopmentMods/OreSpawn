@@ -7,7 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -110,6 +113,47 @@ class WorldgenIntegrationManagerTest {
 		JsonObject solidFluid = biomeProvider(4, "minecraft:stone");
 		assertThrows(JsonSyntaxException.class,
 				() -> WorldgenIntegrationManager.validateProvider("examplemod", solidFluid));
+	}
+
+	@Test
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void providerCanDeferNewEntriesForExistingWorldsWithoutChangingNewWorldDefaults()
+			throws Exception {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", 4);
+		root.addProperty("provider_modid", "realisticdeposits");
+		root.addProperty("provider_revision", 1);
+		root.addProperty("merge_new_entries_into_existing_worlds", false);
+		JsonObject ores = new JsonObject();
+		ores.add("realisticdeposits:deposit/minecraft/iron_ore", new JsonObject());
+		root.add("ores", ores);
+
+		Class<?> definitionType = Class.forName(
+				"zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager$ProviderDefinition");
+		Constructor<?> constructor = definitionType.getDeclaredConstructor(
+				String.class, int.class, JsonObject.class);
+		constructor.setAccessible(true);
+		Object provider = constructor.newInstance("realisticdeposits", 1, root);
+		Field activeField = WorldgenIntegrationManager.class.getDeclaredField("ACTIVE_PROVIDERS");
+		activeField.setAccessible(true);
+		Map active = (Map) activeField.get(null);
+		Map saved = new LinkedHashMap(active);
+		try {
+			active.clear();
+			active.put("realisticdeposits", provider);
+			JsonObject existingWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(existingWorld);
+			assertFalse(existingWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+
+			JsonObject newWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeProviderDefinitions(newWorld);
+			assertTrue(newWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+		} finally {
+			active.clear();
+			active.putAll(saved);
+		}
 	}
 
 	private static JsonObject provider(String block, boolean withHost, int schema) {

@@ -26,7 +26,7 @@ class OreSpawnScreenLayoutTest {
 					.sorted()
 					.collect(Collectors.toList());
 		}
-		assertEquals(24, screens.size(), "Review this render-order gate when screens are added or removed");
+		assertEquals(25, screens.size(), "Review this render-order gate when screens are added or removed");
 		for (Path screen : screens) {
 			String source = new String(Files.readAllBytes(screen), StandardCharsets.UTF_8);
 			int render = source.indexOf(
@@ -60,9 +60,30 @@ class OreSpawnScreenLayoutTest {
 		assertCompactOrePlacementClearsFooter(240);
 	}
 
+	@Test
+	void advancedAndFluidEditorsShareTheRecoveredTerrainRow() throws Exception {
+		Path screen = Paths.get("src", "main", "java", "zone", "moddev", "mc",
+				"orespawn", "client", "OreSpawnWorldSettingsScreen.java");
+		String source = new String(Files.readAllBytes(screen), StandardCharsets.UTF_8);
+		int advanced = source.indexOf("new TextComponentTranslation(\"button.orespawn.advanced\")");
+		int advancedCall = source.lastIndexOf("addButton", advanced);
+		int fluid = source.indexOf("fluidEditorLabel()", advanced);
+		int fluidCall = source.lastIndexOf("addButton", fluid);
+		assertTrue(advanced > 0 && fluid > advanced);
+		assertTrue(source.substring(advancedCall, advanced)
+				.contains("font, left, top + (row * rowIndex)"));
+		assertTrue(source.substring(fluidCall, fluid)
+				.contains("font, right, top + (row * rowIndex++)"));
+	}
+
 	private static void assertRowsClearFooter(int height) {
+		int rows = 8;
+		int top = OreSpawnScreenLayout.mainTop(height);
+		int available = OreSpawnScreenLayout.footerY(height) - top - 20 - 4;
+		int spacing = Math.min(OreSpawnScreenLayout.mainRowSpacing(height),
+				Math.max(20, available / (rows - 1)));
 		int lastRowBottom = OreSpawnScreenLayout.mainTop(height)
-				+ (OreSpawnScreenLayout.mainRowSpacing(height) * 7) + 20;
+				+ (spacing * (rows - 1)) + 20;
 		assertTrue(lastRowBottom < OreSpawnScreenLayout.footerY(height));
 	}
 

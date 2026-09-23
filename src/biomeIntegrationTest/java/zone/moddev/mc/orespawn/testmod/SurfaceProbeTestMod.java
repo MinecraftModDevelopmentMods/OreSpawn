@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +27,8 @@ import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
+import zone.moddev.mc.orespawn.api.GeologyColumn;
+import zone.moddev.mc.orespawn.api.OreGenerationContext;
 import zone.moddev.mc.orespawn.api.OrePatternType;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes;
@@ -119,6 +122,7 @@ public final class SurfaceProbeTestMod {
 	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
 	private static final Block WEATHER_SNOW_REPLACEMENT = Blocks.WOOL;
 	private static final Block WEATHER_ICE_REPLACEMENT = Blocks.PACKED_ICE;
+	private static final AtomicInteger EXTENDED_CONTEXT_INVOCATIONS = new AtomicInteger();
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn", "stable_craton"),
 			new ResourceLocation("orespawn", "mountain_belt"),
@@ -131,7 +135,27 @@ public final class SurfaceProbeTestMod {
 	};
 
 	private static final OrePatternType EXTERNAL_PATTERN = OrePatternType.create(
-			StandardPatternSettings.CODEC, settings -> context -> false)
+			StandardPatternSettings.CODEC, settings -> context -> {
+				if (!(context instanceof OreGenerationContext)) {
+					throw new IllegalStateException("External pattern did not receive OreGenerationContext");
+				}
+				OreGenerationContext generation = (OreGenerationContext) context;
+				if (generation.worldSeed() != 0L || !OVERWORLD.equals(generation.dimension())
+						|| generation.chunkX() != (generation.originX() >> 4)
+						|| generation.chunkZ() != (generation.originZ() >> 4)) {
+					throw new IllegalStateException("External pattern received unstable generation identity");
+				}
+				if (!generation.geologySampler().isPresent()) {
+					throw new IllegalStateException("Overworld pattern did not receive its geology sampler");
+				}
+				GeologyColumn column = generation.geologySampler().get().sampleColumn(
+						generation.originX(), generation.originZ(), 64);
+				if (!generation.dimension().equals(column.dimension())) {
+					throw new IllegalStateException("Context and sampler dimensions disagree");
+				}
+				EXTENDED_CONTEXT_INVOCATIONS.incrementAndGet();
+				return false;
+			})
 			.setRegistryName(MODID, "external_probe");
 
 	private final BiomeRegistrar registrar = OreSpawnBiomes.registrar(MODID);
@@ -215,6 +239,11 @@ public final class SurfaceProbeTestMod {
 		provider.fluidDeposit(new ResourceLocation(MODID, "fluid_deposit/dynamic_tick_probe"),
 				id(DEPOSIT_FLUID), deposit -> deposit.dimension(OVERWORLD,
 						dimension -> dimension.hostBlock(id(Blocks.STONE))));
+		provider.ore(new ResourceLocation(MODID, "ore/generation_context_probe"),
+				id(Blocks.COAL_ORE), ore -> ore.retrogen(true).dimension(OVERWORLD,
+						dimension -> dimension.yRange(16, 48).attempts(1.0D).quantity(1)
+								.pattern(new ResourceLocation(MODID, "external_probe"), new JsonObject())
+								.hostBlock(id(Blocks.STONE))));
 		// This stable palette id makes seed zero select both fixture biomes on
 		// opposite sides of the 1,024-block Tiny-region boundary.
 		addPalette(provider, "end_palette_1", END, false);
@@ -331,6 +360,9 @@ public final class SurfaceProbeTestMod {
 		WorldServer overworld = server.getWorld(0);
 		if (overworld == null || overworld.getSeed() != 0L) {
 			throw new IllegalStateException("surfaceprobe requires seed token zsjpxah (hash zero)");
+		}
+		if ("fresh".equals(phase) && EXTENDED_CONTEXT_INVOCATIONS.get() <= 0) {
+			throw new IllegalStateException("External generation context probe did not run");
 		}
 		Path marker = worldRoot(server).resolve(MARKER_NAME);
 		Properties previous = "reload".equals(phase) ? read(marker) : null;

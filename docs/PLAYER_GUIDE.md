@@ -9,8 +9,11 @@ For a normal game:
 
 1. Open **OreSpawn...** while creating the world.
 2. Choose **Recommended Defaults** unless you want to customise geology.
-3. Open **Help & Guide** for a plain-language tour of the controls.
-4. Press **Done**, then create the world normally.
+3. Open **Mods** to see which installed mods OreSpawn recognized and whether
+   their provider is active. A lit cog opens that mod's own settings; a dim cog
+   explains that the mod did not supply a screen.
+4. Open **Help & Guide** for a plain-language tour of the controls.
+5. Press **Done**, then create the world normally.
 
 Hover over unfamiliar controls for a short explanation. The same explanations
 are collected in **Help & Guide**, so a setting can be learned either while
@@ -43,6 +46,10 @@ safely instead of breaking world creation.
   region.
 - **Manage Vanilla Ores** lets OreSpawn replace vanilla ore features with the
   configured OreSpawn rules. Leave it off to keep normal Minecraft placement.
+- **Mods** opens a paginated directory of loaded OreSpawn integrations. It
+  reports the Forge mod version, native OS4 or legacy OS1-OS3 lineage, provider
+  schema/revision and current status. Historical profile owners that are not
+  loaded are not shown.
 - **Fluid Deposits** appears after strata are enabled or when a mod or pack
   supplies a rule. Press **Add** to choose water, lava, or a fluid block from an
   installed mod. These are covered underground deposits, not exposed vanilla

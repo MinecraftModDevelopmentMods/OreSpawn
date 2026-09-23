@@ -194,6 +194,45 @@ class WorldgenProviderTest {
 	}
 
 	@Test
+	void serializesBackgroundControllerAndExistingWorldMergePolicy() {
+		WorldgenProvider.OreDimensionDefinition placement = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld"))
+				.hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(0.25D)
+				.build();
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.mergeNewEntriesIntoExistingWorlds(false)
+				.ore(id("examplemod:iron_controller"), id("minecraft:iron_ore"), ore -> ore
+						.retrogen(false).dimension(placement))
+				.build();
+
+		assertFalse(provider.mergeNewEntriesIntoExistingWorlds());
+		assertEquals(0.25D, placement.backgroundGenerationScale().getAsDouble());
+		JsonObject json = provider.toJson();
+		assertFalse(json.get("merge_new_entries_into_existing_worlds").getAsBoolean());
+		assertEquals(0.25D, json.getAsJsonObject("ores")
+				.getAsJsonObject("examplemod:iron_controller")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
+				.get("background_generation_scale").getAsDouble());
+	}
+
+	@Test
+	void backgroundControllerDefaultsAreNonControllingAndBoundsAreValidated() {
+		WorldgenProvider.OreDimensionDefinition ordinary = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone")).build();
+		assertFalse(ordinary.backgroundGenerationScale().isPresent());
+		assertTrue(WorldgenProvider.builder("examplemod", 1)
+				.ore(id("examplemod:ordinary"), id("minecraft:iron_ore"), ore -> ore.dimension(ordinary))
+				.build().mergeNewEntriesIntoExistingWorlds());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(-0.01D).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(1.01D).build());
+	}
+
+	@Test
 	void rejectsDefinitionsOutsideProviderNamespace() {
 		assertThrows(IllegalStateException.class, () -> WorldgenProvider.builder("examplemod", 1)
 				.rock(id("minecraft:not_owned"), id("minecraft:calcite"),

@@ -65,8 +65,12 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 			return;
 		}
 		Block output = vanillaOutput(event.getType());
-		if (output != null && OreSpawnOreGeneration.takesOverVanillaOre(dimension, output)) {
-			event.setResult(Event.Result.DENY);
+		if (output != null) {
+			ChunkPos chunk = new ChunkPos(event.getPos());
+			if (!OreSpawnOreGeneration.allowsVanillaOre(dimension, output,
+					event.getWorld().getSeed(), chunk.x, chunk.z)) {
+				event.setResult(Event.Result.DENY);
+			}
 		}
 	}
 

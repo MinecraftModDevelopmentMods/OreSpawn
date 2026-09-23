@@ -4,7 +4,11 @@ import java.util.Random;
 
 import net.minecraftforge.fluids.Fluid;
 
-/** Allocation-free view supplied to a compiled ore pattern for one attempt. */
+/**
+ * Allocation-free view supplied to a compiled ore pattern for one attempt.
+ * OreSpawn 4.1 contexts also implement {@link OreGenerationContext}; this base
+ * interface remains unchanged for binary compatibility with existing patterns.
+ */
 public interface OrePlacementContext {
 	Random random();
 

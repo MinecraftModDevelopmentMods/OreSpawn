@@ -85,6 +85,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
+import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.worldgen.LegacyOs3ProfileMigration;
 
 /**
@@ -284,6 +285,7 @@ public final class LegacyOs3Bridge {
 			LOGGER.error("Could not migrate OS3 global world-generation settings", failure);
 		}
 		Map<String, JsonObject> programmaticSources = API.programmaticSources();
+		recordLegacyLineages(legacyDirectory, programmaticSources);
 		if (Files.isRegularFile(bridgeMarker)) {
 			LOGGER.info("OS3 provider migration already completed; retaining migrated files unchanged");
 			return;
@@ -347,6 +349,28 @@ public final class LegacyOs3Bridge {
 		} catch (IOException failure) {
 			REPORT.add("migration_marker_failed=" + failure.getClass().getSimpleName());
 			LOGGER.error("Could not mark OS3 provider migration complete", failure);
+		}
+	}
+
+	private static void recordLegacyLineages(Path legacyDirectory,
+			Map<String, JsonObject> programmaticSources) {
+		for (String owner : programmaticSources.keySet()) {
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 3);
+		}
+		for (String owner : API.embedded.keySet()) {
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 3);
+		}
+		if (!Files.isDirectory(legacyDirectory)) return;
+		try (DirectoryStream<Path> files = Files.newDirectoryStream(legacyDirectory, "*.json")) {
+			for (Path file : files) {
+				String owner = file.getFileName().toString().replaceFirst("\\.json$", "");
+				if (validModId(owner)) {
+					WorldgenIntegrationManager.recordLegacyLineage(owner, 3);
+				}
+			}
+		} catch (IOException failure) {
+			REPORT.add("lineage_scan_failed=" + legacyDirectory + ":"
+					+ failure.getClass().getSimpleName());
 		}
 	}
 

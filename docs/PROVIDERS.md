@@ -101,9 +101,12 @@ Only suppress a provider mod's native ore generation when
 `OreSpawnApi.isOreTakeoverActive(modid)` returns true. `PENDING` means discovery
 has not frozen. `INACTIVE` is the fail-safe and native generation must remain.
 
-Existing worlds merge newly introduced provider rule IDs but do not overwrite
-world edits. Disabled and unassigned rules remain tombstones; removed provider
-rules remain in the self-contained snapshot.
+Existing worlds normally merge newly introduced provider rule IDs but do not
+overwrite world edits. A Java provider may opt out with
+`mergeNewEntriesIntoExistingWorlds(false)` when its rules capture structural
+add-on configuration that must begin only in newly created worlds. Disabled and
+unassigned rules remain tombstones; removed provider rules remain in the
+self-contained snapshot.
 
 Biome providers can add Forge biomes normally, then declare where those biomes
 belong through `biome_palettes`. The overlay wraps the dimension's existing

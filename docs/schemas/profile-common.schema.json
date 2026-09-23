@@ -148,6 +148,11 @@
           "minimum": 0.0,
           "maximum": 1.0
         },
+        "background_generation_scale": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
         "spread": { "type": "integer", "minimum": 0, "maximum": 64 },
         "vertical_spread": { "type": "integer", "minimum": 0, "maximum": 64 },
         "node_size": { "type": "integer", "minimum": 1, "maximum": 32 },

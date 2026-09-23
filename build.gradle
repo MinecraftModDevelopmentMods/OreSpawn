@@ -899,6 +899,8 @@ task clientIntegrationProcess(type: JavaExec, dependsOn: prepareClientIntegratio
         Properties result = new Properties(); marker.withInputStream { result.load(it) }
         if (result.getProperty('reload_rendered') != 'true'
                 || result.getProperty('world_settings_opened') != 'true'
+                || result.getProperty('mods_directory_rendered') != 'true'
+                || result.getProperty('directory_stack_validated') != 'true'
                 || result.getProperty('long_editor_roundtrip') != 'true'
                 || Integer.parseInt(result.getProperty('editor_routes', '0')) < 5) {
             throw new GradleException("Client integration result is incomplete: ${marker}")

@@ -106,8 +106,11 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 					contentWidth, BUTTON_HEIGHT,
 					new TextComponentTranslation("button.orespawn.biomes_world_materials"),
 					button -> openBiomeWorldMaterials(), "tooltip.orespawn.main.biomes_materials"));
-			addButton(OreSpawnScreenLayout.button(this, font, left, top + (row * rowIndex),
-					contentWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.help"),
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.mods"),
+					button -> openMods(), "tooltip.orespawn.main.mods"));
+			addButton(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.help"),
 					button -> openHelp()));
 		} else {
 			geologyModeButton = OreSpawnScreenLayout.explain(this,
@@ -150,12 +153,15 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.advanced"),
 					button -> openAdvanced(), "tooltip.orespawn.main.advanced"));
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits(),
+					"tooltip.orespawn.main.fluid_editor"));
+			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.mods"),
+					button -> openMods(), "tooltip.orespawn.main.mods"));
 			addButton(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex++),
 					columnWidth, BUTTON_HEIGHT, new TextComponentTranslation("button.orespawn.help"),
 					button -> openHelp()));
-			addButton(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
-					contentWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits(),
-					"tooltip.orespawn.main.fluid_editor"));
 		}
 		addButton(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				DialogTexts.GUI_DONE, button -> saveAndClose()));
@@ -320,6 +326,11 @@ public final class OreSpawnWorldSettingsScreen extends OreSpawnScreen {
 
 	private void openHelp() {
 		minecraft.displayGuiScreen(new OreSpawnGuideScreen(this));
+	}
+
+	private void openMods() {
+		syncSession();
+		minecraft.displayGuiScreen(new OreSpawnModsScreen(this));
 	}
 
 	@Override

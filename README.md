@@ -44,7 +44,12 @@ TerraBlender.
 
 When a provider exposes world settings, use **OreSpawn...** on the Create World
 screen. **Recommended Defaults** restores the settings supplied by the
-installed mods and pack. The in-game **Help & Guide** explains the controls.
+installed mods and pack. **Mods** opens a directory of every loaded mod that
+OreSpawn recognizes through a current provider, legacy compatibility path, or
+client configuration hook. It shows each mod's version, integration lineage,
+provider revision and status; its cog opens an add-on-owned configuration
+screen when one is available. The in-game **Help & Guide** explains the other
+controls.
 
 Important files:
 
