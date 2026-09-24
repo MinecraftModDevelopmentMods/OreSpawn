@@ -37,7 +37,6 @@ final class OreSourcePolicies {
 	private static final String OUTPUT_BALANCED = "balanced";
 	private static final String OUTPUT_SINGLE = "single";
 	private static final String OUTPUT_CUSTOM = "custom";
-	private static final ResourceLocation REVIEW = OreMaterialGroups.REVIEW;
 	private static final Map<String, List<String>> PRIORITIES = priorities();
 	private static final Set<String> ORDINARY_MMD = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
 			"basemetals", "modernmetals", "basegems", "baseminerals", "fantasymetals",
