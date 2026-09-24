@@ -22,7 +22,7 @@ import zone.moddev.mc.orespawn.util.JsonCopies;
 /** Stable material names and exact Ore Dictionary aliases used by source arbitration. */
 final class OreMaterialGroups {
 	static final String SECTION = "ore_material_groups";
-	static final ResourceLocation REVIEW = new ResourceLocation("orespawn", "review_required");
+	private static final ResourceLocation LEGACY_REVIEW = new ResourceLocation("orespawn", "review_required");
 	private static final ResourceLocation SULFUR = new ResourceLocation("orespawn", "sulfur");
 	private static final ResourceLocation ALUMINUM = new ResourceLocation("orespawn", "aluminum");
 
@@ -49,24 +49,26 @@ final class OreMaterialGroups {
 	static Inference infer(JsonObject root, Iterable<String> oreNames) {
 		Map<String, ResourceLocation> owners = aliases(root);
 		Set<ResourceLocation> materials = new LinkedHashSet<>();
-		List<String> exact = new ArrayList<>();
+		Set<String> exactNames = new LinkedHashSet<>();
 		for (String name : oreNames) {
 			if (!validOreName(name)) continue;
-			exact.add(name);
+			exactNames.add(name);
 			ResourceLocation material = owners.get(name);
 			if (material == null) {
 				String token = name.substring(3).toLowerCase(Locale.ROOT);
 				try { material = new ResourceLocation("orespawn", token); }
-				catch (RuntimeException invalid) { material = REVIEW; }
+				catch (RuntimeException invalid) { material = null; }
 			}
-			materials.add(material);
+			if (material != null) materials.add(material);
 		}
+		List<String> exact = new ArrayList<>(exactNames);
 		Collections.sort(exact);
 		if (materials.size() == 1) {
 			ResourceLocation material = materials.iterator().next();
-			return new Inference(material, REVIEW.equals(material), exact);
+			return new Inference(material, false, exact);
 		}
-		return new Inference(materials.size() > 1 ? REVIEW : null, materials.size() > 1, exact);
+		return new Inference(materials.size() > 1 ? provisionalMaterial(exact) : null,
+				materials.size() > 1, exact);
 	}
 
 	static List<Definition> definitions(JsonObject root) {
@@ -101,6 +103,7 @@ final class OreMaterialGroups {
 	}
 
 	static boolean ensureDefinition(JsonObject root, ResourceLocation id, Iterable<String> oreNames) {
+		List<String> exact = exactOreNames(oreNames);
 		JsonObject groups = root.has(SECTION) && root.get(SECTION).isJsonObject()
 				? root.getAsJsonObject(SECTION) : defaults();
 		boolean changed = !root.has(SECTION) || !root.get(SECTION).isJsonObject();
@@ -109,7 +112,7 @@ final class OreMaterialGroups {
 			value = groups.getAsJsonObject(id.toString());
 		} else {
 			value = new JsonObject();
-			value.addProperty("display_name", humanize(id.getPath()));
+			value.addProperty("display_name", defaultDisplayName(id, exact));
 			value.add("ore_dictionary_entries", new JsonArray());
 			groups.add(id.toString(), value);
 			changed = true;
@@ -126,7 +129,7 @@ final class OreMaterialGroups {
 			try { present.add(alias.getAsString()); } catch (RuntimeException ignored) { }
 		}
 		Map<String, ResourceLocation> owners = aliases(root);
-		for (String name : oreNames) {
+		for (String name : exact) {
 			if (!validOreName(name) || present.contains(name)) continue;
 			ResourceLocation owner = owners.get(name);
 			if (owner != null && !owner.equals(id)) continue;
@@ -152,7 +155,7 @@ final class OreMaterialGroups {
 		JsonObject result = new JsonObject();
 		for (Entry<String, JsonElement> entry : groups.entrySet()) {
 			ResourceLocation id = resource(entry.getKey());
-			if (id == null || !entry.getValue().isJsonObject()) continue;
+			if (id == null || LEGACY_REVIEW.equals(id) || !entry.getValue().isJsonObject()) continue;
 			JsonObject source = entry.getValue().getAsJsonObject();
 			JsonObject value = new JsonObject();
 			value.addProperty("display_name", string(source, "display_name", humanize(id.getPath())));
@@ -221,6 +224,48 @@ final class OreMaterialGroups {
 	private static String humanize(String path) {
 		String value = path.replace('_', ' ').replace('/', ' ');
 		return value.isEmpty() ? value : Character.toUpperCase(value.charAt(0)) + value.substring(1);
+	}
+
+	private static ResourceLocation provisionalMaterial(List<String> exact) {
+		String token = exact.isEmpty() ? "unknown"
+				: exact.get(0).substring(3).toLowerCase(Locale.ROOT);
+		return new ResourceLocation("orespawn", "review/" + token + '-' + stableAliasHash(exact));
+	}
+
+	private static String stableAliasHash(List<String> exact) {
+		long hash = 0xcbf29ce484222325L;
+		for (String name : exact) {
+			for (int index = 0; index < name.length(); index++) {
+				hash ^= name.charAt(index);
+				hash *= 0x100000001b3L;
+			}
+			hash ^= 0xffL;
+			hash *= 0x100000001b3L;
+		}
+		String value = Long.toHexString(hash);
+		StringBuilder padded = new StringBuilder(16);
+		for (int index = value.length(); index < 16; index++) padded.append('0');
+		return padded.append(value).toString();
+	}
+
+	private static List<String> exactOreNames(Iterable<String> oreNames) {
+		Set<String> unique = new LinkedHashSet<>();
+		for (String name : oreNames) if (validOreName(name)) unique.add(name);
+		List<String> result = new ArrayList<>(unique);
+		Collections.sort(result);
+		return result;
+	}
+
+	private static String defaultDisplayName(ResourceLocation id, List<String> exact) {
+		if (!"orespawn".equals(id.getNamespace()) || !id.getPath().startsWith("review/")) {
+			return humanize(id.getPath());
+		}
+		StringBuilder display = new StringBuilder();
+		for (String name : exact) {
+			if (display.length() > 0) display.append(", ");
+			display.append(humanize(name.substring(3)));
+		}
+		return display.length() == 0 ? "Review required" : display.toString();
 	}
 
 	static final class Definition {

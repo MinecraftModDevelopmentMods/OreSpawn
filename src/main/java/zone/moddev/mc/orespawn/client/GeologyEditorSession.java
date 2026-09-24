@@ -795,7 +795,29 @@ final class GeologyEditorSession {
 			}
 		}
 		return materials.size() == 1 ? materials.iterator().next()
-				: materials.size() > 1 ? "orespawn:review_required" : "";
+				: materials.size() > 1 ? provisionalMaterialForAliases(aliases) : "";
+	}
+
+	private static String provisionalMaterialForAliases(List<String> aliases) {
+		Set<String> unique = new LinkedHashSet<>();
+		for (String alias : aliases) if (validOreDictionaryName(alias)) unique.add(alias);
+		List<String> exact = new ArrayList<>(unique);
+		Collections.sort(exact);
+		String token = exact.isEmpty() ? "unknown"
+				: exact.get(0).substring(3).toLowerCase(Locale.ROOT);
+		long hash = 0xcbf29ce484222325L;
+		for (String name : exact) {
+			for (int index = 0; index < name.length(); index++) {
+				hash ^= name.charAt(index);
+				hash *= 0x100000001b3L;
+			}
+			hash ^= 0xffL;
+			hash *= 0x100000001b3L;
+		}
+		String value = Long.toHexString(hash);
+		StringBuilder padded = new StringBuilder(16);
+		for (int index = value.length(); index < 16; index++) padded.append('0');
+		return "orespawn:review/" + token + '-' + padded.append(value).toString();
 	}
 
 	private static boolean isCustomMaterial(String material) {

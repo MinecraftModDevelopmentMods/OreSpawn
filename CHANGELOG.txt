@@ -52,6 +52,9 @@ Version 4.1.0.112021
   Saltpeter distinct, deduplicate identical registry states, and allow confirmed
   alias reassignment plus stable custom groups. Group edits are saved to the
   world and future-world defaults only when the main editor's Done is accepted.
+* Keep unrelated ambiguous Ore Dictionary alias families in separate stable
+  review groups. Legacy shared Review required data is rediscovered into those
+  groups, so Adamantine aliases can no longer appear in Mercury settings.
 * Ignore missing historical external-candidate records when the same registry
   state is now supplied by a loaded managed provider, preventing resolved
   groups from remaining falsely red while retaining the dormant record.

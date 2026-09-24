@@ -2,6 +2,7 @@ package zone.moddev.mc.orespawn.worldgen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -44,7 +45,7 @@ class OreSourcePoliciesTest {
 				Collections.singletonList("oreSaltpeter")).material.toString());
 		OreSourcePolicies.Inference ambiguous = OreSourcePolicies.inferMaterial(
 				Arrays.asList("oreNiter", "oreSaltpeter"));
-		assertEquals("orespawn:review_required", ambiguous.material.toString());
+		assertTrue(ambiguous.material.toString().startsWith("orespawn:review/"));
 		assertTrue(ambiguous.reviewRequired);
 		assertEquals(null, OreSourcePolicies.inferMaterial(
 				Arrays.asList("dustSulfur", "crushedSulfur")).material);
@@ -52,6 +53,64 @@ class OreSourcePoliciesTest {
 				Collections.singletonList("oreBad Path"));
 		assertEquals(null, invalid.material);
 		assertFalse(invalid.reviewRequired);
+	}
+
+	@Test
+	void unrelatedAmbiguousAliasFamiliesReceiveDistinctStableReviewGroups() {
+		JsonObject root = root();
+		OreMaterialGroups.initialize(root);
+		java.util.List<String> adamantineAliases = Arrays.asList(
+				"oreAdamantine", "oreAdamantite", "oreAdamantium", "oreAdamant");
+		java.util.List<String> reorderedAdamantineAliases = Arrays.asList(
+				"oreAdamantium", "oreAdamant", "oreAdamantite", "oreAdamantine");
+		java.util.List<String> mercuryAliases = Arrays.asList("oreMercury", "oreQuicksilver");
+
+		OreSourcePolicies.Inference adamantine = OreSourcePolicies.inferMaterial(root,
+				adamantineAliases);
+		OreSourcePolicies.Inference reordered = OreSourcePolicies.inferMaterial(root,
+				reorderedAdamantineAliases);
+		OreSourcePolicies.Inference mercury = OreSourcePolicies.inferMaterial(root, mercuryAliases);
+
+		assertTrue(adamantine.reviewRequired);
+		assertTrue(mercury.reviewRequired);
+		assertEquals(adamantine.material, reordered.material,
+				"Alias order must not change the provisional material identity");
+		assertNotEquals(adamantine.material, mercury.material,
+				"Unrelated ambiguous alias families must never share a review group");
+
+		OreMaterialGroups.ensureDefinition(root, adamantine.material, adamantineAliases);
+		OreMaterialGroups.ensureDefinition(root, mercury.material, mercuryAliases);
+		OreMaterialGroups.Definition adamantineDefinition = OreMaterialGroups.definition(root,
+				adamantine.material);
+		OreMaterialGroups.Definition mercuryDefinition = OreMaterialGroups.definition(root,
+				mercury.material);
+		assertEquals(Arrays.asList("oreAdamant", "oreAdamantine", "oreAdamantite",
+				"oreAdamantium"), adamantineDefinition.oreDictionaryEntries);
+		assertEquals(Arrays.asList("oreMercury", "oreQuicksilver"),
+				mercuryDefinition.oreDictionaryEntries);
+		assertEquals("Adamant, Adamantine, Adamantite, Adamantium",
+				adamantineDefinition.displayName);
+		assertEquals("Mercury, Quicksilver", mercuryDefinition.displayName);
+		assertFalse(OreSourcePolicies.inferMaterial(root, adamantineAliases).reviewRequired,
+				"Once the alias family exists, accepting it must survive a later rebuild");
+	}
+
+	@Test
+	void legacySharedReviewGroupIsRemovedSoItsAliasFamiliesCanBeRediscovered() {
+		JsonObject root = root();
+		JsonObject groups = new JsonObject();
+		JsonObject legacy = new JsonObject();
+		legacy.addProperty("display_name", "Review required");
+		JsonArray aliases = new JsonArray();
+		aliases.add(new JsonPrimitive("oreAdamantine"));
+		aliases.add(new JsonPrimitive("oreMercury"));
+		legacy.add("ore_dictionary_entries", aliases);
+		groups.add("orespawn:review_required", legacy);
+		root.add(OreMaterialGroups.SECTION, groups);
+
+		assertTrue(OreMaterialGroups.initialize(root));
+		assertFalse(root.getAsJsonObject(OreMaterialGroups.SECTION)
+				.has("orespawn:review_required"));
 	}
 
 	@Test

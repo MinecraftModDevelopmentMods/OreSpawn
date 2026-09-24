@@ -253,7 +253,10 @@ Dictionary are being baked. Explicit `material` declarations win. Otherwise,
 only exact Ore Dictionary names of the form `oreX` are inferred; curated
 spelling aliases include sulfur/sulphur and aluminum/aluminium. Niter and
 Saltpeter remain distinct, and ambiguous entries are marked **Review required**
-instead of being guessed. Registry, dictionary and policy work never runs in a
+instead of being guessed. Each ambiguous alias family receives its own stable
+provisional group ID, so unrelated families cannot be combined merely because
+both need review. Old shared `orespawn:review_required` data is split by fresh
+discovery on load. Registry, dictionary and policy work never runs in a
 chunk-generation loop.
 
 Each `ore_material_groups` entry has a persistent registry-style group ID, a
