@@ -87,6 +87,11 @@ class OreSourcePlacementScreenTest {
 				Arrays.asList("oreSulfur", "oreSulphur"), Arrays.asList(first, second));
 		OreSourceGroup unresolved = group("keep_separate", "review_required",
 				Arrays.asList("oreSulfur", "oreSulphur"), Arrays.asList(first, second));
+		OreSourceCandidate externalCandidate = candidate("external", "external:ore",
+				"external:uncontrolled", true, false, true);
+		OreSourceGroup external = group("keep_separate", "external_generation",
+				Arrays.asList("oreSulfur", "oreSulphur"),
+				Arrays.asList(first, externalCandidate));
 
 		assertTrue(routine.isRoutineSingleSource());
 		assertFalse(OreSourceListScreen.showByDefault(routine));
@@ -99,6 +104,11 @@ class OreSourcePlacementScreenTest {
 		assertFalse(resolved.needsReview());
 		assertTrue(OreSourceListScreen.showByDefault(unresolved));
 		assertEquals(0xFF5555, OreSourceListScreen.groupRowColor(unresolved));
+		assertFalse(external.needsAttention(),
+				"An informational external generator must not look like an unresolved decision");
+		assertFalse(external.needsReview());
+		assertTrue(OreSourceListScreen.showByDefault(external));
+		assertEquals(0xFFFF55, OreSourceListScreen.groupRowColor(external));
 	}
 
 	private static OreSourceCandidate candidate(String source, String channel,

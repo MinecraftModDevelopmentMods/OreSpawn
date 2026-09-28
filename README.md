@@ -151,6 +151,11 @@ from an empty Gradle home followed by an offline replay from that same cache:
 .\gradlew.bat genEclipseRuns verifyEclipseProductionClasspath --no-daemon
 ```
 
+Git stores text with LF endings and checks out source, guides, and `gradlew`
+with LF on every platform. Windows `.bat` and `.cmd` files use CRLF. The
+`.gitattributes` and `.editorconfig` files agree on this policy; a fresh
+checkout applies it without changing any Git or editor-wide settings.
+
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
 that lifecycle packages a test-only provider mod and verifies 2,304 exposed
 surface columns per built-in normal-noise End and Nether dimension, including

@@ -21,17 +21,21 @@ class ReleaseWorkflowContractTest {
 		}
 		assertEquals("zone.moddev.mc.orespawn", properties.getProperty("mod_group"));
 
-		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String build = readScript("build.gradle");
+		String publishing = readScript("gradle/release/publishing.gradle");
+		String support = readScript("gradle/verification/support.gradle");
+		String eclipse = readScript("gradle/ide/eclipse.gradle");
+		assertTrue(build.contains("apply from: 'gradle/release/publishing.gradle'"));
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 		assertFalse(build.contains("Mavenizer compatibility"));
 		assertTrue(build.contains("args 'nogui'"));
 		assertFalse(build.contains("args '--nogui'"));
-		assertTrue(build.contains("process.setArgs(['nogui'])"));
-		assertTrue(build.contains("PROGRAM_ARGUMENTS\" value=\"--nogui"));
-		assertTrue(build.contains("contents.contains('--nogui')"));
+		assertTrue(support.contains("process.setArgs(['nogui'])"));
+		assertTrue(eclipse.contains("PROGRAM_ARGUMENTS\" value=\"--nogui"));
+		assertTrue(eclipse.contains("contents.contains('--nogui')"));
 
 		String ci = readWorkflow("ci.yml");
 		String codeql = readWorkflow("codeql-analysis.yml");
@@ -51,6 +55,10 @@ class ReleaseWorkflowContractTest {
 		assertTrue(ci.contains("test ! -e \"$GRADLE_USER_HOME\""));
 		assertTrue(ci.contains("classes verifyLegacyFixtures"));
 		assertTrue(ci.contains("--rerun-tasks --offline --no-daemon --no-build-cache"));
+	}
+
+	private static String readScript(String path) throws Exception {
+		return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
 	}
 
 	private static String readWorkflow(String name) throws Exception {

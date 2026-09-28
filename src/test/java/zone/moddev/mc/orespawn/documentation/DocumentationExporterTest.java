@@ -27,7 +27,7 @@ class DocumentationExporterTest {
 					.sorted()
 					.collect(Collectors.toList());
 		}
-		assertEquals(21, tracked.size());
+		assertEquals(20, tracked.size());
 		assertEquals(tracked.size(), firstExport);
 		for (Path source : tracked) {
 			Path relative = Paths.get("docs").relativize(source);

@@ -126,6 +126,72 @@ class GeologyEditorSessionTest {
 	}
 
 	@Test
+	void missingProviderAssetsRemainDormantWithoutBlockingTheEditor() {
+		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
+		session.configureDefaultVanillaStrata();
+
+		JsonObject rock = new JsonObject();
+		rock.addProperty("family", "igneous_volcanic");
+		rock.addProperty("weight", 1.0D);
+		rock.addProperty("enabled", true);
+		rock.addProperty("block", "missingmod:basalt");
+		markOrphanedProvider(rock);
+		session.section("rocks").add("missingmod:rock/basalt", rock);
+
+		JsonObject ore = new JsonObject();
+		ore.addProperty("block", "missingmod:ore");
+		ore.addProperty("enabled", true);
+		JsonObject oreRule = GeologyEditorSession.defaultOreDimension();
+		JsonArray oreHosts = new JsonArray();
+		oreHosts.add(new JsonPrimitive("minecraft:stone"));
+		oreRule.add("host_blocks", oreHosts);
+		JsonObject oreDimensions = new JsonObject();
+		oreDimensions.add("minecraft:overworld", oreRule);
+		ore.add("dimensions", oreDimensions);
+		markOrphanedProvider(ore);
+		session.section("ores").add("missingmod:ore/test", ore);
+
+		String depositId = session.assignFluidDeposit("minecraft:water");
+		JsonObject deposit = session.section("fluid_deposits").remove(depositId).getAsJsonObject();
+		deposit.addProperty("block", "missingmod:fluid");
+		markOrphanedProvider(deposit);
+		session.section("fluid_deposits").add("missingmod:fluid_deposit/test", deposit);
+
+		JsonObject terrain = new JsonObject();
+		terrain.addProperty("enabled", true);
+		JsonArray terrainHosts = new JsonArray();
+		terrainHosts.add(new JsonPrimitive("missingmod:host"));
+		terrain.add("host_blocks", terrainHosts);
+		markOrphanedProvider(terrain);
+		session.section("terrain_dimensions").add("missingmod:dimension", terrain);
+
+		JsonObject palette = new JsonObject();
+		palette.addProperty("dimension", "minecraft:overworld");
+		palette.addProperty("enabled", true);
+		JsonObject paletteBiomes = new JsonObject();
+		JsonObject placement = new JsonObject();
+		placement.addProperty("weight", 1.0D);
+		paletteBiomes.add("missingmod:biome", placement);
+		palette.add("biomes", paletteBiomes);
+		markOrphanedProvider(palette);
+		session.section("biome_palettes").add("missingmod:palette", palette);
+
+		JsonObject materials = new JsonObject();
+		materials.addProperty("dimension", "minecraft:overworld");
+		materials.addProperty("default_fluid", "missingmod:fluid");
+		materials.addProperty("snow_block", "missingmod:snow");
+		markOrphanedProvider(materials);
+		session.section("dimension_materials").add("missingmod:materials", materials);
+
+		java.util.List<String> errors = session.validate();
+		assertTrue(errors.isEmpty(), errors.toString());
+
+		rock.remove("orphaned_provider");
+		assertTrue(session.validate().contains("Invalid rock block: missingmod:basalt"),
+				"The same unresolved local definition must still block saving");
+	}
+
+	@Test
 	void rangedSelectorOreIsValidWithoutAnExplicitDimension() {
 		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
 		JsonObject ore = session.ore("minecraft:coal_ore");
@@ -839,6 +905,11 @@ class GeologyEditorSessionTest {
 		return session.oreSourceGroups().stream()
 				.filter(group -> material.equals(group.material))
 				.findFirst().orElseThrow(() -> new AssertionError("Missing group " + material));
+	}
+
+	private static void markOrphanedProvider(JsonObject definition) {
+		definition.addProperty("source_provider", "missingmod");
+		definition.addProperty("orphaned_provider", true);
 	}
 
 	private static JsonObject candidate(String sourceId, String owner, String registryId,
