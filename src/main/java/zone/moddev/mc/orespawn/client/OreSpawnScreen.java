@@ -98,6 +98,17 @@ abstract class OreSpawnScreen extends GuiScreen {
 	}
 
 	final void renderStringTooltip(List<String> lines, int mouseX, int mouseY) {
-		drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
+		List<String> wrapped = new ArrayList<>();
+		int maximumWidth = tooltipWidth(width, mouseX);
+		for (String line : lines) {
+			if (line == null || line.isEmpty()) wrapped.add("");
+			else wrapped.addAll(fontRendererObj.listFormattedStringToWidth(line, maximumWidth));
+		}
+		drawHoveringText(wrapped, mouseX, mouseY, fontRendererObj);
+	}
+
+	static int tooltipWidth(int screenWidth, int mouseX) {
+		int room = Math.max(mouseX - 24, screenWidth - mouseX - 24);
+		return Math.max(80, Math.min(260, Math.min(screenWidth - 32, room)));
 	}
 }

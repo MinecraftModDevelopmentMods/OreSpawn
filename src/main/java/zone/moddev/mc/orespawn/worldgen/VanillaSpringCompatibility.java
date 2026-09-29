@@ -12,6 +12,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.gen.ChunkProviderOverworld;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -47,6 +49,10 @@ public final class VanillaSpringCompatibility {
 
 	static void replaceVanillaSpringPass(DecorateBiomeEvent.Decorate event) {
 		if (providerRocks.isEmpty() || event.getResult() == Event.Result.DENY) return;
+		World world = event.getWorld();
+		if (!(world instanceof WorldServer)
+				|| !(((WorldServer) world).getChunkProvider().chunkGenerator
+						instanceof ChunkProviderOverworld)) return;
 		Block fluid;
 		int attempts;
 		if (event.getType() == DecorateBiomeEvent.Decorate.EventType.LAKE_WATER) {
@@ -56,7 +62,7 @@ public final class VanillaSpringCompatibility {
 		} else {
 			return;
 		}
-		World world = event.getWorld(); java.util.Random random = event.getRand();
+		java.util.Random random = event.getRand();
 		BlockPos origin = event.getPos();
 		for (int attempt = 0; attempt < attempts; attempt++) {
 			int x = random.nextInt(16) + 8;

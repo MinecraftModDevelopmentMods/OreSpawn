@@ -50,6 +50,15 @@ class VanillaSpringCompatibilityTest {
 	}
 
 	@Test
+	void independentChunkGeneratorsKeepTheirOwnSpringPass() throws Exception {
+		String source = source();
+		assertTrue(source.contains("instanceof ChunkProviderOverworld"));
+		assertTrue(source.indexOf("instanceof ChunkProviderOverworld")
+				< source.indexOf("event.getRand()"),
+				"an unsupported generator must be rejected before OreSpawn consumes its random stream");
+	}
+
+	@Test
 	void springChecksEveryNeighbourIsLoadedBeforeReadingItsState() throws Exception {
 		String source = source();
 		int loadedGuard = source.indexOf("if (!loaded(world, pos)");

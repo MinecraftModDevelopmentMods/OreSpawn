@@ -111,6 +111,7 @@ class TooltipAlignmentTest {
 			"tooltip.orespawn.main.biomes_materials",
 			"tooltip.orespawn.main.advanced",
 			"tooltip.orespawn.main.fluid_editor",
+			"tooltip.orespawn.main.mods",
 			"tooltip.orespawn.manage_vanilla_ores",
 			"tooltip.orespawn.fluid_deposits",
 			"tooltip.orespawn.advanced.formations",

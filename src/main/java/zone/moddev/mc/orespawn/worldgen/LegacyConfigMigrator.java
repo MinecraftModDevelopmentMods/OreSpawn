@@ -46,6 +46,7 @@ final class LegacyConfigMigrator {
 
 	static JsonObject migrateIfNeeded(Path target, JsonObject defaults,
 			BiFunction<String, String, List<String>> providerRules) {
+		recordLegacyOwners(target.getParent());
 		if (Files.exists(target)) return null;
 		Path config = target.getParent();
 		Path mineralogy = config.resolve("mineralogy-geomes.json");
@@ -100,6 +101,16 @@ final class LegacyConfigMigrator {
 		writeReport(config, report);
 		LOGGER.info("Migrated {} legacy OreSpawn definitions into '{}'", imported, target);
 		return migrated;
+	}
+
+	private static void recordLegacyOwners(Path config) {
+		if (config == null) return;
+		for (Path path : legacyFiles(config)) {
+			JsonObject root = readObject(path);
+			if (root == null || !"2.0".equals(string(root, "version", ""))) continue;
+			String owner = safe(path.getFileName().toString().replaceFirst("\\.json$", ""));
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 2);
+		}
 	}
 
 	private static String migratedRuleId(String owner, String legacyName, JsonObject converted,

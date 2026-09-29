@@ -18,11 +18,18 @@ import com.google.gson.JsonParser;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Algorithm;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
+import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class WorldGeologyProfileTest {
+	@BeforeAll
+	static void bootstrapMinecraft() {
+		Forge12TestBootstrap.registerVanilla();
+	}
+
 	@Test
 	void schemaThreeOilMigratesToNamedFluidDeposit() {
 		JsonObject legacy = completeGlobalFixture();
@@ -120,6 +127,75 @@ class WorldGeologyProfileTest {
 		assertTrue(result.has("ores"));
 		assertTrue(result.has("fluid_deposits"));
 		assertFalse(result.has("oil"));
+	}
+
+	@Test
+	void freshProfilesConsolidateReviewedConflictsButUpgradesStaySeparate() {
+		JsonObject global = completeGlobalFixture();
+		addSulfurConflict(global);
+		WorldGeologyProfile fresh = WorldGeologyProfile.fromGlobalConfig(
+				global, GeologyMode.GEOME, false);
+		JsonObject freshPolicy = onlyPolicy(fresh.toJson());
+		assertEquals("consolidated", freshPolicy.get("mode").getAsString());
+		assertEquals("balanced", freshPolicy.get("output_mode").getAsString());
+		assertEquals(2, freshPolicy.getAsJsonObject("outputs").entrySet().size());
+
+		JsonObject legacy = JsonCopies.copy(global);
+		legacy.addProperty("schema_version", 5);
+		legacy.remove(OreSourcePolicies.SECTION);
+		WorldGeologyProfile upgraded = WorldGeologyProfile.fromJson(legacy, fresh);
+		JsonObject upgradedPolicy = onlyPolicy(upgraded.toJson());
+		assertEquals("keep_separate", upgradedPolicy.get("mode").getAsString());
+		assertEquals(2, upgradedPolicy.getAsJsonObject("outputs").entrySet().size());
+		assertTrue(upgraded.toJson().has(OreMaterialGroups.SECTION));
+		assertEquals(WorldGeologyProfile.SCHEMA_VERSION,
+				upgraded.toJson().get("schema_version").getAsInt());
+	}
+
+	@Test
+	void schemaSixConsolidatedPoliciesInferBalancedOutputMode() {
+		JsonObject global = completeGlobalFixture();
+		addSulfurConflict(global);
+		WorldGeologyProfile fresh = WorldGeologyProfile.fromGlobalConfig(
+				global, GeologyMode.GEOME, false);
+		JsonObject oldWorld = fresh.rootCopy();
+		oldWorld.addProperty("schema_version", 6);
+		oldWorld.remove(OreMaterialGroups.SECTION);
+		onlyPolicy(oldWorld).remove("output_mode");
+
+		WorldGeologyProfile migrated = WorldGeologyProfile.fromJson(oldWorld, fresh);
+
+		assertEquals(7, migrated.toJson().get("schema_version").getAsInt());
+		assertEquals("balanced", onlyPolicy(migrated.toJson()).get("output_mode").getAsString());
+		assertTrue(migrated.toJson().has(OreMaterialGroups.SECTION));
+	}
+
+	@Test
+	void schemaOneUpgradeDoesNotInheritFreshWorldConsolidation() {
+		JsonObject global = completeGlobalFixture();
+		addSulfurConflict(global);
+		WorldGeologyProfile fallback = WorldGeologyProfile.fromGlobalConfig(
+				global, GeologyMode.GEOME, false);
+		assertEquals("consolidated", onlyPolicy(fallback.toJson()).get("mode").getAsString());
+		JsonObject schemaOne = new JsonObject();
+		schemaOne.addProperty("schema_version", 1);
+		schemaOne.addProperty("geology_mode", "geome");
+
+		WorldGeologyProfile upgraded = WorldGeologyProfile.fromJson(schemaOne, fallback);
+		assertEquals("keep_separate", onlyPolicy(upgraded.toJson()).get("mode").getAsString());
+	}
+
+	@Test
+	void existingUnprofiledWorldDoesNotInheritFreshWorldConsolidation() {
+		JsonObject global = completeGlobalFixture();
+		addSulfurConflict(global);
+		WorldGeologyProfile fresh = WorldGeologyProfile.fromGlobalConfig(
+				global, GeologyMode.GEOME, false);
+		assertEquals("consolidated", onlyPolicy(fresh.toJson()).get("mode").getAsString());
+
+		WorldGeologyProfile upgraded = WorldGeologyProfileManager
+				.initializeNewWorldPolicies(fresh, true);
+		assertEquals("keep_separate", onlyPolicy(upgraded.toJson()).get("mode").getAsString());
 	}
 
 	@Test
@@ -523,6 +599,31 @@ class WorldGeologyProfileTest {
 		JsonObject dimensions = objectWith("minecraft:overworld", rule);
 		JsonObject coal = objectWith("dimensions", dimensions);
 		return objectWith("ores", objectWith("minecraft:coal_ore", coal));
+	}
+
+	private static void addSulfurConflict(JsonObject root) {
+		JsonObject ores = root.getAsJsonObject("ores");
+		addSulfurOre(ores, "mineralogy:sulfur", "mineralogy", "minecraft:iron_ore");
+		addSulfurOre(ores, "baseminerals:sulfur", "baseminerals", "minecraft:gold_ore");
+	}
+
+	private static void addSulfurOre(JsonObject ores, String id, String owner, String block) {
+		JsonObject ore = new JsonObject();
+		ore.addProperty("enabled", true);
+		ore.addProperty("block", block);
+		ore.addProperty("material", "orespawn:sulfur");
+		ore.addProperty("source_provider", owner);
+		JsonObject rule = new JsonObject();
+		rule.addProperty("enabled", true);
+		rule.addProperty("pattern", "vein");
+		ore.add("dimensions", objectWith("minecraft:overworld", rule));
+		ores.add(id, ore);
+	}
+
+	private static JsonObject onlyPolicy(JsonObject root) {
+		JsonObject policies = root.getAsJsonObject(OreSourcePolicies.SECTION);
+		assertEquals(1, policies.entrySet().size());
+		return policies.entrySet().iterator().next().getValue().getAsJsonObject();
 	}
 
 	private static JsonObject oreRule(int minY, int maxY, double frequency, int quantity,

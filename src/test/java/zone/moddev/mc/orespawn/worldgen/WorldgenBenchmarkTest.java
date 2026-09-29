@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,20 @@ class WorldgenBenchmarkTest {
 				StandardCharsets.UTF_8);
 		assertEquals(5, occurrences(source, "if (WorldgenBenchmark.isVanillaBaseline()) return;"),
 				"terrain, springs, ores, ore filtering, and IWorldGenerator must all be bypassed");
+	}
+
+	@Test
+	void integrationBenchmarkCanProveNormalizedBlockAndBiomeParity() throws Exception {
+		String source = new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
+				"moddev", "mc", "orespawn", "worldgen", "WorldgenBenchmark.java")),
+				StandardCharsets.UTF_8);
+		assertTrue(source.contains("orespawn.worldgenBenchmarkNormalizeBlock"));
+		assertTrue(source.contains("orespawn.worldgenBenchmarkNormalizeBiome"));
+		assertTrue(source.contains("ORESPAWN_BENCHMARK_HASH"));
+		assertTrue(source.contains("orespawn.worldgenBenchmarkBiome"));
+		assertTrue(source.indexOf("ORESPAWN_BENCHMARK summary")
+				< source.indexOf("auditNormalizedHashes(level"),
+				"hashing must happen outside the measured generation interval");
 	}
 
 	private static int occurrences(String value, String needle) {

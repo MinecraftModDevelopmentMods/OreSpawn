@@ -10,8 +10,13 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.0.16.110021`: the OreSpawn 4.0.16
-feature set for Minecraft 1.10.2 and Forge. See the
+This branch builds target-qualified version `4.1.0.110021`: the OreSpawn 4.1.0
+feature set for Minecraft 1.10.2 and Forge. It adds stable generation identity,
+non-loading geology sampling, per-resource background control, existing-world
+provider merge policy, an Ore Sources arbiter for equivalent provider ores and
+a biome directory with exact new-terrain replacement overrides, plus a client
+world-settings extension point for add-ons such as Realistic Deposits
+while retaining API major 1. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 Its deprecated compatibility layer imports OreSpawn 1 and OreSpawn 3
@@ -47,7 +52,61 @@ TerraBlender.
 
 When a provider exposes world settings, use **OreSpawn...** on the Create World
 screen. **Recommended Defaults** restores the settings supplied by the
-installed mods and pack. The in-game **Help & Guide** explains the controls.
+installed mods and pack. **Mods** opens a directory of every loaded mod that
+OreSpawn recognizes through a current provider, legacy compatibility path, or
+client configuration hook. It shows each mod's version, integration lineage,
+provider revision and status; its cog opens an add-on-owned configuration
+screen when one is available. The in-game **Help & Guide** explains the other
+controls.
+
+On the ORES tab, **Ore Sources...** opens one material-group editor. Compact,
+independently scrolling lists keep relevant material groups on the left and the
+selected group's deduplicated ore blocks on the right. Harmless one-alias,
+one-output entries are hidden by default and available through **Show All**.
+Red groups need attention, yellow groups have a saved rule and green entries
+need no action. Each group's cog opens its friendly name, exact Ore Dictionary
+aliases and clearly labelled Placement Rules. Outputs choose the ore block;
+empty custom groups can be deleted, while populated custom groups use a
+confirmed **Dissolve Group** action that returns every alias to its inferred or
+curated group. Automatically discovered groups are factual and cannot be
+deleted. Placement Rules choose the frequency,
+shape, depth and host restrictions for each managed channel. New worlds balance
+all eligible outputs in reviewed MMD conflicts while running one placement
+budget, so sulfur/sulphur providers do not multiply abundance. **Single**
+chooses one output, **Custom** allows a weighted subset, and **Keep Original**
+preserves every active rule and restores the selections that were present when
+the editor was opened. A red Keep Original group exposes **Accept** so its
+unchanged policy can be marked reviewed; this remains pending until the main
+editor's **Done** is used. **Reset All** requires confirmation, removes custom
+grouping and output choices from the pending edit, then rebuilds the built-in
+and inferred groups from the currently loaded ores. It also remains pending
+until the main editor's **Done** is used, while Cancel discards it. A Placement Rules row reports how many managed
+sources are available, can cycle among them only in a consolidated mode, and
+its help explains that the choice is inactive under Keep Original.
+Existing worlds start in
+Keep Original until their owner explicitly changes a group. Third-party generators remain outside
+OreSpawn's control and are clearly reported rather than disabled.
+Native vanilla outputs become controllable placement sources only while
+**Manage Vanilla Ores** is enabled. Ore Sources updates immediately when that
+option changes, and Group Settings prevents moving a vanilla ore alias while
+management is off, with a prompt to enable it first.
+
+**Biomes** opens a directory rather than editing only the first palette. It
+shows every provider/profile palette in its stored order, the effective surface
+rule, owner, climate constraints and geome influences. Dimension materials sit
+beside the dimension selector because they apply to every biome in that
+dimension's newly generated terrain, not to the selected biome. Light-equivalent
+aquifer fluids use a provenance mask and fast pre-decoration substitution;
+unusual fluids with different lighting retain a compatible, potentially slower
+generator path.
+Routine unmanaged biomes are hidden behind **Show All**, which remains filtered
+to the selected dimension using Forge's Nether/End biome types and explicit
+provider placement declarations. A loaded biome may be
+left unchanged or replaced exactly in newly generated terrain; missing targets
+remain dormant and resume if their mod returns. The final user replacement
+layer always runs after ordinary palettes, while existing chunks are never
+rewritten. Provider, palette, dimension and all-biome resets remain pending
+until the main editor's **Done** action; **Cancel** discards them.
 
 Important files:
 
@@ -128,7 +187,9 @@ underwater, immediate filler, and ceiling-underside behavior. It also proves
 later vegetation, structures, and block entities
 survive, validates provider-rock vanilla springs and an external ore-pattern
 registration, then reopens and checks the exact saved world. The fixture is
-not included in OreSpawn's published jars.
+not included in OreSpawn's published jars. It also exercises multiple palettes
+in one dimension, an unmanaged loaded biome, exact terminal replacement in new
+chunks, unchanged old chunks, and fresh/reload profile and surface parity.
 
 Import or refresh this ForgeGradle 7 project through Eclipse Buildship, then run
 `genEclipseRuns`; do not run the removed ForgeGradle 2

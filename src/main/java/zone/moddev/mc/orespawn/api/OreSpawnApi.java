@@ -2,19 +2,21 @@ package zone.moddev.mc.orespawn.api;
 
 import java.util.Optional;
 
-import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
+import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.WorldIds;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.WorldServer;
 
 /** Entry point for OreSpawn API version 1. */
 public final class OreSpawnApi {
 	public static final int API_VERSION = 1;
 	public static final String IMC_WORLDGEN_PROVIDER = "worldgen_provider_v1";
+	private static final ResourceLocation OVERWORLD = new ResourceLocation("minecraft", "overworld");
 
 	private OreSpawnApi() {
 	}
@@ -46,10 +48,31 @@ public final class OreSpawnApi {
 	}
 
 	public static Optional<GeologySampler> createSampler(WorldServer level) {
-		if (level == null || WorldGeologyProfileManager.activeServer() != level.getMinecraftServer()
-				|| GeomeConfig.baked(WorldIds.dimension(level)) == null) {
+		if (!isActiveLevel(level) || samplerConfig(level) == null) {
 			return Optional.empty();
 		}
 		return Optional.of(OreSpawnGeologySampler.create(level));
+	}
+
+	static BakedGeomeConfig samplerConfig(WorldServer level) {
+		if (level == null) {
+			return null;
+		}
+		ResourceLocation dimension = WorldIds.dimension(level);
+		return OVERWORLD.equals(dimension) ? GeomeConfig.baked() : GeomeConfig.baked(dimension);
+	}
+
+	static boolean isActiveLevel(WorldServer level) {
+		MinecraftServer active = WorldGeologyProfileManager.activeServer();
+		if (level == null || active == null) {
+			return false;
+		}
+		if (active == level.getMinecraftServer()) {
+			return true;
+		}
+		// Forge 1.10 can populate the initial spawn before WorldServer has exposed
+		// its server through getMinecraftServer(). The server's dimension table is
+		// authoritative at that point and still rejects stale or foreign worlds.
+		return active.worldServerForDimension(level.provider.getDimension()) == level;
 	}
 }

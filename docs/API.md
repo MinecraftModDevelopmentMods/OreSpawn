@@ -52,8 +52,16 @@ coverage with `OreDefinition.Builder.dimensionSelector(...)` and
 `OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
 override that selector and prevent duplicate placement.
 
-The builder emits provider schema 4. Legacy provider schemas 1-3 remain
-readable. Schema 4 is required for biome palettes and dimension materials.
+The builder emits provider schema 5. Legacy provider schemas 1-4 remain
+readable. Schema 4 is required for biome palettes and dimension materials;
+schema 5 adds ore material identity and independent placement channels.
+
+OreSpawn 4.1's biome directory and exact replacement layer add no public Java
+API methods or descriptors. Providers continue to declare ordinary schema-4
+biome palettes and dimension materials through the existing builders below.
+The editor's provider-default snapshot and terminal override palette are
+implementation details; add-ons must not depend on their client classes or
+reserved `orespawn:ui/biome_overrides/` IDs.
 
 Provider-owned fluid deposits are declarative and may target several dimensions:
 
@@ -90,6 +98,46 @@ inclusions, with `.excludeBiome(...)` and `.excludeBiomeDictionary(...)` for
 exclusions. These methods work on both explicit `.dimension(...)` rules and
 `.dimensionSelector(...)` fallbacks; built definitions and their returned
 filter sets are immutable.
+
+Declare the canonical material separately from the output block when equivalent
+ores may be supplied by several mods:
+
+```java
+ResourceLocation sulfur = new ResourceLocation("orespawn", "sulfur");
+ResourceLocation standard = new ResourceLocation("orespawn", "standard");
+
+WorldgenProvider provider = WorldgenProvider.builder("examplemod", 2)
+    .ore(new ResourceLocation("examplemod", "ore/sulfur"), ore -> ore
+        .material(sulfur)
+        .dimension(new ResourceLocation("minecraft", "overworld"), placement -> placement
+            .placementChannel(standard)
+            .yRange(0, 48)
+            .attempts(4.0)
+            .quantity(8)
+            .pattern(OrePattern.VEIN)
+            .hostTag(new ResourceLocation("forge", "stone"))))
+    .build();
+```
+
+`OreDefinition.material()` is optional. Built-in patterns default their
+`OreDimensionDefinition.placementChannel()` to `orespawn:standard`; a custom
+pattern defaults to its registered pattern-type ID. Explicit channels keep an
+ordinary vein budget independent from a region-scale deposit budget while the
+material group may still share the same selectable outputs.
+
+Provider definitions are also the authoritative managed-output inventory. A
+disabled provider ore remains available as an output-only candidate, but it
+cannot own frequency, shape or placement. This is how a sibling mod can offer
+its sulfur block without multiplying sulfur generation. Ore Dictionary-only
+third-party blocks may be selected as outputs, but OreSpawn never claims to
+disable their independent generators.
+
+Global schema 8 and world-profile schema 7 persist `ore_material_groups` and
+the output mode chosen for each policy. These are profile configuration, not
+additional public Java descriptors. Existing provider and pattern binaries
+continue to use the same API-major-1 methods. A compiled custom pattern should
+pass its stable deposit identity to `tryPlace(x, y, z, outputIdentity)` so the
+selected material output remains constant throughout a body and across chunks.
 
 Create one `BiomeRegistrar` during normal mod construction. It attaches to the
 calling mod's event bus and defers biome factories until Forge's biome registry
@@ -150,9 +198,57 @@ OreSpawnApi.createSampler(server.overworld()).ifPresent(sampler -> {
 ```
 
 `sampleColumn` performs one biome/geome classification and reuses it for every
-Y query. Sampling is read-only and is intended for gameplay decisions,
-diagnostics, and compatible generation outside OreSpawn's block loops.
-Callbacks inside OreSpawn generation loops are intentionally unsupported.
+Y query. Sampling is read-only, does not load or generate the requested chunk,
+and is intended for gameplay decisions, diagnostics, and compatible generation
+outside OreSpawn's block loops.
+
+OreSpawn 4.1 adds `OreGenerationContext` as a binary-compatible subtype of the
+original `OrePlacementContext`. Every context supplied by OreSpawn implements
+the extended type. A custom compiled pattern can obtain stable region-scale
+identity without retaining a world object:
+
+```java
+if (!(context instanceof OreGenerationContext)) return false;
+OreGenerationContext generation = (OreGenerationContext) context;
+long seed = generation.worldSeed();
+ResourceLocation dimension = generation.dimension();
+int chunkX = generation.chunkX();
+int chunkZ = generation.chunkZ();
+Optional<GeologySampler> geology = generation.geologySampler();
+```
+
+The world seed, dimension and chunk coordinates are identical for ordinary
+generation and supported retrogen. `geologySampler()` is empty when that
+dimension has no active OreSpawn geology configuration. It otherwise returns
+the already-prepared, allocation-light sampler for the active world. Large
+patterns must independently render only the slice intersecting the current
+chunk and continue to use `inside(...)` and `tryPlace(...)` for safe writes.
+Do not retain the sampler or placement context beyond the current call.
+
+For a body that intersects several chunks, call
+`tryPlace(x, y, z, stableBodyIdentity)` instead. This Java 8 default overload
+preserves the original three-coordinate method and therefore existing pattern
+binaries. OreSpawn uses the supplied identity to choose one output source for
+the complete body rather than independently selecting an output per chunk.
+
+Large-deposit add-ons may make one OreSpawn rule the controller for a resource
+in a dimension. Set `.backgroundGenerationScale(value)` on that rule to scale
+other OreSpawn-managed rules and vanilla generation for the same primary
+output. The controller rule remains unscaled, omitted values mean `1.0`, zero
+fully suppresses background generation, and the lowest value wins when several
+controllers target the same resource. Vanilla decisions use a stable hash of
+world, dimension, chunk and resource rather than mutable event order.
+
+When a rule declares `material`, background scaling applies only to that
+material's `orespawn:standard` channel; it does not scale another custom
+placement engine. Undeclared legacy rules retain the existing block-based
+background behaviour.
+
+Providers whose entries capture structural configuration can call
+`.mergeNewEntriesIntoExistingWorlds(false)`. New worlds still receive the
+complete provider, while an existing saved world profile does not silently gain
+definitions introduced after that world was created. The historical default is
+`true`.
 
 Forge 12 custom-pattern mods attach a generic
 `RegistryEvent.Register<OrePatternType>` listener to their mod event bus and
@@ -162,6 +258,38 @@ register named values into `OreSpawnPatternRegistry.REGISTRY_NAME`. An
 `pattern(patternId, settingsJson)`. OreSpawn decodes and compiles once while
 baking the profile; only the compiled placement function runs during
 generation.
+
+## Client world-settings extensions
+
+An add-on may contribute one configuration screen to OreSpawn's **Mods**
+directory without depending on OreSpawn implementation classes. Prefer the
+owning-mod registration form during client initialization:
+
+```java
+WorldSettingsExtensionRegistry.registerConfigScreen(
+    "examplemod",
+    parent -> new ExampleDepositSettingsScreen(parent));
+```
+
+The original three-argument form remains binary compatible. Its resource
+namespace is treated as the owning mod ID:
+
+```java
+WorldSettingsExtensionRegistry.register(
+    new ResourceLocation("examplemod", "deposit_settings"),
+    "button.examplemod.deposit_settings",
+    parent -> new ExampleDepositSettingsScreen(parent));
+```
+
+OreSpawn owns directory layout and passes the Mods directory as the factory
+parent. Add-ons should use that parent for Done; OreSpawn also redirects the
+inherited vanilla Escape action there before the player returns to the main
+geology screen. Exactly one screen may be owned by
+each mod; duplicate ownership, blank legacy translation keys and null factories
+are rejected deterministically. The legacy translation key and extension
+accessors remain available to existing binaries, although the directory now
+uses its packaged cog action. These types are client-only and must not be
+loaded from a dedicated-server initialization path.
 
 `OreSpawnOreIntegration` remains as a deprecated facade for early ore-provider
 integrations. New code should use `OreSpawnApi`.

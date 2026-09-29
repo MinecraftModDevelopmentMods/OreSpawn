@@ -1,0 +1,167 @@
+import java.security.MessageDigest
+
+def forge10DevelopmentOutput = project.ext.oreSpawnBuild.developmentOutput
+
+// These are sealed copies of old mods and saves, not dependencies of the
+// shipped jar. Check their hashes before a test can use them.
+def legacyFixtureRoot = file("${rootDir}/ci-fixtures")
+def legacyFixtureArtifacts = new File(legacyFixtureRoot, 'artifacts')
+def legacyFixtureWorlds = new File(legacyFixtureRoot, 'worlds')
+def legacyMineralogyOracleJar = new File(
+        legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar')
+def legacyFixtureHashes = [
+        'artifacts/OreSpawn_1.10.2-1.1.0.jar':
+                '91345E4B825AA06E05F470066F467AABA0C7A2804A8DBCA4D3CD1905ED53607C',
+        'artifacts/OreSpawn-1.10.2-3.2.2.104.jar':
+                'D964148C20175E16CCEFAB02AE43A181A50DC08A1D636A77E59CFE8C8EA8D41A',
+        'artifacts/BaseMetals_1.10.2-2.4.0.11.jar':
+                'F919CEF794C73F02758BBD967346DBA0B53F6383153C7E29BD79F211CDA8C319',
+        'artifacts/Mineralogy-1.10.2-3.3.8.26.jar':
+                '88A6237C9A0E2C8891718B68C373E741C78B8494F5E68D8093CA9339F3BC4D87',
+        'worlds/sylvester-era-trio-source-v2.zip':
+                '11FC2FA44C43520AA9B21C29B43203EBFE0A84773D2BDCBB4F3C48C490559B07'
+]
+
+task verifyLegacyFixtures {
+    group = 'verification'
+    description = 'Verifies the sealed ABI and migration corpus used only by isolated tests.'
+    inputs.files legacyFixtureHashes.keySet().collect { new File(legacyFixtureRoot, it) }
+    doLast {
+        legacyFixtureHashes.each { String relativePath, String expectedHash ->
+            File fixture = new File(legacyFixtureRoot, relativePath)
+            if (!fixture.isFile()) {
+                throw new GradleException("Missing sealed legacy fixture: ${fixture}")
+            }
+            MessageDigest digest = MessageDigest.getInstance('SHA-256')
+            fixture.withInputStream { input ->
+                byte[] buffer = new byte[8192]
+                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
+            }
+            String actualHash = digest.digest().encodeHex().toString().toUpperCase()
+            if (actualHash != expectedHash) {
+                throw new GradleException("Legacy fixture hash mismatch for ${relativePath}: "
+                        + "expected ${expectedHash}, found ${actualHash}")
+            }
+        }
+    }
+}
+
+// The old Mineralogy jar is needed by parity tests in Eclipse. Keep it on
+// the test classpath and make the production-classpath guard prove it stays there.
+dependencies {
+    testImplementation files(legacyMineralogyOracleJar)
+}
+
+tasks.named('compileTestJava', JavaCompile) {
+    dependsOn verifyLegacyFixtures
+}
+tasks.named('test', Test) {
+    dependsOn verifyLegacyFixtures
+}
+
+tasks.register('verifyLegacyOracleIsolation') {
+    group = 'verification'
+    description = 'Keeps the sealed Mineralogy oracle test-visible but production-invisible.'
+    dependsOn verifyLegacyFixtures
+
+    doLast {
+        File oracle = legacyMineralogyOracleJar.canonicalFile
+        def canonicalFiles = { FileCollection classpath ->
+            classpath.files.collect { it.canonicalFile } as Set<File>
+        }
+        Set<File> testCompileFiles = canonicalFiles(sourceSets.test.compileClasspath)
+        Set<File> testRuntimeFiles = canonicalFiles(sourceSets.test.runtimeClasspath)
+        if (!testCompileFiles.contains(oracle) || !testRuntimeFiles.contains(oracle)) {
+            throw new GradleException('The sealed Mineralogy oracle is missing from the test classpath model')
+        }
+
+        Map<String, FileCollection> productionClasspaths = [
+                mainCompile: sourceSets.main.compileClasspath,
+                mainRuntime: sourceSets.main.runtimeClasspath
+        ]
+        productionClasspaths.each { String name, FileCollection classpath ->
+            if (canonicalFiles(classpath).contains(oracle)) {
+                throw new GradleException("The sealed Mineralogy oracle leaked into ${name}")
+            }
+        }
+    }
+}
+tasks.named('check') {
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
+}
+
+def configureFromForgeRun = { JavaExec process, String runTaskName ->
+    process.actions.clear()
+    process.dependsOn {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        run.taskDependencies.getDependencies(run)
+    }
+    process.doLast {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        String runConfigurationName = runTaskName.substring(3).uncapitalize()
+        def runOptions = minecraft.runs.getByName(runConfigurationName)
+        File originalConfiguredWorkingDir = runOptions.workingDir.get().asFile
+        File originalWorkingDir = run.workingDir
+        List<String> originalArgs = new ArrayList<>(run.args)
+        List<String> originalJvmArgs = new ArrayList<>(run.jvmArgs)
+        Map<String, Object> originalSystemProperties = new LinkedHashMap<>(run.systemProperties)
+        Map<String, Object> originalEnvironment = new LinkedHashMap<>(run.environment)
+        FileCollection originalClasspath = files(run.classpath.files)
+        String originalMinHeap = run.minHeapSize
+        String originalMaxHeap = run.maxHeapSize
+        String originalMainClass = run.mainClass.orNull
+        try {
+            File forgeConfig = new File(process.workingDir, 'config/forge.cfg')
+            if (!forgeConfig.isFile()) {
+                forgeConfig.parentFile.mkdirs()
+                forgeConfig.setText('''general {
+    B:disableVersionCheck=true
+}
+
+version_checking {
+    B:Global=false
+}
+''', 'UTF-8')
+            }
+            runOptions.workingDir.set(process.workingDir)
+            run.workingDir(process.workingDir)
+            run.args(process.args)
+            run.jvmArgs(process.jvmArgs)
+            run.systemProperties(process.systemProperties)
+            run.environment(process.environment)
+            Set<File> splitMainOutputs = [
+                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
+                    sourceSets.main.output.resourcesDir
+            ] as Set<File>
+            run.setClasspath(files(forge10DevelopmentOutput, run.classpath.filter {
+                !splitMainOutputs.contains(it)
+            }))
+            run.exec()
+        } finally {
+            runOptions.workingDir.set(originalConfiguredWorkingDir)
+            run.workingDir(originalWorkingDir)
+            run.setArgs(originalArgs)
+            run.setJvmArgs(originalJvmArgs)
+            run.setSystemProperties(originalSystemProperties)
+            run.setEnvironment(originalEnvironment)
+            run.setClasspath(originalClasspath)
+            run.minHeapSize = originalMinHeap
+            run.maxHeapSize = originalMaxHeap
+            if (originalMainClass == null) {
+                run.mainClass.unset()
+            } else {
+                run.mainClass.set(originalMainClass)
+            }
+        }
+    }
+}
+
+// Applied scripts do not share their local variables. Expose only the few
+// values used by the 1.10 migration and client gates.
+ext.oreSpawnVerification = [
+        fixtureArtifacts: legacyFixtureArtifacts,
+        fixtureWorlds: legacyFixtureWorlds,
+        configureFromForgeRun: configureFromForgeRun
+].asImmutable()

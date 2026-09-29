@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,7 +14,10 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import zone.moddev.mc.orespawn.test.Forge12TestBootstrap;
 
@@ -55,5 +59,17 @@ class LegacyBlockTranslationTest {
 		assertEquals("tile.lava.name", lava.getKey());
 		assertEquals("tile.water.name", water.getKey());
 		assertEquals("missing:fluid", DialogTexts.blockName(null, "missing:fluid").getUnformattedText());
+	}
+
+	@Test
+	void missingModBlockTranslationsFallBackToFriendlyRegistryNames() {
+		Block unnamedFluid = new Block(Material.WATER) { }
+				.setUnlocalizedName("null");
+		ITextComponent label = DialogTexts.blockName(unnamedFluid,
+				"biomesoplenty:hot_spring_water", key -> false);
+
+		assertEquals("Hot Spring Water", label.getUnformattedText());
+		assertTrue(DialogTexts.blockName(Blocks.WATER, "minecraft:water", key -> true)
+				instanceof TextComponentTranslation);
 	}
 }

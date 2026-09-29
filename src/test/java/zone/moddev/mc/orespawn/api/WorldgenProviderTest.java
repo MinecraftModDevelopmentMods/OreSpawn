@@ -37,18 +37,20 @@ class WorldgenProviderTest {
 	}
 
 	@Test
-	void serializesTypedSchemaFourProvider() {
+	void serializesTypedSchemaFiveProvider() {
 		ResourceLocation overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
 				.rock(id("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
 						.depth(20, 36).weight(1.25D).oreReplaceable(true))
 				.ore(id("examplemod:tin_ore"), ore -> ore
+						.material(id("orespawn:tin"))
 						.output(id("examplemod:tin_ore"), 9.0D)
 						.output(id("examplemod:rich_tin_ore"), 1.0D, -64, 24)
 						.suppressVanilla(true).retrogen(false)
 						.dimension(overworld, dimension -> dimension
 						.yRange(-16, 96).attempts(6.5D).quantity(8)
 						.pattern(OrePattern.CLUSTER)
+						.placementChannel(id("examplemod:ordinary_veins"))
 						.heightDistribution(OreHeightDistribution.BOTTOM_TRIANGLE)
 						.discardChanceOnAirExposure(0.75D)
 						.hostFamily(GeologyFamily.METAMORPHIC)
@@ -58,19 +60,22 @@ class WorldgenProviderTest {
 				.build();
 
 		JsonObject json = provider.toJson();
-		assertEquals(4, json.get("schema_version").getAsInt());
+		assertEquals(5, json.get("schema_version").getAsInt());
 		assertEquals("examplemod", json.get("provider_modid").getAsString());
 		assertTrue(json.getAsJsonObject("rocks").has("examplemod:rock/examplemod/slate"));
 		assertEquals("examplemod:slate", json.getAsJsonObject("rocks")
 				.getAsJsonObject("examplemod:rock/examplemod/slate").get("block").getAsString());
 		assertTrue(json.getAsJsonObject("ores").has("examplemod:ore/examplemod/tin_ore"));
 		JsonObject ore = json.getAsJsonObject("ores").getAsJsonObject("examplemod:ore/examplemod/tin_ore");
+		assertEquals("orespawn:tin", ore.get("material").getAsString());
 		assertEquals(2, ore.getAsJsonArray("outputs").size());
 		assertFalse(ore.get("retrogen").getAsBoolean());
 		assertEquals(0.75D, ore.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.getAsJsonArray("host_blocks").get(0).getAsJsonObject().get("weight").getAsDouble());
 		assertEquals("bottom_triangle", ore.getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld").get("height_distribution").getAsString());
+		assertEquals("examplemod:ordinary_veins", ore.getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:overworld").get("placement_channel").getAsString());
 		assertEquals(0.75D, ore.getAsJsonObject("dimensions")
 				.getAsJsonObject("minecraft:overworld")
 				.get("discard_chance_on_air_exposure").getAsDouble());
@@ -79,6 +84,23 @@ class WorldgenProviderTest {
 		json.getAsJsonObject("rocks").remove("examplemod:rock/examplemod/slate");
 		assertTrue(provider.toJson().getAsJsonObject("rocks")
 				.has("examplemod:rock/examplemod/slate"));
+	}
+
+	@Test
+	void derivesStablePlacementChannelsAndExposesImmutableMaterial() {
+		WorldgenProvider.OreDimensionDefinition standard = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone")).build();
+		WorldgenProvider.OreDimensionDefinition custom = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld"))
+				.pattern(id("realisticdeposits:stratiform"), new JsonObject())
+				.hostBlock(id("minecraft:stone")).build();
+		WorldgenProvider.OreDefinition ore = WorldgenProvider.OreDefinition
+				.builder(id("examplemod:iron"), id("examplemod:iron_ore"))
+				.material(id("orespawn:iron")).dimension(standard).build();
+
+		assertEquals(id("orespawn:iron"), ore.material().get());
+		assertEquals(id("orespawn:standard"), standard.placementChannel());
+		assertEquals(id("realisticdeposits:stratiform"), custom.placementChannel());
 	}
 
 	@Test
@@ -192,6 +214,45 @@ class WorldgenProviderTest {
 				.getAsJsonObject("pattern");
 		assertEquals("examplemod:sheet", pattern.get("type").getAsString());
 		assertEquals(12, pattern.getAsJsonObject("settings").get("radius").getAsInt());
+	}
+
+	@Test
+	void serializesBackgroundControllerAndExistingWorldMergePolicy() {
+		WorldgenProvider.OreDimensionDefinition placement = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld"))
+				.hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(0.25D)
+				.build();
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.mergeNewEntriesIntoExistingWorlds(false)
+				.ore(id("examplemod:iron_controller"), id("minecraft:iron_ore"), ore -> ore
+						.retrogen(false).dimension(placement))
+				.build();
+
+		assertFalse(provider.mergeNewEntriesIntoExistingWorlds());
+		assertEquals(0.25D, placement.backgroundGenerationScale().getAsDouble());
+		JsonObject json = provider.toJson();
+		assertFalse(json.get("merge_new_entries_into_existing_worlds").getAsBoolean());
+		assertEquals(0.25D, json.getAsJsonObject("ores")
+				.getAsJsonObject("examplemod:iron_controller")
+				.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
+				.get("background_generation_scale").getAsDouble());
+	}
+
+	@Test
+	void backgroundControllerDefaultsAreNonControllingAndBoundsAreValidated() {
+		WorldgenProvider.OreDimensionDefinition ordinary = WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone")).build();
+		assertFalse(ordinary.backgroundGenerationScale().isPresent());
+		assertTrue(WorldgenProvider.builder("examplemod", 1)
+				.ore(id("examplemod:ordinary"), id("minecraft:iron_ore"), ore -> ore.dimension(ordinary))
+				.build().mergeNewEntriesIntoExistingWorlds());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(-0.01D).build());
+		assertThrows(IllegalStateException.class, () -> WorldgenProvider.OreDimensionDefinition
+				.builder(id("minecraft:overworld")).hostBlock(id("minecraft:stone"))
+				.backgroundGenerationScale(1.01D).build());
 	}
 
 	@Test

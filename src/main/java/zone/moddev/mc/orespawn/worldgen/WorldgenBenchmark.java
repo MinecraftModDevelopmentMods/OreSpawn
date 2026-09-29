@@ -1,5 +1,6 @@
 package zone.moddev.mc.orespawn.worldgen;
 
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -109,6 +110,7 @@ public final class WorldgenBenchmark {
 				+ "median_ms={} median_ms_per_chunk={} min_ms={} max_ms={}",
 				MODE, chunks, repetitions, format(median), format(median / chunks),
 				format(sorted[0]), format(sorted[sorted.length - 1]));
+		auditNormalizedHashes(level, baseCenterX, baseCenterZ, centerStep, radius, repetitions);
 		if (Boolean.getBoolean("orespawn.worldgenBenchmarkStopServer")) {
 			LOGGER.info("ORESPAWN_BENCHMARK stopping server after completed benchmark");
 			event.getServer().initiateShutdown();
@@ -151,24 +153,35 @@ public final class WorldgenBenchmark {
 	}
 
 	private static int[] locateBiomeType(WorldServer level, int centerX, int centerZ) {
+		String exact = System.getProperty("orespawn.worldgenBenchmarkBiome", "").trim();
+		if (!exact.isEmpty()) {
+			ResourceLocation id = resourceLocation(exact);
+			Biome biome = id == null ? null
+					: net.minecraftforge.fml.common.registry.ForgeRegistries.BIOMES.getValue(id);
+			if (biome == null) throw new IllegalArgumentException("Unknown benchmark biome " + exact);
+			BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
+			BlockPos located = level.provider.getBiomeProvider().findBiomePosition(
+					origin.getX(), origin.getZ(), 16384,
+					java.util.Collections.singletonList(biome), level.rand);
+			if (located == null) throw new IllegalStateException("Benchmark could not locate biome " + exact);
+			int locatedX = located.getX() >> 4;
+			int locatedZ = located.getZ() >> 4;
+			LOGGER.info("ORESPAWN_BENCHMARK located biome={} center_chunk_x={} center_chunk_z={}",
+					exact, locatedX, locatedZ);
+			return new int[] { locatedX, locatedZ };
+		}
 		String configured = System.getProperty("orespawn.worldgenBenchmarkBiomeType", "").trim();
 		if (configured.isEmpty()) {
 			return new int[] { centerX, centerZ };
 		}
 		BiomeDictionary.Type type = BiomeDictionary.Type.getType(configured);
 		BlockPos origin = new BlockPos(centerX << 4, level.getSeaLevel(), centerZ << 4);
-		BlockPos located = null;
-		double bestDistance = Double.POSITIVE_INFINITY;
+		java.util.List<Biome> matchingBiomes = new java.util.ArrayList<>();
 		for (Biome biome : net.minecraftforge.fml.common.registry.ForgeRegistries.BIOMES.getValues()) {
-			if (!BiomeDictionary.isBiomeOfType(biome, type)) continue;
-			BlockPos candidate = level.provider.getBiomeProvider()
-					.findBiomePosition(origin.getX(), origin.getZ(), 16384,
-							java.util.Collections.singletonList(biome), level.rand);
-			if (candidate != null && candidate.distanceSq(origin) < bestDistance) {
-				located = candidate;
-				bestDistance = candidate.distanceSq(origin);
-			}
+			if (BiomeDictionary.isBiomeOfType(biome, type)) matchingBiomes.add(biome);
 		}
+		BlockPos located = level.provider.getBiomeProvider().findBiomePosition(
+				origin.getX(), origin.getZ(), 16384, matchingBiomes, level.rand);
 		if (located == null) {
 			throw new IllegalStateException("Benchmark could not locate biome dictionary type " + configured);
 		}
@@ -177,6 +190,98 @@ public final class WorldgenBenchmark {
 		LOGGER.info("ORESPAWN_BENCHMARK located biome_type={} center_chunk_x={} center_chunk_z={}",
 				configured.toUpperCase(Locale.ROOT), locatedX, locatedZ);
 		return new int[] { locatedX, locatedZ };
+	}
+
+	private static void auditNormalizedHashes(WorldServer level, int baseCenterX, int baseCenterZ,
+			int centerStep, int radius, int repetitions) {
+		Block[] blocks = blockPair("orespawn.worldgenBenchmarkNormalizeBlock");
+		Biome[] biomes = biomePair("orespawn.worldgenBenchmarkNormalizeBiome");
+		if (blocks == null && biomes == null) return;
+		try {
+			for (int repetition = 0; repetition < repetitions; repetition++) {
+				MessageDigest blockHash = MessageDigest.getInstance("SHA-256");
+				MessageDigest biomeHash = MessageDigest.getInstance("SHA-256");
+				long normalizedBlocks = 0L;
+				long normalizedBiomes = 0L;
+				int centerX = baseCenterX + (repetition * centerStep);
+				for (int chunkZ = baseCenterZ - radius; chunkZ <= baseCenterZ + radius; chunkZ++) {
+					for (int chunkX = centerX - radius; chunkX <= centerX + radius; chunkX++) {
+						Chunk chunk = level.getChunkProvider().provideChunk(chunkX, chunkZ);
+						for (int z = 0; z < 16; z++) {
+							for (int x = 0; x < 16; x++) {
+								Biome biome = Biome.getBiome(chunk.getBiomeArray()[(z << 4) | x] & 255);
+								if (biomes != null && biome == biomes[0]) {
+									biome = biomes[1];
+									normalizedBiomes++;
+								}
+								update(biomeHash, Biome.getIdForBiome(biome));
+								for (int y = 0; y < 256; y++) {
+									IBlockState state = chunk.getBlockState(x, y, z);
+									if (blocks != null && state.getBlock() == blocks[0]) {
+										state = blocks[1].getDefaultState();
+										normalizedBlocks++;
+									}
+									update(blockHash, Block.getIdFromBlock(state.getBlock()));
+									update(blockHash, state.getBlock().getMetaFromState(state));
+								}
+							}
+						}
+					}
+				}
+				LOGGER.info("ORESPAWN_BENCHMARK_HASH repetition={} normalized_blocks={} block_sha256={} "
+						+ "normalized_biomes={} biome_sha256={}", repetition + 1,
+						normalizedBlocks, hex(blockHash.digest()), normalizedBiomes, hex(biomeHash.digest()));
+			}
+		} catch (Exception failure) {
+			throw new IllegalStateException("Could not calculate normalized benchmark hashes", failure);
+		}
+	}
+
+	private static Block[] blockPair(String property) {
+		String configured = System.getProperty(property, "").trim();
+		if (configured.isEmpty()) return null;
+		String[] values = configured.split(",");
+		if (values.length != 2) throw new IllegalArgumentException(
+				"Benchmark block normalization requires source,target: " + configured);
+		Block[] result = new Block[2];
+		for (int i = 0; i < 2; i++) {
+			ResourceLocation id = resourceLocation(values[i].trim());
+			result[i] = id == null ? null
+					: net.minecraftforge.fml.common.registry.ForgeRegistries.BLOCKS.getValue(id);
+			if (result[i] == null) throw new IllegalArgumentException(
+					"Unknown benchmark normalization block " + values[i].trim());
+		}
+		return result;
+	}
+
+	private static Biome[] biomePair(String property) {
+		String configured = System.getProperty(property, "").trim();
+		if (configured.isEmpty()) return null;
+		String[] values = configured.split(",");
+		if (values.length != 2) throw new IllegalArgumentException(
+				"Benchmark biome normalization requires source,target: " + configured);
+		Biome[] result = new Biome[2];
+		for (int i = 0; i < 2; i++) {
+			ResourceLocation id = resourceLocation(values[i].trim());
+			result[i] = id == null ? null
+					: net.minecraftforge.fml.common.registry.ForgeRegistries.BIOMES.getValue(id);
+			if (result[i] == null) throw new IllegalArgumentException(
+					"Unknown benchmark normalization biome " + values[i].trim());
+		}
+		return result;
+	}
+
+	private static void update(MessageDigest digest, int value) {
+		digest.update((byte) (value >>> 24));
+		digest.update((byte) (value >>> 16));
+		digest.update((byte) (value >>> 8));
+		digest.update((byte) value);
+	}
+
+	private static String hex(byte[] bytes) {
+		StringBuilder result = new StringBuilder(bytes.length * 2);
+		for (byte value : bytes) result.append(String.format(Locale.ROOT, "%02x", value & 255));
+		return result.toString();
 	}
 
 	private static void auditOres(WorldServer level, int centerX, int centerZ, int radius,

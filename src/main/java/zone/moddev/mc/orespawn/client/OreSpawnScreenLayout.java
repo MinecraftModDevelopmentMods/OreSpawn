@@ -103,12 +103,10 @@ final class OreSpawnScreenLayout {
 					&& mouseX < explanation.widget.xPosition + explanation.widget.width
 					&& mouseY >= explanation.widget.yPosition
 					&& mouseY < explanation.widget.yPosition + explanation.widget.height) {
-				FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
 				String text = explanation.translation
 						? new TextComponentTranslation(explanation.text).getFormattedText()
 						: explanation.text;
-				screen.renderStringTooltip(font.listFormattedStringToWidth(text,
-						Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY);
+				screen.renderStringTooltip(java.util.Collections.singletonList(text), mouseX, mouseY);
 				return;
 			}
 		}

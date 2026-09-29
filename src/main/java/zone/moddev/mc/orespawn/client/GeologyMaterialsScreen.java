@@ -100,9 +100,17 @@ final class GeologyMaterialsScreen extends OreSpawnScreen {
 		previous.enabled = page > 0;
 		next.enabled = page + 1 < pageCount;
 
-		int addWidth = Math.min(150, contentWidth - 105);
+		int addWidth = tab == MaterialTab.ORES ? Math.max(50, (contentWidth - 105) / 2)
+				: Math.min(150, contentWidth - 105);
+		int addX = contentLeft + contentWidth - addWidth;
+		Button sources = addButton(OreSpawnScreenLayout.button(this, font,
+				addX - addWidth - 5, controlsY, addWidth, 20,
+				new TextComponentTranslation("button.orespawn.ore_sources"),
+				button -> minecraft.displayGuiScreen(new OreSourceListScreen(this, session))));
+		sources.visible = tab == MaterialTab.ORES;
+		OreSpawnScreenLayout.explain(this, sources, "tooltip.orespawn.ore_sources");
 		Button add = addButton(OreSpawnScreenLayout.button(this, font,
-				contentLeft + contentWidth - addWidth, controlsY, addWidth, 20,
+				addX, controlsY, addWidth, 20,
 				new TextComponentTranslation("button.orespawn.add_block"), button -> openBlockPicker()));
 		add.visible = tab != MaterialTab.UNASSIGNED;
 		OreSpawnScreenLayout.explain(this, add, "tooltip.orespawn.material.add_block");

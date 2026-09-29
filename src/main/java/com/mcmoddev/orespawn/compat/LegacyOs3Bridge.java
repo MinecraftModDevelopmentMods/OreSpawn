@@ -84,6 +84,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraft.item.ItemStack;
+import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 import zone.moddev.mc.orespawn.worldgen.LegacyOs3ProfileMigration;
 
 /**
@@ -315,6 +316,7 @@ public final class LegacyOs3Bridge {
 			LOGGER.error("Could not migrate OS3 global world-generation settings", failure);
 		}
 		Map<String, JsonObject> programmaticSources = API.programmaticSources();
+		recordLegacyLineages(legacyDirectory, os1Directory, programmaticSources);
 		if (Files.isRegularFile(bridgeMarker)) {
 			LOGGER.info("OS3 provider migration already completed; retaining migrated files unchanged");
 			return;
@@ -403,6 +405,35 @@ public final class LegacyOs3Bridge {
 		} catch (IOException failure) {
 			REPORT.add("migration_marker_failed=" + failure.getClass().getSimpleName());
 			LOGGER.error("Could not mark OS3 provider migration complete", failure);
+		}
+	}
+
+	private static void recordLegacyLineages(Path legacyDirectory, Path os1Directory,
+			Map<String, JsonObject> programmaticSources) {
+		for (String owner : OS1_PROGRAMMATIC.keySet()) {
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 1);
+		}
+		for (String owner : programmaticSources.keySet()) {
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 3);
+		}
+		for (String owner : API.embedded.keySet()) {
+			WorldgenIntegrationManager.recordLegacyLineage(owner, 3);
+		}
+		recordLegacyFiles(legacyDirectory, 3);
+		recordLegacyFiles(os1Directory, 1);
+	}
+
+	private static void recordLegacyFiles(Path directory, int generation) {
+		if (!Files.isDirectory(directory)) return;
+		try (DirectoryStream<Path> files = Files.newDirectoryStream(directory, "*.json")) {
+			for (Path file : files) {
+				String owner = file.getFileName().toString().replaceFirst("\\.json$", "");
+				if (validModId(owner)) {
+					WorldgenIntegrationManager.recordLegacyLineage(owner, generation);
+				}
+			}
+		} catch (IOException failure) {
+			REPORT.add("lineage_scan_failed=" + directory + ":" + failure.getClass().getSimpleName());
 		}
 	}
 
@@ -985,7 +1016,7 @@ public final class LegacyOs3Bridge {
 			}
 		}
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.0.16.110021 Upgrade Report");
+		lines.add("OreSpawn 4.1.0.110021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.");
