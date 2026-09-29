@@ -1093,7 +1093,7 @@ final class GeologyEditorSession {
 
 		boolean needsAttention() {
 			return needsReview() || "missing_source".equals(status)
-					|| "external_generation".equals(status) || outputCandidates().isEmpty();
+					|| outputCandidates().isEmpty();
 		}
 
 		boolean needsReview() {
@@ -1698,8 +1698,10 @@ final class GeologyEditorSession {
 				continue;
 			}
 			JsonObject rock = entry.getValue().getAsJsonObject();
-			if (!validBlock(string(rock, "block", entry.getKey()))) {
-				errors.add("Invalid rock block: " + string(rock, "block", entry.getKey()));
+			String rockBlock = string(rock, "block", entry.getKey());
+			if (!validBlock(rockBlock)) {
+				if (allowsMissingProviderAsset(rock, rockBlock)) continue;
+				errors.add("Invalid rock block: " + rockBlock);
 				continue;
 			}
 			if (!bool(rock, "enabled", true) || decimal(rock, "weight", 1.0D) <= 0.0D) {
@@ -1735,14 +1737,17 @@ final class GeologyEditorSession {
 				continue;
 			}
 			JsonObject ore = entry.getValue().getAsJsonObject();
-			if (!validBlock(string(ore, "block", entry.getKey()))) {
-				errors.add("Invalid ore block: " + string(ore, "block", entry.getKey()));
+			String oreBlock = string(ore, "block", entry.getKey());
+			if (!validBlock(oreBlock)) {
+				if (allowsMissingProviderAsset(ore, oreBlock)) continue;
+				errors.add("Invalid ore block: " + oreBlock);
 				continue;
 			}
 			if (!bool(ore, "enabled", true)) {
 				continue;
 			}
-			if (ore.has("deep_output") && !validBlock(string(ore, "deep_output", ""))) {
+			if (ore.has("deep_output") && !validBlock(string(ore, "deep_output", ""))
+					&& !allowsMissingProviderAsset(ore, string(ore, "deep_output", ""))) {
 				errors.add("Invalid deep ore block: " + string(ore, "deep_output", ""));
 			}
 			JsonObject dimensions = ore.has("dimensions") && ore.get("dimensions").isJsonObject()
@@ -1794,7 +1799,8 @@ final class GeologyEditorSession {
 					errors.add("Invalid ore pattern for " + entry.getKey() + " in " + dimension.getKey());
 				}
 				if (bool(rule, "enabled", true)) {
-					boolean hosts = validBlockArray(rule.get("host_blocks"), errors, entry.getKey())
+					boolean hosts = validBlockArray(rule.get("host_blocks"), errors, entry.getKey(),
+							orphanedProviderDefinition(ore))
 							|| validIdArray(rule.get("host_tags"));
 					if (rule.has("host_families") && rule.get("host_families").isJsonArray()) {
 						for (JsonElement family : rule.getAsJsonArray("host_families")) {
@@ -1818,7 +1824,8 @@ final class GeologyEditorSession {
 			}
 			JsonObject dimension = entry.getValue().getAsJsonObject();
 			if (!bool(dimension, "enabled", true)) continue;
-			boolean hosts = validBlockArray(dimension.get("host_blocks"), errors, entry.getKey())
+			boolean hosts = validBlockArray(dimension.get("host_blocks"), errors, entry.getKey(),
+					orphanedProviderDefinition(dimension))
 					|| validIdArray(dimension.get("host_tags"));
 			if (!hosts) errors.add("Enabled terrain dimension has no valid hosts: " + entry.getKey());
 			if (dimension.has("biome_ids")) {
@@ -1835,7 +1842,9 @@ final class GeologyEditorSession {
 				continue;
 			}
 			JsonObject deposit = entry.getValue().getAsJsonObject();
-			if (!validFluidBlock(string(deposit, "block", ""))) {
+			String depositBlock = string(deposit, "block", "");
+			if (!validFluidBlock(depositBlock)) {
+				if (allowsMissingProviderAsset(deposit, depositBlock)) continue;
 				errors.add("Fluid deposit output is not a fluid block: " + entry.getKey());
 				continue;
 			}
@@ -1871,7 +1880,8 @@ final class GeologyEditorSession {
 					errors.add("Invalid fluid placement values for " + entry.getKey()
 							+ " in " + dimension.getKey());
 				}
-				boolean hosts = validBlockArray(rule.get("host_blocks"), errors, entry.getKey())
+				boolean hosts = validBlockArray(rule.get("host_blocks"), errors, entry.getKey(),
+						orphanedProviderDefinition(deposit))
 						|| validIdArray(rule.get("host_tags"));
 				if (rule.has("host_families") && rule.get("host_families").isJsonArray()) {
 					for (JsonElement family : rule.getAsJsonArray("host_families")) {
@@ -1890,6 +1900,7 @@ final class GeologyEditorSession {
 			}
 			JsonObject palette = entry.getValue().getAsJsonObject();
 			boolean replacementPalette = BiomeReplacementRules.isOverridePalette(entry.getKey());
+			boolean orphanedProvider = orphanedProviderDefinition(palette);
 			if (!validResource(string(palette, "dimension", ""))) {
 				errors.add("Invalid biome palette dimension: " + entry.getKey());
 			}
@@ -1900,7 +1911,8 @@ final class GeologyEditorSession {
 			for (Entry<String, JsonElement> biome : biomes.entrySet()) {
 				if (!validResource(biome.getKey())
 						|| (!replacementPalette
-								&& ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null)
+								&& ForgeRegistries.BIOMES.getValue(new ResourceLocation(biome.getKey())) == null
+								&& !orphanedProvider)
 						|| !biome.getValue().isJsonObject()) {
 					errors.add("Invalid biome placement: " + biome.getKey());
 					continue;
@@ -1921,16 +1933,19 @@ final class GeologyEditorSession {
 				continue;
 			}
 			JsonObject materials = entry.getValue().getAsJsonObject();
+			boolean orphanedProvider = orphanedProviderDefinition(materials);
 			if (!validResource(string(materials, "dimension", ""))) {
 				errors.add("Invalid dimension materials target: " + entry.getKey());
 			}
 			for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
-				if (materials.has(key) && !validFluidBlock(string(materials, key, ""))) {
+				if (materials.has(key) && !validFluidBlock(string(materials, key, ""))
+						&& !(orphanedProvider && validResource(string(materials, key, "")))) {
 					errors.add("Invalid fluid material in " + entry.getKey());
 				}
 			}
 			for (String key : new String[] { "snow_block", "ice_block" }) {
-				if (materials.has(key) && !validBlock(string(materials, key, ""))) {
+				if (materials.has(key) && !validBlock(string(materials, key, ""))
+						&& !(orphanedProvider && validResource(string(materials, key, "")))) {
 					errors.add("Invalid weather material in " + entry.getKey());
 				}
 			}
@@ -2052,6 +2067,11 @@ final class GeologyEditorSession {
 	}
 
 	private static boolean validBlockArray(JsonElement element, List<String> errors, String oreId) {
+		return validBlockArray(element, errors, oreId, false);
+	}
+
+	private static boolean validBlockArray(JsonElement element, List<String> errors, String oreId,
+			boolean allowMissingProviderBlocks) {
 		if (element == null || !element.isJsonArray() || element.getAsJsonArray().size() == 0) return false;
 		boolean found = false;
 		for (JsonElement value : element.getAsJsonArray()) {
@@ -2063,12 +2083,25 @@ final class GeologyEditorSession {
 				continue;
 			}
 			if (!validBlock(id)) {
+				if (allowMissingProviderBlocks && validResource(id)) {
+					found = true;
+					continue;
+				}
 				errors.add("Unknown host block '" + id + "' for " + oreId);
 				continue;
 			}
 			found = true;
 		}
 		return found;
+	}
+
+	private static boolean allowsMissingProviderAsset(JsonObject definition, String id) {
+		return orphanedProviderDefinition(definition) && validResource(id);
+	}
+
+	private static boolean orphanedProviderDefinition(JsonObject definition) {
+		return bool(definition, "orphaned_provider", false)
+				&& !string(definition, "source_provider", "").isEmpty();
 	}
 
 	static JsonObject defaultOreDimension() {
