@@ -1,0 +1,181 @@
+def verification = project.ext.oreSpawnVerification
+def java8Launcher = verification.java8Launcher
+def assertRuntimeLogsClean = verification.assertRuntimeLogsClean
+def releaseJar = project.ext.oreSpawnRelease.jar
+def packagedSurfaceIntegrationTestModJar = tasks.named('renameSurfaceIntegrationTestModJar')
+
+// Release qualification also exercises the reobfuscated jar through Forge's
+// packaged launcher. The official server jar and its library tree are
+// machine-local inputs and are never copied into source control or artifacts.
+def forge14UniversalRuntime = {
+    File runtime = new File(gradle.gradleUserHomeDir,
+            "caches/forge_gradle/maven_downloader/net/minecraftforge/forge/" +
+            "${minecraft_version}-${forge_version}/" +
+            "forge-${minecraft_version}-${forge_version}-universal.jar")
+    if (!runtime.isFile()) {
+        throw new GradleException("Forge 14 universal runtime is missing: ${runtime}")
+    }
+    runtime
+}
+
+def packagedForgeRunDirectory = file("${buildDir}/packaged-forge-runtime-run")
+def packagedMinecraftServer = {
+    if (!project.hasProperty('packagedMinecraftServerJar')) {
+        throw new GradleException('packagedMinecraftServerJar is required for packagedForgeRuntimeTest')
+    }
+    File server = file(project.property('packagedMinecraftServerJar'))
+    if (!server.isFile()) {
+        throw new GradleException("Minecraft 1.12.2 server jar is missing: ${server}")
+    }
+    server
+}
+def packagedForgeLibraries = {
+    if (!project.hasProperty('packagedForgeLibrariesRoot')) {
+        throw new GradleException('packagedForgeLibrariesRoot is required for packagedForgeRuntimeTest')
+    }
+    File libraries = file(project.property('packagedForgeLibrariesRoot'))
+    if (!libraries.isDirectory()) {
+        throw new GradleException("Forge 14 library root is missing: ${libraries}")
+    }
+    libraries
+}
+// Forge's manifest lists the exact libraries its packaged server needs.
+// Resolve them from the installed runtime instead of guessing a classpath.
+def packagedForgeRuntimeLayout = {
+    File forge = forge14UniversalRuntime()
+    File server = packagedMinecraftServer()
+    File libraries = packagedForgeLibraries()
+    java.util.jar.JarFile runtime = new java.util.jar.JarFile(forge)
+    String declared
+    try {
+        declared = runtime.manifest.mainAttributes.getValue('Class-Path')
+    } finally {
+        runtime.close()
+    }
+    if (declared == null || declared.trim().isEmpty()) {
+        throw new GradleException("Forge 14 runtime has no Class-Path manifest entry: ${forge}")
+    }
+    def dependencies = declared.trim().split(/\s+/).findAll { String entry ->
+        entry != "minecraft_server.${minecraft_version}.jar"
+    }.collect { String entry ->
+        String relative = entry.startsWith('libraries/')
+                ? entry.substring('libraries/'.length()) : entry
+        File dependency = new File(libraries, relative)
+        if (!dependency.isFile()) {
+            throw new GradleException("Forge 14 packaged-runtime dependency is missing: ${dependency}")
+        }
+        [source: dependency, relative: relative]
+    }
+    [forge: forge, server: server, dependencies: dependencies]
+}
+
+tasks.register('preparePackagedForgeRuntimeTest') {
+    group = 'verification'
+    dependsOn releaseJar
+    dependsOn packagedSurfaceIntegrationTestModJar
+    doLast {
+        delete packagedForgeRunDirectory
+        def runtime = packagedForgeRuntimeLayout()
+        copy { from runtime.forge; into packagedForgeRunDirectory }
+        copy {
+            from runtime.server
+            into packagedForgeRunDirectory
+            rename { "minecraft_server.${minecraft_version}.jar" }
+        }
+        runtime.dependencies.each { Map dependency ->
+            File destination = new File(packagedForgeRunDirectory,
+                    "libraries/${dependency.relative}").parentFile
+            copy { from dependency.source; into destination }
+        }
+        File mods = new File(packagedForgeRunDirectory, 'mods')
+        mods.mkdirs()
+        copy { from layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}.jar"); into mods }
+        copy {
+            from layout.buildDirectory.file('surface-integration-fixture/surfaceprobe-reobf.jar')
+            into mods
+        }
+        new File(packagedForgeRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(packagedForgeRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+// Run fresh first, then reload that very same save. Both runs use Java 8 and
+// end with Forge 1.12's literal "nogui" server argument.
+def createPackagedForgeProcess = { String phase, Object dependency ->
+    ByteArrayOutputStream console = new ByteArrayOutputStream()
+    File consoleFile = new File(packagedForgeRunDirectory,
+            "packaged-forge-${phase.toLowerCase()}-console.txt")
+    tasks.register("packagedForgeRuntime${phase}Process", Exec) {
+        group = 'verification'
+        dependsOn dependency
+        workingDir packagedForgeRunDirectory
+        doFirst {
+            console.reset()
+            File javaExecutable = java8Launcher.get().executablePath.asFile
+            File forge = new File(packagedForgeRunDirectory, forge14UniversalRuntime().name)
+            commandLine javaExecutable,
+                    '-Dforge.logging.console.level=info',
+                    "-Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}",
+                    '-jar', forge, 'nogui'
+            standardOutput = console
+            errorOutput = console
+        }
+        doLast {
+            consoleFile.setText(console.toString('UTF-8'), 'UTF-8')
+        }
+    }
+}
+
+def packagedForgeFreshProcess = createPackagedForgeProcess(
+        'Fresh', tasks.named('preparePackagedForgeRuntimeTest'))
+packagedForgeFreshProcess.configure {
+    doLast {
+        File marker = new File(packagedForgeRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        if (!marker.isFile()) {
+            throw new GradleException("Packaged Forge fresh marker is missing: ${marker}")
+        }
+        assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge fresh phase')
+    }
+}
+def packagedForgeReloadProcess = createPackagedForgeProcess('Reload', packagedForgeFreshProcess)
+packagedForgeReloadProcess.configure {
+    doLast {
+        assertRuntimeLogsClean(packagedForgeRunDirectory, 'packaged Forge reload phase')
+    }
+}
+
+tasks.register('packagedForgeRuntimeTest') {
+    group = 'verification'
+    description = 'Creates and reloads a world using the reobfuscated OreSpawn jar under real Forge 14.'
+    dependsOn packagedForgeReloadProcess
+    doLast {
+        File marker = new File(packagedForgeRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Packaged Forge reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Packaged Forge jar created and reloaded {} dimensions with {} audited columns each',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+// Supplying both runtime paths makes this a check gate as well as a manual task.
+if (project.hasProperty('packagedMinecraftServerJar')
+        && project.hasProperty('packagedForgeLibrariesRoot')) {
+    tasks.named('check') {
+        dependsOn tasks.named('packagedForgeRuntimeTest')
+    }
+}

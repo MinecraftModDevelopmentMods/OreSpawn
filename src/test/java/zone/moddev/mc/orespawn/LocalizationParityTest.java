@@ -44,6 +44,9 @@ class LocalizationParityTest {
 					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
+			.put("button.orespawn.biomes_world_materials", ImmutableSet.of(
+					"fr_ca.lang", "fr_fr.lang"))
+			.put("screen.orespawn.biomes", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
 			.put("option.orespawn.mod_filter", ImmutableSet.of(
 					"de_au.lang", "de_de.lang", "fr_ca.lang", "fr_fr.lang"))
 			.put("tab.orespawn.biomes", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
@@ -84,7 +87,7 @@ class LocalizationParityTest {
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
 		JsonObject english = read(LANG_DIR.resolve("en_us.lang"));
 		Set<String> englishKeys = JsonCopies.keys(english);
-		assertEquals(357, englishKeys.size(),
+		assertEquals(510, englishKeys.size(),
 				"The target locale contract changed; review every shipped translation");
 		Set<String> localeFiles = new HashSet<>();
 		Set<String> observedIntentionalEnglishValues = new HashSet<>();

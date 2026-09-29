@@ -3,6 +3,10 @@ package zone.moddev.mc.orespawn.client;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -17,6 +21,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiCreateWorld;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.GameType;
 import net.minecraft.world.WorldSettings;
@@ -28,6 +33,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import zone.moddev.mc.orespawn.util.JsonCopies;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
 /** Build-only client probe. It is compiled and packaged outside every release artifact. */
@@ -45,6 +51,13 @@ public final class ClientProbeTestMod {
 	private int reloadWorldFrames;
 	private int editorFrames;
 	private boolean worldSettingsOpened;
+	private boolean modsDirectoryRendered;
+	private boolean directoryStackValidated =
+			System.getProperty("clientprobe.expectedMods", "").trim().isEmpty();
+	private boolean oreSourcesValidated =
+			System.getProperty("clientprobe.expectedMods", "").trim().isEmpty();
+	private boolean oreSourcesLayoutValidated =
+			System.getProperty("clientprobe.expectedMods", "").trim().isEmpty();
 	private boolean longEditorRoundTrip;
 
 	@Mod.EventHandler
@@ -64,12 +77,13 @@ public final class ClientProbeTestMod {
 	@SubscribeEvent
 	public void onScreenDrawn(GuiScreenEvent.DrawScreenEvent.Post event) {
 		if (event.getGui() instanceof OreSpawnScreen) editorFrames++;
+		if (event.getGui() instanceof OreSpawnModsScreen) modsDirectoryRendered = true;
 	}
 
 	@SubscribeEvent
 	public void onWorldRendered(RenderWorldLastEvent event) {
 		if (state == 6) firstWorldFrames++;
-		if (state == 8) reloadWorldFrames++;
+		if (state == 9) reloadWorldFrames++;
 	}
 
 	@SubscribeEvent
@@ -100,6 +114,7 @@ public final class ClientProbeTestMod {
 					if (minecraft.currentScreen instanceof OreSpawnWorldSettingsScreen && editorFrames >= 2) {
 						worldSettingsOpened = true;
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.currentScreen);
+						validateExpectedDirectory(minecraft.currentScreen);
 						validateLongEditorRoundTrip(minecraft, minecraft.currentScreen);
 						nextState(3);
 					}
@@ -141,18 +156,25 @@ public final class ClientProbeTestMod {
 				case 6:
 					if (minecraft.world != null && minecraft.player != null && firstWorldFrames >= 8
 							&& stateTicks >= 100) {
-						stopIntegratedServer(minecraft);
+						beginIntegratedDisconnect(minecraft);
 						nextState(7);
 					}
 					break;
 				case 7:
-					if (minecraft.world == null && !minecraft.isIntegratedServerRunning() && stateTicks >= 20) {
-						minecraft.launchIntegratedServer(WORLD_DIRECTORY, "OreSpawn Client Smoke",
-								new WorldSettings(0L, GameType.CREATIVE, false, false, WorldType.DEFAULT));
+					if (stateTicks >= 20 && (minecraft.getConnection() == null
+							|| !minecraft.getConnection().getNetworkManager().isChannelOpen())) {
+						finishIntegratedDisconnect(minecraft);
 						nextState(8);
 					}
 					break;
 				case 8:
+					if (minecraft.world == null && !minecraft.isIntegratedServerRunning() && stateTicks >= 20) {
+						minecraft.launchIntegratedServer(WORLD_DIRECTORY, "OreSpawn Client Smoke",
+								new WorldSettings(0L, GameType.CREATIVE, false, false, WorldType.DEFAULT));
+						nextState(9);
+					}
+					break;
+				case 9:
 					if (minecraft.world != null && minecraft.player != null && reloadWorldFrames >= 8
 							&& stateTicks >= 100) {
 						writeMarker();
@@ -171,6 +193,440 @@ public final class ClientProbeTestMod {
 		}
 	}
 
+	private void validateExpectedDirectory(GuiScreen root) {
+		String configured = System.getProperty("clientprobe.expectedMods", "").trim();
+		if (configured.isEmpty()) return;
+		List<String> expected = Arrays.asList(configured.split(","));
+		List<OreSpawnModDirectoryModel.Entry> entries = OreSpawnModDirectoryModel.snapshot();
+		List<String> actual = new ArrayList<>();
+		for (OreSpawnModDirectoryModel.Entry entry : entries) actual.add(entry.modId);
+		if (!expected.equals(actual)) {
+			throw new IllegalStateException("Unexpected OreSpawn Mods directory order: expected "
+					+ expected + " but found " + actual);
+		}
+		for (OreSpawnModDirectoryModel.Entry entry : entries) {
+			if (entry.version == null || entry.version.trim().isEmpty() || "?".equals(entry.version)) {
+				throw new IllegalStateException("Missing Forge mod version for " + entry.modId);
+			}
+			if ("basemetals".equals(entry.modId)) {
+				if (entry.nativeOs4() || entry.legacyLineages().isEmpty()) {
+					throw new IllegalStateException("Base Metals did not retain its legacy lineage");
+				}
+			} else if ("mineralogy".equals(entry.modId)) {
+				if (!entry.nativeOs4() || entry.schemaVersion() != 4 || entry.providerRevision() != 3) {
+					throw new IllegalStateException("Missing Mineralogy OS4 schema 4/provider revision 3: schema="
+							+ entry.schemaVersion() + ", revision=" + entry.providerRevision());
+				}
+			} else if (!entry.nativeOs4() || entry.schemaVersion() != 5
+					|| entry.providerRevision() < 1) {
+				throw new IllegalStateException("Missing native OS4 schema 5/revision for " + entry.modId
+						+ ": schema=" + entry.schemaVersion() + ", revision=" + entry.providerRevision());
+			}
+			boolean shouldConfigure = "realisticdeposits".equals(entry.modId);
+			if (entry.configurable() != shouldConfigure) {
+				throw new IllegalStateException("Unexpected cog availability for " + entry.modId);
+			}
+			if (shouldConfigure) {
+				OreSpawnModsScreen directory = new OreSpawnModsScreen(root, entries);
+				GuiScreen child = entry.extension.createScreen(directory);
+				if (child == null || !child.getClass().getName().endsWith("RealisticDepositsConfigScreen")) {
+					throw new IllegalStateException("Realistic Deposits did not create its config screen");
+				}
+				try {
+					Minecraft minecraft = Minecraft.getMinecraft();
+					WorldSettingsExtensionNavigation.open(directory, child);
+					Method escape = GuiScreen.class.getDeclaredMethod("keyTyped", char.class, int.class);
+					escape.setAccessible(true);
+					escape.invoke(child, '\0', org.lwjgl.input.Keyboard.KEY_ESCAPE);
+					if (minecraft.currentScreen != directory) {
+						throw new IllegalStateException("Add-on Escape did not return to the Mods directory");
+					}
+					minecraft.displayGuiScreen(root);
+				} catch (ReflectiveOperationException failure) {
+					throw new IllegalStateException("Could not exercise add-on Escape", failure);
+				}
+			}
+		}
+		if (expected.contains("mineralogy") && expected.contains("electricadvantage")) {
+			validateExpectedOreSources((OreSpawnWorldSettingsScreen) root);
+		}
+		directoryStackValidated = true;
+	}
+
+	private void validateExpectedOreSources(OreSpawnWorldSettingsScreen root) {
+		GeologyEditorSession session = editorSession(root);
+		GeologyEditorSession.OreSourceGroup sulfur = null;
+		for (GeologyEditorSession.OreSourceGroup group : session.oreSourceGroups()) {
+			if ("orespawn:sulfur".equals(group.material)
+					&& "minecraft:overworld".equals(group.domain)) sulfur = group;
+		}
+		if (sulfur == null) throw new IllegalStateException("Missing curated Sulfur material group");
+		if (!"Sulfur".equals(sulfur.displayName)
+				|| !sulfur.oreDictionaryEntries.contains("oreSulfur")
+				|| !sulfur.oreDictionaryEntries.contains("oreSulphur")) {
+			throw new IllegalStateException("Sulfur aliases were not grouped correctly: "
+					+ sulfur.oreDictionaryEntries);
+		}
+		if (!"consolidated".equals(sulfur.mode) || !"balanced".equals(sulfur.outputMode)) {
+			throw new IllegalStateException("Fresh Sulfur policy was not Balanced: mode="
+					+ sulfur.mode + ", outputMode=" + sulfur.outputMode);
+		}
+		if (sulfur.needsAttention() || OreSourceListScreen.groupRowColor(sulfur) != 0xFFFF55) {
+			throw new IllegalStateException("Resolved Sulfur policy was not classified yellow: status="
+					+ sulfur.status + ", attention=" + sulfur.needsAttention());
+		}
+		boolean mineralogy = false;
+		boolean electricOutputOnly = false;
+		for (GeologyEditorSession.OreSourceCandidate candidate : sulfur.outputCandidates()) {
+			if ("mineralogy:sulfur_ore".equals(candidate.registryId)) {
+				mineralogy = candidate.loaded && candidate.active && !candidate.external;
+			}
+			if ("electricadvantage:sulfur_ore".equals(candidate.registryId)) {
+				electricOutputOnly = candidate.loaded && !candidate.active && !candidate.external;
+			}
+			if (("mineralogy:sulfur_ore".equals(candidate.registryId)
+					|| "electricadvantage:sulfur_ore".equals(candidate.registryId))
+					&& !sulfur.outputs.containsKey(candidate.sourceId)) {
+				throw new IllegalStateException("Balanced Sulfur output is not selected: "
+						+ candidate.sourceId);
+			}
+		}
+		if (!mineralogy || !electricOutputOnly) {
+			throw new IllegalStateException("Sulfur outputs were not classified correctly: mineralogy="
+					+ mineralogy + ", electricOutputOnly=" + electricOutputOnly);
+		}
+		validateOreSourcesSingleScreen(root, session);
+		oreSourcesValidated = true;
+	}
+
+	private void validateOreSourcesSingleScreen(GuiScreen parent, GeologyEditorSession session) {
+		Minecraft minecraft = Minecraft.getMinecraft();
+		OreSourceListScreen screen = new OreSourceListScreen(parent, session);
+		screen.setWorldAndResolution(minecraft, 426, 265);
+		int contentWidth = OreSourceListScreen.contentWidth(426);
+		int left = (426 - contentWidth) / 2;
+		int right = left + OreSourceListScreen.leftPaneWidth(426) + 6;
+		boolean groupList = false;
+		boolean outputList = false;
+		boolean inlineAdministration = false;
+		boolean back = false;
+		boolean showAll = false;
+		int showAllWidth = 0;
+		for (GuiButton widget : screen.buttons) {
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof CompactScrollList && widget.x < right) groupList = true;
+			if (widget instanceof CompactScrollList && widget.x >= right) outputList = true;
+			if (widget instanceof TextFieldWidget && widget.x < right) inlineAdministration = true;
+			if ("Back".equals(caption)) back = true;
+			if (I18n.format("button.orespawn.show_all").equals(caption)) {
+				showAll = true;
+				showAllWidth = widget.width;
+			}
+		}
+		if (!groupList || !outputList || inlineAdministration || back || !showAll
+				|| showAllWidth >= OreSourceListScreen.leftPaneWidth(426) / 2) {
+			throw new IllegalStateException("Ore Sources was not one compact two-pane screen: groups="
+					+ groupList + ", outputs=" + outputList + ", inlineAdministration="
+					+ inlineAdministration + ", back=" + back + ", showAll=" + showAll
+					+ ", showAllWidth=" + showAllWidth
+					+ ", left=" + left + ", right=" + right);
+		}
+
+		GeologyEditorSession.OreSourceGroup sulfurGroup = null;
+		for (GeologyEditorSession.OreSourceGroup group : session.oreSourceGroups()) {
+			if ("orespawn:sulfur".equals(group.material)) sulfurGroup = group;
+		}
+		if (sulfurGroup == null) throw new IllegalStateException("Sulfur group disappeared before settings test");
+		OreSourceGroupSettingsScreen settings = new OreSourceGroupSettingsScreen(
+				screen, session, sulfurGroup.key);
+		settings.setWorldAndResolution(minecraft, 426, 265);
+		int compactLists = 0;
+		boolean sulfurName = false;
+		int lowestListBottom = 0;
+		int aliasRows = 0;
+		int placementRows = 0;
+		for (GuiButton widget : settings.buttons) {
+			if (widget instanceof CompactScrollList) {
+				compactLists++;
+				lowestListBottom = Math.max(lowestListBottom, widget.y + widget.height);
+				if (widget.y < 100) aliasRows = CompactScrollList.visibleRows(widget.height, 16);
+				else placementRows = CompactScrollList.visibleRows(widget.height, 16);
+			}
+			if (widget instanceof TextFieldWidget
+					&& "Sulfur".equals(((TextFieldWidget) widget).getValue())) sulfurName = true;
+		}
+		if (compactLists != 2 || !sulfurName || aliasRows < 5 || placementRows < 3
+				|| lowestListBottom > 233
+				|| !OreSourceGroupSettingsScreen.placementChannels(sulfurGroup)
+						.contains("orespawn:standard")) {
+			throw new IllegalStateException("Group Settings did not expose aliases and placement rules: lists="
+					+ compactLists + ", name=" + sulfurName + ", aliasRows=" + aliasRows
+					+ ", placementRows=" + placementRows + ", listBottom=" + lowestListBottom + ", channels="
+					+ OreSourceGroupSettingsScreen.placementChannels(sulfurGroup));
+		}
+		validateKeepOriginalAcceptance(minecraft, parent, session, sulfurGroup.key);
+		validateStaleExternalClassification(minecraft, parent, session, sulfurGroup.key);
+		validateCustomGroupReassignmentLayout(minecraft, parent, session);
+		oreSourcesLayoutValidated = true;
+	}
+
+	private void validateCustomGroupReassignmentLayout(Minecraft minecraft, GuiScreen parent,
+			GeologyEditorSession source) {
+		GeologyEditorSession customSession = new GeologyEditorSession(
+				WorldGeologyProfile.fromJson(source.profile().rootCopy(), source.profile()));
+		customSession.setManageVanillaOres(false);
+		String customKey = customSession.addOreMaterialGroup();
+		String material = customKey.substring(0, customKey.indexOf('|'));
+		customSession.renameOreMaterialGroup(material, "Precious Stones");
+		String originalOwner = customSession.oreDictionaryOwner("oreDiamond");
+		if (originalOwner == null || material.equals(originalOwner)) {
+			throw new IllegalStateException("Could not establish the oreDiamond reassignment control");
+		}
+		OreSourceGroupSettingsScreen settings = new OreSourceGroupSettingsScreen(
+				parent, customSession, customKey);
+		settings.setWorldAndResolution(minecraft, 426, 265);
+		TextFieldWidget alias = null;
+		Button add = null;
+		for (GuiButton widget : settings.buttons) {
+			if (widget instanceof TextFieldWidget
+					&& ((TextFieldWidget) widget).getValue().isEmpty()) alias = (TextFieldWidget) widget;
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof Button && "+".equals(caption)) add = (Button) widget;
+		}
+		if (alias == null || add == null) {
+			throw new IllegalStateException("Custom Group Settings did not expose alias reassignment controls");
+		}
+		alias.setValue("oreDiamond");
+		add.press();
+
+		Button move = null;
+		Button done = null;
+		for (GuiButton widget : settings.buttons) {
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof Button
+					&& I18n.format("button.orespawn.ore_source.move").equals(caption)) move = (Button) widget;
+			if (widget instanceof Button && I18n.format("gui.done").equals(caption)) done = (Button) widget;
+		}
+		String message;
+		try {
+			Field error = OreSourceGroupSettingsScreen.class.getDeclaredField("error");
+			error.setAccessible(true);
+			message = (String) error.get(settings);
+		} catch (ReflectiveOperationException exception) {
+			throw new IllegalStateException("Could not inspect Group Settings validation state", exception);
+		}
+		int contentWidth = 406;
+		int expectedDoneX = 10 + contentWidth
+				- OreSourceGroupSettingsScreen.doneButtonWidth(contentWidth);
+		if (move != null || !I18n.format("error.orespawn.ore_source.manage_vanilla_first").equals(message)
+				|| done == null
+				|| done.x != expectedDoneX || done.y != 237
+				|| OreSourceGroupSettingsScreen.validationMessageWidth(contentWidth) <= 0) {
+			throw new IllegalStateException("Disabled vanilla management did not block reassignment: move="
+					+ (move != null) + ", message=" + message + ", done="
+					+ (done == null ? "missing" : done.x + "," + done.y));
+		}
+		if (!originalOwner.equals(customSession.oreDictionaryOwner("oreDiamond"))) {
+			throw new IllegalStateException("Blocked vanilla alias move changed oreDiamond ownership");
+		}
+
+		customSession.setManageVanillaOres(true);
+		settings = new OreSourceGroupSettingsScreen(parent, customSession, customKey);
+		settings.setWorldAndResolution(minecraft, 426, 265);
+		alias = null;
+		add = null;
+		for (GuiButton widget : settings.buttons) {
+			if (widget instanceof TextFieldWidget
+					&& ((TextFieldWidget) widget).getValue().isEmpty()) alias = (TextFieldWidget) widget;
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof Button && "+".equals(caption)) add = (Button) widget;
+		}
+		if (alias == null || add == null) {
+			throw new IllegalStateException("Managed vanilla alias controls did not reopen");
+		}
+		alias.setValue("oreDiamond");
+		add.press();
+		move = button(settings, I18n.format("button.orespawn.ore_source.move"));
+		if (move == null) {
+			throw new IllegalStateException("Managed vanilla alias move did not request confirmation");
+		}
+		move.press();
+		if (!material.equals(customSession.oreDictionaryOwner("oreDiamond"))) {
+			throw new IllegalStateException("Move did not confirm oreDiamond reassignment");
+		}
+		if (!customSession.addOreMaterialAlias(material, "oreEmerald", true)) {
+			throw new IllegalStateException("Could not construct the managed Precious Stones group");
+		}
+		GeologyEditorSession.OreSourceGroup customGroup = null;
+		for (GeologyEditorSession.OreSourceGroup group : customSession.oreSourceGroups()) {
+			if (customKey.equals(group.key)) customGroup = group;
+		}
+		if (customGroup == null || !customGroup.hasManagedPlacementSource()
+				|| !customGroup.needsReview() || customGroup.outputCandidates().size() != 2
+				|| customGroup.outputs.size() != 2
+				|| OreSourceListScreen.placementCandidates(
+						customGroup, "orespawn:standard").size() != 2) {
+			throw new IllegalStateException("Managed Precious Stones review was not constructed");
+		}
+		OreSourceListScreen outputs = new OreSourceListScreen(parent, customSession);
+		outputs.setWorldAndResolution(minecraft, 426, 265);
+		Button mode = button(outputs, I18n.format("option.orespawn.ore_source.output_mode",
+				I18n.format("mode.orespawn.ore_source.keep_original")));
+		Button accept = button(outputs, I18n.format("button.orespawn.ore_source.accept"));
+		if (mode == null || accept == null) {
+			throw new IllegalStateException("Managed vanilla review did not retain Keep Original and Accept");
+		}
+		OreSourceListScreen minimum = new OreSourceListScreen(parent, customSession);
+		minimum.setWorldAndResolution(minecraft, 320, 240);
+		if (button(minimum, I18n.format("button.orespawn.ore_source.accept")) == null) {
+			throw new IllegalStateException("Accept was not visible at the minimum supported resolution");
+		}
+		mode.press();
+		GeologyEditorSession.OreSourceGroup after = null;
+		for (GeologyEditorSession.OreSourceGroup group : customSession.oreSourceGroups()) {
+			if (customKey.equals(group.key)) after = group;
+		}
+		String outputError;
+		try {
+			Field field = OreSourceListScreen.class.getDeclaredField("error");
+			field.setAccessible(true);
+			outputError = (String) field.get(outputs);
+		} catch (ReflectiveOperationException exception) {
+			throw new IllegalStateException("Could not inspect Ore Sources validation state", exception);
+		}
+		if (after == null || !"consolidated".equals(after.mode) || after.needsAttention()
+				|| after.outputs.size() != 2 || after.placements.size() != 1
+				|| OreSourceListScreen.placementCandidates(
+						after, "orespawn:standard").size() != 2
+				|| outputError != null
+				|| button(outputs, I18n.format("button.orespawn.ore_source.accept")) != null) {
+			throw new IllegalStateException("Managed vanilla group did not enter Balanced mode: error="
+					+ outputError + ", mode=" + (after == null ? "missing" : after.mode));
+		}
+
+		OreSourceGroupSettingsScreen dissolve = new OreSourceGroupSettingsScreen(
+				parent, customSession, customKey);
+		dissolve.setWorldAndResolution(minecraft, 426, 265);
+		Button dissolveButton = button(dissolve,
+				I18n.format("button.orespawn.ore_source.dissolve_group"));
+		if (dissolveButton == null) {
+			throw new IllegalStateException("Populated custom group did not expose Dissolve Group");
+		}
+		dissolveButton.press();
+		Button confirm = button(dissolve,
+				I18n.format("button.orespawn.ore_source.confirm_dissolve"));
+		if (confirm == null || !material.equals(customSession.oreDictionaryOwner("oreDiamond"))) {
+			throw new IllegalStateException("Dissolve Group did not require a second confirmation");
+		}
+		confirm.press();
+		if (!"orespawn:diamond".equals(customSession.oreDictionaryOwner("oreDiamond"))
+				|| !"orespawn:emerald".equals(customSession.oreDictionaryOwner("oreEmerald"))) {
+			throw new IllegalStateException("Confirmed dissolution did not restore inferred groups");
+		}
+	}
+
+	private static Button button(OreSpawnScreen screen, String caption) {
+		for (GuiButton widget : screen.buttons) {
+			String text = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof Button && caption.equals(text)) return (Button) widget;
+		}
+		return null;
+	}
+
+	private void validateKeepOriginalAcceptance(Minecraft minecraft, GuiScreen parent,
+			GeologyEditorSession source, String key) {
+		JsonObject root = source.profile().rootCopy();
+		JsonObject policy = root.getAsJsonObject("ore_source_policies").getAsJsonObject(key);
+		policy.addProperty("mode", "keep_separate");
+		policy.addProperty("review_required", true);
+		policy.addProperty("status", "review_required");
+		JsonObject onlyPolicy = new JsonObject();
+		onlyPolicy.add(key, policy);
+		root.add("ore_source_policies", onlyPolicy);
+		GeologyEditorSession reviewSession = new GeologyEditorSession(
+				WorldGeologyProfile.fromJson(root, source.profile()));
+		GeologyEditorSession.OreSourceGroup before = null;
+		for (GeologyEditorSession.OreSourceGroup group : reviewSession.oreSourceGroups()) {
+			if (key.equals(group.key)) before = group;
+		}
+		if (before == null || !before.needsReview()) {
+			throw new IllegalStateException("Could not construct pending Keep Original review");
+		}
+		OreSourceListScreen review = new OreSourceListScreen(parent, reviewSession);
+		review.setWorldAndResolution(minecraft, 426, 265);
+		Button accept = null;
+		for (GuiButton widget : review.buttons) {
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (widget instanceof Button
+					&& I18n.format("button.orespawn.ore_source.accept").equals(caption)) {
+				accept = (Button) widget;
+			}
+		}
+		if (accept == null) throw new IllegalStateException("Pending Keep Original did not show Accept");
+		accept.press();
+		GeologyEditorSession.OreSourceGroup after = null;
+		for (GeologyEditorSession.OreSourceGroup group : reviewSession.oreSourceGroups()) {
+			if (key.equals(group.key)) after = group;
+		}
+		if (after == null || after.needsReview() || after.needsAttention()
+				|| !before.mode.equals(after.mode) || !before.outputs.equals(after.outputs)
+				|| !before.placements.equals(after.placements)) {
+			throw new IllegalStateException("Accept changed Keep Original instead of only clearing review");
+		}
+	}
+
+	private void validateStaleExternalClassification(Minecraft minecraft, GuiScreen parent,
+			GeologyEditorSession source, String key) {
+		JsonObject root = source.profile().rootCopy();
+		JsonObject policy = root.getAsJsonObject("ore_source_policies").getAsJsonObject(key);
+		JsonObject managed = null;
+		for (com.google.gson.JsonElement element : policy.getAsJsonArray("candidates")) {
+			JsonObject candidate = element.getAsJsonObject();
+			if ("electricadvantage:sulfur_ore".equals(candidate.get("registry_id").getAsString())
+					&& !candidate.get("external").getAsBoolean()) managed = candidate;
+		}
+		if (managed == null) throw new IllegalStateException("Missing managed Electric Advantage output");
+		JsonObject external = JsonCopies.copy(managed);
+		external.addProperty("source_id", "external/electricadvantage:sulfur_ore/0");
+		external.addProperty("loaded", false);
+		external.addProperty("placement_active", false);
+		external.addProperty("external", true);
+		policy.getAsJsonArray("candidates").add(external);
+		policy.addProperty("mode", "keep_separate");
+		policy.addProperty("output_mode", "single");
+		policy.addProperty("review_required", false);
+		policy.addProperty("status", "external_generation");
+		JsonObject onlyPolicy = new JsonObject();
+		onlyPolicy.add(key, policy);
+		root.add("ore_source_policies", onlyPolicy);
+		GeologyEditorSession staleSession = new GeologyEditorSession(
+				WorldGeologyProfile.fromJson(root, source.profile()));
+		GeologyEditorSession.OreSourceGroup group = staleSession.oreSourceGroups().get(0);
+		if (group.needsAttention() || !"separate".equals(group.status)
+				|| OreSourceListScreen.groupRowColor(group) != 0xFFFF55) {
+			throw new IllegalStateException("Stale missing external duplicate remained red: status="
+					+ group.status + ", attention=" + group.needsAttention());
+		}
+		OreSourceListScreen screen = new OreSourceListScreen(parent, staleSession);
+		screen.setWorldAndResolution(minecraft, 426, 265);
+		for (GuiButton widget : screen.buttons) {
+			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
+			if (I18n.format("button.orespawn.ore_source.accept").equals(caption)) {
+				throw new IllegalStateException("Resolved stale external duplicate still requested acceptance");
+			}
+		}
+	}
+
+	private static GeologyEditorSession editorSession(OreSpawnWorldSettingsScreen root) {
+		try {
+			Field field = OreSpawnWorldSettingsScreen.class.getDeclaredField("session");
+			field.setAccessible(true);
+			return (GeologyEditorSession) field.get(root);
+		} catch (ReflectiveOperationException failure) {
+			throw new IllegalStateException("Could not inspect the active Ore Sources editor session", failure);
+		}
+	}
+
 	private Button nextNavigationButton(OreSpawnWorldSettingsScreen root) {
 		for (GuiButton widget : root.buttons) {
 			if (!(widget instanceof Button) || widget instanceof CycleButton) continue;
@@ -186,6 +642,7 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(OreSpawnScreen screen) {
 		for (GuiButton widget : screen.buttons) {
+			if (widget instanceof CogButton || widget instanceof CompactScrollList) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
@@ -309,12 +766,14 @@ public final class ClientProbeTestMod {
 				+ screen.getClass().getSimpleName());
 	}
 
-	private static void stopIntegratedServer(Minecraft minecraft) {
-		// Match GuiIngameMenu's target-native disconnect path. loadWorld(null)
-		// coordinates the integrated-server save/stop; installing the replacement
-		// screen in the same tick prevents EntityRenderer from seeing no world and
-		// no screen between frames.
-		if (minecraft.world != null) minecraft.world.sendQuittingDisconnectingPacket();
+	private static void beginIntegratedDisconnect(Minecraft minecraft) {
+		// Close the network channel first, then leave the client world available while
+		// already-scheduled 1.12 packets drain. Removing the world in this same tick can
+		// make those packets dereference a cleared NetHandlerPlayClient world.
+		minecraft.world.sendQuittingDisconnectingPacket();
+	}
+
+	private static void finishIntegratedDisconnect(Minecraft minecraft) {
 		minecraft.loadWorld(null);
 		minecraft.displayGuiScreen(new GuiMainMenu());
 	}
@@ -322,6 +781,10 @@ public final class ClientProbeTestMod {
 	private void writeMarker() throws IOException {
 		Properties values = new Properties();
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
+		values.setProperty("mods_directory_rendered", Boolean.toString(modsDirectoryRendered));
+		values.setProperty("directory_stack_validated", Boolean.toString(directoryStackValidated));
+		values.setProperty("ore_sources_validated", Boolean.toString(oreSourcesValidated));
+		values.setProperty("ore_sources_layout_validated", Boolean.toString(oreSourcesLayoutValidated));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
 		values.setProperty("editor_routes", Integer.toString(editorRoutes.size()));
 		values.setProperty("editor_classes", editorRoutes.toString());

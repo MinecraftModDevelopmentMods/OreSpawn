@@ -5,14 +5,22 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,11 +29,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
+import zone.moddev.mc.orespawn.api.GeologyColumn;
+import zone.moddev.mc.orespawn.api.OreGenerationContext;
 import zone.moddev.mc.orespawn.api.OrePatternType;
 import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OreSpawnBiomes;
@@ -37,6 +48,8 @@ import zone.moddev.mc.orespawn.api.StandardPatternSettings;
 import zone.moddev.mc.orespawn.api.WorldgenProvider;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.BiomeSurfaceDefinition;
 import zone.moddev.mc.orespawn.api.WorldgenProvider.TerrainDimensionDefinition;
+import zone.moddev.mc.orespawn.client.OreSourceEditorProbeBridge;
+import zone.moddev.mc.orespawn.client.BiomeEditorProbeBridge;
 import zone.moddev.mc.orespawn.worldgen.SurfaceProbeSpringBridge;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
@@ -88,9 +101,21 @@ public final class SurfaceProbeTestMod {
 	private static final ResourceLocation OVERWORLD = new ResourceLocation("minecraft", "overworld");
 	private static final ResourceLocation BIOME_A = new ResourceLocation(MODID, "surface_a");
 	private static final ResourceLocation BIOME_B = new ResourceLocation(MODID, "surface_b");
+	private static final ResourceLocation BIOME_UNMANAGED = new ResourceLocation(MODID, "unmanaged");
 	private static final ResourceLocation PROBE_GEOME = new ResourceLocation(MODID, "exact_biome");
 	private static final ResourceLocation SPRING_ROCK = new ResourceLocation(MODID, "rock/spring_host");
+	private static final ResourceLocation STANDARD_CHANNEL = new ResourceLocation("orespawn", "standard");
+	private static final long BODY_IDENTITY = 0x51A7F00D1234ABCDL;
+	private static final int ORE_MIN_CHUNK = 80;
+	private static final int ORE_MAX_CHUNK = 84;
+	private static final int RESET_MIN_CHUNK = 88;
+	private static final int RESET_MAX_CHUNK = 92;
+	private static final int OVERRIDE_MIN_CHUNK = 68;
+	private static final int OVERRIDE_MAX_CHUNK = 70;
 	private static final ProbeLiquid DEPOSIT_FLUID = new ProbeLiquid();
+	private static final Map<String, Block[]> SOURCE_BLOCKS = sourceBlocks();
+	private static final Map<String, OrePatternType> SOURCE_PATTERNS = sourcePatterns();
+	private static final List<OreInvocation> ORE_INVOCATIONS = new ArrayList<>();
 	private static final BlockPos SPRING_POS = new BlockPos(1128, 32, 1128);
 	private static final IBlockState[] NATURAL_SOURCES = {
 			Blocks.DIRT.getStateFromMeta(0), Blocks.GRASS.getDefaultState(),
@@ -119,6 +144,7 @@ public final class SurfaceProbeTestMod {
 	private static final String RAW_CHEST_ITEM_NAME = "surfaceprobe raw block entity sentinel";
 	private static final Block WEATHER_SNOW_REPLACEMENT = Blocks.WOOL;
 	private static final Block WEATHER_ICE_REPLACEMENT = Blocks.PACKED_ICE;
+	private static final AtomicInteger EXTENDED_CONTEXT_INVOCATIONS = new AtomicInteger();
 	private static final ResourceLocation[] BUILT_IN_GEOMES = {
 			new ResourceLocation("orespawn", "stable_craton"),
 			new ResourceLocation("orespawn", "mountain_belt"),
@@ -131,14 +157,97 @@ public final class SurfaceProbeTestMod {
 	};
 
 	private static final OrePatternType EXTERNAL_PATTERN = OrePatternType.create(
-			StandardPatternSettings.CODEC, settings -> context -> false)
+			StandardPatternSettings.CODEC, settings -> context -> {
+				if (!(context instanceof OreGenerationContext)) {
+					throw new IllegalStateException("External pattern did not receive OreGenerationContext");
+				}
+				OreGenerationContext generation = (OreGenerationContext) context;
+				if (generation.worldSeed() != 0L || !OVERWORLD.equals(generation.dimension())
+						|| generation.chunkX() != (generation.originX() >> 4)
+						|| generation.chunkZ() != (generation.originZ() >> 4)) {
+					throw new IllegalStateException("External pattern received unstable generation identity");
+				}
+				if (!generation.geologySampler().isPresent()) {
+					throw new IllegalStateException("Overworld pattern did not receive its geology sampler");
+				}
+				GeologyColumn column = generation.geologySampler().get().sampleColumn(
+						generation.originX(), generation.originZ(), 64);
+				if (!generation.dimension().equals(column.dimension())) {
+					throw new IllegalStateException("Context and sampler dimensions disagree");
+				}
+				EXTENDED_CONTEXT_INVOCATIONS.incrementAndGet();
+				return false;
+			})
 			.setRegistryName(MODID, "external_probe");
+
+	private static Map<String, Block[]> sourceBlocks() {
+		Map<String, Block[]> result = new LinkedHashMap<>();
+		for (String group : Arrays.asList("balanced", "single", "custom", "original", "body")) {
+			result.put(group, new Block[] {
+					probeBlock(group + "_a"), probeBlock(group + "_b")
+			});
+		}
+		return result;
+	}
+
+	private static Block probeBlock(String name) {
+		return new Block(net.minecraft.block.material.Material.ROCK).setRegistryName(MODID, name)
+				.setTranslationKey(MODID + "." + name);
+	}
+
+	private static Map<String, OrePatternType> sourcePatterns() {
+		Map<String, OrePatternType> result = new LinkedHashMap<>();
+		for (String group : Arrays.asList("balanced", "single", "custom", "original", "body")) {
+			result.put(group, sourcePattern(group, "body".equals(group)));
+		}
+		return result;
+	}
+
+	private static OrePatternType sourcePattern(String group, boolean bodyIdentity) {
+		return OrePatternType.create(StandardPatternSettings.CODEC, settings -> context -> {
+			if (!(context instanceof OreGenerationContext)) {
+				throw new IllegalStateException("Ore source probe did not receive OreGenerationContext");
+			}
+			OreGenerationContext generation = (OreGenerationContext) context;
+			List<BlockPos> placed = new ArrayList<>();
+			int height = generation.maxY() - generation.minY() + 1;
+			boolean changed = false;
+			for (int index = 0; index < generation.quantity(); index++) {
+				int y = generation.minY() + Math.floorMod(
+						generation.originY() - generation.minY() + index, height);
+				BlockPos position = new BlockPos(generation.originX(), y, generation.originZ());
+				boolean accepted = bodyIdentity
+						? generation.tryPlace(position.getX(), position.getY(), position.getZ(), BODY_IDENTITY)
+						: generation.tryPlace(position.getX(), position.getY(), position.getZ());
+				if (accepted) placed.add(position);
+				changed |= accepted;
+			}
+			if (insideOreAudit(generation.chunkX(), generation.chunkZ())) {
+				synchronized (ORE_INVOCATIONS) {
+					ORE_INVOCATIONS.add(new OreInvocation(group, generation.chunkX(),
+							generation.chunkZ(), placed));
+				}
+			}
+			return changed;
+		}).setRegistryName(MODID, group + "_source_probe");
+	}
+
+	private static boolean insideOreAudit(int chunkX, int chunkZ) {
+		return insideSquare(chunkX, chunkZ, ORE_MIN_CHUNK, ORE_MAX_CHUNK)
+				|| insideSquare(chunkX, chunkZ, RESET_MIN_CHUNK, RESET_MAX_CHUNK);
+	}
+
+	private static boolean insideSquare(int chunkX, int chunkZ, int minimum, int maximum) {
+		return chunkX >= minimum && chunkX <= maximum && chunkZ >= minimum && chunkZ <= maximum;
+	}
 
 	private final BiomeRegistrar registrar = OreSpawnBiomes.registrar(MODID);
 	private final BiomeReference surfaceA = OreSpawnBiomes.blankAndRegister(registrar,
 			"surface_a", properties -> configure(properties, 1.35F, 0.15F));
 	private final BiomeReference surfaceB = OreSpawnBiomes.blankAndRegister(registrar,
 			"surface_b", properties -> configure(properties, 0.7F, 0.8F));
+	private final BiomeReference unmanaged = OreSpawnBiomes.blankAndRegister(registrar,
+			"unmanaged", properties -> configure(properties, 0.8F, 0.4F));
 	private final Set<String> preparedTerrain = new LinkedHashSet<>();
 
 	public SurfaceProbeTestMod() {
@@ -158,16 +267,20 @@ public final class SurfaceProbeTestMod {
 		surfaceB.get().decorator = new ProbeDecorator();
 		BiomeDictionary.addTypes(surfaceA.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.DRY);
 		BiomeDictionary.addTypes(surfaceB.get(), BiomeDictionary.Type.HOT, BiomeDictionary.Type.WET);
+		// This fixture is the unmanaged entry for the End directory exercised below.
+		BiomeDictionary.addTypes(unmanaged.get(), BiomeDictionary.Type.END);
 	}
 
 	@SubscribeEvent
 	public void registerBlocks(RegistryEvent.Register<Block> event) {
 		event.getRegistry().register(DEPOSIT_FLUID);
+		for (Block[] blocks : SOURCE_BLOCKS.values()) event.getRegistry().registerAll(blocks);
 	}
 
 	@SubscribeEvent
 	public void registerPatterns(RegistryEvent.Register<OrePatternType> event) {
 		event.getRegistry().register(EXTERNAL_PATTERN);
+		event.getRegistry().registerAll(SOURCE_PATTERNS.values().toArray(new OrePatternType[0]));
 	}
 
 	@EventHandler
@@ -215,15 +328,42 @@ public final class SurfaceProbeTestMod {
 		provider.fluidDeposit(new ResourceLocation(MODID, "fluid_deposit/dynamic_tick_probe"),
 				id(DEPOSIT_FLUID), deposit -> deposit.dimension(OVERWORLD,
 						dimension -> dimension.hostBlock(id(Blocks.STONE))));
+		provider.ore(new ResourceLocation(MODID, "ore/generation_context_probe"),
+				id(Blocks.COAL_ORE), ore -> ore.retrogen(true).dimension(OVERWORLD,
+						dimension -> dimension.yRange(16, 48).attempts(1.0D).quantity(1)
+								.pattern(new ResourceLocation(MODID, "external_probe"), new JsonObject())
+								.hostBlock(id(Blocks.STONE))));
+		addOreSourceRules(provider);
 		// This stable palette id makes seed zero select both fixture biomes on
 		// opposite sides of the 1,024-block Tiny-region boundary.
 		addPalette(provider, "end_palette_1", END, false);
+		addNoOpPalette(provider, "end_palette_2", END);
 		addPalette(provider, "nether_palette_1", NETHER, true);
 		provider.dimensionMaterials(new ResourceLocation(MODID, "materials/end"), END,
 				materials -> materials.snowBlock(id(WEATHER_SNOW_REPLACEMENT))
 						.iceBlock(id(WEATHER_ICE_REPLACEMENT)));
 		if (!OreSpawnApi.enqueue(provider.build())) {
 			throw new IllegalStateException("Could not enqueue the surfaceprobe provider");
+		}
+	}
+
+	private static void addOreSourceRules(WorldgenProvider.Builder provider) {
+		int minimumY = 8;
+		for (Map.Entry<String, Block[]> entry : SOURCE_BLOCKS.entrySet()) {
+			String group = entry.getKey();
+			ResourceLocation material = new ResourceLocation(MODID, group);
+			ResourceLocation pattern = SOURCE_PATTERNS.get(group).getRegistryName();
+			for (int index = 0; index < entry.getValue().length; index++) {
+				String suffix = index == 0 ? "a" : "b";
+				ResourceLocation rule = new ResourceLocation(MODID, group + "_" + suffix);
+				Block output = entry.getValue()[index];
+				int bandMin = minimumY;
+				provider.ore(rule, id(output), ore -> ore.material(material).retrogen(false)
+						.dimension(OVERWORLD, dimension -> dimension.yRange(bandMin, bandMin + 7)
+								.attempts(1.0D).quantity(3).pattern(pattern, new JsonObject())
+								.placementChannel(STANDARD_CHANNEL).hostBlock(id(Blocks.STONE))));
+			}
+			minimumY += 12;
 		}
 	}
 
@@ -259,6 +399,7 @@ public final class SurfaceProbeTestMod {
 
 	@EventHandler
 	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
+		String phase = System.getProperty(PHASE_PROPERTY, "").trim();
 		Path profile = worldRoot(event.getServer()).resolve("serverconfig")
 				.resolve("orespawn-worldgen.json");
 		JsonObject root;
@@ -273,8 +414,10 @@ public final class SurfaceProbeTestMod {
 			JsonObject end = terrain.getAsJsonObject(END.toString());
 			JsonArray hosts = end.getAsJsonArray("host_blocks");
 			for (Block block : Arrays.asList(Blocks.AIR, Blocks.WATER, Blocks.BEDROCK, Blocks.CHEST)) {
-				hosts.add(id(block).toString());
+				addUnique(hosts, id(block).toString());
 			}
+			if ("fresh".equals(phase)) root = OreSourceEditorProbeBridge.configure(root);
+			assertPersistedOreSourceModes(root, false);
 			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
 				new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
 			}
@@ -284,6 +427,13 @@ public final class SurfaceProbeTestMod {
 		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
 			throw new IllegalStateException("Could not reload the test-owned End geology profile");
 		}
+	}
+
+	private static void addUnique(JsonArray values, String value) {
+		for (int index = 0; index < values.size(); index++) {
+			if (value.equals(values.get(index).getAsString())) return;
+		}
+		values.add(new JsonPrimitive(value));
 	}
 
 	private static void addPalette(WorldgenProvider.Builder provider, String name,
@@ -300,6 +450,17 @@ public final class SurfaceProbeTestMod {
 								.temperature(-2.0D, 2.0D).downfall(0.0D, 1.0D).surface(a))
 						.biome(BIOME_B, biome -> biome.weight(1.0D)
 								.temperature(-2.0D, 2.0D).downfall(0.0D, 1.0D).surface(b)));
+	}
+
+	private static void addNoOpPalette(WorldgenProvider.Builder provider, String name,
+			ResourceLocation dimension) {
+		provider.biomePalette(new ResourceLocation(MODID, name), dimension,
+				palette -> palette.mode(BiomePlacementMode.AUGMENT)
+						.scope(BiomeReplacementScope.SELECTED_NAMESPACES)
+						.includeNamespace("unmatchedfixture")
+						.regionSize(BiomeRegionSize.TINY).coverage(1.0D).fallbackWeight(1.0D)
+						.biome(BIOME_A, biome -> biome.weight(1.0D))
+						.biome(BIOME_B, biome -> biome.weight(1.0D)));
 	}
 
 	private static BiomeSurfaceDefinition surface(Block top, Block filler,
@@ -332,14 +493,26 @@ public final class SurfaceProbeTestMod {
 		if (overworld == null || overworld.getSeed() != 0L) {
 			throw new IllegalStateException("surfaceprobe requires seed token zsjpxah (hash zero)");
 		}
+		if ("fresh".equals(phase) && EXTENDED_CONTEXT_INVOCATIONS.get() <= 0) {
+			throw new IllegalStateException("External generation context probe did not run");
+		}
 		Path marker = worldRoot(server).resolve(MARKER_NAME);
 		Properties previous = "reload".equals(phase) ? read(marker) : null;
 		if ("fresh".equals(phase) && Files.exists(marker)) {
 			throw new IllegalStateException("Fresh surfaceprobe retained an old marker");
 		}
 		Map<String, Audit> results = new LinkedHashMap<>();
+		OreSourceAudit oreSources;
+		if ("fresh".equals(phase)) {
+			clearOreInvocations();
+			generateSquare(overworld, ORE_MIN_CHUNK, ORE_MAX_CHUNK, false);
+			oreSources = auditOreSources(overworld, ORE_MIN_CHUNK, ORE_MAX_CHUNK, false);
+		} else {
+			oreSources = scanOreSources(overworld, ORE_MIN_CHUNK, ORE_MAX_CHUNK);
+		}
 		results.put("end", audit(requireWorld(server, 1), false));
 		results.put("nether", audit(requireWorld(server, -1), true));
+		BiomeCount override = verifyBiomeOverride(server, phase, results.get("end"));
 		ResourceLocation spring = auditSpring(overworld, phase);
 		int dynamicFluidPlacements = DEPOSIT_FLUID.placements();
 		if ("fresh".equals(phase) && dynamicFluidPlacements <= 0) {
@@ -350,9 +523,16 @@ public final class SurfaceProbeTestMod {
 					+ dynamicFluidPlacements);
 		}
 		Properties current = properties(overworld.getSeed(), results, spring);
+		oreSources.write(current, "ore_sources.");
+		current.setProperty("ore_sources.profile_sha256", sha256(worldRoot(server)
+				.resolve("serverconfig").resolve("orespawn-worldgen.json")));
 		current.setProperty("dynamic_fluid_placements", "fresh".equals(phase)
 				? Integer.toString(dynamicFluidPlacements)
 				: previous.getProperty("dynamic_fluid_placements"));
+		current.setProperty("biome_override.biome_a", Integer.toString(override.biomeA));
+		current.setProperty("biome_override.biome_b", Integer.toString(override.biomeB));
+		current.setProperty("biome_override_verified", Boolean.toString(
+				override.biomeA == 0 && override.biomeB == override.total));
 		if (previous == null) {
 			write(marker, current);
 		} else {
@@ -362,12 +542,273 @@ public final class SurfaceProbeTestMod {
 							+ previous.getProperty(key) + " but found " + current.getProperty(key));
 				}
 			}
+			resetOreSources(server);
+			clearOreInvocations();
+			generateSquare(overworld, RESET_MIN_CHUNK, RESET_MAX_CHUNK, true);
+			OreSourceAudit reset = auditOreSources(overworld,
+					RESET_MIN_CHUNK, RESET_MAX_CHUNK, true);
+			reset.write(previous, "ore_sources.reset.");
+			previous.setProperty("ore_sources_reset_verified", "true");
 			previous.setProperty("reload_verified", "true");
 			write(marker, previous);
 		}
 		LOGGER.info("SURFACEPROBE PASS phase={} end={} nether={}",
 				phase, results.get("end"), results.get("nether"));
 		server.initiateShutdown();
+	}
+
+	private static BiomeCount verifyBiomeOverride(MinecraftServer server, String phase,
+			Audit original) {
+		WorldServer end = requireWorld(server, 1);
+		if ("fresh".equals(phase)) {
+			Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+			JsonObject edited = BiomeEditorProbeBridge.replace(
+					WorldGeologyProfileManager.activeProfile().rootCopy(), END.toString(),
+					BIOME_A.toString(), BIOME_B.toString(), BIOME_UNMANAGED.toString());
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(edited, writer);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Could not persist biome replacement", exception);
+			}
+			if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+				throw new IllegalStateException("Could not reload biome replacement");
+			}
+			BiomeCount unchanged = countBiomes(end, MIN_CHUNK, MAX_CHUNK, false);
+			if (unchanged.biomeA != original.biomeA || unchanged.biomeB != original.biomeB) {
+				throw new IllegalStateException("Biome replacement rewrote existing chunks: " + unchanged);
+			}
+			generateSquare(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK, false);
+		}
+		BiomeCount generated = countBiomes(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK, true);
+		if (generated.biomeA != 0 || generated.biomeB != generated.total) {
+			throw new IllegalStateException("Terminal biome override did not control new terrain: "
+					+ generated);
+		}
+		return generated;
+	}
+
+	private static BiomeCount countBiomes(WorldServer world, int minimum, int maximum,
+			boolean requireGenerated) {
+		int a = 0, b = 0, total = 0;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = minimum; chunkZ <= maximum; chunkZ++) {
+			for (int chunkX = minimum; chunkX <= maximum; chunkX++) {
+				Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
+				if (requireGenerated && !chunk.isLoaded()) {
+					throw new IllegalStateException("Biome override chunk was not generated at "
+							+ chunkX + "," + chunkZ);
+				}
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					ResourceLocation id = world.getBiome(cursor.setPos(
+							(chunkX << 4) + x, 64, (chunkZ << 4) + z)).getRegistryName();
+					if (BIOME_A.equals(id)) a++;
+					else if (BIOME_B.equals(id)) b++;
+					else throw new IllegalStateException("Unexpected biome in override audit: " + id);
+					total++;
+				}
+			}
+		}
+		return new BiomeCount(a, b, total);
+	}
+
+	private static void assertPersistedOreSourceModes(JsonObject root, boolean reset) {
+		JsonObject policies = root.getAsJsonObject("ore_source_policies");
+		if (policies == null) throw new IllegalStateException("Missing persisted ore-source policies");
+		for (String group : SOURCE_BLOCKS.keySet()) {
+			String key = MODID + ":" + group + "|minecraft:overworld";
+			if (!policies.has(key) || !policies.get(key).isJsonObject()) {
+				throw new IllegalStateException("Missing persisted ore-source policy " + key);
+			}
+			JsonObject policy = policies.getAsJsonObject(key);
+			String expected = reset || "original".equals(group) ? "keep_separate" : "consolidated";
+			if (!expected.equals(policy.get("mode").getAsString())) {
+				throw new IllegalStateException("Unexpected persisted mode for " + group + ": " + policy);
+			}
+			if (!reset && "single".equals(group)) {
+				JsonObject outputs = policy.getAsJsonObject("outputs");
+				if (outputs.entrySet().size() != 1 || !outputs.has(MODID + ":single_b")) {
+					throw new IllegalStateException("Single output did not survive persistence: " + outputs);
+				}
+			}
+			if (!reset && "custom".equals(group)) {
+				JsonObject outputs = policy.getAsJsonObject("outputs");
+				if (outputs.get(MODID + ":custom_a").getAsDouble() != 1.0D
+						|| outputs.get(MODID + ":custom_b").getAsDouble() != 3.0D) {
+					throw new IllegalStateException("Custom weights did not survive persistence: " + outputs);
+				}
+			}
+		}
+	}
+
+	private static void resetOreSources(MinecraftServer server) {
+		Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+		JsonObject reset = OreSourceEditorProbeBridge.reset(
+				WorldGeologyProfileManager.activeProfile().rootCopy());
+		assertPersistedOreSourceModes(reset, true);
+		try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+			new GsonBuilder().setPrettyPrinting().create().toJson(reset, writer);
+		} catch (IOException exception) {
+			throw new IllegalStateException("Could not persist Reset All ore-source profile", exception);
+		}
+		if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+			throw new IllegalStateException("Could not reload Reset All ore-source profile");
+		}
+		assertPersistedOreSourceModes(WorldGeologyProfileManager.activeProfile().rootCopy(), true);
+	}
+
+	private static void generateSquare(WorldServer world, int minimum, int maximum, boolean reverse) {
+		if (reverse) {
+			for (int z = maximum + 1; z >= minimum - 1; z--) {
+				for (int x = maximum + 1; x >= minimum - 1; x--) world.getChunkProvider().provideChunk(x, z);
+			}
+		} else {
+			for (int z = minimum - 1; z <= maximum + 1; z++) {
+				for (int x = minimum - 1; x <= maximum + 1; x++) world.getChunkProvider().provideChunk(x, z);
+			}
+		}
+	}
+
+	private static void clearOreInvocations() {
+		synchronized (ORE_INVOCATIONS) { ORE_INVOCATIONS.clear(); }
+	}
+
+	private static OreSourceAudit auditOreSources(WorldServer world, int minimum, int maximum,
+			boolean reset) {
+		Map<String, List<OreInvocation>> byGroup = new HashMap<>();
+		synchronized (ORE_INVOCATIONS) {
+			for (OreInvocation invocation : ORE_INVOCATIONS) {
+				if (insideSquare(invocation.chunkX, invocation.chunkZ, minimum, maximum)) {
+					byGroup.computeIfAbsent(invocation.group, ignored -> new ArrayList<>()).add(invocation);
+				}
+			}
+		}
+		int chunks = (maximum - minimum + 1) * (maximum - minimum + 1);
+		for (String group : SOURCE_BLOCKS.keySet()) {
+			List<OreInvocation> invocations = byGroup.getOrDefault(group, Collections.emptyList());
+			int expected = reset || "original".equals(group) ? chunks * 2 : chunks;
+			if (invocations.size() != expected) {
+				throw new IllegalStateException("Expected " + expected + " placement budgets for "
+						+ group + " but recorded " + invocations.size());
+			}
+			Set<Block> observed = new LinkedHashSet<>();
+			Map<Block, Integer> selectedInvocations = new HashMap<>();
+			int nonEmpty = 0;
+			for (OreInvocation invocation : invocations) {
+				Block invocationOutput = null;
+				for (BlockPos position : invocation.positions) {
+					Block output = world.getBlockState(position).getBlock();
+					if (!contains(SOURCE_BLOCKS.get(group), output)) {
+						throw new IllegalStateException("Unexpected output " + output + " for " + group
+								+ " at " + position);
+					}
+					if (invocationOutput != null && invocationOutput != output) {
+						throw new IllegalStateException("One ore body mixed outputs for " + group
+								+ " in chunk " + invocation.chunkX + "," + invocation.chunkZ);
+					}
+					invocationOutput = output;
+					observed.add(output);
+				}
+				if (invocationOutput != null) {
+					nonEmpty++;
+					selectedInvocations.put(invocationOutput,
+							selectedInvocations.getOrDefault(invocationOutput, 0) + 1);
+				}
+			}
+			if (nonEmpty == 0) {
+				throw new IllegalStateException("Too few successful ore-source attempts for " + group
+						+ ": " + nonEmpty + "/" + invocations.size());
+			}
+			Block[] outputs = SOURCE_BLOCKS.get(group);
+			if (!reset && "single".equals(group)
+					&& (!observed.equals(Collections.singleton(outputs[1])))) {
+				throw new IllegalStateException("Single mode placed unexpected outputs: " + observed);
+			}
+			if (!reset && "body".equals(group) && observed.size() != 1) {
+				throw new IllegalStateException("Stable body identity did not retain one output: " + observed);
+			}
+			if ((reset || (!"single".equals(group) && !"body".equals(group))) && observed.size() != 2) {
+				throw new IllegalStateException(group + " did not exercise both selected outputs: " + observed);
+			}
+			if (!reset && "custom".equals(group)
+					&& selectedInvocations.getOrDefault(outputs[1], 0)
+							<= selectedInvocations.getOrDefault(outputs[0], 0)) {
+				throw new IllegalStateException("Custom 1:3 weights were not reflected in deterministic "
+						+ "whole-vein selections: " + selectedInvocations);
+			}
+		}
+		if (!reset) assertBodyIdentity(world, byGroup.get("body"));
+		return scanOreSources(world, minimum, maximum);
+	}
+
+	private static void assertBodyIdentity(WorldServer world, List<OreInvocation> invocations) {
+		Block selected = null;
+		for (OreInvocation invocation : invocations) {
+			for (BlockPos position : invocation.positions) {
+				Block output = world.getBlockState(position).getBlock();
+				if (selected == null) selected = output;
+				else if (selected != output) {
+					throw new IllegalStateException("Stable body identity selected different outputs across chunks");
+				}
+			}
+		}
+		if (selected == null) throw new IllegalStateException("Stable body identity placed no output");
+	}
+
+	private static boolean contains(Block[] values, Block value) {
+		for (Block candidate : values) if (candidate == value) return true;
+		return false;
+	}
+
+	private static OreSourceAudit scanOreSources(WorldServer world, int minimum, int maximum) {
+		List<String> positions = new ArrayList<>();
+		Map<String, Integer> counts = new LinkedHashMap<>();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = minimum; chunkZ <= maximum; chunkZ++) {
+			for (int chunkX = minimum; chunkX <= maximum; chunkX++) {
+				Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
+				for (int localZ = 0; localZ < 16; localZ++) {
+					for (int localX = 0; localX < 16; localX++) {
+						for (int y = 0; y <= 80; y++) {
+							int x = (chunkX << 4) + localX;
+							int z = (chunkZ << 4) + localZ;
+							Block block = chunk.getBlockState(cursor.setPos(x, y, z)).getBlock();
+							String identity = sourceIdentity(block);
+							if (identity == null) continue;
+							positions.add(identity + "@" + x + "," + y + "," + z);
+							counts.put(identity, Integer.valueOf(counts.getOrDefault(identity, 0) + 1));
+						}
+					}
+				}
+			}
+		}
+		positions.sort(Comparator.naturalOrder());
+		if (positions.isEmpty()) throw new IllegalStateException("Ore-source audit found no probe blocks");
+		return new OreSourceAudit(hash(String.join("\n", positions).getBytes(StandardCharsets.UTF_8)), counts);
+	}
+
+	private static String sourceIdentity(Block block) {
+		for (Map.Entry<String, Block[]> entry : SOURCE_BLOCKS.entrySet()) {
+			for (int index = 0; index < entry.getValue().length; index++) {
+				if (entry.getValue()[index] == block) return entry.getKey() + (index == 0 ? "_a" : "_b");
+			}
+		}
+		return null;
+	}
+
+	private static String sha256(Path path) {
+		try { return hash(Files.readAllBytes(path)); }
+		catch (IOException exception) { throw new IllegalStateException("Could not hash " + path, exception); }
+	}
+
+	private static String hash(byte[] bytes) {
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+			StringBuilder result = new StringBuilder();
+			for (byte value : digest) result.append(String.format("%02X", value & 0xFF));
+			return result.toString();
+		} catch (NoSuchAlgorithmException exception) {
+			throw new IllegalStateException(exception);
+		}
 	}
 
 	private static WorldServer requireWorld(MinecraftServer server, int dimension) {
@@ -818,6 +1259,55 @@ public final class SurfaceProbeTestMod {
 			net.minecraft.util.math.ChunkPos chunkPos = new net.minecraft.util.math.ChunkPos(pos);
 			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Pre(world, random, chunkPos));
 			MinecraftForge.EVENT_BUS.post(new DecorateBiomeEvent.Post(world, random, chunkPos));
+		}
+	}
+
+	private static final class OreInvocation {
+		final String group;
+		final int chunkX, chunkZ;
+		final List<BlockPos> positions;
+
+		OreInvocation(String group, int chunkX, int chunkZ, List<BlockPos> positions) {
+			this.group = group;
+			this.chunkX = chunkX;
+			this.chunkZ = chunkZ;
+			this.positions = Collections.unmodifiableList(new ArrayList<>(positions));
+		}
+	}
+
+	private static final class OreSourceAudit {
+		final String coordinateHash;
+		final Map<String, Integer> counts;
+
+		OreSourceAudit(String coordinateHash, Map<String, Integer> counts) {
+			this.coordinateHash = coordinateHash;
+			this.counts = Collections.unmodifiableMap(new LinkedHashMap<>(counts));
+		}
+
+		void write(Properties properties, String prefix) {
+			properties.setProperty(prefix + "coordinate_sha256", coordinateHash);
+			int total = 0;
+			for (String group : SOURCE_BLOCKS.keySet()) {
+				for (String suffix : Arrays.asList("a", "b")) {
+					String identity = group + "_" + suffix;
+					int count = counts.getOrDefault(identity, Integer.valueOf(0)).intValue();
+					properties.setProperty(prefix + identity, Integer.toString(count));
+					total += count;
+				}
+			}
+			properties.setProperty(prefix + "total", Integer.toString(total));
+		}
+	}
+
+	private static final class BiomeCount {
+		final int biomeA, biomeB, total;
+		BiomeCount(int biomeA, int biomeB, int total) {
+			this.biomeA = biomeA;
+			this.biomeB = biomeB;
+			this.total = total;
+		}
+		@Override public String toString() {
+			return "BiomeCount{a=" + biomeA + ", b=" + biomeB + ", total=" + total + "}";
 		}
 	}
 

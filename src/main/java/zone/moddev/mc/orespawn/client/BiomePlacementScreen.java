@@ -15,6 +15,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	private final GuiScreen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
+	private final String paletteId;
 	private final String biomeId;
 	private Tab tab = Tab.PLACEMENT;
 	private TextFieldWidget weight;
@@ -26,10 +27,21 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 
 	BiomePlacementScreen(GuiScreen parent, GeologyEditorSession session,
 			String dimension, String biomeId) {
+		this(parent, session, dimension, paletteId(session, dimension), biomeId);
+	}
+
+	private static String paletteId(GeologyEditorSession session, String dimension) {
+		if (session.biomePaletteId(dimension) == null) session.biomePalette(dimension, true);
+		return session.biomePaletteId(dimension);
+	}
+
+	BiomePlacementScreen(GuiScreen parent, GeologyEditorSession session,
+			String dimension, String paletteId, String biomeId) {
 		super(new TextComponentTranslation("screen.orespawn.biome_placement"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
+		this.paletteId = paletteId;
 		this.biomeId = biomeId;
 	}
 
@@ -48,7 +60,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 					selected -> { saveFields(); tab = value; rebuildWidgets(); }));
 			button.enabled = value != tab;
 		}
-		JsonObject placement = session.biomePlacement(dimension, biomeId);
+		JsonObject placement = session.biomePlacementByPalette(paletteId, biomeId);
 		OreSpawnScreenLayout.explain(this, addButton(CycleButton.onOffBuilder(
 				bool(placement, "enabled", true))
 				.create(left, 64, contentWidth, 20,
@@ -62,7 +74,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 				half, 20, DialogTexts.GUI_DONE, button -> { saveFields(); onClose(); }));
 		addButton(new Button(left + half + 5, OreSpawnScreenLayout.footerY(height),
 				half, 20, new TextComponentTranslation("button.orespawn.remove"), button -> {
-					session.removeBiomePlacement(dimension, biomeId);
+					session.removeBiomePlacementByPalette(paletteId, biomeId);
 					onClose();
 				}));
 	}
@@ -152,7 +164,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	}
 
 	private void saveFields() {
-		JsonObject placement = session.biomePlacement(dimension, biomeId);
+		JsonObject placement = session.biomePlacementByPalette(paletteId, biomeId);
 		if (weight != null) putDouble(placement, "weight", weight, 0.0D, 1000.0D);
 		if (minTemperature != null) putDouble(placement, "min_temperature", minTemperature, -2.0D, 2.0D);
 		if (maxTemperature != null) putDouble(placement, "max_temperature", maxTemperature, -2.0D, 2.0D);

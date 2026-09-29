@@ -144,14 +144,24 @@ in base terrain are eligible for geology; matching blocks authored later by
 structures or vegetation are not. Air, liquids, bedrock, and block-entity
 states remain protected even if a provider mistakenly lists their block IDs.
 
-Dimension materials support the ordinary aquifer fluid and replacements for
-vanilla snow and ice. Minecraft 1.12.2 has one exposed generator-fluid field,
-so `default_fluid` is fully supported. Later-format `deep_aquifer_fluid` and
+Dimension materials apply to every biome in one dimension and only to newly
+generated terrain. They support the ordinary aquifer fluid and replacements
+for vanilla snow and ice. For a fluid with the same opacity and emitted light
+as the native generator fluid, OreSpawn records only native aquifer cells while
+the chunk is being built, lets Minecraft generate and light the terrain with
+its native fluid, then substitutes exactly those cells before decoration. This
+does not touch later lakes, springs or decorator fluids and creates no reload
+retrogen. A fluid with different lighting uses the compatible direct-generator
+path so its light remains correct; that path can be slower.
+
+Minecraft 1.12.2 has one exposed generator-fluid field, so `default_fluid` is
+fully supported. Later-format `deep_aquifer_fluid` and
 `deep_aquifer_max_y` values remain readable and are preserved in saved profiles,
 but this branch disables their editor controls, warns when a distinct deep
-fluid was requested, and uses the ordinary fluid for generation. OreSpawn converts
-weather products in loaded chunks and around players; it does not replace every
-water or lava block after generation.
+fluid was requested, and uses the ordinary fluid for generation. OreSpawn
+converts weather products in loaded chunks and around players; it does not
+replace every water or lava block after generation. Unsupported independent
+chunk generators are reported and left unchanged.
 
 ## Templates And Total Conversions
 
@@ -175,12 +185,48 @@ Automatic selection occurs only for fresh worlds when no explicit global
 If several providers request automatic selection, the highest priority wins,
 then lexical template ID order.
 
-## World-Creation Editor
+## Biome Directory And Exact Overrides
 
-**Biomes & World Materials** is visible even when rock strata are disabled.
-It lists palettes and materials by dimension, uses installed-registry pickers,
-and validates IDs before world creation. The editor is creation-only in 4.0.0;
-existing worlds remain editable through their self-contained server profile.
+**Biomes** is visible even when rock strata are disabled. At normal window
+sizes it keeps a compact biome list and the selected biome's details together;
+at the minimum supported width it uses list and detail pages without losing the
+selection or pending edits. The default list contains provider-managed,
+modified, disabled and missing entries. **Show All** also displays routine
+registered biomes which OreSpawn does not otherwise manage.
+
+The detail pane reports the friendly name, registry ID, mod owner, status and
+effective placement-rule count. Every profile palette is shown in its stored
+sequential order instead of only the first palette for the dimension. Placement
+details expose enabled state, weight, source-biome and required-biome limits,
+climate range, top/filler/underwater/ceiling blocks, filler depth, owner and
+effective order. When several enabled palettes define a surface for one biome,
+the directory identifies the effective last rule without silently reordering
+the profile.
+
+**Leave original behaviour** makes no exact replacement. **Replace in new
+terrain with...** accepts any loaded source and target biome, including an
+external biome, but warns when the target was not declared by a provider for
+that dimension. OreSpawn stores these choices in the reserved
+`orespawn:ui/biome_overrides/<dimension>` palette. It is a 100% `replace/all`
+palette with zero fallback and always bakes after every ordinary palette,
+regardless of JSON insertion order. Each source has one terminal target;
+chains are flattened, inbound mappings follow a subsequently replaced target,
+and cycles or self-replacements are rejected. A missing target remains in the
+profile but leaves its source unchanged until the target mod returns.
+
+Exact replacements affect only chunks generated after the edit. They do not
+unregister a biome, suppress another mod's decorators, alter spawn lists or
+rewrite existing chunks. Arbitrary weighted injection of loaded biomes is not
+offered; only provider-declared palette outputs retain weighted placement.
+
+The palette-settings page exposes mode, scope, region size, coverage, fallback
+weight and namespace include/exclude lists. Dimension materials and geome
+influences remain reachable from the directory. Reset Biome clears its exact
+replacement and restores active provider placements for that biome; palette,
+dimension and all-biome resets restore loaded-provider defaults and remove
+user/profile-only palettes while preserving entries owned by missing providers.
+All edits and resets remain pending until the main editor's **Done** action;
+**Cancel** discards them byte-for-byte.
 
 ## Performance Boundaries
 

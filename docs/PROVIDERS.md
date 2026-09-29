@@ -6,12 +6,13 @@ Provider mods may contribute through Forge IMC, a packaged resource at
 present malformed override leaves that provider inactive instead of silently
 falling back.
 
-Provider schema 4 supports `profile_defaults`, `rocks`, `ores`,
+Provider schema 5 supports `profile_defaults`, `rocks`, `ores`,
 `fluid_deposits`, `geomes`, `biome_rules`, `terrain_dimensions`, and
 `templates`, plus `biome_palettes` and `dimension_materials`. Each file requires a
 matching `provider_modid`, a positive `provider_revision`, and at least one
-contribution. Legacy schemas 1-3 remain accepted; schema 3 introduced fluid
-deposits and schema 4 introduces biome and world-material controls.
+contribution. Legacy schemas 1-4 remain accepted; schema 3 introduced fluid
+deposits, schema 4 introduced biome and world-material controls, and schema 5
+adds canonical ore materials and independent placement channels.
 
 An ore-only provider does not need rocks, geomes, or terrain dimensions. Give
 each ore explicit host blocks or tags and OreSpawn will leave vanilla terrain,
@@ -26,6 +27,7 @@ ownership keys, not necessarily block IDs. Set `block` for one output or
 ```json
 "examplemod:ore/tin": {
   "block": "examplemod:tin_ore",
+  "material": "orespawn:tin",
   "outputs": [
     { "block": "examplemod:tin_ore", "weight": 90 },
     { "block": "examplemod:rich_tin_ore", "weight": 10 }
@@ -40,11 +42,19 @@ ownership keys, not necessarily block IDs. Set `block` for one output or
       "min_quantity": 4,
       "max_quantity": 11,
       "pattern": "default",
+      "placement_channel": "orespawn:standard",
       "host_tags": ["forge:stone"]
     }
   }
 }
 ```
+
+`material` identifies what an ore represents; it is not an output registry ID.
+Rules for one material and dimension share selectable output sources, while
+`placement_channel` keeps ordinary veins independent from custom deposit
+engines. Built-in patterns default to `orespawn:standard`; custom patterns
+default to their registered pattern-type ID. A schema-5 provider should declare
+these fields explicitly when it expects Ore Sources arbitration.
 
 Fluid-deposit IDs also use the provider namespace. Their `block` may belong to
 any installed mod, but it must be a real fluid block. Every enabled dimension
@@ -101,9 +111,41 @@ Only suppress a provider mod's native ore generation when
 `OreSpawnApi.isOreTakeoverActive(modid)` returns true. `PENDING` means discovery
 has not frozen. `INACTIVE` is the fail-safe and native generation must remain.
 
-Existing worlds merge newly introduced provider rule IDs but do not overwrite
-world edits. Disabled and unassigned rules remain tombstones; removed provider
-rules remain in the self-contained snapshot.
+## Reviewed MMD Ore Sources
+
+OreSpawn ships a deliberately narrow compatibility catalog. BaseMetals,
+ModernMetals, BaseGems, BaseMinerals, FantasyMetals and Advantage-family ores
+may participate as ordinary interchangeable outputs when their material is
+unambiguous. NetherMetals and EndMetals stay in their respective dimension
+domains. DenseMetals is enrichment, not an interchangeable output, and
+BaseSciences has no ordinary ore-source role.
+
+Reviewed fresh-world conflicts start Balanced with all eligible output blocks.
+Mineralogy, then BaseMinerals, then ElectricAdvantage is the initial placement
+and Single-mode priority for sulfur; BaseMinerals, then ElectricAdvantage is the
+corresponding lithium priority. No other conflict is automatically consolidated
+without an explicit catalog row. Exact Ore Dictionary `oreX` inference recognizes the curated
+sulfur/sulphur and aluminum/aluminium aliases but deliberately keeps Niter and
+Saltpeter distinct. Multiple unrelated entries are marked for review rather
+than fuzzy-matched from block names.
+
+Provider definitions that are disabled for placement remain managed
+output-only candidates. This permits a sibling mod's block to participate in a
+Balanced, Single, or Custom material group without contributing a second
+frequency budget. Duplicate rule or alias references to the same registry ID
+and metadata are displayed once.
+
+Ore Dictionary membership does not prove that OreSpawn controls a mod's native
+generator. Such candidates are displayed as external generation and are never
+disabled. Providers should keep native generation enabled until takeover is
+active, then let their OreSpawn rules participate normally.
+
+Existing worlds normally merge newly introduced provider rule IDs but do not
+overwrite world edits. A Java provider may opt out with
+`mergeNewEntriesIntoExistingWorlds(false)` when its rules capture structural
+add-on configuration that must begin only in newly created worlds. Disabled and
+unassigned rules remain tombstones; removed provider rules remain in the
+self-contained snapshot.
 
 Biome providers can add Forge biomes normally, then declare where those biomes
 belong through `biome_palettes`. The overlay wraps the dimension's existing

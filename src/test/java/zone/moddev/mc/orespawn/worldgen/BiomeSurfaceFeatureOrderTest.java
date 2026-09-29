@@ -26,7 +26,7 @@ class BiomeSurfaceFeatureOrderTest {
 		assertTrue(source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\r\n\tpublic void filterVanillaOre")
 				|| source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\n\tpublic void filterVanillaOre"),
 				"vanilla-ore suppression must make its decision at Forge's final standard event priority");
-		assertTrue(source.contains("OreSpawnOreGeneration.takesOverVanillaOre(dimension, output)"));
+		assertTrue(source.contains("OreSpawnOreGeneration.allowsVanillaOre(dimension, output"));
 		assertTrue(source.contains("event.setResult(Event.Result.DENY)"));
 		assertTrue(source.contains("earlyComplete.add(key)") && source.contains("oreComplete.add(key)"),
 				"terrain and ore callbacks must be independently deduplicated");

@@ -50,6 +50,29 @@ class VanillaSpringCompatibilityTest {
 	}
 
 	@Test
+	void independentChunkGeneratorsKeepTheirOwnSpringPass() throws Exception {
+		String source = source();
+		assertTrue(source.contains("instanceof ChunkGeneratorOverworld"));
+		assertTrue(source.indexOf("instanceof ChunkGeneratorOverworld")
+				< source.indexOf("event.getRand()"),
+				"an unsupported generator must be rejected before OreSpawn consumes its random stream");
+	}
+
+	@Test
+	void springChecksEveryNeighbourIsLoadedBeforeReadingItsState() throws Exception {
+		String source = source();
+		int loadedGuard = source.indexOf("if (!loaded(world, pos)");
+		int firstRead = source.indexOf("world.getBlockState(pos.up())");
+		assertTrue(loadedGuard >= 0, "spring generation must have an explicit loaded-neighbour guard");
+		assertTrue(firstRead > loadedGuard,
+				"spring generation must reject unloaded chunk edges before any adjacent block read");
+		assertTrue(source.contains("loaded(world, pos.west())"));
+		assertTrue(source.contains("loaded(world, pos.east())"));
+		assertTrue(source.contains("loaded(world, pos.north())"));
+		assertTrue(source.contains("loaded(world, pos.south())"));
+	}
+
+	@Test
 	void managedWorldgenWritesSuppressObserverDrivenChunkPopulation() throws Exception {
 		String oreGeneration = new String(Files.readAllBytes(Paths.get("src", "main", "java",
 				"zone", "moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),

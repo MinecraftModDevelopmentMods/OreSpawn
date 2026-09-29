@@ -1,0 +1,318 @@
+import java.security.MessageDigest
+
+def forge12DevelopmentOutput = project.ext.oreSpawnBuild.developmentOutput
+
+// These are copies of published mods and old worlds. Check their hashes before
+// testing so we notice if the reference material has changed.
+def legacyFixtureRoot = file("${rootDir}/ci-fixtures")
+def legacyFixtureArtifacts = new File(legacyFixtureRoot, 'artifacts')
+def legacyFixtureWorlds = new File(legacyFixtureRoot, 'worlds')
+def legacyMineralogy110OracleJar = new File(
+        legacyFixtureArtifacts, 'Mineralogy-1.10.2-3.3.8.26.jar')
+def legacyMineralogy112OracleJar = new File(
+        legacyFixtureArtifacts, 'Mineralogy-1.12.2-3.8.0.53.jar')
+def legacyFixtureHashes = [
+        'artifacts/Mineralogy-1.10.2-3.3.8.26.jar':
+                '88A6237C9A0E2C8891718B68C373E741C78B8494F5E68D8093CA9339F3BC4D87',
+        'artifacts/Mineralogy-1.12.2-3.8.0.53.jar':
+                'C42E608E5662A94138BD2461019D33283F96E3FB66E28DB91C00A49E9A8005CD',
+        'worlds/os3-331-default-source.zip':
+                '2852FA549C7A952CCC0EAE1454057CA81BD91F5BB323BEA1030452BB1D82FDFD'
+]
+
+task verifyLegacyFixtures {
+    group = 'verification'
+    description = 'Verifies the sealed ABI and migration corpus used only by isolated tests.'
+    inputs.files legacyFixtureHashes.keySet().collect { new File(legacyFixtureRoot, it) }
+    doLast {
+        legacyFixtureHashes.each { String relativePath, String expectedHash ->
+            File fixture = new File(legacyFixtureRoot, relativePath)
+            if (!fixture.isFile()) {
+                throw new GradleException("Missing sealed legacy fixture: ${fixture}")
+            }
+            MessageDigest digest = MessageDigest.getInstance('SHA-256')
+            fixture.withInputStream { input ->
+                byte[] buffer = new byte[8192]
+                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
+            }
+            String actualHash = digest.digest().encodeHex().toString().toUpperCase()
+            if (actualHash != expectedHash) {
+                throw new GradleException("Legacy fixture hash mismatch for ${relativePath}: "
+                        + "expected ${expectedHash}, found ${actualHash}")
+            }
+        }
+    }
+}
+
+
+tasks.named('compileTestJava', JavaCompile) {
+    dependsOn verifyLegacyFixtures
+}
+tasks.named('test', Test) {
+    dependsOn verifyLegacyFixtures
+    systemProperty 'orespawn.mineralogy110Oracle', legacyMineralogy110OracleJar.absolutePath
+    systemProperty 'orespawn.mineralogy112Oracle', legacyMineralogy112OracleJar.absolutePath
+}
+
+// Tests open the old Mineralogy jars in isolation. They must never become part
+// of an ordinary OreSpawn build or Eclipse launch.
+tasks.register('verifyLegacyOracleIsolation') {
+    group = 'verification'
+    description = 'Keeps the sealed Mineralogy oracle test-visible but production-invisible.'
+    dependsOn verifyLegacyFixtures
+
+    doLast {
+        Set<File> oracles = [legacyMineralogy110OracleJar.canonicalFile,
+                legacyMineralogy112OracleJar.canonicalFile] as Set<File>
+        def canonicalFiles = { FileCollection classpath ->
+            classpath.files.collect { it.canonicalFile } as Set<File>
+        }
+        Map<String, FileCollection> productionClasspaths = [
+                mainCompile: sourceSets.main.compileClasspath,
+                mainRuntime: sourceSets.main.runtimeClasspath,
+                testCompile: sourceSets.test.compileClasspath,
+                testRuntime: sourceSets.test.runtimeClasspath
+        ]
+        productionClasspaths.each { String name, FileCollection classpath ->
+            Set<File> leaked = canonicalFiles(classpath).intersect(oracles)
+            if (!leaked.isEmpty()) {
+                throw new GradleException("The sealed Mineralogy oracles leaked into ${name}: ${leaked}")
+            }
+        }
+    }
+}
+def java8Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(8)
+    vendor = JvmVendorSpec.ADOPTIUM
+}
+
+tasks.register('verifyJava8Toolchain') {
+    group = 'verification'
+    description = 'Requires the checksum-pinned Temurin 8.0.502+7 release toolchain.'
+    doLast {
+        def metadata = java8Launcher.get().metadata
+        if (project.java_toolchain_version != '8.0.502+7'
+                || metadata.vendor.toString() != 'Eclipse Temurin'
+                || metadata.javaRuntimeVersion != '1.8.0_502-b07') {
+            throw new GradleException("Expected Temurin ${project.java_toolchain_version}, found "
+                    + "${metadata.vendor} ${metadata.javaRuntimeVersion} at ${metadata.installationPath}")
+        }
+    }
+}
+// Each integration run needs Forge's mapped classpath, but its own disposable
+// working directory and settings. Borrow the generated run task, then restore it.
+def configureFromForgeRun = { JavaExec process, String runTaskName ->
+    process.actions.clear()
+    if (runTaskName == 'runServer') {
+        process.setArgs(['nogui'])
+    }
+    process.dependsOn {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        run.taskDependencies.getDependencies(run)
+    }
+    process.doLast {
+        JavaExec run = tasks.getByName(runTaskName) as JavaExec
+        String runConfigurationName = runTaskName.substring(3).uncapitalize()
+        def runOptions = minecraft.runs.getByName(runConfigurationName)
+        File originalConfiguredWorkingDir = runOptions.workingDir.get().asFile
+        File originalWorkingDir = run.workingDir
+        List<String> originalArgs = new ArrayList<>(run.args)
+        List<String> originalJvmArgs = new ArrayList<>(run.jvmArgs)
+        Map<String, Object> originalSystemProperties = new LinkedHashMap<>(run.systemProperties)
+        Map<String, Object> originalEnvironment = new LinkedHashMap<>(run.environment)
+        FileCollection originalClasspath = files(run.classpath.files)
+        String originalMinHeap = run.minHeapSize
+        String originalMaxHeap = run.maxHeapSize
+        String originalMainClass = run.mainClass.orNull
+        try {
+            File forgeConfig = new File(process.workingDir, 'config/forge.cfg')
+            if (!forgeConfig.isFile()) {
+                forgeConfig.parentFile.mkdirs()
+                forgeConfig.setText('''general {
+    B:disableVersionCheck=true
+}
+
+version_checking {
+    B:Global=false
+}
+''', 'UTF-8')
+            }
+            runOptions.workingDir.set(process.workingDir)
+            run.workingDir(process.workingDir)
+            run.args(process.args)
+            run.jvmArgs(process.jvmArgs)
+            run.systemProperties(process.systemProperties)
+            run.environment(process.environment)
+            Set<File> splitMainOutputs = [
+                    tasks.named('compileJava', JavaCompile).get().destinationDirectory.get().asFile,
+                    sourceSets.main.output.resourcesDir
+            ] as Set<File>
+            run.setClasspath(files(forge12DevelopmentOutput, run.classpath.filter {
+                !splitMainOutputs.contains(it)
+            }))
+            run.exec()
+        } finally {
+            runOptions.workingDir.set(originalConfiguredWorkingDir)
+            run.workingDir(originalWorkingDir)
+            run.setArgs(originalArgs)
+            run.setJvmArgs(originalJvmArgs)
+            run.setSystemProperties(originalSystemProperties)
+            run.setEnvironment(originalEnvironment)
+            run.setClasspath(originalClasspath)
+            run.minHeapSize = originalMinHeap
+            run.maxHeapSize = originalMaxHeap
+            if (originalMainClass == null) {
+                run.mainClass.unset()
+            } else {
+                run.mainClass.set(originalMainClass)
+            }
+        }
+    }
+}
+
+// Forge 14 can log a worldgen failure and still exit normally. Read the whole
+// run log, allowing only startup noise that has been checked on this target.
+def acceptedForge14LogNoise = [
+        ~/Apache Maven library folder was not in the format expected/,
+        ~/\[FML\]: Full: .*maven-artifact-/,
+        ~/\[FML\]: Trimmed: .*maven-artifact/,
+        ~/FML appears to be missing any signature data/,
+        ~/Unable to read a class file correctly/,
+        ~/There was a problem reading the entry (?:META-INF\/versions\/9\/)?module-info\.class .*probably a corrupt zip/,
+        ~/There was a problem reading the entry META-INF\/versions\/11\/net\/minecraftforge\/launcher\/shadow\/util\/download\/DownloadUtilsImpl\.class in the jar .*slime-launcher-0\.2\.2\.jar - probably a corrupt zip/
+]
+
+def assertRuntimeLogsClean = { File runDirectory, String context ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        List<File> crashes = fileTree(crashDirectory) { include '**/*' }.files.findAll { it.isFile() }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    Set<File> runtimeLogs = [] as Set<File>
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (logsDirectory.isDirectory()) {
+        runtimeLogs.addAll(fileTree(logsDirectory) {
+            include '**/*.log'
+            include '**/*.txt'
+        }.files)
+    }
+    runtimeLogs.addAll(fileTree(runDirectory) { include '*-console.txt' }.files)
+
+    List<String> failures = []
+    runtimeLogs.each { File log ->
+        String completeLog = log.getText('UTF-8')
+        boolean cleanroomWindowsEpollFallback = completeLog.contains(
+                '[io.netty.channel.epoll.Epoll]: Epoll support is not available')
+                && completeLog.contains('Caused by: java.lang.IllegalStateException: Only supported on Linux')
+                && completeLog.contains('[net.minecraft.network.NetworkSystem]: Using default channel type')
+        int lineNumber = 0
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            boolean unexpectedSeverity = (line ==~ /.*\/(?:ERROR|FATAL)\].*/
+                    || line ==~ /.*\s(?:ERROR|FATAL)\s.*/)
+            boolean knownNoise = acceptedForge14LogNoise.any { line =~ it }
+                    || (line.trim() == 'java.lang.ExceptionInInitializerError'
+                    && cleanroomWindowsEpollFallback)
+            boolean oreSpawnCascadingLoad = line.contains('cascading worldgen lag')
+                    && line.contains('OreSpawn loaded a new chunk')
+            boolean fatalText = line.contains('Encountered an unexpected exception')
+                    || line.contains('Exception stopping the server')
+                    || line.contains('Migration audit failed')
+                    || line.contains('java.lang.Error:')
+                    || line.contains('IllegalAccessError')
+                    || line.contains('NoSuchFieldError')
+                    || line.contains('LinkageError')
+                    || line.contains('NoSuchMethodError')
+                    || line.contains('NoClassDefFoundError')
+                    || line.contains('ExceptionInInitializerError')
+                    || line.contains('Tried to assign a mutable BlockPos')
+                    || oreSpawnCascadingLoad
+            if (!knownNoise && (unexpectedSeverity || fatalText)) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+tasks.register('verifyExternalRuntimeLogs') {
+    group = 'verification'
+    description = 'Applies the release log/crash scanner to a disposable packaged runtime.'
+    doLast {
+        if (!project.hasProperty('runtimeLogDirectory')) {
+            throw new GradleException('runtimeLogDirectory is required')
+        }
+        File runtime = file(project.property('runtimeLogDirectory'))
+        if (!runtime.isDirectory()) {
+            throw new GradleException("Runtime log directory does not exist: ${runtime}")
+        }
+        assertRuntimeLogsClean(runtime, "external packaged runtime ${runtime.name}")
+    }
+}
+
+tasks.register('runtimeLogScannerTest') {
+    group = 'verification'
+    description = 'Proves Forge 14 log validation accepts known noise and rejects runtime failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs')
+        logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[main/ERROR] [FML]: FML appears to be missing any signature data. This is not a good thing\n'
+                        + '[Server thread/ERROR] [FML]: There was a problem reading the entry META-INF/versions/11/net/minecraftforge/launcher/shadow/util/download/DownloadUtilsImpl.class in the jar C:/cache/slime-launcher-0.2.2.jar - probably a corrupt zip\n'
+                        + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/DEBUG] [io.netty.channel.epoll.Epoll]: Epoll support is not available\n'
+                        + 'java.lang.ExceptionInInitializerError\n'
+                        + 'Caused by: java.lang.IllegalStateException: Only supported on Linux\n'
+                        + '[Server thread/INFO] [net.minecraft.network.NetworkSystem]: Using default channel type\n',
+                'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-cleanroom-windows-epoll-probe')
+        new File(logs, 'latest.log').setText('java.lang.ExceptionInInitializerError\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-unaccounted-initializer-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime scanner accepted an unaccounted initializer failure')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-rejection-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-error-severity-probe') }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime scanner accepted an unexpected ERROR line')
+        delete probe
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
+    dependsOn tasks.named('verifyJava8Toolchain')
+    dependsOn tasks.named('runtimeLogScannerTest')
+}
+
+
+// The other verification scripts use these helpers and fixture locations.
+// Keep this list small so the scripts remain understandable on their own.
+ext.oreSpawnVerification = [
+        fixtureArtifacts: legacyFixtureArtifacts,
+        fixtureWorlds: legacyFixtureWorlds,
+        mineralogy112Oracle: legacyMineralogy112OracleJar,
+        java8Launcher: java8Launcher,
+        configureFromForgeRun: configureFromForgeRun,
+        assertRuntimeLogsClean: assertRuntimeLogsClean
+].asImmutable()

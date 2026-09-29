@@ -1,0 +1,265 @@
+def buildValues = project.ext.oreSpawnBuild
+def trackedDocumentationFiles = buildValues.trackedDocumentationFiles
+def documentationRelativePath = buildValues.documentationRelativePath
+
+// These Eclipse shortcuts run the same Gradle world and client checks used on
+// the command line, each in its own disposable directory.
+task syncForge12EclipseIntegrationLaunches {
+    group = 'ide'
+    doLast {
+        def writeGradleLaunch = { String fileName, String displayName, String arguments ->
+            File launch = file(fileName)
+            String escapedArguments = arguments
+                    .replace('&', '&amp;')
+                    .replace('"', '&quot;')
+            launch.setText("""<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>
+<launchConfiguration type=\"org.eclipse.ui.externaltools.ProgramLaunchConfigurationType\">
+<stringAttribute key=\"org.eclipse.debug.core.ATTR_REFRESH_SCOPE\" value=\"${'$'}{workspace}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_LOCATION\" value=\"${'$'}{project_loc}\\gradlew.bat\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS\" value=\"${escapedArguments}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY\" value=\"${'$'}{project_loc}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE\" value=\"${'$'}{project}\"/>
+<stringAttribute key=\"org.eclipse.ui.externaltools.ATTR_NAME\" value=\"${displayName}\"/>
+</launchConfiguration>
+""", 'UTF-8')
+        }
+
+        writeGradleLaunch('OreSpawn_Surface_FreshReload.launch',
+                'OreSpawn surface fresh/reload gate',
+                'surfaceIntegrationTest --offline --no-daemon')
+        writeGradleLaunch('OreSpawn_Migration_Fresh.launch',
+                'OreSpawn migration fresh gate',
+                'migrationIntegrationProcess --offline --no-daemon ' +
+                '-PmigrationRunDir=build/eclipse-migration-run ' +
+                '-PmigrationFamily=eclipse-manual -PmigrationPhase=fresh')
+        writeGradleLaunch('OreSpawn_Migration_Reload.launch',
+                'OreSpawn migration reload gate',
+                'migrationIntegrationProcess --offline --no-daemon ' +
+                '-PmigrationRunDir=build/eclipse-migration-run ' +
+                '-PmigrationFamily=eclipse-manual -PmigrationPhase=reload')
+        writeGradleLaunch('OreSpawn_Client_FreshReload.launch',
+                'OreSpawn client world and editor fresh/reload gate',
+                'clientIntegrationProcess --offline --no-daemon')
+    }
+}
+
+tasks.named('genEclipseRuns') {
+    finalizedBy syncForge12EclipseIntegrationLaunches
+}
+
+
+// Eclipse owns bin/main, but it still needs Gradle's expanded mcmod.info and
+// bundled guides there before a development launch can see the real mod.
+def prepareEclipseResources = tasks.register('prepareEclipseResources') {
+    group = 'ide'
+    description = 'Copies Gradle-processed production resources into Eclipse merged output.'
+    dependsOn tasks.named('processResources')
+    doLast {
+        // Do not declare bin/main as a Gradle-owned output. Eclipse owns that
+        // directory and ForgeGradle inspects it while generating launches.
+        project.copy {
+            from(layout.buildDirectory.dir('resources/main'))
+            into(layout.projectDirectory.dir('bin/main'))
+        }
+    }
+}
+
+
+// Older ForgeGradle workspaces can retain GradleStart launchers alongside the
+// ForgeGradle 7 Buildship launches. Remove only those exact obsolete launch
+// types; leave independently maintained launch files untouched.
+def obsoleteForgeGradleEclipseLaunches = [
+        'OreSpawn_Client.launch': 'GradleStart',
+        'OreSpawn_Server.launch': 'GradleStartServer'
+]
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+    synchronizationTasks 'isolateEclipseProductionRuns'
+}
+
+// Point Buildship at this project's wrapper and the cache used by Gradle runs.
+tasks.register('configureEclipseBuildship') {
+    group = 'ide'
+    description = 'Creates the Buildship project preferences used by ForgeGradle 7 imports.'
+	doLast {
+        File preferencesFile = file('.settings/org.eclipse.buildship.core.prefs')
+        Properties preferences = new Properties()
+        Map<String, String> requiredPreferences = [
+                'eclipse.preferences.version'    : '1',
+                'connection.gradle.distribution': 'GRADLE_DISTRIBUTION(WRAPPER)',
+                'connection.gradle.user.home'   : gradle.gradleUserHomeDir.canonicalPath,
+                'connection.project.dir'        : '',
+                'gradle.user.home'               : gradle.gradleUserHomeDir.canonicalPath,
+                'override.workspace.settings'   : 'true'
+        ]
+        requiredPreferences.each { key, value -> preferences.setProperty(key, value) }
+        preferencesFile.parentFile.mkdirs()
+        preferencesFile.withOutputStream {
+            preferences.store(it,
+                    'Generated by configureEclipseBuildship; keep Eclipse and command-line caches aligned.')
+        }
+    }
+}
+
+// ForgeGradle 7 generates a few launch values that Forge 1.12 cannot use as-is.
+// Fix those generated files and keep test code out of ordinary client/server runs.
+tasks.register('isolateEclipseProductionRuns') {
+    group = 'ide'
+    description = 'Normalizes ForgeGradle 7 Eclipse launches and marks ordinary launches as production-only.'
+    dependsOn tasks.named('genEclipseRuns')
+    dependsOn tasks.named('configureEclipseBuildship')
+    dependsOn prepareEclipseResources
+
+    doLast {
+        obsoleteForgeGradleEclipseLaunches.each { String name, String mainClass ->
+            File launch = file(name)
+            if (launch.isFile()) {
+                String contents = launch.getText('UTF-8')
+                String obsoleteMainType =
+                        "org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\""
+                if (contents.contains(obsoleteMainType) && !launch.delete()) {
+                    throw new GradleException("Could not remove obsolete ForgeGradle launch ${name}")
+                }
+            }
+        }
+
+        // ForgeGradle 7's legacy 1.12 run generator does not know its own
+        // MC_VERSION token. It emits ${MC_VERSION} as an Eclipse variable,
+        // which prevents every generated launch from starting. Store the
+        // target version as a literal environment value instead.
+        fileTree(project.projectDir) {
+            include 'run*.launch'
+        }.files.each { File launch ->
+            String contents = launch.getText('UTF-8')
+            contents = contents.replace(
+                    'key="MC_VERSION" value="${MC_VERSION}"',
+                    "key=\"MC_VERSION\" value=\"${minecraft_version}\"")
+            contents = contents.replace(
+                    'key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="--nogui"',
+                    'key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="nogui"')
+            launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
+        }
+
+        ['runClient.launch', 'runServer.launch'].each { name ->
+            File launch = file(name)
+            if (!launch.isFile()) {
+                throw new GradleException("ForgeGradle did not generate ${name}")
+            }
+            String contents = launch.getText('UTF-8')
+            if (!contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+                String marker = '</launchConfiguration>'
+                String attribute =
+                        '  <booleanAttribute key="org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE" value="true"/>'
+                contents = contents.replace(marker, attribute + '\n' + marker)
+            }
+            launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
+        }
+    }
+}
+
+// Check the resulting Eclipse files themselves; a successful Gradle build does
+// not prove that an IDE launch has the right resources or classpath.
+tasks.register('verifyEclipseProductionClasspath') {
+    group = 'verification'
+    description = 'Verifies that ordinary generated Eclipse launches exclude tests, fixtures, and probe mods.'
+    dependsOn tasks.named('isolateEclipseProductionRuns')
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
+
+    doLast {
+        File buildshipPreferences = file('.settings/org.eclipse.buildship.core.prefs')
+        if (!buildshipPreferences.isFile()) {
+            throw new GradleException('Missing Eclipse Buildship project preferences')
+        }
+		File eclipseResources = file('bin/main')
+		List<File> trackedDocs = trackedDocumentationFiles()
+		if (trackedDocs.size() != 20) {
+			throw new GradleException("Expected 20 tracked documentation files, found ${trackedDocs.size()}")
+		}
+		trackedDocs.each { File source ->
+			String relative = documentationRelativePath(source)
+			File eclipseCopy = new File(eclipseResources, "META-INF/orespawn/docs/${relative}")
+			if (!eclipseCopy.isFile()
+					|| !java.util.Arrays.equals(source.bytes, eclipseCopy.bytes)) {
+				throw new GradleException("Eclipse documentation differs for ${relative}")
+			}
+		}
+        [
+                'mcmod.info',
+                'META-INF/orespawn/docs/README.md',
+                'META-INF/orespawn/docs/VERSIONS.md'
+        ].each { relative ->
+            File required = new File(eclipseResources, relative)
+            if (!required.isFile()) {
+                throw new GradleException(
+                        "Eclipse production output is missing processed resource ${relative}")
+            }
+        }
+        String eclipseMetadata = new File(eclipseResources, 'mcmod.info').getText('UTF-8')
+        if (!eclipseMetadata.contains("\"version\": \"${project.version}\"")
+                || !eclipseMetadata.contains(
+                        "\"mcversion\": \"${minecraft_version}\"")) {
+            throw new GradleException('Eclipse mcmod.info retains unexpanded build placeholders')
+        }
+        List<File> launchFiles = fileTree(project.projectDir) {
+            include 'runClient.launch'
+            include 'runServer.launch'
+            include '.eclipse/runClient.launch'
+            include '.eclipse/runServer.launch'
+        }.files as List<File>
+        if (launchFiles.size() < 2) {
+            throw new GradleException('ForgeGradle did not generate ordinary client/server Eclipse launches')
+        }
+        List<File> allGeneratedLaunches = fileTree(project.projectDir) {
+            include 'run*.launch'
+        }.files as List<File>
+        allGeneratedLaunches.each { launch ->
+            String contents = launch.getText('UTF-8')
+            if (contents.contains('--nogui')) {
+                throw new GradleException(
+                        "${launch.name} uses invalid legacy server argument --nogui; expected bare nogui")
+            }
+            if (contents.contains('${MC_VERSION}')) {
+                throw new GradleException(
+                        "${launch.name} retains ForgeGradle's unresolved MC_VERSION token")
+            }
+            if (!contents.contains(
+                    "key=\"MC_VERSION\" value=\"${minecraft_version}\"")) {
+                throw new GradleException(
+                        "${launch.name} does not define literal MC_VERSION=${minecraft_version}")
+            }
+        }
+        obsoleteForgeGradleEclipseLaunches.each { String name, String mainClass ->
+            File launch = file(name)
+            if (launch.isFile() && launch.getText('UTF-8').contains(
+                    "org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"")) {
+                throw new GradleException(
+                        "Obsolete ForgeGradle ${mainClass} launch remains at ${name}")
+            }
+        }
+        List<String> forbidden = [
+                'src/test', 'bin/test', 'build/classes/java/test',
+                'biomeIntegrationTest', 'migrationIntegrationTest', 'clientIntegrationTest',
+                'os1AbiFixture', 'os3AbiFixture', 'surfaceprobe', 'migrationprobe', 'clientprobe',
+				'OreSourceEditorProbeBridge', 'junit-', 'opentest4j-', 'junit-platform-',
+				'Mineralogy-1.10.2-3.3.8.26.jar', 'Mineralogy-1.12.2-3.8.0.53.jar'
+        ]
+        launchFiles.each { launch ->
+            String contents = launch.getText('UTF-8').replace('\\', '/')
+            List<String> present = forbidden.findAll { contents.contains(it) }
+            if (!present.isEmpty()) {
+                throw new GradleException("${launch.name} exposes test code/dependencies: ${present}")
+            }
+            if (!contents.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')
+                    || !contents.contains('value="true"')) {
+                throw new GradleException("${launch.name} does not exclude test code")
+            }
+            if (!contents.contains('PROJECT_ATTR" value="OreSpawn"')) {
+                throw new GradleException("${launch.name} targets the wrong Eclipse project")
+            }
+        }
+    }
+}
