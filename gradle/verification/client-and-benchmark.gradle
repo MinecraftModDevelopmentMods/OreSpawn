@@ -1,0 +1,146 @@
+def configureFromForgeRun = project.ext.oreSpawnVerification.configureFromForgeRun
+
+// The client probe exercises the editor and an actual fresh/save/reload world.
+// It is built separately so none of its classes enter a public OreSpawn jar.
+def clientIntegrationClasses = file("${buildDir}/client-integration-fixture/classes")
+task compileClientIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = clientIntegrationClasses
+    options.encoding = 'UTF-8'
+}
+
+task clientIntegrationTestModJar(type: Jar, dependsOn: compileClientIntegrationTestMod) {
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = file("${buildDir}/client-integration-fixture")
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+
+def packagedClientProbeJar = renamer.classes(tasks.named('clientIntegrationTestModJar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('client-integration-fixture/clientprobe-reobf.jar')
+}
+
+tasks.register('preparePackagedClientProbe') {
+    group = 'verification'
+    description = 'Builds the reobfuscated client probe used only with a disposable packaged Forge runtime.'
+    dependsOn packagedClientProbeJar
+}
+
+def clientIntegrationRunDirectory = file("${buildDir}/client-integration-run")
+task prepareClientIntegrationTest(dependsOn: clientIntegrationTestModJar) {
+    doLast {
+        delete clientIntegrationRunDirectory
+        clientIntegrationRunDirectory.mkdirs()
+        copy {
+            from clientIntegrationTestModJar.archiveFile
+            into new File(clientIntegrationRunDirectory, 'mods')
+        }
+        new File(clientIntegrationRunDirectory, 'options.txt').setText(
+                'fullscreen:false\nforceUnicodeFont:false\nguiScale:2\n' +
+                'renderDistance:4\nshowSubtitles:false\n', 'UTF-8')
+    }
+}
+
+task clientIntegrationProcess(type: JavaExec, dependsOn: prepareClientIntegrationTest) {
+    group = 'verification'
+    workingDir clientIntegrationRunDirectory
+    systemProperty 'clientprobe.enabled', 'true'
+    configureFromForgeRun(delegate, 'runClient')
+    doLast {
+        File marker = new File(clientIntegrationRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) {
+            throw new GradleException("Client integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties(); marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_rendered') != 'true'
+                || result.getProperty('world_settings_opened') != 'true'
+                || result.getProperty('mods_directory_rendered') != 'true'
+                || result.getProperty('directory_stack_validated') != 'true'
+                || result.getProperty('ore_sources_validated') != 'true'
+                || result.getProperty('ore_sources_layout_validated') != 'true'
+                || result.getProperty('long_editor_roundtrip') != 'true'
+                || Integer.parseInt(result.getProperty('editor_routes', '0')) < 5) {
+            throw new GradleException("Client integration result is incomplete: ${marker}")
+        }
+        File latest = new File(clientIntegrationRunDirectory, 'logs/fml-client-latest.log')
+        if (latest.isFile() && (latest.text.contains('Encountered an unexpected exception')
+                || latest.text.contains('Reported exception thrown!'))) {
+            throw new GradleException("Client integration logged a runtime failure: ${latest}")
+        }
+        List<String> allowedDevelopmentErrors = [
+                'The binary patch set is missing',
+                'FML appears to be missing any signature data',
+                'Unable to read a class file correctly',
+                'problem reading the entry META-INF/versions/11/',
+                'Trying to activate the universal filled bucket too late. Call it statically in your Mods class. Mod: Base Metals'
+        ]
+        List<String> unaccountedErrors = latest.readLines('UTF-8').findAll { line ->
+            (line.contains('/ERROR]') || line.contains('/FATAL]'))
+                    && !allowedDevelopmentErrors.any { line.contains(it) }
+        }
+        if (!unaccountedErrors.isEmpty()) {
+            throw new GradleException("Client integration logged unaccounted errors: ${unaccountedErrors}")
+        }
+        File crashDirectory = new File(clientIntegrationRunDirectory, 'crash-reports')
+        if (crashDirectory.isDirectory() && crashDirectory.listFiles().length > 0) {
+            throw new GradleException("Client integration produced crash reports: ${crashDirectory}")
+        }
+    }
+}
+
+// Benchmarks are opt-in: routine builds do not generate large timed worlds.
+if (project.hasProperty('benchmarkRunDir')) {
+    def benchmarkRunDirectory = file(project.property('benchmarkRunDir'))
+    task prepareWorldgenBenchmark {
+        doLast {
+            delete benchmarkRunDirectory
+            benchmarkRunDirectory.mkdirs()
+            new File(benchmarkRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(benchmarkRunDirectory, 'server.properties').setText(
+                    "online-mode=false\nlevel-name=world\nlevel-type=${project.findProperty('benchmarkLevelType') ?: 'default'}\n" +
+                    "level-seed=${project.findProperty('benchmarkSeed') ?: '-4965128775892001975'}\n" +
+                    'generate-structures=false\nspawn-animals=false\nspawn-monsters=false\n' +
+                    'max-tick-time=-1\n', 'UTF-8')
+        }
+    }
+    task benchmarkIntegrationProcess(type: JavaExec, dependsOn: prepareWorldgenBenchmark) {
+        group = 'verification'
+        workingDir benchmarkRunDirectory
+        systemProperty 'orespawn.worldgenBenchmarkMode', project.findProperty('benchmarkMode') ?: 'sky'
+        systemProperty 'orespawn.worldgenBenchmarkRadius', project.findProperty('benchmarkRadius') ?: '4'
+        systemProperty 'orespawn.worldgenBenchmarkRepetitions', project.findProperty('benchmarkRepetitions') ?: '3'
+        systemProperty 'orespawn.worldgenBenchmarkCenterX', project.findProperty('benchmarkCenterX') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterZ', project.findProperty('benchmarkCenterZ') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterStep', project.findProperty('benchmarkCenterStep') ?: '64'
+        systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
+        systemProperty 'orespawn.worldgenBenchmarkVanillaOres',
+                project.findProperty('benchmarkVanillaOres') ?: 'false'
+        systemProperty 'orespawn.worldgenBenchmarkOreAudit',
+                project.findProperty('benchmarkOreAudit') ?: 'false'
+        if (project.hasProperty('benchmarkBlockAudit')) {
+            systemProperty 'orespawn.worldgenBenchmarkBlockAudit', project.property('benchmarkBlockAudit')
+        }
+        ['benchmarkBiomeType': 'orespawn.worldgenBenchmarkBiomeType',
+         'benchmarkBiome': 'orespawn.worldgenBenchmarkBiome',
+         'benchmarkNormalizeBlock': 'orespawn.worldgenBenchmarkNormalizeBlock',
+         'benchmarkNormalizeBiome': 'orespawn.worldgenBenchmarkNormalizeBiome'].each { propertyName, systemName ->
+            if (project.hasProperty(propertyName)) {
+                systemProperty systemName, project.property(propertyName)
+            }
+        }
+        configureFromForgeRun(delegate, 'runServer')
+        doLast {
+            File latest = new File(benchmarkRunDirectory, 'logs/fml-server-latest.log')
+            String mode = project.findProperty('benchmarkMode') ?: 'sky'
+            if (!latest.isFile() || !latest.text.contains("ORESPAWN_BENCHMARK summary mode=${mode}")) {
+                throw new GradleException("Missing ${mode} worldgen benchmark summary: ${latest}")
+            }
+            if (latest.text.contains('Encountered an unexpected exception')
+                    || latest.text.contains('Tried to assign a mutable BlockPos')) {
+                throw new GradleException("Worldgen benchmark logged a runtime failure: ${latest}")
+            }
+        }
+    }
+}

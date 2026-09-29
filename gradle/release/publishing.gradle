@@ -1,0 +1,118 @@
+import groovy.xml.XmlSlurper
+
+def buildValues = project.ext.oreSpawnBuild
+def releaseValues = project.ext.oreSpawnRelease
+def expectedMavenGroup = buildValues.mavenGroup
+def expectedMavenArtifact = buildValues.mavenArtifact
+def expectedReleaseFiles = releaseValues.expectedFiles
+def preparedReleaseDir = releaseValues.preparedDirectory
+def releaseJar = releaseValues.jar
+
+// Local builds may configure publication without credentials. The publish
+// tasks themselves still reject a missing or local upload destination.
+def mavenUploadUrl = providers.environmentVariable('MAVEN_UPLOAD_URL')
+        .orElse('https://invalid.invalid/missing-maven-upload-url')
+def mavenUploadUsername = providers.environmentVariable('MAVEN_UPLOAD_USERNAME')
+def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.mod_group
+            artifactId = project.mod_artifact
+            version = project.version.toString()
+            if (preparedReleaseDir.isPresent()) {
+                File prepared = file(preparedReleaseDir.get())
+                artifact(new File(prepared, expectedReleaseFiles.get()[0]))
+                artifact(new File(prepared, expectedReleaseFiles.get()[1])) {
+                    classifier = 'sources'
+                }
+                artifact(new File(prepared, expectedReleaseFiles.get()[2])) {
+                    classifier = 'javadoc'
+                }
+            } else {
+                artifact(releaseJar)
+                artifact(tasks.named('sourcesJar'))
+                artifact(tasks.named('javadocJar'))
+            }
+            pom {
+                name = project.mod_name
+                description = project.mod_description
+                url = project.mod_url
+                licenses {
+                    license {
+                        name = project.mod_license_name
+                        url = project.mod_license_url
+                    }
+                }
+                scm {
+                    connection = project.mod_scm_connection
+                    developerConnection = project.mod_scm_developer_connection
+                    url = project.mod_url
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'release'
+            url = uri(mavenUploadUrl.get())
+            credentials {
+                username = mavenUploadUsername.orNull ?: ''
+                password = mavenUploadPassword.orNull ?: ''
+            }
+        }
+    }
+}
+
+tasks.register('verifyMavenCoordinates') {
+    group = 'verification'
+    description = 'Verifies the generated POM uses OreSpawn\'s mod-specific Maven namespace.'
+    dependsOn tasks.named('generatePomFileForMavenJavaPublication')
+    doLast {
+        File pomFile = layout.buildDirectory.file(
+                'publications/mavenJava/pom-default.xml').get().asFile
+        if (!pomFile.isFile()) {
+            throw new GradleException("Generated Maven POM does not exist: ${pomFile}")
+        }
+        def pom = new XmlSlurper(false, false).parse(pomFile)
+        def actual = [pom.groupId.text(), pom.artifactId.text(), pom.version.text()]
+        def expected = [expectedMavenGroup, expectedMavenArtifact, project.version.toString()]
+        if (project.group.toString() != expectedMavenGroup || actual != expected) {
+            throw new GradleException("Expected Maven coordinate ${expected.join(':')}, "
+                    + "found ${actual.join(':')}")
+        }
+    }
+}
+
+tasks.register('validateMavenReleaseCredentials') {
+    group = 'publishing'
+    description = 'Prevents Maven publication from targeting a local or incomplete repository.'
+    doLast {
+        if (!providers.environmentVariable('MAVEN_UPLOAD_URL').isPresent()
+                || !mavenUploadUsername.isPresent()
+                || !mavenUploadPassword.isPresent()) {
+            throw new GradleException(
+                    'MAVEN_UPLOAD_URL, MAVEN_UPLOAD_USERNAME, and MAVEN_UPLOAD_PASSWORD are required')
+        }
+        String target = providers.environmentVariable('MAVEN_UPLOAD_URL').get()
+        if (target.startsWith('file:')) {
+            throw new GradleException('Maven release publication must use a remote repository')
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn tasks.named('validateMavenReleaseCredentials')
+    dependsOn tasks.named('verifyMavenCoordinates')
+    if (preparedReleaseDir.isPresent()) {
+        dependsOn tasks.named('verifyPreparedReleaseArtifacts')
+    } else {
+        dependsOn tasks.named('verifyReleaseArtifacts')
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyMavenCoordinates')
+    dependsOn tasks.named('verifyDocumentationParity')
+}

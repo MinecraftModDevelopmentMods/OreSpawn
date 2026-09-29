@@ -20,11 +20,19 @@ class ReleaseWorkflowContractTest {
 			properties.load(input);
 		}
 		assertEquals("zone.moddev.mc.orespawn", properties.getProperty("mod_group"));
+		assertEquals("OreSpawn", properties.getProperty("mod_artifact"));
+		assertEquals("Minecraft Mod Development", properties.getProperty("mod_vendor"));
 
-		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String build = readFile("build.gradle");
+		String publishing = readFile("gradle/release/publishing.gradle");
+		String artifacts = readFile("gradle/release/artifacts.gradle");
+		assertTrue(build.contains("apply from: 'gradle/release/publishing.gradle'"));
+		assertTrue(build.contains("apply from: 'gradle/verification/legacy-and-migration.gradle'"));
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		assertTrue(build.contains("'Implementation-Vendor'     : project.mod_vendor"));
+		assertTrue(artifacts.contains("manifest.getValue('Implementation-Vendor') != project.mod_vendor"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 		assertFalse(build.contains("Mavenizer compatibility"));
 		assertTrue(build.contains("args 'nogui'"));
@@ -51,8 +59,11 @@ class ReleaseWorkflowContractTest {
 	}
 
 	private static String readWorkflow(String name) throws Exception {
-		return new String(Files.readAllBytes(Paths.get(".github", "workflows", name)),
-				StandardCharsets.UTF_8);
+		return readFile(".github/workflows/" + name);
+	}
+
+	private static String readFile(String path) throws Exception {
+		return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
 	}
 
 	private static void assertPinnedToolchains(String workflow, int expectedJobs, int expectedPathUses) {
