@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import net.minecraft.util.text.ITextComponent;
 
-/** 1.14 string-widget bridge used by the target-local editor screens. */
+/** Adds callbacks and tooltips to Minecraft 1.14's button. */
 class Button extends net.minecraft.client.gui.widget.button.Button {
 	private final Tooltip tooltip;
 

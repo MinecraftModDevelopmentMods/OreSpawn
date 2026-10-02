@@ -31,9 +31,8 @@ class LocalizationParityTest {
 			"es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
 			"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json");
 	/**
-	 * Brand names, format-only values, canonical engine/pattern names, and words
-	 * whose spelling is already valid in at least one shipped target language.
-	 * Human-facing prose must never be added here merely to make this test pass.
+	 * Names and format strings that can legitimately match English in another shipped language.
+	 * Do not add untranslated sentences just to make the test pass.
 	 */
 	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES =
 			ImmutableMap.<String, Set<String>>builder()
@@ -47,6 +46,7 @@ class LocalizationParityTest {
 					"zh_cn.json"))
 			.put("option.orespawn.mod_filter", ImmutableSet.of(
 					"de_au.json", "de_de.json", "fr_ca.json", "fr_fr.json"))
+			.put("screen.orespawn.biomes", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
 			.put("tab.orespawn.biomes", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
 			.put("tab.orespawn.geomes", ImmutableSet.of("de_au.json", "de_de.json"))
 			.put("tab.orespawn.placement", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
@@ -85,7 +85,7 @@ class LocalizationParityTest {
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
 		JsonObject english = read(LANG_DIR.resolve("en_us.json"));
 		Set<String> englishKeys = JsonCopies.keys(english);
-		assertEquals(357, englishKeys.size(),
+		assertEquals(510, englishKeys.size(),
 				"The target locale contract changed; review every shipped translation");
 		Set<String> localeFiles = new HashSet<>();
 		Set<String> observedIntentionalEnglishValues = new HashSet<>();

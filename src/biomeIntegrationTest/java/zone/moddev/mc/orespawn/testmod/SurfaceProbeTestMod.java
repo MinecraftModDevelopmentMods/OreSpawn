@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
+import zone.moddev.mc.orespawn.client.BiomeEditorProbeBridge;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
@@ -82,7 +83,7 @@ import net.minecraftforge.fml.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/** Independent, test-only provider surface fixture. */
+/** Test mod for provider surfaces and materials, excluded from production builds. */
 @Mod(SurfaceProbeTestMod.MODID)
 public final class SurfaceProbeTestMod {
 	static final String MODID = "surfaceprobe";
@@ -145,6 +146,8 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("minecraft", "nether"), BIOME_A, BIOME_B)));
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
+	private static final int OVERRIDE_MIN_CHUNK = 68;
+	private static final int OVERRIDE_MAX_CHUNK = 70;
 	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
 	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
@@ -361,7 +364,10 @@ public final class SurfaceProbeTestMod {
 		results.put("open", auditDimension(requireLevel(event, OPEN), false));
 		results.put("roofed", auditDimension(requireLevel(event, ROOFED), true));
 		SpringResult spring = auditProviderRockSpring(overworld, phase);
+		int[] override = verifyBiomeOverride(event.getServer(), phase, results.get("open"));
 		Properties current = properties(overworld.getSeed(), results, spring);
+		current.setProperty("override.biome_a", Integer.toString(override[0]));
+		current.setProperty("override.biome_b", Integer.toString(override[1]));
 		if (previous == null) {
 			writeMarker(marker, current);
 		} else {
@@ -380,6 +386,54 @@ public final class SurfaceProbeTestMod {
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
 		event.getServer().initiateShutdown(false);
+	}
+
+	private static int[] verifyBiomeOverride(MinecraftServer server, String phase,
+			AuditResult original) {
+		ServerWorld end = server.getWorld(OPEN);
+		if ("fresh".equals(phase)) {
+			Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+			JsonObject edited = BiomeEditorProbeBridge.replace(
+					WorldGeologyProfileManager.activeProfile().rootCopy(), OPEN_ID.toString(),
+					BIOME_A.toString(), BIOME_B.toString());
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(edited, writer);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Could not save the biome replacement", exception);
+			}
+			if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+				throw new IllegalStateException("Could not activate the biome replacement");
+			}
+			int[] unchanged = countBiomes(end, MINIMUM_CHUNK, MAXIMUM_CHUNK);
+			if (unchanged[0] != original.biomeA() || unchanged[1] != original.biomeB()) {
+				throw new IllegalStateException("Biome replacement rewrote existing terrain");
+			}
+		}
+		int[] generated = countBiomes(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK);
+		if (generated[0] != 0 || generated[1] != EXPECTED_COLUMNS) {
+			throw new IllegalStateException("Biome replacement missed new terrain: a="
+					+ generated[0] + ", b=" + generated[1]);
+		}
+		return generated;
+	}
+
+	private static int[] countBiomes(ServerWorld world, int minimumChunk, int maximumChunk) {
+		int biomeA = 0;
+		int biomeB = 0;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = minimumChunk; chunkZ <= maximumChunk; chunkZ++) {
+			for (int chunkX = minimumChunk; chunkX <= maximumChunk; chunkX++) {
+				world.getChunk(chunkX, chunkZ);
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					ResourceLocation id = biomeId(world, world.getBiome(cursor.setPos(
+							(chunkX << 4) + x, 64, (chunkZ << 4) + z)));
+					if (BIOME_A.equals(id)) biomeA++;
+					else if (BIOME_B.equals(id)) biomeB++;
+					else throw new IllegalStateException("Unexpected fixture biome " + id);
+				}
+			}
+		}
+		return new int[] { biomeA, biomeB };
 	}
 
 	private static void verifyOrePatternRegistry() {

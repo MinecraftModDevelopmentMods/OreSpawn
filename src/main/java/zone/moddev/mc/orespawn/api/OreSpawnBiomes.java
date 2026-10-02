@@ -11,16 +11,14 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.fml.RegistryObject;
 
 /**
- * Small registration helpers for provider mods which want to define biomes
- * without taking a compile-time dependency on a separate biome framework.
+ * Registers provider biomes without requiring a separate biome framework.
  */
 public final class OreSpawnBiomes {
 	private OreSpawnBiomes() {
 	}
 
 	/**
-	 * Registers a biome copied from an existing biome, then applies provider
-	 * changes to the copied builder.
+	 * Copies an existing biome, applies the provider's changes, then registers the copy.
 	 */
 	public static RegistryObject<Biome> copyAndRegister(DeferredRegister<Biome> register,
 			String name, Supplier<? extends Biome> source, Consumer<Biome.Builder> edit) {
@@ -47,9 +45,8 @@ public final class OreSpawnBiomes {
 	}
 
 	/**
-	 * Registers a biome from a fresh builder. The provider must set all required
-	 * climate, effects, spawning, and generation fields before the builder is
-	 * built.
+	 * Registers a biome from a fresh builder.
+	 * Set its required climate, effects, spawning and generation fields before building it.
 	 */
 	public static RegistryObject<Biome> blankAndRegister(DeferredRegister<Biome> register,
 			String name, Consumer<Biome.Builder> configure) {
@@ -62,7 +59,7 @@ public final class OreSpawnBiomes {
 		});
 	}
 
-	/** Concrete 1.14 biome used behind the unchanged public helper contract. */
+	/** Lets the registration helpers build a concrete Minecraft 1.14 biome. */
 	private static final class ProviderBiome extends Biome {
 		ProviderBiome(Biome.Builder builder) {
 			super(builder);

@@ -17,8 +17,9 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.16.114041`: the OreSpawn 4.0.16
-feature set for Minecraft 1.14.4 and Forge. See the
+This branch builds target-qualified version `4.1.0.114041` for Minecraft 1.14.4
+and Forge. It adds material-group ore arbitration, exact biome replacements,
+and a directory for installed provider mods to the OreSpawn 4.0.16 base. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 ## What Happens When It Is Installed?
@@ -53,6 +54,15 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+**Ore Sources** groups ores by exact block tags such as `forge:ores/sulfur`.
+When two loaded ordinary MMD providers share one tag, new worlds use a
+Balanced output policy and one placement budget per channel. Older worlds keep
+their saved Keep Original behaviour. Imported Ore Dictionary aliases remain
+visible but dormant until you assign a known exact block tag. The **Biomes**
+directory can replace one loaded biome with another in new terrain; its
+**Overworld Materials** control applies across the dimension, not just the
+selected biome.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -122,7 +132,11 @@ launches exclude tests and fixtures. Published jars are deterministic,
 SRG-reobfuscated for the Forge 28 runtime, audited for their access transformer
 and contents, and accompanied by SHA-256 checksums.
 
-Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
+For a shared-ore GUI test, use the separate **runOreSourcesClient** Eclipse
+profile. It loads two dummy providers and keeps its worlds in `run-ore-sources`.
+See [the build guide](gradle/README.md#trying-shared-ores-in-the-editor) for the
+test blocks and controls. These providers are never included in release jars.
+
 Public developer and AI integration guidance lives in `docs/` and is included
 in the built jar.
 

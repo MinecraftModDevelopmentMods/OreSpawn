@@ -171,10 +171,18 @@ then lexical template ID order.
 
 ## World-Creation Editor
 
-**Biomes & World Materials** is visible even when rock strata are disabled.
-It lists palettes and materials by dimension, uses installed-registry pickers,
-and validates IDs before world creation. The editor is creation-only in 4.0.0;
-existing worlds remain editable through their self-contained server profile.
+**Biomes** is visible even when rock strata are disabled. Its directory shows
+loaded and referenced biomes once, with provider placement rules and effective
+palette order. It can replace one loaded source biome with another in newly
+generated terrain. The exact replacement layer runs after ordinary palettes;
+existing chunks are never rewritten. A missing target stays dormant until its
+mod returns. Palette settings expose mode, scope, region size, coverage,
+fallback weight, and namespace filters without reordering provider palettes.
+
+The materials button belongs to the selected dimension, not the selected
+biome. Aquifer fluid, snow, and ice substitutions apply across every biome in
+that dimension. Forge 1.14.4 has no separate deep-aquifer generator fluid, so
+that stored field remains unavailable on this target.
 
 ## Performance Boundaries
 

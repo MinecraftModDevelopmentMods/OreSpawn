@@ -1,0 +1,157 @@
+// Each mode gets a fresh world with the same seed and Java runtime.
+// Measure separate 81-chunk areas after a short warm-up.
+def benchmarkRuntime = providers.gradleProperty('packagedForgeServerRuntime')
+def baselineJar = providers.gradleProperty('benchmarkOreSpawnJar')
+def repetitions = providers.gradleProperty('benchmarkRepetitions').orElse('3')
+def withWorldHash = providers.gradleProperty('benchmarkWorldHash')
+        .map { it.toBoolean() }.orElse(false).get()
+def runLabel = baselineJar.isPresent() ? 'baseline-' : ''
+def benchmarkModes = ['vanilla', 'cyano', 'sky']
+def previousRun = null
+// Either sibling may be available on a target; keep the benchmark usable when
+// only Mineralogy has a finished jar for this Minecraft version.
+
+def hashClasses = file("${buildDir}/world-hash-fixture/classes")
+def compileHash = tasks.register('compileWorldHashProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/worldHashTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = hashClasses
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = 'UTF-8'
+}
+def hashJar = tasks.register('worldHashProbeJar', Jar) {
+    dependsOn compileHash
+    archiveFileName = 'worldhashprobe.jar'
+    destinationDirectory = file("${buildDir}/world-hash-fixture")
+    from hashClasses
+    from 'src/worldHashTest/resources'
+}
+def packagedHashJar = renamer.classes(hashJar) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('world-hash-fixture/worldhashprobe-reobf.jar')
+}
+
+benchmarkModes.each { String mode ->
+    File runDirectory = file("${buildDir}/worldgen-benchmark-${runLabel}${mode}")
+    def priorRun = previousRun
+    def prepare = tasks.register("prepareWorldgenBenchmark${mode.capitalize()}") {
+        if (!baselineJar.isPresent()) dependsOn project.ext.oreSpawnBuild.releaseJar
+        if (withWorldHash) dependsOn packagedHashJar
+        doLast {
+            delete runDirectory
+            runDirectory.mkdirs()
+            copy {
+                if (baselineJar.isPresent()) {
+                    File oreSpawn = file(baselineJar.get())
+                    if (!oreSpawn.isFile()) throw new GradleException("Missing baseline jar: ${oreSpawn}")
+                    from oreSpawn
+                } else {
+                    from project.ext.oreSpawnBuild.releaseJar
+                }
+                ['packagedBaseMetalsJar', 'packagedMineralogyJar'].each { property ->
+                    if (providers.gradleProperty(property).isPresent()) {
+                        File sibling = file(providers.gradleProperty(property).get())
+                        if (!sibling.isFile()) throw new GradleException("Missing ${property}: ${sibling}")
+                        from sibling
+                    }
+                }
+                if (withWorldHash) from packagedHashJar
+                into new File(runDirectory, 'mods')
+            }
+            new File(runDirectory, 'server.properties').setText('''\
+level-name=benchmark-world
+level-seed=-4965128775892001975
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        }
+    }
+    def run = tasks.register("worldgenBenchmark${mode.capitalize()}", Exec) {
+        group = 'verification'
+        dependsOn prepare
+        if (priorRun != null) dependsOn priorRun
+        doFirst {
+            if (!benchmarkRuntime.isPresent()) {
+                throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 28 installation>')
+            }
+            File launcher = new File(file(benchmarkRuntime.get()), 'forge-1.14.4-28.2.26.jar')
+            if (!launcher.isFile()) throw new GradleException("Missing official Forge launcher: ${launcher}")
+            workingDir runDirectory
+            commandLine project.ext.oreSpawnBuild.java8Launcher.get().executablePath.asFile.absolutePath,
+                    '-Xms512m', '-Xmx2g', "-Dorespawn.worldgenBenchmarkMode=${mode}",
+                    '-Dorespawn.worldgenBenchmarkStopServer=true',
+                    "-Dorespawn.worldgenBenchmarkRepetitions=${repetitions.get()}",
+                    '-jar', launcher.absolutePath, 'nogui'
+        }
+        doLast {
+            File log = new File(runDirectory, 'logs/latest.log')
+            if (!log.isFile() || !log.text.contains("ORESPAWN_BENCHMARK summary mode=${mode}")) {
+                throw new GradleException("No completed ${mode} benchmark summary")
+            }
+            if (withWorldHash && !new File(runDirectory,
+                    'benchmark-world/worldhashprobe.properties').isFile()) {
+                throw new GradleException("No completed ${mode} world hash")
+            }
+            project.ext.oreSpawnBuild.assertRuntimeLogsClean(runDirectory,
+                    "${mode} packaged benchmark", [] as Set)
+        }
+    }
+    previousRun = run
+}
+
+tasks.register('packagedWorldgenPerformanceTest') {
+    group = 'verification'
+    description = 'Compares vanilla, Cyano and Sky worldgen on matching fresh worlds.'
+    dependsOn previousRun
+    doLast {
+        Map<String, Double> medians = [:]
+        benchmarkModes.each { String mode ->
+            File log = file("${buildDir}/worldgen-benchmark-${runLabel}${mode}/logs/latest.log")
+            def match = log.text =~ /ORESPAWN_BENCHMARK summary mode=${mode} .*median_ms_per_chunk=([0-9.]+)/
+            if (!match.find()) throw new GradleException("Missing ${mode} median")
+            medians[mode] = Double.parseDouble(match.group(1))
+        }
+        ['vanilla', 'cyano'].each { String control ->
+            double overhead = ((medians.sky / medians[control]) - 1.0D) * 100.0D
+            logger.lifecycle('Sky worldgen versus {}: {}% ({} versus {} ms/chunk)',
+                    control, String.format(java.util.Locale.ROOT, '%.2f', overhead),
+                    medians.sky, medians[control])
+            if (overhead > 25.0D) throw new GradleException(
+                    "Sky worldgen exceeds the 25% ceiling versus ${control}")
+            if (overhead > 10.0D) logger.warn(
+                    'Sky worldgen exceeds the 10% investigation threshold versus {}', control)
+        }
+    }
+}
+
+tasks.register('verifyWorldgenParity') {
+    group = 'verification'
+    description = 'Compares completed chunk and biome hashes from separate 4.0.16 and 4.1 benchmark runs.'
+    doLast {
+        benchmarkModes.each { String mode ->
+            File oldMarker = file("${buildDir}/worldgen-benchmark-baseline-${mode}/benchmark-world/worldhashprobe.properties")
+            File newMarker = file("${buildDir}/worldgen-benchmark-${mode}/benchmark-world/worldhashprobe.properties")
+            if (!oldMarker.isFile() || !newMarker.isFile()) {
+                throw new GradleException("Run both world-hash benchmarks before comparing ${mode}")
+            }
+            Properties oldHashes = new Properties()
+            Properties newHashes = new Properties()
+            oldMarker.withInputStream { oldHashes.load(it) }
+            newMarker.withInputStream { newHashes.load(it) }
+            if (oldHashes.getProperty('chunks') != '81' || newHashes.getProperty('chunks') != '81'
+                    || oldHashes.getProperty('blocks_sha256') != newHashes.getProperty('blocks_sha256')
+                    || oldHashes.getProperty('biomes_sha256') != newHashes.getProperty('biomes_sha256')) {
+                throw new GradleException("${mode} completed-world hashes differ from 4.0.16")
+            }
+            logger.lifecycle('{} completed-world blocks and biomes match 4.0.16', mode)
+        }
+    }
+}

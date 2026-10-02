@@ -190,8 +190,8 @@ public final class GeomeGeology {
 	}
 
 	/**
-	 * Classifies a column once for read-only API sampling. All Y queries on the
-	 * returned object reuse the same biome, geome, stratum, and formation data.
+	 * Classifies a column once for read-only API sampling.
+	 * Every height query reuses the same biome, geome, stratum and formation data.
 	 */
 	public ColumnSample sampleColumn(Biome biome, ResourceLocation biomeId, int x, int z) {
 		double[] regionalValues = new double[config.geomeCount()];
@@ -285,8 +285,7 @@ public final class GeomeGeology {
 		int rockIndex = regionallyVariedRocks[layerBucket] ? regionalIndex : originalFamilyIndex;
 		int rockBucket = whiteNoiseArray[rockIndex] & 0xFF;
 		if (familyDiversitySlots > 1) {
-			// Reuse the same rendezvous table while preventing thick single-family provinces
-			// from collapsing onto one exact rock.
+			// Reuse the rendezvous table, but vary the rock so a thick single-family province is not uniform.
 			rockBucket ^= LITHOLOGY_ROCK_SALTS[familySlot];
 		}
 		RockFamily family = config.pickStableFamilyAtWorldY(geomeIndex, worldY, formationY,
@@ -353,9 +352,8 @@ public final class GeomeGeology {
 			return higherGeome;
 		}
 
-		// Bit reversal supplies an allocation-free low-discrepancy sequence. Nearby
-		// layers therefore cross a close geome boundary at different horizontal
-		// positions instead of moving as one full-height wall.
+		// Bit reversal spreads these samples evenly without allocating.
+		// Nearby layers cross the geome boundary at different positions, rather than forming one tall wall.
 		int pairPhase = (lowerGeome * 53) + (higherGeome * 97);
 		int layerBucket = (layerIndex + phase + pairPhase) & 0xFF;
 		int threshold = Integer.reverse(layerBucket) >>> 24;

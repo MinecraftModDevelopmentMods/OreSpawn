@@ -12,9 +12,8 @@ import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
- * Reversibly mutates Forge 28's static biome feature lists. Later versions
- * rebuild immutable generation settings; Minecraft 1.14 exposes the stage
- * lists directly instead.
+ * Adds and removes OreSpawn features in Forge 28's biome lists.
+ * Minecraft 1.14 exposes mutable lists, so the original entries must be saved and restored.
  */
 final class BiomeFeatureInstaller {
 	private static final Map<Biome, List<List<ConfiguredFeature<?>>>> ORIGINALS =
