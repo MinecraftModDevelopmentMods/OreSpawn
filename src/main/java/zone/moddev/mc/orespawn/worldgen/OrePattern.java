@@ -11,10 +11,10 @@ public enum OrePattern {
 	CLUSTERS("clusters"),
 	UNDERFLUIDS("underfluids");
 
-	/** @deprecated Config and source compatibility alias. */
+	/** @deprecated Use {@link #CLUSTERS}. Kept for older configurations and callers. */
 	@Deprecated
 	public static final OrePattern CLUSTER = CLUSTERS;
-	/** @deprecated Config and source compatibility alias. */
+	/** @deprecated Use {@link #NORMAL_CLOUD}. Kept for older configurations and callers. */
 	@Deprecated
 	public static final OrePattern CLOUD = NORMAL_CLOUD;
 

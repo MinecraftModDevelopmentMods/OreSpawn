@@ -6,7 +6,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.util.text.ITextComponent;
 
-/** GuiButton-compatible host for Forge 25's native {@link GuiTextField}. */
+/** Wraps {@link GuiTextField} so it can be managed with the screen's buttons. */
 class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 	private final GuiTextField field;
 
@@ -56,6 +56,13 @@ class TextFieldWidget extends net.minecraft.client.gui.GuiButton {
 
 	void setMaxLength(int length) {
 		field.setMaxStringLength(length);
+	}
+
+	void setBounds(int x, int y, int width, int height) {
+		this.x = field.x = x;
+		this.y = field.y = y;
+		this.width = field.width = width;
+		this.height = field.height = height;
 	}
 
 	void func_212954_a(Consumer<String> responder) {

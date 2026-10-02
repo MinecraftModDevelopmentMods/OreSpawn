@@ -51,8 +51,22 @@ coverage with `OreDefinition.Builder.dimensionSelector(...)` and
 `OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
 override that selector and prevent duplicate placement.
 
-The builder emits provider schema 4. Legacy provider schemas 1-3 remain
-readable. Schema 4 is required for biome palettes and dimension materials.
+The builder emits provider schema 5. Legacy provider schemas 1-4 remain
+readable. Schema 4 is required for biome palettes and dimension materials;
+schema 5 adds explicit material and placement-channel IDs. API major remains 1.
+
+For custom ore patterns, `OreGenerationContext` extends the existing
+`OrePlacementContext` without changing its binary contract. It exposes the
+world seed, dimension, chunk coordinates, and an optional geology sampler.
+The `tryPlace(x, y, z, outputIdentity)` overload gives separated slices of one
+logical deposit the same output choice. Code built against the older context
+continues to work through the original `tryPlace` method.
+
+Client add-ons may register one optional configuration screen per mod through
+`WorldSettingsExtensionRegistry.registerConfigScreen(modId, factory)` during
+client initialization. OreSpawn shows it in the loaded-mod directory and
+returns Escape to that directory. Do not load this client-only API on a
+dedicated server.
 
 Provider-owned fluid deposits are declarative and may target several dimensions:
 

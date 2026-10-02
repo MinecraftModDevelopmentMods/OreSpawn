@@ -1,0 +1,9 @@
+modLoader="javafml"
+loaderVersion="[25,)"
+license="MIT"
+
+[[mods]]
+modId="worldhashprobe"
+version="1"
+displayName="OreSpawn World Hash Test"
+description="Test-only checksum of completed benchmark chunks."

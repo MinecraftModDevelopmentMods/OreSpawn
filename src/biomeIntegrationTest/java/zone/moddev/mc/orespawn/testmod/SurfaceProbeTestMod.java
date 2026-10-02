@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
+import zone.moddev.mc.orespawn.client.BiomeEditorProbeBridge;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
@@ -83,7 +84,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/** Independent, test-only provider surface fixture. */
+/** Test mod for provider surfaces and materials, excluded from production builds. */
 @Mod(SurfaceProbeTestMod.MODID)
 public final class SurfaceProbeTestMod {
 	static final String MODID = "surfaceprobe";
@@ -136,6 +137,8 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("minecraft", "nether"), BIOME_A, BIOME_B)));
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
+	private static final int OVERRIDE_MIN_CHUNK = 68;
+	private static final int OVERRIDE_MAX_CHUNK = 70;
 	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
 	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
@@ -367,7 +370,10 @@ public final class SurfaceProbeTestMod {
 		results.put("open", auditDimension(requireLevel(event, OPEN), false));
 		results.put("roofed", auditDimension(requireLevel(event, ROOFED), true));
 		SpringResult spring = auditProviderRockSpring(overworld, phase);
+		int[] override = verifyBiomeOverride(event.getServer(), phase, results.get("open"));
 		Properties current = properties(overworld.getSeed(), results, spring);
+		current.setProperty("override.biome_a", Integer.toString(override[0]));
+		current.setProperty("override.biome_b", Integer.toString(override[1]));
 		if (previous == null) {
 			writeMarker(marker, current);
 		} else {
@@ -386,6 +392,54 @@ public final class SurfaceProbeTestMod {
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
 		event.getServer().initiateShutdown();
+	}
+
+	private static int[] verifyBiomeOverride(MinecraftServer server, String phase,
+			AuditResult original) {
+		WorldServer end = server.getWorld(OPEN);
+		if ("fresh".equals(phase)) {
+			Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+			JsonObject edited = BiomeEditorProbeBridge.replace(
+					WorldGeologyProfileManager.activeProfile().rootCopy(), OPEN_ID.toString(),
+					BIOME_A.toString(), BIOME_B.toString());
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(edited, writer);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Could not save the biome replacement", exception);
+			}
+			if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+				throw new IllegalStateException("Could not activate the biome replacement");
+			}
+			int[] unchanged = countBiomes(end, MINIMUM_CHUNK, MAXIMUM_CHUNK);
+			if (unchanged[0] != original.biomeA() || unchanged[1] != original.biomeB()) {
+				throw new IllegalStateException("Biome replacement rewrote existing terrain");
+			}
+		}
+		int[] generated = countBiomes(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK);
+		if (generated[0] != 0 || generated[1] != EXPECTED_COLUMNS) {
+			throw new IllegalStateException("Biome replacement missed new terrain: a="
+					+ generated[0] + ", b=" + generated[1]);
+		}
+		return generated;
+	}
+
+	private static int[] countBiomes(WorldServer world, int minimumChunk, int maximumChunk) {
+		int biomeA = 0;
+		int biomeB = 0;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int chunkZ = minimumChunk; chunkZ <= maximumChunk; chunkZ++) {
+			for (int chunkX = minimumChunk; chunkX <= maximumChunk; chunkX++) {
+				world.getChunk(chunkX, chunkZ);
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					ResourceLocation id = biomeId(world, world.getBiome(cursor.setPos(
+							(chunkX << 4) + x, 64, (chunkZ << 4) + z)));
+					if (BIOME_A.equals(id)) biomeA++;
+					else if (BIOME_B.equals(id)) biomeB++;
+					else throw new IllegalStateException("Unexpected fixture biome " + id);
+				}
+			}
+		}
+		return new int[] { biomeA, biomeB };
 	}
 
 	private static void verifyOrePatternRegistry() {
@@ -476,8 +530,7 @@ public final class SurfaceProbeTestMod {
 			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
 				level.getChunk(chunkX, chunkZ);
 				Chunk chunk = level.getChunk(chunkX, chunkZ);
-				// Exercise the production conversion seam after later weather/authored
-				// sentinels have been placed, as a real chunk reload would.
+				// Run the real conversion after placing weather and marker blocks, as on a chunk reload.
 				zone.moddev.mc.orespawn.worldgen.WorldMaterialWeather.onChunkLoad(
 						new net.minecraftforge.event.world.ChunkEvent.Load(chunk));
 				int chunkMinX = chunkX << 4;
@@ -912,9 +965,8 @@ public final class SurfaceProbeTestMod {
 				while (groundY > 0
 						&& !solid(chunk.getBlockState(pos.setPos(x, groundY, z)))) groundY--;
 				if (!roofed && groundY <= 0) groundY = 64;
-				// Forge 25 decoration may revisit a neighbouring chunk through the
-				// +8 feature origin. Never let a later RAW_GENERATION pass bury the
-				// provider surface that the first pass already corrected.
+				// Forge 25's +8 feature origin can revisit a neighbouring chunk.
+				// A later RAW_GENERATION pass must not bury the surface already corrected by the first pass.
 				if (chunk.getBlockState(pos.setPos(x, groundY - 5, z)).getBlock()
 						== concreteBlock(EnumDyeColor.BLACK)) continue;
 				chunk.setBlockState(pos.setPos(x, groundY, z), Blocks.GRASS_BLOCK.getDefaultState(), false);
@@ -941,8 +993,8 @@ public final class SurfaceProbeTestMod {
 				}
 			}
 		}
-		// Decoration writes do not update Forge 25's frozen *_WG maps. Rebuild
-		// the controlled fixture map so the production pass sees the exposed Y.
+		// Decoration writes leave Forge 25's *_WG heightmaps unchanged.
+		// Rebuild the fixture's map so the production pass sees the exposed surface.
 		SurfaceProbeSpringBridge.rebuildWorldSurfaceHeight(chunk);
 		if (!roofed) placeRawNaturalSources(world, chunk, pos, minX, minZ);
 		return true;
@@ -950,9 +1002,8 @@ public final class SurfaceProbeTestMod {
 
 	private static void placeRawNaturalSources(IWorld world, IChunk chunk,
 			BlockPos.MutableBlockPos pos, int minX, int minZ) {
-		// Forge 25 decorates through a wider ProtoChunk neighbourhood than the
-		// three-by-three audit. Do not leave block-entity sentinels in incomplete
-		// boundary chunks that the server cannot serialize safely.
+		// Forge 25 decorates beyond the 3-by-3 area checked here.
+		// Remove block-entity markers from unfinished boundary chunks, which cannot be saved safely.
 		if (chunk.getPos().x < MINIMUM_CHUNK || chunk.getPos().x > MAXIMUM_CHUNK
 				|| chunk.getPos().z < MINIMUM_CHUNK || chunk.getPos().z > MAXIMUM_CHUNK) return;
 		for (int index = 0; index < NATURAL_SOURCES.length; index++) {

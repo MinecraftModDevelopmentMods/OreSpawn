@@ -1,6 +1,6 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-/** Internal bootstrap for biome-source codecs used by saved generator data. */
+/** Keeps the shared biome-source startup hook; Minecraft 1.13 needs no codec registration. */
 public final class BiomeWorldgenBootstrap {
 	private BiomeWorldgenBootstrap() {
 	}

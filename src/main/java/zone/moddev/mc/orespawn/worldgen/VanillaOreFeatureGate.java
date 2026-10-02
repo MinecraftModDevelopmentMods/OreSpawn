@@ -15,8 +15,7 @@ public final class VanillaOreFeatureGate {
 	}
 
 	static void register() {
-		// Configured features are inline objects in 1.13 and are wrapped when the
-		// registered biome stage lists are installed.
+		// Minecraft 1.13 stores features inline; wrap them when installing the biome's stage lists.
 	}
 
 	static boolean wrapFeatureList(List<CompositeFeature<?, ?>> features) {
@@ -41,6 +40,7 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		boolean place(FeaturePlaceContext<GateConfig> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
 			if (OreSpawnOreGeneration.takesOverVanillaOre(
 					WorldIds.dimension(context.level()), context.config().output)) return false;

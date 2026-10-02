@@ -16,6 +16,7 @@ import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.DimensionMaterials;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Palette;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Surface;
 import zone.moddev.mc.orespawn.worldgen.BakedBiomeWorldgen.Choice;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -37,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 /** Bakes and installs optional biome and dimension-material integration. */
 final class BiomeWorldgenManager {
+	private static final String UI_OVERRIDE_PREFIX = "orespawn:ui/biome_overrides/";
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceLocation, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
@@ -116,11 +118,11 @@ final class BiomeWorldgenManager {
 		return new BakedBiomeWorldgen(palettes, surfaces, materials);
 	}
 
-	private static List<Palette> bakePalettes(JsonObject root,
+	static List<Palette> bakePalettes(JsonObject root,
 			ResourceLocation dimension, Map<Biome, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
-		for (Entry<String, JsonElement> paletteEntry : section.entrySet()) {
+		for (Entry<String, JsonElement> paletteEntry : orderedPaletteEntries(section)) {
 			if (!paletteEntry.getValue().isJsonObject()) continue;
 			JsonObject json = paletteEntry.getValue().getAsJsonObject();
 			if (!bool(json, "enabled", true)
@@ -178,6 +180,17 @@ final class BiomeWorldgenManager {
 					bakedEntries, bakeChoices(json, bakedEntries)));
 		}
 		return result;
+	}
+
+	static List<Entry<String, JsonElement>> orderedPaletteEntries(JsonObject section) {
+		List<Entry<String, JsonElement>> ordered = new ArrayList<>();
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (!entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		return ordered;
 	}
 
 	private static Map<Biome, Choice> bakeChoices(
@@ -323,7 +336,7 @@ final class BiomeWorldgenManager {
 			Block block = ForgeRegistries.BLOCKS.getValue(
 					new ResourceLocation(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
-					|| (fluid && block.getDefaultState().getFluidState().isEmpty())) return null;
+					|| (fluid && !FluidBlocks.isFluidBlock(block))) return null;
 			return block.getDefaultState();
 		} catch (RuntimeException e) {
 			return null;

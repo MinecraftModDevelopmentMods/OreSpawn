@@ -14,8 +14,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 
 /**
- * Converts vanilla weather products in loaded columns to configured materials.
- * Aquifer fluids are handled directly by the chunk generator.
+ * Replaces vanilla snow and ice with the configured materials in loaded columns.
+ * The chunk generator handles aquifer fluids separately.
  */
 public final class WorldMaterialWeather {
 	private WorldMaterialWeather() {
@@ -54,8 +54,8 @@ public final class WorldMaterialWeather {
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int top = chunk.getTopBlockY(Heightmap.Type.MOTION_BLOCKING, localX, localZ);
-				// One-layer Snow is non-motion-blocking and occupies the first free
-				// cell immediately above this heightmap's highest occupied surface.
+				// A single snow layer does not raise this heightmap.
+				// Look in the first free block above the surface.
 				if (materials.snow != null && top + 1 < 256) {
 					cursor.setPos(minX + localX, top + 1, minZ + localZ);
 					if (chunk.getBlockState(cursor).getBlock() == Blocks.SNOW) {

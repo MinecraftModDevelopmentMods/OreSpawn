@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.client;
 
 import net.minecraft.util.text.ITextComponent;
 
-/** Target-native string button with OreSpawn's callback and tooltip contract. */
+/** Adds callbacks and tooltips to Minecraft 1.13's button. */
 class Button extends net.minecraft.client.gui.GuiButton {
 	private final IPressable onPress;
 	private final Tooltip tooltip;

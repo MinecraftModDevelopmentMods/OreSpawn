@@ -11,9 +11,8 @@ import com.mojang.serialization.JsonOps;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
 /**
- * Forge-registered ore pattern type. Its codec is evaluated once while a
- * geology profile is baked; only the resulting compiled pattern reaches the
- * generation loop.
+ * A Forge-registered ore pattern. Its codec runs once when the geology profile is prepared;
+ * chunk generation uses only the resulting compiled pattern.
  */
 public final class OrePatternType extends ForgeRegistryEntry<OrePatternType> {
 	private final Codec<?> codec;

@@ -6,7 +6,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 
-/** Small bootstrap fallback; the JSON profile is the authoritative worldgen configuration. */
+/** Fallback settings used during startup; the JSON profile controls world generation. */
 public final class OreSpawnConfig {
 	private static final Common COMMON;
 	private static final ForgeConfigSpec SPEC;

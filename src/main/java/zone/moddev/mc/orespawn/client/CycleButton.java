@@ -9,7 +9,7 @@ import java.util.function.Function;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 
-/** Java 8 equivalent of the vanilla cycle button introduced after this target. */
+/** Cycles through options on Minecraft 1.13, which has no vanilla cycle button. */
 final class CycleButton<T> extends Button {
 	private final ITextComponent label;
 	private final Function<T, ITextComponent> valueLabel;

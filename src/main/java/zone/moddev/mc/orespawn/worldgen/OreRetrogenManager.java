@@ -13,7 +13,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 
-/** Bounded, marker-based ore and flat-bedrock retrogen with no reflected internals. */
+/** Updates existing chunks in small batches, using markers to avoid repeating ore and bedrock work. */
 public final class OreRetrogenManager {
 	private static final String ROOT_TAG = "OreSpawn";
 	private static final String REVISION_TAG = "generation_revision";

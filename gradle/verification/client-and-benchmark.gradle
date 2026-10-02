@@ -1,0 +1,148 @@
+def java8Launcher = project.ext.oreSpawnBuild.java8Launcher
+def assertRuntimeLogsClean = project.ext.oreSpawnBuild.assertRuntimeLogsClean
+
+def clientIntegrationClasses = file("${buildDir}/client-integration-fixture/classes")
+tasks.register('compileClientIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = clientIntegrationClasses
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = 'UTF-8'
+}
+tasks.register('clientIntegrationTestModJar', Jar) {
+    dependsOn tasks.named('compileClientIntegrationTestMod')
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = file("${buildDir}/client-integration-fixture")
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+def packagedClientProbeJar = renamer.classes(tasks.named('clientIntegrationTestModJar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('client-integration-fixture/clientprobe-reobf.jar')
+}
+
+def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
+task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = surfaceIntegrationClasses
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+}
+
+task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = file("${buildDir}/surface-integration-fixture")
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
+task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        surfaceIntegrationRunDirectory.mkdirs()
+        copy {
+            from surfaceIntegrationTestModJar.archiveFile
+            into new File(surfaceIntegrationRunDirectory, 'mods')
+        }
+        new File(surfaceIntegrationRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(surfaceIntegrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+tasks.matching { it.name == 'runSurfaceIntegrationFresh' }.all {
+    dependsOn prepareSurfaceIntegrationTest
+}
+
+def createSurfaceProcess = { String phase, Object dependency ->
+    task("surfaceIntegration${phase}Process", type: Exec, dependsOn: dependency) {
+        group = 'verification'
+        dependsOn {
+            JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
+            runTask.taskDependencies.getDependencies(runTask)
+        }
+        doFirst {
+            JavaExec runTask = tasks.getByName("runSurfaceIntegration${phase}") as JavaExec
+            File classpathJar = file("${buildDir}/surface-integration-fixture/${phase.toLowerCase()}-classpath.jar")
+            classpathJar.parentFile.mkdirs()
+            java.util.jar.Manifest manifest = new java.util.jar.Manifest()
+            manifest.mainAttributes.put(java.util.jar.Attributes.Name.MANIFEST_VERSION, '1.0')
+            manifest.mainAttributes.put(java.util.jar.Attributes.Name.CLASS_PATH,
+                    runTask.classpath.files.collect { it.toURI().toASCIIString() }.join(' '))
+            classpathJar.withOutputStream { output ->
+                new java.util.jar.JarOutputStream(output, manifest).close()
+            }
+            List<String> arguments = []
+            arguments.addAll(runTask.allJvmArgs)
+            int classpathFlag = arguments.lastIndexOf('-cp')
+            if (classpathFlag < 0) {
+                classpathFlag = arguments.lastIndexOf('-classpath')
+            }
+            if (classpathFlag >= 0 && classpathFlag + 1 < arguments.size()) {
+                arguments.remove(classpathFlag + 1)
+                arguments.remove(classpathFlag)
+            }
+            arguments.add("-Dsurfaceprobe.integrationPhase=${phase.toLowerCase()}")
+            arguments.add('-cp')
+            arguments.add(classpathJar.absolutePath)
+            arguments.add(runTask.mainClass.orNull ?: 'net.minecraftforge.userdev.LaunchTesting')
+            arguments.addAll(runTask.args)
+            // ForgeGradle defaults to the project directory. Keep test worlds in this disposable directory.
+            workingDir surfaceIntegrationRunDirectory
+            environment runTask.environment
+            // Forge 25 and grossjava9hacks need Java 8; only Gradle and ForgeGradle run on Java 17.
+            File javaExecutable = java8Launcher.get().executablePath.asFile
+            // Pass arguments directly so this also works on Linux, where cmd.exe is unavailable.
+            commandLine(([javaExecutable.absolutePath] + arguments) as List<String>)
+        }
+    }
+}
+
+def surfaceIntegrationFreshProcess = createSurfaceProcess('Fresh', prepareSurfaceIntegrationTest)
+surfaceIntegrationFreshProcess.doLast {
+    File marker = new File(surfaceIntegrationRunDirectory,
+            'surface-integration-world/surfaceprobe-integration.properties')
+    if (!marker.isFile()) {
+        throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
+    }
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+            'surface integration fresh phase', [] as Set)
+}
+def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
+surfaceIntegrationReloadProcess.doLast {
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+            'surface integration reload phase', [] as Set)
+}
+
+task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
+    group = 'verification'
+    doLast {
+        File marker = new File(surfaceIntegrationRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+project.ext.oreSpawnBuild.packagedClientProbeJar = packagedClientProbeJar
+project.ext.oreSpawnBuild.surfaceIntegrationClasses = surfaceIntegrationClasses
+
+check.dependsOn surfaceIntegrationTest

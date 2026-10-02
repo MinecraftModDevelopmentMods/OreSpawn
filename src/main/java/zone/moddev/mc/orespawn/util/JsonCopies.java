@@ -8,11 +8,10 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 /**
- * Gson-version-neutral defensive copying for configuration data.
+ * Copies configuration JSON without exposing the original mutable data.
  *
- * <p>Minecraft 1.13.2 bundles a Gson version where {@code deepCopy()} is not
- * public. Keeping the compatibility shim here avoids changing any public JSON
- * contracts or relying on a newer Gson at runtime.</p>
+ * <p>Minecraft 1.13.2's Gson has no public {@code deepCopy()}. Keep that workaround here
+ * so callers do not need a newer Gson or a different JSON format.</p>
  */
 public final class JsonCopies {
 	private JsonCopies() {

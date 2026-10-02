@@ -4,13 +4,14 @@ OreSpawn uses three JSON contracts:
 
 | File | Schema | Purpose |
 |---|---:|---|
-| `config/orespawn-worldgen.json` | 6 | Installed-pack defaults for new worlds |
-| `<world>/serverconfig/orespawn-worldgen.json` | 5 | Self-contained snapshot for one world |
-| `config/<modid>-orespawn.json` | 4 | Optional authoritative provider override |
+| `config/orespawn-worldgen.json` | 8 | Installed-pack defaults for new worlds |
+| `<world>/serverconfig/orespawn-worldgen.json` | 7 | Self-contained snapshot for one world |
+| `config/<modid>-orespawn.json` | 5 | Optional authoritative provider override |
 
-A provider may package schema 4 at `data/<modid>/orespawn/provider.json`.
-Legacy provider schemas 1-3 remain accepted. Fluid deposits require schema 3;
-biome palettes and dimension materials require schema 4.
+A provider may package schema 5 at `data/<modid>/orespawn/provider.json`.
+Legacy provider schemas 1-4 remain accepted. Fluid deposits require schema 3;
+biome palettes and dimension materials require schema 4. Explicit ore material
+and placement-channel IDs require schema 5.
 
 The profile for a new world is merged in this order: passive OreSpawn defaults,
 packaged or API providers, provider override files, the global configuration,
@@ -29,7 +30,7 @@ report for the exact decision.
 
 | Field | Values | Meaning |
 |---|---|---|
-| `schema_version` | Contract-specific integer | Global 6, world 5, provider 4 |
+| `schema_version` | Contract-specific integer | Global 8, world 7, provider 5 |
 | `geology_mode` | `geome`, `legacy` | Sky/geome engine or Cyano legacy engine |
 | `place_fluid_deposits` | boolean | Master switch for configured fluid-deposit rules |
 | `manage_vanilla_ores` | boolean | Lets OreSpawn suppress and replace claimed vanilla ore features |
@@ -44,6 +45,8 @@ report for the exact decision.
 | `biome_palettes` | object keyed by provider-owned rule ID | Optional native-biome overlays and surfaces |
 | `dimension_materials` | object keyed by provider-owned rule ID | Aquifer fluid, snow, and ice substitutions |
 | `ores` | object keyed by rule ID | Ore outputs and per-dimension placement |
+| `ore_material_groups` | object keyed by material ID | Friendly names and exact block-tag aliases; imported Ore Dictionary names stay dormant |
+| `ore_source_policies` | object keyed by material and dimension | Saved output mode, weights, and placement source per channel |
 | `fluid_deposits` | object keyed by rule ID | Provider-owned fluids and per-dimension placement |
 | `retrogen` | object | Bounded ore retrogen controls |
 | `flat_bedrock` | object | Opt-in flat bedrock controls |
@@ -179,8 +182,18 @@ Each enabled ore dimension uses:
 | `node_size` | 1-32 | Cluster node size |
 | `length` | 1-64 | Pattern path length where supported |
 | `fluid` | registry ID | Fluid used by `underfluids` |
+| `placement_channel` | registry ID | Independent placement budget shared by equivalent ores in consolidated modes |
 
 At least one of `host_families`, `host_blocks`, or `host_tags` must be present.
+
+On Forge 1.13.2, the default Nether quartz rule uses
+`host_blocks: ["minecraft:netherrack"]`, because Forge does not ship a
+`forge:netherrack` tag. Older profiles using that exact tag still resolve to
+native netherrack when the tag is absent. If a data pack defines it, its contents
+take precedence, including an intentionally empty tag. Other missing host tags
+remain unresolved. This compatibility handling does not rewrite saved profiles
+or regenerate existing chunks.
+
 Hosts may be plain registry IDs or weighted objects such as
 `{"tag":"forge:stone","weight":0.75}`. Optional
 `geomes`, biome include/exclude IDs, and biome-dictionary include/exclude arrays
@@ -195,6 +208,30 @@ both are present.
 The selector `orespawn:all_except_nether_end` covers every dimension except
 the vanilla Nether and End. Explicit rules in `dimensions` override selector
 rules for the same ore and dimension, including explicit disabled rules.
+
+### Material groups and source policies
+
+Provider schema 5 may add a `material` ID to an ore. Otherwise OreSpawn infers
+the material only from exact loaded block tags under `*/ores/*`; it does not
+guess from a block or mod name. `ore_material_groups` stores a friendly name
+and `block_tag_entries` for each group. Imported `ore_dictionary_entries`
+remain dormant unless a user gives the group an exact tag mapping.
+
+`ore_source_policies` stores one material-and-dimension decision: Keep Original
+(`keep_separate`) or consolidated Balanced, Single, or Custom output selection.
+The `placement_sources` object names one source rule for each placement
+channel. Consolidation uses that rule's frequency, shape, depth, and hosts,
+then picks the selected output for a whole deposit. It does not give every
+output its own placement budget. External generators are shown for context but
+cannot be suppressed by OreSpawn.
+
+For a newly created world, two loaded ordinary MMD providers with the same
+exact ore tag start Balanced. A configured Sulfur or Lithium priority chooses
+the initial placement source; other conflicts use stable owner/rule-ID order.
+Missing providers create no phantom ores. Existing worlds retain their saved
+policy, defaulting to Keep Original on upgrade. Both global and world profile
+upgrades keep a backup; editing the global defaults in the UI is saved only
+when the main OreSpawn editor's Done is pressed.
 
 ## Fluid Deposits, Retrogen, And Bedrock
 

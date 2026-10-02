@@ -9,7 +9,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
-/** Registry-backed biome chooser. */
+/** Lets the player choose from installed biomes. */
 final class BiomePickerScreen extends OreSpawnScreen {
 	private final GuiScreen parent;
 	private final GeologyEditorSession session;

@@ -22,7 +22,7 @@ import net.minecraft.world.gen.feature.RandomFeatureListConfig;
 import net.minecraft.world.gen.feature.RandomFeatureWithConfigConfig;
 import net.minecraft.world.gen.feature.TwoFeatureChoiceConfig;
 
-/** Test-only package bridge for the Forge 25 spring wrapper. */
+/** Gives the test mod access to the spring wrapper without exposing a public API. */
 public final class SurfaceProbeSpringBridge {
 	private SurfaceProbeSpringBridge() {
 	}

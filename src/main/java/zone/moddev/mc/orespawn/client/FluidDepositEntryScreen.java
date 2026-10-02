@@ -125,8 +125,8 @@ final class FluidDepositEntryScreen extends OreSpawnScreen {
 		JsonArray blocks = new JsonArray();
 		JsonArray tags = new JsonArray();
 		if ("minecraft:the_end".equals(id)) blocks.add("minecraft:end_stone");
-		else tags.add("minecraft:the_nether".equals(id)
-				? "forge:netherrack" : "forge:stone");
+		else if ("minecraft:the_nether".equals(id)) blocks.add("minecraft:netherrack");
+		else tags.add("forge:stone");
 		rule.add("host_blocks", blocks);
 		rule.add("host_tags", tags);
 		rule.add("biome_ids", new JsonArray());

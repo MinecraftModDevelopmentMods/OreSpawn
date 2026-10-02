@@ -9,7 +9,7 @@ import net.minecraft.world.gen.IChunkGenSettings;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 
-/** Target-local adapter for the context object introduced by Minecraft 1.17. */
+/** Collects the world, generator, random source and origin for one feature placement. */
 final class FeaturePlaceContext<FC extends IFeatureConfig> {
 	private final IWorld level;
 	private final IChunkGenerator<? extends IChunkGenSettings> chunkGenerator;
@@ -48,8 +48,8 @@ final class FeaturePlaceContext<FC extends IFeatureConfig> {
 
 	/**
 	 * Forge 25 decorates the center chunk from an origin one chunk northwest.
-	 * Whole-chunk pass-through features must therefore advance by one chunk;
-	 * ordinary positioned features, such as springs, continue using origin().
+	 * Whole-chunk features must advance by one chunk; positioned features such as springs
+	 * continue to use origin().
 	 */
 	IChunk decorationChunk() {
 		return level.getChunk((origin.getX() >> 4) + 1, (origin.getZ() >> 4) + 1);

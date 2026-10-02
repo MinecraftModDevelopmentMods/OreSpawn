@@ -5,7 +5,7 @@ addons:
   apt:
     update: true
     packages:
-#      - oracle-java8-installer
+
 git:
   quiet: true
 arch: amd64

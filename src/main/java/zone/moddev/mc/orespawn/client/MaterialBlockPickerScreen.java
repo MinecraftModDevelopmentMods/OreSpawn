@@ -7,7 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
-/** Registry-backed block picker for surface, fluid, snow, and ice materials. */
+/** Chooses installed blocks for surface, fluid, snow and ice settings. */
 final class MaterialBlockPickerScreen extends OreSpawnScreen {
 	private final GuiScreen parent;
 	private final GeologyEditorSession session;

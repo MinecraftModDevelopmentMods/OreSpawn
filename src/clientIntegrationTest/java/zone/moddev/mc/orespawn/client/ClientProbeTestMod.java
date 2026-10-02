@@ -28,8 +28,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
+import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
-/** Build-only client probe. It is compiled and packaged outside every release artifact. */
+/** Client integration test mod, compiled separately and excluded from every release jar. */
 @Mod(ClientProbeTestMod.MODID)
 @Mod.EventBusSubscriber(modid = ClientProbeTestMod.MODID, value = Dist.CLIENT)
 public final class ClientProbeTestMod {
@@ -46,6 +47,7 @@ public final class ClientProbeTestMod {
 	private int editorFrames;
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
+	private boolean oreSourceFixturesVerified;
 	private List<GuiButton> worldCreationButtons;
 
 	public ClientProbeTestMod() {
@@ -104,8 +106,8 @@ public final class ClientProbeTestMod {
 						}
 					}
 					if (minecraft.currentScreen instanceof GuiCreateWorld && worldSettingsButton != null) {
-						// Forge 25 invokes the target-native OreSpawn button callback directly;
-						// unlike Forge 14, no vanilla create-world action has to be canceled.
+						// Forge 25 invokes the OreSpawn button directly.
+						// No vanilla Create World action needs cancelling.
 						((GuiButton) worldSettingsButton).onClick(0, 0);
 						nextState(2);
 					}
@@ -115,6 +117,10 @@ public final class ClientProbeTestMod {
 						worldSettingsOpened = true;
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.currentScreen);
 						validateLongEditorRoundTrip(minecraft, minecraft.currentScreen);
+						if (Boolean.getBoolean("clientprobe.oreSourcesFixtures")) {
+							validateOreSourceFixtures(minecraft, minecraft.currentScreen);
+							oreSourceFixturesVerified = true;
+						}
 						nextState(3);
 					}
 					break;
@@ -140,8 +146,10 @@ public final class ClientProbeTestMod {
 					break;
 				case 4:
 					if (minecraft.currentScreen instanceof OreSpawnScreen && editorFrames >= 2) {
-						validateCaptions((OreSpawnScreen) minecraft.currentScreen);
-						((OreSpawnScreen) minecraft.currentScreen).onClose();
+						OreSpawnScreen editor = (OreSpawnScreen) minecraft.currentScreen;
+						validateCaptions(editor);
+						if (editor instanceof GeologyMaterialsScreen) validateOreSourcesRoute(minecraft, editor);
+						editor.onClose();
 						nextState(3);
 					}
 					break;
@@ -203,14 +211,130 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(OreSpawnScreen screen) {
 		for (GuiButton widget : screen.qualificationButtons()) {
+			if (widget instanceof CogButton || widget instanceof CompactScrollList) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.displayString);
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.displayString);
+				throw new IllegalStateException("Invalid client caption on "
+						+ screen.getClass().getSimpleName() + '/' + widget.getClass().getSimpleName()
+						+ ": " + widget.displayString);
 			}
 		}
+	}
+
+	private static void validateOreSourcesRoute(Minecraft minecraft, OreSpawnScreen materials) {
+		Button ores = buttonWithCaption(materials,
+				net.minecraft.client.resources.I18n.format("tab.orespawn.ores"));
+		if (ores == null) throw new IllegalStateException("Missing ORES tab");
+		((GuiButton) ores).onClick(0, 0);
+		Button sources = buttonWithCaption(materials,
+				net.minecraft.client.resources.I18n.format("button.orespawn.ore_sources"));
+		if (sources == null) {
+			throw new IllegalStateException("Missing Ore Sources route from ORES");
+		}
+		((GuiButton) sources).onClick(0, 0);
+		if (!(minecraft.currentScreen instanceof OreSourceListScreen)) {
+			throw new IllegalStateException("Ore Sources route did not open");
+		}
+		OreSourceListScreen opened = (OreSourceListScreen) minecraft.currentScreen;
+		validateEmptyOreSources(minecraft, materials);
+		Button addGroup = buttonWithCaption(opened, "+");
+		if (addGroup == null) throw new IllegalStateException("Missing Add Group control");
+		((GuiButton) addGroup).onClick(0, 0);
+		int lists = 0;
+		for (GuiButton widget : opened.qualificationButtons()) {
+			if (widget instanceof CompactScrollList) lists++;
+		}
+		if (lists != 2) throw new IllegalStateException("Ore Sources must show both compact lists: " + lists);
+		opened.onClose();
+		if (minecraft.currentScreen != materials) {
+			throw new IllegalStateException("Ore Sources did not return to ORES");
+		}
+	}
+
+	private static void validateEmptyOreSources(Minecraft minecraft, GuiScreen parent) {
+		for (int[] size : new int[][] { { 426, 265 }, { 320, 240 } }) {
+			OreSourceListScreen empty = new OreSourceListScreen(parent,
+					new GeologyEditorSession(WorldGeologyProfile.recommended(false)));
+			((GuiScreen) empty).setWorldAndResolution(minecraft, size[0], size[1]);
+			CompactScrollList groups = null;
+			for (GuiButton widget : empty.qualificationButtons()) {
+				if (widget instanceof CompactScrollList) {
+					groups = (CompactScrollList) widget;
+					break;
+				}
+			}
+			if (groups == null) throw new IllegalStateException("Missing empty Groups pane");
+			int textWidth = groups.contentRight() - ((GuiButton) groups).x - 12;
+			List<String> lines = minecraft.fontRenderer.listFormattedStringToWidth(
+					net.minecraft.client.resources.I18n.format("label.orespawn.ore_source.none"), textWidth);
+			if (lines.size() < 2) throw new IllegalStateException("Empty message must wrap at " + size[0]);
+			for (String line : lines) {
+				if (minecraft.fontRenderer.getStringWidth(line) > textWidth) {
+					throw new IllegalStateException("Empty message crosses the Groups scrollbar");
+				}
+			}
+			if (10 + lines.size() * 11 > ((GuiButton) groups).height) {
+				throw new IllegalStateException("Empty message crosses the Groups footer");
+			}
+			((GuiScreen) empty).render(0, 0, 0.0F);
+		}
+	}
+
+	private static void validateOreSourceFixtures(Minecraft minecraft, GuiScreen parent) {
+		GeologyEditorSession session = new GeologyEditorSession(
+				WorldGeologyProfileManager.pendingNewWorldProfile());
+		GeologyEditorSession.OreSourceGroup sulfur = null;
+		for (GeologyEditorSession.OreSourceGroup group : session.oreSourceGroups()) {
+			if ("orespawn:sulfur|minecraft:overworld".equals(group.key)) sulfur = group;
+		}
+		if (sulfur == null || sulfur.outputCandidates().size() != 3 || sulfur.outputs.size() != 3
+				|| sulfur.channels().size() != 1
+				|| !"baseminerals:sulfur".equals(sulfur.placements.get("orespawn:standard"))) {
+			throw new IllegalStateException("Dummy providers did not create the expected Sulfur group");
+		}
+		for (int[] size : new int[][] { { 426, 265 }, { 320, 240 } }) {
+			session.restoreOreSourceOriginalMode(sulfur.key);
+			OreSourceListScreen screen = new OreSourceListScreen(parent, session);
+			((GuiScreen) screen).setWorldAndResolution(minecraft, size[0], size[1]);
+			String currentMode = "keep_original";
+			for (String nextMode : new String[] { "balanced", "single", "custom", "keep_original" }) {
+				String caption = net.minecraft.client.resources.I18n.format(
+						"option.orespawn.ore_source.output_mode",
+						net.minecraft.client.resources.I18n.format("mode.orespawn.ore_source." + currentMode));
+				Button mode = buttonWithCaption(screen, caption);
+				if (mode == null) throw new IllegalStateException("Missing dummy-provider mode control");
+				((GuiButton) mode).onClick(0, 0);
+				int lists = 0;
+				for (GuiButton widget : screen.qualificationButtons()) {
+					if (widget instanceof CompactScrollList) {
+						CompactScrollList list = (CompactScrollList) widget;
+						if (list.size() != (lists == 0 ? 1 : 3)) {
+							throw new IllegalStateException("Wrong dummy-provider row count at " + size[0]);
+						}
+						if (lists == 1 && "keep_original".equals(nextMode) && list.rowEnabled(0)) {
+							throw new IllegalStateException("Keep Original must disable output editing");
+						}
+						lists++;
+					}
+				}
+				if (lists != 2) throw new IllegalStateException("Missing dummy-provider pane");
+				currentMode = nextMode;
+				((GuiScreen) screen).render(0, 0, 0.0F);
+			}
+		}
+	}
+
+	private static Button buttonWithCaption(OreSpawnScreen screen, String caption) {
+		for (GuiButton widget : screen.qualificationButtons()) {
+			if (widget instanceof Button && caption.equals(
+					TextFormatting.getTextWithoutFormattingCodes(widget.displayString))) {
+				return (Button) widget;
+			}
+		}
+		return null;
 	}
 
 	private void validateLongEditorRoundTrip(Minecraft minecraft, GuiScreen parent) {
@@ -280,9 +404,8 @@ public final class ClientProbeTestMod {
 		deposit.add("dimensions", fluidDimensions);
 		deposits.add("example:long_editor_deposit", deposit);
 		root.add("fluid_deposits", deposits);
-		// Keep the synthetic profile in the editor's canonical shape so this
-		// assertion is about preservation of the eight long text fields rather
-		// than the session adding an unrelated optional empty section.
+		// Use a complete profile so this checks the eight long text fields,
+		// not the editor adding an optional empty section.
 		root.add("geomes", new JsonObject());
 
 		GeologyEditorSession session = new GeologyEditorSession(
@@ -327,10 +450,8 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void stopIntegratedServer(Minecraft minecraft) {
-		// Match GuiIngameMenu's target-native disconnect path. loadWorld(null)
-		// coordinates the integrated-server save/stop; installing the replacement
-		// screen in the same tick prevents EntityRenderer from seeing no world and
-		// no screen between frames.
+		// Follow GuiIngameMenu's disconnect path: loadWorld(null) saves and stops the server.
+		// Open the replacement screen in the same tick so EntityRenderer never has neither a world nor a screen.
 		if (minecraft.world != null) minecraft.world.sendQuittingDisconnectingPacket();
 		minecraft.loadWorld(null);
 		minecraft.displayGuiScreen(new GuiMainMenu());
@@ -340,6 +461,7 @@ public final class ClientProbeTestMod {
 		Properties values = new Properties();
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
+		values.setProperty("ore_source_fixtures_verified", Boolean.toString(oreSourceFixturesVerified));
 		values.setProperty("editor_routes", Integer.toString(editorRoutes.size()));
 		values.setProperty("editor_classes", editorRoutes.toString());
 		values.setProperty("first_world_rendered", Boolean.toString(firstWorldFrames >= 8));

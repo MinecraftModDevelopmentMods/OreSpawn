@@ -23,9 +23,12 @@ class ReleaseWorkflowContractTest {
 		assertEquals("zone.moddev.mc.orespawn", properties.getProperty("mod_group"));
 
 		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String publishing = new String(Files.readAllBytes(
+				Paths.get("gradle", "release", "publishing.gradle")), StandardCharsets.UTF_8);
+		assertTrue(build.contains("apply from: 'gradle/release/publishing.gradle'"));
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 
 		String ci = readWorkflow("ci.yml");

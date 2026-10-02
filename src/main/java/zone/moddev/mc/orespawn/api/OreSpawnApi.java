@@ -21,8 +21,7 @@ public final class OreSpawnApi {
 	}
 
 	/**
-	 * Enqueues a provider through Forge IMC. Call this during
-	 * {@code InterModEnqueueEvent}.
+	 * Submits a provider through Forge IMC. Call during {@code InterModEnqueueEvent}.
 	 */
 	public static boolean enqueue(WorldgenProvider provider) {
 		if (provider == null) {
