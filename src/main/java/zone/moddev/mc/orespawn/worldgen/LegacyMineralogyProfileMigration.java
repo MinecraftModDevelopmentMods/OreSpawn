@@ -35,14 +35,12 @@ import org.apache.logging.log4j.Logger;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 
 /**
- * Snapshots the exact Mineralogy geology contract used by an already-generated
- * world before OreSpawn becomes responsible for that world's geology.
+ * Saves a world's existing Mineralogy geology settings before OreSpawn takes over generation.
  *
- * <p>The 1.10 and 1.12 Forge configuration files are related but not
- * interchangeable. Mineralogy 5.x uses a third, TOML-based contract and can
- * select either its Cyano layer engine or its geome engine. Saved world mod
- * metadata therefore chooses the lineage; merely finding an old file in a
- * reused instance is never enough to reclassify a fresh world.</p>
+ * <p>Mineralogy's 1.10 and 1.12 Forge configurations are similar but not interchangeable.
+ * Mineralogy 5.x uses TOML and can select either the Cyano layer engine or the geome engine.
+ * Choose the version from the world's saved mod metadata, not from leftover configuration files
+ * that may belong to another world.</p>
  */
 final class LegacyMineralogyProfileMigration {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -199,7 +197,7 @@ final class LegacyMineralogyProfileMigration {
         Path report = worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt");
         List<String> missing = missingBlocks(igneous, metamorphic, sedimentary);
         List<String> lines = new ArrayList<>();
-        lines.add("OreSpawn 4.0.16.114041 Upgrade Report");
+        lines.add("OreSpawn 4.1.0.114041 Upgrade Report");
         lines.add("================================");
         lines.add("");
         lines.add("RESULT: Existing Mineralogy " + identity.version + " world detected.");

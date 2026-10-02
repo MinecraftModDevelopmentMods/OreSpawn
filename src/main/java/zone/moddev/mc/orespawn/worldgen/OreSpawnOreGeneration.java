@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -18,7 +19,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawn;
 import zone.moddev.mc.orespawn.api.CompiledOrePattern;
+import zone.moddev.mc.orespawn.api.GeologySampler;
+import zone.moddev.mc.orespawn.api.OreGenerationContext;
 import zone.moddev.mc.orespawn.api.OreDimensionSelector;
+import zone.moddev.mc.orespawn.api.OreSpawnApi;
 import zone.moddev.mc.orespawn.api.OrePlacementContext;
 import zone.moddev.mc.orespawn.init.OreSpawnPatterns;
 
@@ -58,6 +62,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	private static final Object CLASSIFIER_LOCK = new Object();
 
 	private static ConfiguredFeature<?> configuredFeature;
+	private static Map<String, BakedOre> resolvedHostRules = Collections.emptyMap();
 	private static volatile Map<ResourceLocation, BakedOre[]> oresByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, Set<Block>> vanillaTakeoverOutputs = Collections.emptyMap();
 	private static volatile BakedOre[] selectorOres = NO_ORES;
@@ -81,8 +86,19 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	public static void refreshWorldConfig() {
+		refreshWorldConfig(Collections.emptyMap());
+	}
+
+	static void refreshTagOnlyWorldConfig() {
+		refreshWorldConfig(resolvedHostRules);
+	}
+
+	private static void refreshWorldConfig(Map<String, BakedOre> previous) {
 		geomeConfig = GeomeConfig.baked();
-		BakedOres baked = bakeOres(WorldGeologyProfileManager.activeProfile().rootCopy(), geomeConfig);
+		Map<String, BakedOre> resolved = new HashMap<>();
+		BakedOres baked = bakeOres(WorldGeologyProfileManager.activeProfile().rootCopy(),
+				geomeConfig, previous, resolved);
+		resolvedHostRules = resolved;
 		oresByDimension = baked.byDimension;
 		vanillaTakeoverOutputs = baked.vanillaOutputs;
 		selectorOres = baked.selectorOres;
@@ -113,6 +129,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 
 	@Override
 	boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
+		WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 		IWorld world = context.level();
 		ResourceLocation dimension = WorldIds.dimension(world);
 		BakedOre[] ores = oresForDimension(dimension);
@@ -175,7 +192,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			}
 			int attempts = attemptsForFrequency(random, frequency);
 			for (int attempt = 0; attempt < attempts; attempt++) {
-				changed |= placeAttempt(world, chunk, random, ore, geome, scratch);
+				changed |= placeAttempt(world, chunk, random, ore, geome,
+						dimension, worldSeed, attempt, scratch);
 			}
 		}
 		if (changed) {
@@ -194,7 +212,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static boolean placeAttempt(IWorld world, IChunk chunk, Random random,
-			BakedOre ore, int geome,
+			BakedOre ore, int geome, ResourceLocation dimension, long worldSeed, int attempt,
 			GenerationScratch scratch) {
 		int minY = Math.max(ore.minY, 0);
 		int maxY = Math.min(ore.maxY, 256 - 1);
@@ -205,7 +223,11 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		int y = ore.heightDistribution.sample(random, minY, maxY);
 		int z = chunk.getPos().getZStart() + random.nextInt(16);
 		int quantity = sampleQuantity(random, ore.minQuantity, ore.maxQuantity);
-		scratch.patternContext.initialize(world, chunk, random, ore, geome, x, y, z, minY, maxY,
+		scratch.patternContext.initialize(world, chunk, random, ore, geome,
+				dimension, worldSeed,
+				ore.arbitrationSources.length == 0 ? null
+						: ore.outputSource(worldSeed, chunk.getPos().asLong(), attempt),
+				x, y, z, minY, maxY,
 				quantity);
 		return ore.pattern.place(scratch.patternContext);
 	}
@@ -237,28 +259,25 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				&& y >= 0 && y < 256;
 	}
 
-	private static BakedOres bakeOres(JsonObject profile, BakedGeomeConfig config) {
+	private static BakedOres bakeOres(JsonObject profile, BakedGeomeConfig config,
+			Map<String, BakedOre> previous, Map<String, BakedOre> resolved) {
 		if (!profile.has("ores") || !profile.get("ores").isJsonObject()) {
 			return BakedOres.EMPTY;
 		}
 		boolean manageVanillaOres = bool(profile, "manage_vanilla_ores", false);
 		Map<ResourceLocation, Set<Block>> resolvedTags = new HashMap<>();
 		List<BakedOreRule> rules = new ArrayList<>();
+		Map<String, BakedOutputBundle> outputBundles = new LinkedHashMap<>();
 		Set<ResourceLocation> explicitDimensions = new HashSet<>();
 		for (Entry<String, JsonElement> oreEntry : profile.getAsJsonObject("ores").entrySet()) {
 			if (!oreEntry.getValue().isJsonObject()) {
 				continue;
 			}
 			JsonObject oreJson = oreEntry.getValue().getAsJsonObject();
-			if (!bool(oreJson, "enabled", true)) {
-				continue;
-			}
+			boolean oreEnabled = bool(oreJson, "enabled", true);
 			boolean nativeGeneration = bool(oreJson, "native_generation", false);
 			boolean retrogen = bool(oreJson, "retrogen", true);
 			boolean suppressVanilla = nativeGeneration || bool(oreJson, "suppress_vanilla", false);
-			if (nativeGeneration && !manageVanillaOres) {
-				continue;
-			}
 			ResourceLocation oreId = resource(string(oreJson, "block", oreEntry.getKey()));
 			Block output = oreId == null ? null : ForgeRegistries.BLOCKS.getValue(oreId);
 			JsonObject dimensions = objectOrEmpty(oreJson, "dimensions");
@@ -275,6 +294,12 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			}
 			int deepOutputMaxY = integer(oreJson, "deep_output_max_y", -1);
 			BakedOutput[] outputs = bakeOutputs(oreJson, output.getDefaultState());
+			ResourceLocation ruleId = resource(oreEntry.getKey());
+			if (ruleId == null) ruleId = oreId;
+			outputBundles.put(ruleId.toString(), new BakedOutputBundle(
+					output.getDefaultState(), deepOutput, deepOutputMaxY, outputs));
+			if (!oreEnabled || (nativeGeneration && !manageVanillaOres)) continue;
+			ResourceLocation material = OreSourcePolicies.material(profile, oreJson, output);
 			BakedOreRule rule = new BakedOreRule(output, manageVanillaOres && suppressVanilla);
 
 			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
@@ -293,9 +318,12 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				if (!bool(dimension, "enabled", true)) {
 					continue;
 				}
-				BakedOre baked = bakeOre(output.getDefaultState(), deepOutput, deepOutputMaxY, outputs,
-						dimension, config, resolvedTags, retrogen);
+				BakedOre baked = bakeOre(ruleId, material, dimensionId,
+						output.getDefaultState(), deepOutput, deepOutputMaxY, outputs,
+						dimension, config, resolvedTags, retrogen,
+						previous.get(ruleId + "|" + dimensionId));
 				if (baked != null) {
+					resolved.put(ruleId + "|" + dimensionId, baked);
 					rule.explicit.put(dimensionId, baked);
 				} else {
 					reportBakeProblem("Ignoring invalid placement rule for OreSpawn-managed ore '{}' in '{}'",
@@ -313,8 +341,11 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				if (!selectorEntry.getValue().isJsonObject()) continue;
 				JsonObject selector = selectorEntry.getValue().getAsJsonObject();
 				if (!bool(selector, "enabled", true)) continue;
-				rule.selector = bakeOre(output.getDefaultState(), deepOutput, deepOutputMaxY, outputs,
-						selector, config, resolvedTags, retrogen);
+				rule.selector = bakeOre(ruleId, material, selectorId,
+						output.getDefaultState(), deepOutput, deepOutputMaxY, outputs,
+						selector, config, resolvedTags, retrogen,
+						previous.get(ruleId + "|" + selectorId));
+				if (rule.selector != null) resolved.put(ruleId + "|" + selectorId, rule.selector);
 				if (rule.selector == null) {
 					reportBakeProblem("Ignoring invalid selector rule for OreSpawn-managed ore '{}'",
 							oreEntry.getKey());
@@ -336,6 +367,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 					if (rule.suppressVanilla) suppressed.add(rule.output);
 				}
 			}
+			combined = arbitrate(profile, combined, outputBundles);
 			result.put(dimension, combined.toArray(new BakedOre[combined.size()]));
 			vanillaOutputs.put(dimension, Collections.unmodifiableSet(suppressed));
 		}
@@ -346,6 +378,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			selectorList.add(rule.selector);
 			if (rule.suppressVanilla) selectorOutputs.add(rule.output);
 		}
+		selectorList = arbitrate(profile, selectorList, outputBundles);
 		BakedOre[] selectorResult = selectorList.toArray(new BakedOre[selectorList.size()]);
 		LOGGER.info("Baked {} OreSpawn-managed ore definitions across {} dimensions",
 				rules.size(), result.size());
@@ -358,12 +391,91 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				Collections.unmodifiableSet(selectorOutputs));
 	}
 
+	private static List<BakedOre> arbitrate(JsonObject profile, List<BakedOre> original,
+			Map<String, BakedOutputBundle> outputBundles) {
+		if (!profile.has(OreSourcePolicies.SECTION)
+				|| !profile.get(OreSourcePolicies.SECTION).isJsonObject()) return original;
+		JsonObject policies = profile.getAsJsonObject(OreSourcePolicies.SECTION);
+		Map<String, List<BakedOre>> groups = new LinkedHashMap<>();
+		for (BakedOre ore : original) {
+			if (ore.material != null) groups.computeIfAbsent(
+					OreSourcePolicies.key(ore.material, ore.policyDomain), ignored -> new ArrayList<>()).add(ore);
+		}
+		Map<String, List<BakedOre>> replacements = new HashMap<>();
+		for (Entry<String, List<BakedOre>> entry : groups.entrySet()) {
+			String key = entry.getKey();
+			if (!policies.has(key) || !policies.get(key).isJsonObject()) continue;
+			JsonObject policy = policies.getAsJsonObject(key);
+			if (!"consolidated".equals(string(policy, "mode", "keep_separate"))) continue;
+			List<BakedSource> sources = new ArrayList<>();
+			for (Entry<String, Double> output : positiveWeights(objectOrEmpty(policy, "outputs")).entrySet()) {
+				BakedOutputBundle bundle = outputBundles.get(output.getKey());
+				if (bundle == null) bundle = candidateBundle(policy, output.getKey());
+				if (bundle != null) sources.add(new BakedSource(bundle, output.getValue()));
+			}
+			Map<String, BakedOre> available = new HashMap<>();
+			for (BakedOre ore : entry.getValue()) available.put(ore.ruleId.toString(), ore);
+			List<BakedOre> selected = new ArrayList<>();
+			for (Entry<String, JsonElement> placement : objectOrEmpty(policy, "placement_sources").entrySet()) {
+				ResourceLocation channel = resource(placement.getKey());
+				String sourceId;
+				try { sourceId = placement.getValue().getAsString(); }
+				catch (RuntimeException invalid) { continue; }
+				BakedOre ore = available.get(sourceId);
+				if (ore != null && channel != null && channel.equals(ore.channel) && !sources.isEmpty()) {
+					selected.add(ore.withSources(sources));
+				}
+			}
+			replacements.put(key, selected);
+		}
+		if (replacements.isEmpty()) return original;
+		List<BakedOre> result = new ArrayList<>();
+		Set<String> emitted = new HashSet<>();
+		for (BakedOre ore : original) {
+			String key = ore.material == null ? null
+					: OreSourcePolicies.key(ore.material, ore.policyDomain);
+			List<BakedOre> selected = key == null ? null : replacements.get(key);
+			if (selected == null) result.add(ore);
+			else if (emitted.add(key)) result.addAll(selected);
+		}
+		return result;
+	}
+
+	private static Map<String, Double> positiveWeights(JsonObject values) {
+		Map<String, Double> result = new LinkedHashMap<>();
+		for (Entry<String, JsonElement> entry : values.entrySet()) {
+			try {
+				double value = entry.getValue().getAsDouble();
+				if (Double.isFinite(value) && value > 0.0D) result.put(entry.getKey(), value);
+			} catch (RuntimeException ignored) { }
+		}
+		return result;
+	}
+
+	private static BakedOutputBundle candidateBundle(JsonObject policy, String sourceId) {
+		if (!policy.has("candidates") || !policy.get("candidates").isJsonArray()) return null;
+		for (JsonElement element : policy.getAsJsonArray("candidates")) {
+			if (!element.isJsonObject()) continue;
+			JsonObject candidate = element.getAsJsonObject();
+			if (!sourceId.equals(string(candidate, "source_id", ""))
+					|| !bool(candidate, "loaded", false)
+					|| bool(candidate, "enrichment", false)) continue;
+			ResourceLocation id = resource(string(candidate, "registry_id", ""));
+			Block block = id == null ? null : ForgeRegistries.BLOCKS.getValue(id);
+			if (block == null || block == Blocks.AIR) return null;
+			BlockState state = block.getDefaultState();
+			return new BakedOutputBundle(state, state, -1,
+					new BakedOutput[] { new BakedOutput(state, 1.0D,
+							Integer.MIN_VALUE, Integer.MAX_VALUE) });
+		}
+		return null;
+	}
+
 	private static void reportBakeProblem(String message, Object... arguments) {
-		// Loading invokes provisional bakes before the server's registries and
-		// data-pack tags are authoritative. Keep diagnostics available at debug
-		// level then, but warn once the server-thread bake can make a real
-		// validity decision.
-		if (WorldGeologyProfileManager.activeServer() == null) {
+		// Registries and data-pack tags are incomplete during startup's provisional bakes.
+		// Log at debug level until the server-thread bake can tell whether a rule is valid.
+		if (WorldGeologyProfileManager.activeServer() == null
+				|| WorldGeologyProfileManager.worldTagsPending()) {
 			LOGGER.debug(message, arguments);
 		} else {
 			LOGGER.warn(message, arguments);
@@ -378,10 +490,19 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		return root.has(key) && root.get(key).isJsonObject() ? root.getAsJsonObject(key) : new JsonObject();
 	}
 
-	private static BakedOre bakeOre(BlockState output, BlockState deepOutput, int deepOutputMaxY,
+	private static BakedOre bakeOre(ResourceLocation ruleId, ResourceLocation material,
+			ResourceLocation domain, BlockState output, BlockState deepOutput, int deepOutputMaxY,
 			BakedOutput[] outputs,
 			JsonObject json, BakedGeomeConfig config, Map<ResourceLocation, Set<Block>> resolvedTags,
-			boolean retrogen) {
+			boolean retrogen, BakedOre previous) {
+		// Re-reading optional tags can expand a working host set and shift later vein positions.
+		// Only rules that depend entirely on tags need the post-load retry.
+		if (previous != null) {
+			Map<Block, Double> explicitHosts = new IdentityHashMap<>();
+			addBlocks(explicitHosts, json.get("host_blocks"));
+			if (previous.familyMask != 0 || !explicitHosts.isEmpty())
+				return previous.withMaterial(material);
+		}
 		int minY = integer(json, "min_y", 0);
 		int maxY = integer(json, "max_y", 255);
 		double frequency = decimal(json, "frequency", 0.0D);
@@ -442,7 +563,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		Set<Biome> includedDictionaryBiomes = resolveBiomeDictionary(json, "biome_dictionary");
 		Set<Biome> excludedDictionaryBiomes = resolveBiomeDictionary(json,
 				"excluded_biome_dictionary");
-		return new BakedOre(output, deepOutput, deepOutputMaxY, outputs,
+		return new BakedOre(ruleId, material, domain,
+				OreSourcePolicies.placementChannel(json), output, deepOutput, deepOutputMaxY, outputs,
 				minY, maxY, Math.min(64.0D, frequency), minQuantity, maxQuantity,
 				pattern, heightDistribution, discardChanceOnAirExposure,
 				spread, verticalSpread, nodeSize,
@@ -614,6 +736,10 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class BakedOre {
+		final ResourceLocation ruleId;
+		final ResourceLocation material;
+		final ResourceLocation policyDomain;
+		final ResourceLocation channel;
 		final BlockState output;
 		final BlockState deepOutput;
 		final int deepOutputMaxY;
@@ -637,8 +763,12 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		final Set<Biome> includedDictionaryBiomes;
 		final Set<Biome> excludedDictionaryBiomes;
 		final boolean retrogen;
+		final BakedSource[] arbitrationSources;
+		final long sourceSalt;
 
-		BakedOre(BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
+		BakedOre(ResourceLocation ruleId, ResourceLocation material,
+				ResourceLocation policyDomain, ResourceLocation channel,
+				BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
 				int minY, int maxY, double frequency, int minQuantity, int maxQuantity,
 				CompiledOrePattern pattern, OreHeightDistribution heightDistribution,
 				double discardChanceOnAirExposure,
@@ -647,6 +777,28 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 				Set<ResourceLocation> includedBiomeIds, Set<ResourceLocation> excludedBiomeIds,
 				Set<Biome> includedDictionaryBiomes, Set<Biome> excludedDictionaryBiomes,
 				boolean retrogen) {
+			this(ruleId, material, policyDomain, channel, output, deepOutput, deepOutputMaxY, outputs,
+					minY, maxY, frequency, minQuantity, maxQuantity, pattern, heightDistribution,
+						discardChanceOnAirExposure, spread, verticalSpread, nodeSize, hostBlocks,
+						familyMask, geomeWeights, includedBiomeIds, excludedBiomeIds,
+						includedDictionaryBiomes, excludedDictionaryBiomes, retrogen, new BakedSource[0]);
+		}
+
+		private BakedOre(ResourceLocation ruleId, ResourceLocation material,
+				ResourceLocation policyDomain, ResourceLocation channel,
+				BlockState output, BlockState deepOutput, int deepOutputMaxY, BakedOutput[] outputs,
+				int minY, int maxY, double frequency, int minQuantity, int maxQuantity,
+				CompiledOrePattern pattern, OreHeightDistribution heightDistribution,
+				double discardChanceOnAirExposure,
+				int spread, int verticalSpread, int nodeSize,
+				Map<Block, Double> hostBlocks, int familyMask, double[] geomeWeights,
+				Set<ResourceLocation> includedBiomeIds, Set<ResourceLocation> excludedBiomeIds,
+				Set<Biome> includedDictionaryBiomes, Set<Biome> excludedDictionaryBiomes,
+				boolean retrogen, BakedSource[] arbitrationSources) {
+			this.ruleId = ruleId;
+			this.material = material;
+			this.policyDomain = policyDomain;
+			this.channel = channel;
 			this.output = output;
 			this.deepOutput = deepOutput;
 			this.deepOutputMaxY = deepOutputMaxY;
@@ -670,6 +822,41 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			this.includedDictionaryBiomes = includedDictionaryBiomes;
 			this.excludedDictionaryBiomes = excludedDictionaryBiomes;
 			this.retrogen = retrogen;
+			this.arbitrationSources = arbitrationSources;
+			this.sourceSalt = material == null ? 0L
+					: ((long) material.hashCode() << 32) ^ channel.hashCode();
+		}
+
+		BakedOre withSources(List<BakedSource> sources) {
+			return new BakedOre(ruleId, material, policyDomain, channel,
+					output, deepOutput, deepOutputMaxY, outputs, minY, maxY, frequency,
+					minQuantity, maxQuantity, pattern, heightDistribution, discardChanceOnAirExposure,
+					spread, verticalSpread, nodeSize, hostBlocks, familyMask, geomeWeights,
+					includedBiomeIds, excludedBiomeIds, includedDictionaryBiomes,
+					excludedDictionaryBiomes, retrogen,
+					sources.toArray(new BakedSource[sources.size()]));
+		}
+
+		BakedOre withMaterial(ResourceLocation nextMaterial) {
+			return new BakedOre(ruleId, nextMaterial, policyDomain, channel,
+					output, deepOutput, deepOutputMaxY, outputs, minY, maxY, frequency,
+					minQuantity, maxQuantity, pattern, heightDistribution, discardChanceOnAirExposure,
+					spread, verticalSpread, nodeSize, hostBlocks, familyMask, geomeWeights,
+					includedBiomeIds, excludedBiomeIds, includedDictionaryBiomes,
+					excludedDictionaryBiomes, retrogen);
+		}
+
+		BakedOutputBundle outputSource(long worldSeed, long chunkIdentity, int attempt) {
+			if (arbitrationSources.length == 0) return null;
+			double total = 0.0D;
+			for (BakedSource source : arbitrationSources) total += source.weight;
+			long sample = mix(worldSeed ^ sourceSalt, chunkIdentity, attempt);
+			double choice = (sample >>> 11) * 0x1.0p-53 * total;
+			for (BakedSource source : arbitrationSources) {
+				choice -= source.weight;
+				if (choice < 0.0D) return source.bundle;
+			}
+			return arbitrationSources[arbitrationSources.length - 1].bundle;
 		}
 
 		BlockState outputAt(int y, Random random) {
@@ -715,6 +902,45 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		BakedOreRule(Block output, boolean suppressVanilla) {
 			this.output = output;
 			this.suppressVanilla = suppressVanilla;
+		}
+	}
+
+	private static final class BakedSource {
+		final BakedOutputBundle bundle;
+		final double weight;
+
+		BakedSource(BakedOutputBundle bundle, double weight) {
+			this.bundle = bundle;
+			this.weight = weight;
+		}
+	}
+
+	private static final class BakedOutputBundle {
+		final BlockState output;
+		final BlockState deepOutput;
+		final int deepOutputMaxY;
+		final BakedOutput[] outputs;
+
+		BakedOutputBundle(BlockState output, BlockState deepOutput, int deepOutputMaxY,
+				BakedOutput[] outputs) {
+			this.output = output;
+			this.deepOutput = deepOutput;
+			this.deepOutputMaxY = deepOutputMaxY;
+			this.outputs = outputs;
+		}
+
+		BlockState outputAt(int y, Random random) {
+			if (y <= deepOutputMaxY) return deepOutput;
+			double total = 0.0D;
+			for (BakedOutput candidate : outputs) if (candidate.acceptsY(y)) total += candidate.weight;
+			if (total <= 0.0D) return output;
+			double choice = random.nextDouble() * total;
+			for (BakedOutput candidate : outputs) {
+				if (!candidate.acceptsY(y)) continue;
+				choice -= candidate.weight;
+				if (choice <= 0.0D) return candidate.state;
+			}
+			return output;
 		}
 	}
 
@@ -768,13 +994,24 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		}
 	}
 
-	private static final class PatternContext implements OrePlacementContext {
+	private static final class PatternContext implements OreGenerationContext {
 		private final BlockPos.MutableBlockPos cursor;
 		private final BlockPos.MutableBlockPos airCursor = new BlockPos.MutableBlockPos();
 		private IWorld world;
 		private IChunk chunk;
 		private Random random;
 		private BakedOre ore;
+		private BakedOutputBundle selectedOutput;
+		private BakedOutputBundle identifiedOutput;
+		private long identifiedOutputIdentity;
+		private boolean hasIdentifiedOutput;
+		private ResourceLocation dimension;
+		private long worldSeed;
+		private int chunkX;
+		private int chunkZ;
+		private net.minecraft.server.MinecraftServer samplerServer;
+		private ResourceLocation samplerDimension;
+		private Optional<GeologySampler> sampler = Optional.empty();
 		private int geome;
 		private int originX;
 		private int originY;
@@ -788,11 +1025,20 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		}
 
 		void initialize(IWorld world, IChunk chunk, Random random, BakedOre ore, int geome,
+				ResourceLocation dimension, long worldSeed,
+				BakedOutputBundle selectedOutput,
 				int originX, int originY, int originZ, int minY, int maxY, int quantity) {
 			this.world = world;
 			this.chunk = chunk;
 			this.random = random;
 			this.ore = ore;
+			this.selectedOutput = selectedOutput;
+			this.identifiedOutput = null;
+			this.hasIdentifiedOutput = false;
+			this.dimension = dimension;
+			this.worldSeed = worldSeed;
+			this.chunkX = chunk.getPos().x;
+			this.chunkZ = chunk.getPos().z;
 			this.geome = geome;
 			this.originX = originX;
 			this.originY = originY;
@@ -812,6 +1058,27 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		@Override public int spread() { return ore.spread; }
 		@Override public int verticalSpread() { return ore.verticalSpread; }
 		@Override public int nodeSize() { return ore.nodeSize; }
+		@Override public long worldSeed() { return worldSeed; }
+		@Override public ResourceLocation dimension() { return dimension; }
+		@Override public int chunkX() { return chunkX; }
+		@Override public int chunkZ() { return chunkZ; }
+		@Override public Optional<GeologySampler> geologySampler() {
+			net.minecraft.server.MinecraftServer server = WorldGeologyProfileManager.activeServer();
+			if (server != samplerServer || !dimension.equals(samplerDimension)) {
+				samplerServer = server;
+				samplerDimension = dimension;
+				sampler = Optional.empty();
+				if (server != null) {
+					for (ServerWorld level : server.forgeGetWorldMap().values()) {
+						if (dimension.equals(WorldIds.dimension(level))) {
+							sampler = OreSpawnApi.createSampler(level);
+							break;
+						}
+					}
+				}
+			}
+			return sampler;
+		}
 
 		@Override
 		public boolean inside(int x, int y, int z) {
@@ -834,6 +1101,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 
 		@Override
 		public boolean tryPlace(int x, int y, int z) {
+			// The ordinary pattern path runs for every candidate block in a vein.
 			if (!inside(x, y, z)) return false;
 			cursor.setPos(x, y, z);
 			BlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
@@ -843,7 +1111,36 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 					&& isAdjacentToAir(x, y, z)) {
 				return false;
 			}
-			BlockState output = ore.outputAt(y, random);
+			BlockState output = selectedOutput == null
+					? ore.outputAt(y, random) : selectedOutput.outputAt(y, random);
+			if (world == null) chunk.setBlockState(cursor, output, false);
+			else world.setBlockState(cursor, output, 2);
+			return true;
+		}
+
+		@Override
+		public boolean tryPlace(int x, int y, int z, long outputIdentity) {
+			if (!hasIdentifiedOutput || identifiedOutputIdentity != outputIdentity) {
+				identifiedOutputIdentity = outputIdentity;
+				identifiedOutput = ore.outputSource(worldSeed, outputIdentity, 0);
+				hasIdentifiedOutput = true;
+			}
+			return tryPlaceWithOutput(x, y, z, identifiedOutput);
+		}
+
+		private boolean tryPlaceWithOutput(int x, int y, int z,
+				BakedOutputBundle outputSource) {
+			if (!inside(x, y, z)) return false;
+			cursor.setPos(x, y, z);
+			BlockState existing = world == null ? chunk.getBlockState(cursor) : world.getBlockState(cursor);
+			if (!ore.accepts(existing, random, geomeConfig)) return false;
+			if (ore.discardChanceOnAirExposure > 0.0D
+					&& random.nextDouble() < ore.discardChanceOnAirExposure
+					&& isAdjacentToAir(x, y, z)) {
+				return false;
+			}
+			BlockState output = outputSource == null
+					? ore.outputAt(y, random) : outputSource.outputAt(y, random);
 			if (world == null) chunk.setBlockState(cursor, output, false);
 			else world.setBlockState(cursor, output, 2);
 			return true;

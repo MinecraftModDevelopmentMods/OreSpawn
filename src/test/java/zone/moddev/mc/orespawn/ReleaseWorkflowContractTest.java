@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -25,12 +24,14 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
-		assertTrue(build.contains("expectedMavenCoordinate"));
+		String root = readBuildFile("build.gradle");
+		String publishing = readBuildFile("gradle/release/publishing.gradle");
+		String eclipse = readBuildFile("gradle/ide/eclipse.gradle");
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')")
+				|| eclipse.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		assertTrue(root.contains("expectedMavenCoordinate"));
 	}
 
 	@Test
@@ -61,6 +62,10 @@ class ReleaseWorkflowContractTest {
 	private static String readWorkflow(String name) throws Exception {
 		return new String(Files.readAllBytes(Paths.get(".github", "workflows", name)),
 				StandardCharsets.UTF_8);
+	}
+
+	private static String readBuildFile(String name) throws Exception {
+		return new String(Files.readAllBytes(Paths.get(name)), StandardCharsets.UTF_8);
 	}
 
 	private static void assertPinnedToolchains(String workflow, int expectedJobs, int expectedPathUses) {

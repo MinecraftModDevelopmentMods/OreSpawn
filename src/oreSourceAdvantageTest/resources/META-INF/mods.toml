@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[28,)"
+license="LGPL-2.1"
+
+[[mods]]
+modId="electricadvantage"
+version="1"
+displayName="Future Electric Advantage Test"
+description='''Test-only OreSpawn provider fixture.'''
+
+[[dependencies.electricadvantage]]
+modId="orespawn"
+mandatory=true
+versionRange="[4.1.0,5.0.0)"
+ordering="AFTER"
+side="BOTH"

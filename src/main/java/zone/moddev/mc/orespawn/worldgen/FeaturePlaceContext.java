@@ -8,7 +8,7 @@ import net.minecraft.world.gen.ChunkGenerator;
 import net.minecraft.world.gen.GenerationSettings;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 
-/** Target-local adapter for the context object introduced by Minecraft 1.17. */
+/** Collects the world, generator, random source and origin for one feature placement. */
 final class FeaturePlaceContext<FC extends IFeatureConfig> {
 	private final IWorld level;
 	private final ChunkGenerator<? extends GenerationSettings> chunkGenerator;

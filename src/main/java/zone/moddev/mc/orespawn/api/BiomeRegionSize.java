@@ -2,7 +2,7 @@ package zone.moddev.mc.orespawn.api;
 
 import java.util.Locale;
 
-/** Stable presets for broad biome-overlay regions, expressed in blocks. */
+/** Named sizes for biome-overlay regions, measured in blocks. */
 public enum BiomeRegionSize {
 	TINY(128),
 	SMALL(256),

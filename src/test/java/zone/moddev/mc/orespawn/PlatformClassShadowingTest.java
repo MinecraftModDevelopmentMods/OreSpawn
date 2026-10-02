@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
-/** Prevents target adapters from replacing classes supplied by Minecraft or Forge. */
+/** Prevents compatibility helpers from shadowing Minecraft or Forge classes. */
 class PlatformClassShadowingTest {
 	private static final Path MAIN_JAVA = Paths.get("src", "main", "java");
 

@@ -13,7 +13,8 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	private TextFieldWidget deepY;
 
 	DimensionMaterialsScreen(Screen parent, GeologyEditorSession session, String dimension) {
-		super(new TranslationTextComponent("screen.orespawn.dimension_materials"));
+		super(new TranslationTextComponent("screen.orespawn.dimension_materials",
+				BiomeWorldMaterialsScreen.dimensionName(dimension)));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -73,8 +74,8 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	}
 
 	private void save() {
-		// Minecraft 1.14.4 exposes one generator fluid. Retain stored deep-aquifer
-		// fields unchanged so the same provider/profile can still be used by later ports.
+		// Minecraft 1.14.4 exposes one generator fluid.
+		// Leave deep-aquifer fields untouched so newer versions can still use this profile.
 	}
 
 	private void rebuildWidgets() { buttons.clear(); children.clear(); init(); }
@@ -83,8 +84,12 @@ final class DimensionMaterialsScreen extends OreSpawnScreen {
 	@Override
 	public void render(int mouseX, int mouseY, float partialTick) {
 		renderBackground();
-		drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(font, new StringTextComponent(dimension), width / 2, 30, 0xCCCCCC);
+		drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+		drawCenteredString(font, new StringTextComponent(dimension), width / 2, 23, 0xAAAAAA);
+		drawCenteredString(font, new StringTextComponent(OreSpawnScreenLayout.fit(font,
+				new TranslationTextComponent("label.orespawn.dimension_materials.scope",
+						BiomeWorldMaterialsScreen.dimensionName(dimension)), width - 16)),
+				width / 2, 38, 0xFFFF55);
 		super.render(mouseX, mouseY, partialTick);
 		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}

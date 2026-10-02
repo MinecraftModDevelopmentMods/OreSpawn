@@ -22,7 +22,7 @@ import net.minecraft.world.gen.feature.MultipleWithChanceRandomFeatureConfig;
 import net.minecraft.world.gen.feature.SingleRandomFeature;
 import net.minecraft.world.gen.feature.TwoFeatureChoiceConfig;
 
-/** Rewrites only vanilla spring leaves to accept baked provider rocks. */
+/** Lets vanilla springs generate inside provider rocks without changing other features. */
 public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConfig> {
 	public static final VanillaSpringCompatibility FEATURE = new VanillaSpringCompatibility();
 	private static volatile Set<Block> providerRocks = Collections.emptySet();
