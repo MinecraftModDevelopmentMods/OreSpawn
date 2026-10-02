@@ -1,20 +1,17 @@
 package zone.moddev.mc.orespawn.worldgen.math;
 
 /**
- * Perlin Noise Octave
+ * One octave of interpolated Perlin noise.
  *
  * @author Cyanobacterium
- *
  */
 public class NoiseLayer2D {
 
 	private final long seed;
 
-	/** from java.util.Random implementation */
+	// Use the same linear congruential constants as java.util.Random.
 	private static final long RAND_MULTIPLIER = 0x5DEECE66DL;
-	/** from java.util.Random implementation */
 	private static final long RAND_ADDEND = 0xBL;
-	/** from java.util.Random implementation */
 	private static final long RAND_MASK = (1L << 48) - 1;
 
 	private final float multiplier;
@@ -22,8 +19,8 @@ public class NoiseLayer2D {
 	private final float magnitude;
 
 	private static final int PRECISION_MASK = 0x0FFFFF;
-	private static final float INT_CONVERSION_MULTIPLIER = 2.0f / (float) PRECISION_MASK; // 2.0 because we will be subtracting 1
-																				// to make it range from -1 to 1
+	// Scale to [0, 2] so subtracting 1 later gives noise in [-1, 1].
+	private static final float INT_CONVERSION_MULTIPLIER = 2.0f / (float) PRECISION_MASK;
 
 	public NoiseLayer2D(long seed, float size, float magnitude) {
 		this.seed = seed;

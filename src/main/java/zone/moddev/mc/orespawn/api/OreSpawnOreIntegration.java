@@ -8,8 +8,7 @@ import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 /**
  * Compatibility facade for the initial ore-provider status API.
  *
- * @deprecated Use {@link OreSpawnApi}. This class remains available so
- * existing provider mods do not need an immediate source change.
+ * @deprecated Use {@link OreSpawnApi}. Kept for existing provider mods.
  */
 @Deprecated
 public final class OreSpawnOreIntegration {
@@ -40,7 +39,7 @@ public final class OreSpawnOreIntegration {
 		WorldgenIntegrationManager.markFeatureReady();
 	}
 
-	/** Merge all provider contributions while retaining the historical method name. */
+	/** Merges provider definitions. Kept for mods using the original integration API. */
 	public static boolean mergeProviderOres(JsonObject target) {
 		return WorldgenIntegrationManager.mergeProviderDefinitions(target);
 	}

@@ -13,7 +13,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
-/** Registry-backed multi-select list for similar-biome references. */
+/** Selects the biomes that a placement rule can match. */
 final class BiomeReferenceScreen extends OreSpawnScreen {
 	private final GuiScreen parent;
 	private final GeologyEditorSession session;

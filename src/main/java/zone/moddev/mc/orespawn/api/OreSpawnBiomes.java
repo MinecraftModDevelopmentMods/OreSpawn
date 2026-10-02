@@ -18,20 +18,18 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 
 /**
- * Small registration helpers for provider mods which want to define biomes
- * without taking a compile-time dependency on a separate biome framework.
+ * Registers provider biomes without requiring a separate biome framework.
  *
- * <p>Forge 25 predates {@code DeferredRegister}. Provider mods declare one
- * {@link BiomeRegistrar} during mod construction and use the same deferred
- * declaration pattern exposed by later OreSpawn ports.</p>
+ * <p>Forge 25 has no {@code DeferredRegister}. Create a {@link BiomeRegistrar} during mod construction,
+ * then declare the biomes to register when Forge fires its biome registry event.</p>
  */
 public final class OreSpawnBiomes {
 	private OreSpawnBiomes() {
 	}
 
 	/**
-	 * Creates a registrar for a provider mod and attaches it to that mod's event
-	 * bus. This method must be called during normal mod construction.
+	 * Creates a registrar and attaches it to the provider mod's event bus.
+	 * Call during mod construction.
 	 */
 	public static BiomeRegistrar registrar(String modId) {
 		return new BiomeRegistrar(modId, true);
@@ -42,8 +40,7 @@ public final class OreSpawnBiomes {
 	}
 
 	/**
-	 * Registers a biome copied from an existing biome, then applies provider
-	 * changes to the copied builder.
+	 * Copies an existing biome into a builder, applies the provider's changes and registers the result.
 	 */
 	public static BiomeReference copyAndRegister(BiomeRegistrar registrar,
 			String name, Supplier<? extends Biome> source, Consumer<Biome.BiomeBuilder> edit) {
@@ -71,8 +68,8 @@ public final class OreSpawnBiomes {
 	}
 
 	/**
-	 * Registers a biome from a fresh builder. The provider must set all required
-	 * climate and surface fields before the builder is built.
+	 * Registers a biome from a fresh builder.
+	 * Set all required climate and surface fields before building the biome.
 	 */
 	public static BiomeReference blankAndRegister(BiomeRegistrar registrar,
 			String name, Consumer<Biome.BiomeBuilder> configure) {
@@ -86,8 +83,8 @@ public final class OreSpawnBiomes {
 	}
 
 	/**
-	 * Deferred biome registrar for Forge 25. Registration order follows declaration
-	 * order and declarations are rejected after the registry event begins.
+	 * Registers biomes in declaration order when Forge fires its registry event.
+	 * Biomes cannot be added after that event begins.
 	 */
 	public static final class BiomeRegistrar {
 		private final String modId;
@@ -142,7 +139,7 @@ public final class OreSpawnBiomes {
 		}
 	}
 
-	/** Supplier-compatible biome handle shared with later OreSpawn APIs. */
+	/** A biome reference that can be resolved through {@link Supplier} after registration. */
 	public static final class BiomeReference implements Supplier<Biome> {
 		private final ResourceLocation id;
 
@@ -169,7 +166,7 @@ public final class OreSpawnBiomes {
 		}
 	}
 
-	/** Concrete Forge 25 biome used behind the public helper contract. */
+	/** Biome created by these registration helpers. */
 	private static final class ProviderBiome extends Biome {
 		ProviderBiome(Biome.BiomeBuilder builder) {
 			super(builder);

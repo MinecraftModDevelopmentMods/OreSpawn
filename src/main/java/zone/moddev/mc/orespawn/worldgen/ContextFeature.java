@@ -8,7 +8,7 @@ import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.IFeatureConfig;
 
-/** Preserves the later context-shaped feature implementation on Forge 25. */
+/** Adapts Minecraft 1.13's feature arguments to OreSpawn's placement context. */
 abstract class ContextFeature<FC extends IFeatureConfig> extends Feature<FC> {
 	ContextFeature() {
 		super();

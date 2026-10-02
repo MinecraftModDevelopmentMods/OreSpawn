@@ -1,11 +1,18 @@
-Version 4.0.16.113021
+Version 4.1.0.113021
 
-* Adopt the shared 4.0.16 release identity. Forge 1.13 has neither
-  three-dimensional biome-cell attribution nor a server-side GameTest harness,
-  so the 4.0.15 attribution and 4.0.16 GameTest lifecycle repairs are not
-  applicable on this target.
-* Ordinary dedicated benchmark servers continue to stop automatically when
-  requested.
+* Fix managed Nether quartz hosts on Forge 1.13.2, including saved profiles
+  that refer to the absent forge:netherrack tag. Existing chunks stay untouched.
+  New Nether ore and fluid-deposit rules also use the installed netherrack block.
+* Add a directory for loaded provider mods and optional add-on settings screens.
+* Group OreSpawn-managed ores by exact block tags. Balanced, Single, Custom,
+  and Keep Original policies keep one placement budget per channel without
+  changing existing worlds' saved behaviour.
+* Add a biome directory with exact new-terrain replacement, palette settings,
+  and dimension-wide materials controls. Existing chunks are never rewritten.
+* Preserve missing-mod settings and dormant imported Ore Dictionary aliases.
+  Provider, global, and world schemas are now 5, 8, and 7; API major remains 1.
+* Keep the 4.0.16 Forge 1.13-specific behaviour: this target has neither
+  three-dimensional biome-cell attribution nor a server-side GameTest harness.
 
 Version 4.0.14.113021
 

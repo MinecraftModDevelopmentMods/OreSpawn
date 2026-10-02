@@ -7,7 +7,7 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.registries.ForgeRegistries;
 
-/** Static-registry identity bridge for the pre-RegistryKey 1.13 runtime. */
+/** Looks up dimension and biome IDs in Minecraft 1.13's registries. */
 public final class WorldIds {
 	static final ResourceLocation OVERWORLD = id("overworld");
 	static final ResourceLocation NETHER = id("the_nether");

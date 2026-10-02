@@ -43,8 +43,7 @@ class GeomeTransitionTest {
 
 	@Test
 	void closeGeomeContestDoesNotMoveEveryStableLayerAtOneColumnBoundary() {
-		// These are the leading scores measured in New World 5 at z=-261. The
-		// fallback configuration changed winner between x=225 and x=226.
+		// Scores from New World 5 at z=-261, where the fallback changed winner between x=225 and x=226.
 		double[] leftScores = { 2.618658D, 2.618126D };
 		double[] rightScores = { 2.619946D, 2.620774D };
 		int changedLayers = 0;

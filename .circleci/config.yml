@@ -1,4 +1,4 @@
-# Java Gradle CircleCI 2.0 Configuration file.
+# Legacy CircleCI build configuration.
 version: 2
 jobs:
   build:
@@ -14,11 +14,11 @@ jobs:
     steps:
       - checkout
 
-      # Download and cache dependencies
+      # Reuse cached dependencies when available.
       - restore_cache:
           keys:
            - v1-dependencies-{{ checksum "build.gradle" }}
-           # fallback to using the latest cache if no exact match is found
+           # Fall back to the latest cache if this build has no exact match.
            - v1-dependencies-
 
       - run:
@@ -54,5 +54,5 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
-      # run tests!
+      # Run the tests.
       - run: ./gradlew test

@@ -9,7 +9,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
-/** Registry-backed picker; text narrows installed blocks but never creates an ID. */
+/** Searches installed blocks; typing an ID cannot add a block that is not installed. */
 final class BlockPickerScreen extends OreSpawnScreen {
 	private final GuiScreen parent;
 	private final GeologyEditorSession session;

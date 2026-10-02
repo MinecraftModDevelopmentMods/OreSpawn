@@ -9,8 +9,18 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 
-/** Shared target-native helpers for the Minecraft 1.13 screen contract. */
+/** Shared drawing and widget helpers for OreSpawn's Minecraft 1.13 screens. */
 abstract class OreSpawnScreen extends GuiScreen {
+	@Override
+	public void render(int mouseX, int mouseY, float partialTick) {
+		super.render(mouseX, mouseY, partialTick);
+		for (GuiButton button : buttons) {
+			if (button instanceof CompactScrollList) {
+				((CompactScrollList) button).renderTooltip(mouseX, mouseY);
+			}
+		}
+	}
+
 	protected final ITextComponent title;
 	protected final Minecraft minecraft = Minecraft.getInstance();
 	protected FontRenderer font;
@@ -25,7 +35,7 @@ abstract class OreSpawnScreen extends GuiScreen {
 		init();
 	}
 
-	/** Later-screen-style initialization retained internally for the editors. */
+	/** Initializes editor widgets after Minecraft has supplied the screen's font and size. */
 	protected void init() {
 	}
 
@@ -60,7 +70,11 @@ abstract class OreSpawnScreen extends GuiScreen {
 		drawHoveringText(text, mouseX, mouseY);
 	}
 
-	/** Package-private view used by the separately packaged client qualification fixture. */
+	final void renderStringTooltip(List<String> lines, int mouseX, int mouseY) {
+		drawHoveringText(lines, mouseX, mouseY);
+	}
+
+	/** Gives the client integration test access to buttons without adding a public API. */
 	final List<GuiButton> qualificationButtons() {
 		return buttons;
 	}

@@ -1,6 +1,6 @@
 package zone.moddev.mc.orespawn.api;
 
-/** Geological families understood by OreSpawn's declarative engines. */
+/** Rock families used by OreSpawn's geology settings. */
 public enum GeologyFamily {
 	SEDIMENTARY("sedimentary"),
 	METAMORPHIC("metamorphic"),

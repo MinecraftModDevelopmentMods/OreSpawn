@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn.worldgen;
 
 import zone.moddev.mc.orespawn.util.JsonCopies;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -212,7 +213,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 					IBlockState existing = chunk.getBlockState(cursor);
 					if (deposit.accepts(existing, geome, config)) {
 						cursor.setPos(x, y, z);
-						// Output was validated while baking; keep a final runtime guard for registry oddities.
+						// Check again before writing: a deposit must never place air or a non-fluid block.
 						if (deposit.output.getBlock() != Blocks.AIR && !deposit.output.getFluidState().isEmpty()) {
 							chunk.setBlockState(cursor, deposit.output, false);
 							changed = true;
@@ -327,7 +328,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!bool(deposit, "enabled", true)) continue;
 			Block output = block(string(deposit, "block", ""));
-			if (output == null || output == Blocks.AIR || output.getDefaultState().getFluidState().isEmpty()
+			if (!FluidBlocks.isFluidBlock(output)
 					|| !deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) {
 				LOGGER.warn("Ignoring invalid fluid deposit '{}'", depositEntry.getKey());
 				continue;

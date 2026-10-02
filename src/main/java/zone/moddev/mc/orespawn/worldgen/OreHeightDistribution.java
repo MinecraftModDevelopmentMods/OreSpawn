@@ -44,8 +44,7 @@ public enum OreHeightDistribution {
 	}
 
 	private static int bottomBand(int range) {
-		// Vanilla's low redstone placement mixes a full-range pass with a
-		// triangular pass concentrated in the bottom half.
+		// Vanilla's low redstone mixes a full-range pass with a triangular pass in the bottom half.
 		return Math.max(1, (range + 1) / 2);
 	}
 }
