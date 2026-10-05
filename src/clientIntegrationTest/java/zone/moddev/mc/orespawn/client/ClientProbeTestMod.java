@@ -139,8 +139,10 @@ public final class ClientProbeTestMod {
 					break;
 				case 4:
 					if (minecraft.currentScreen instanceof OreSpawnScreen && editorFrames >= 2) {
-						validateCaptions((OreSpawnScreen) minecraft.currentScreen);
-						((OreSpawnScreen) minecraft.currentScreen).onClose();
+						OreSpawnScreen editor = (OreSpawnScreen) minecraft.currentScreen;
+						validateCaptions(editor);
+						if (editor instanceof GeologyMaterialsScreen) validateOreSourcesRoute(minecraft, editor);
+						editor.onClose();
 						nextState(3);
 					}
 					break;
@@ -202,14 +204,56 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(OreSpawnScreen screen) {
 		for (Widget widget : screen.qualificationButtons()) {
+			if (widget instanceof CogButton || widget instanceof CompactScrollList) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(widget.getMessage());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.getMessage());
+				throw new IllegalStateException("Invalid client caption on "
+						+ screen.getClass().getSimpleName() + '/' + widget.getClass().getSimpleName()
+						+ ": " + widget.getMessage());
 			}
 		}
+	}
+
+	private static void validateOreSourcesRoute(Minecraft minecraft, OreSpawnScreen materials) {
+		Button ores = buttonWithCaption(materials,
+				net.minecraft.client.resources.I18n.format("tab.orespawn.ores"));
+		if (ores == null) throw new IllegalStateException("Missing ORES tab");
+		ores.onPress();
+		Button sources = buttonWithCaption(materials,
+				net.minecraft.client.resources.I18n.format("button.orespawn.ore_sources"));
+		if (sources == null) {
+			throw new IllegalStateException("Missing Ore Sources route from ORES");
+		}
+		sources.onPress();
+		if (!(minecraft.currentScreen instanceof OreSourceListScreen)) {
+			throw new IllegalStateException("Ore Sources route did not open");
+		}
+		OreSourceListScreen opened = (OreSourceListScreen) minecraft.currentScreen;
+		Button addGroup = buttonWithCaption(opened, "+");
+		if (addGroup == null) throw new IllegalStateException("Missing Add Group control");
+		addGroup.onPress();
+		int lists = 0;
+		for (Widget widget : opened.qualificationButtons()) {
+			if (widget instanceof CompactScrollList) lists++;
+		}
+		if (lists != 2) throw new IllegalStateException("Ore Sources must show both compact lists: " + lists);
+		opened.onClose();
+		if (minecraft.currentScreen != materials) {
+			throw new IllegalStateException("Ore Sources did not return to ORES");
+		}
+	}
+
+	private static Button buttonWithCaption(OreSpawnScreen screen, String caption) {
+		for (Widget widget : screen.qualificationButtons()) {
+			if (widget instanceof Button && caption.equals(
+					TextFormatting.getTextWithoutFormattingCodes(widget.getMessage()))) {
+				return (Button) widget;
+			}
+		}
+		return null;
 	}
 
 	private void validateLongEditorRoundTrip(Minecraft minecraft, Screen parent) {

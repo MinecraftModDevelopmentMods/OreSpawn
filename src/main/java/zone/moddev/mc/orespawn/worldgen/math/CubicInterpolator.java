@@ -64,17 +64,12 @@ public abstract class CubicInterpolator {
 	}
 
 	/**
-	 * Returns the bi-cubic interpolation of the (x,y) coordinate inide
-	 * the provided grid of control points. (x,y) is assumed to be in the
-	 * center square of the unit grid.
+	 * Interpolates within the center square of a 4-by-4 grid of samples.
 	 *
-	 * @param x
-	 *            x coordinate between local16[1][y] and local16[2][y]
-	 * @param y
-	 *            y coordinate between local16[x][1] and local16[x][2]
-	 * @param local16
-	 *            Array [x][y] of the 4x4 grid around the coordinate
-	 * @return Returns the bi-cubic interpolation of the (x,y) coordinate.
+	 * @param x x coordinate between the two middle columns
+	 * @param y y coordinate between the two middle rows
+	 * @param local16 surrounding samples, indexed by x and y
+	 * @return the bicubic interpolated value at (x, y)
 	 */
 	public static double interpolate2d(double x, double y, double[][] local16) {
 		double[] section = new double[4];
@@ -85,18 +80,13 @@ public abstract class CubicInterpolator {
 	}
 
 	/**
-	 * Performs a tri-cubic interpolation of the (x,y,z) coordinate near
-	 * the center of the provided unit grid of surrounding control points.
+	 * Interpolates within the center cube of a 4-by-4-by-4 grid of samples.
 	 *
-	 * @param x
-	 *            x coordinate in the middle of the array space
-	 * @param y
-	 *            y coordinate in the middle of the array space
-	 * @param z
-	 *            z coordinate in the middle of the array space
-	 * @param local64
-	 *            Array [x][y][z] of the 4x4x4 grid around the coordinate
-	 * @return Returns the tri-cubic interpolation of the given coordinate.
+	 * @param x x coordinate between the two middle sample planes
+	 * @param y y coordinate between the two middle sample planes
+	 * @param z z coordinate between the two middle sample planes
+	 * @param local64 surrounding samples, indexed by x, y and z
+	 * @return the tricubic interpolated value at (x, y, z)
 	 */
 	public static double interpolate3d(double x, double y, double z, double[][][] local64) {
 		double[] section = new double[4];
@@ -162,17 +152,12 @@ public abstract class CubicInterpolator {
 	}
 
 	/**
-	 * Returns the bi-cubic interpolation of the (x,y) coordinate inside
-	 * the provided grid of control points. (x,y) is assumed to be in the
-	 * center square of the unit grid.
+	 * Interpolates within the center square of a 4-by-4 grid of samples.
 	 *
-	 * @param x
-	 *            x coordinate between local16[1][y] and local16[2][y]
-	 * @param y
-	 *            y coordinate between local16[x][1] and local16[x][2]
-	 * @param local16
-	 *            Array [x][y] of the 4x4 grid around the coordinate
-	 * @return Returns the bi-cubic interpolation of the (x,y) coordinate.
+	 * @param x x coordinate between the two middle columns
+	 * @param y y coordinate between the two middle rows
+	 * @param local16 surrounding samples, indexed by x and y
+	 * @return the bicubic interpolated value at (x, y)
 	 */
 	public static float interpolate2d(double x, double y, float[][] local16) {
 		float[] section = new float[4];
@@ -183,18 +168,13 @@ public abstract class CubicInterpolator {
 	}
 
 	/**
-	 * Performs a tri-cubic interpolation of the (x,y,z) coordinate near
-	 * the center of the provided unit grid of surrounding control points.
+	 * Interpolates within the center cube of a 4-by-4-by-4 grid of samples.
 	 *
-	 * @param x
-	 *            x coordinate in the middle of the array space
-	 * @param y
-	 *            y coordinate in the middle of the array space
-	 * @param z
-	 *            z coordinate in the middle of the array space
-	 * @param local64
-	 *            Array [x][y][z] of the 4x4x4 grid around the coordinate
-	 * @return Returns the tri-cubic interpolation of the given coordinate.
+	 * @param x x coordinate between the two middle sample planes
+	 * @param y y coordinate between the two middle sample planes
+	 * @param z z coordinate between the two middle sample planes
+	 * @param local64 surrounding samples, indexed by x, y and z
+	 * @return the tricubic interpolated value at (x, y, z)
 	 */
 	public static float interpolate3d(double x, double y, double z, float[][][] local64) {
 		float[] section = new float[4];

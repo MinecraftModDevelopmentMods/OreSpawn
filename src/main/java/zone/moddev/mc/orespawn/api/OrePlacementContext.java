@@ -19,10 +19,9 @@ public interface OrePlacementContext {
 	int nodeSize();
 
 	/**
-	 * Returns whether this attempt may inspect or replace the position. During initial
-	 * generation this includes Minecraft's already-loaded writable worldgen region, so
-	 * deposits can cross chunk borders. Retrogen deliberately limits it to the chunk
-	 * being updated.
+	 * Returns whether this attempt may inspect or replace the position.
+	 * Initial generation can use Minecraft's loaded, writable region to cross chunk borders.
+	 * Retrogen is limited to the chunk being updated.
 	 */
 	boolean inside(int x, int y, int z);
 	boolean isFluid(int x, int y, int z, Fluid fluid);

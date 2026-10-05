@@ -1,9 +1,9 @@
 package zone.moddev.mc.orespawn.api;
 
 /**
- * Immutable, pre-decoded ore pattern used during chunk generation.
- * Implementations must be thread-safe and must not allocate or access registries,
- * configuration files, tags, or logging from {@link #place(OrePlacementContext)}.
+ * An immutable ore pattern decoded before chunk generation starts.
+ * Implementations must be thread-safe. {@link #place(OrePlacementContext)} must not allocate,
+ * access registries, read configuration files or tags, or write to logs.
  */
 @FunctionalInterface
 public interface CompiledOrePattern {

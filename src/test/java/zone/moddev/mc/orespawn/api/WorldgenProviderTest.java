@@ -40,18 +40,20 @@ class WorldgenProviderTest {
 	}
 
 	@Test
-	void serializesTypedSchemaFourProvider() {
+	void serializesTypedSchemaFiveProvider() {
 		ResourceLocation overworld = id("minecraft:overworld");
 		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 4)
 				.rock(id("examplemod:slate"), GeologyFamily.METAMORPHIC, rock -> rock
 						.depth(20, 36).weight(1.25D).oreReplaceable(true))
 				.ore(id("examplemod:tin_ore"), ore -> ore
+						.material(id("orespawn:tin"))
 						.output(id("examplemod:tin_ore"), 9.0D)
 						.output(id("examplemod:rich_tin_ore"), 1.0D, -64, 24)
 						.suppressVanilla(true).retrogen(false)
 						.dimension(overworld, dimension -> dimension
 						.yRange(-16, 96).attempts(6.5D).quantity(8)
 						.pattern(OrePattern.CLUSTER)
+						.placementChannel(id("orespawn:standard"))
 						.heightDistribution(OreHeightDistribution.BOTTOM_TRIANGLE)
 						.discardChanceOnAirExposure(0.75D)
 						.hostFamily(GeologyFamily.METAMORPHIC)
@@ -61,7 +63,7 @@ class WorldgenProviderTest {
 				.build();
 
 		JsonObject json = provider.toJson();
-		assertEquals(4, json.get("schema_version").getAsInt());
+		assertEquals(5, json.get("schema_version").getAsInt());
 		assertEquals("examplemod", json.get("provider_modid").getAsString());
 		assertTrue(json.getAsJsonObject("rocks").has("examplemod:rock/examplemod/slate"));
 		assertEquals("examplemod:slate", json.getAsJsonObject("rocks")
@@ -69,6 +71,9 @@ class WorldgenProviderTest {
 		assertTrue(json.getAsJsonObject("ores").has("examplemod:ore/examplemod/tin_ore"));
 		JsonObject ore = json.getAsJsonObject("ores").getAsJsonObject("examplemod:ore/examplemod/tin_ore");
 		assertEquals(2, ore.getAsJsonArray("outputs").size());
+		assertEquals("orespawn:tin", ore.get("material").getAsString());
+		assertEquals("orespawn:standard", ore.getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:overworld").get("placement_channel").getAsString());
 		assertFalse(ore.get("retrogen").getAsBoolean());
 		assertEquals(0.75D, ore.getAsJsonObject("dimensions").getAsJsonObject("minecraft:overworld")
 				.getAsJsonArray("host_blocks").get(0).getAsJsonObject().get("weight").getAsDouble());

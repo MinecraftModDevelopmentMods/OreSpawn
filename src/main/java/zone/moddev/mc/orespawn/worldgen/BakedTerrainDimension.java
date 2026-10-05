@@ -9,7 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 
-/** Immutable setup-time resolution of one terrain replacement dimension. */
+/** Terrain replacement settings resolved once before a dimension generates chunks. */
 final class BakedTerrainDimension {
 	final ResourceLocation key;
 	private final Set<ResourceLocation> biomeIds;
