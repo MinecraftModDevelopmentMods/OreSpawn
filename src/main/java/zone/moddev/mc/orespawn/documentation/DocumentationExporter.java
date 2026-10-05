@@ -29,7 +29,6 @@ public final class DocumentationExporter {
 			"BIOMES.md",
 			"MIGRATION.md",
 			"TROUBLESHOOTING.md",
-			"AGENTS.md",
 			"VERSIONS.md",
 			"examples/examplemod-orespawn.json",
 			"examples/orespawn-global.json",

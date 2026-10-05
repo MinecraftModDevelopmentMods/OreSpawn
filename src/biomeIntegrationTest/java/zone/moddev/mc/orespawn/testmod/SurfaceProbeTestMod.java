@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import zone.moddev.mc.orespawn.api.BiomePlacementMode;
+import zone.moddev.mc.orespawn.client.BiomeEditorProbeBridge;
 import zone.moddev.mc.orespawn.api.BiomeRegionSize;
 import zone.moddev.mc.orespawn.api.BiomeReplacementScope;
 import zone.moddev.mc.orespawn.api.GeologyFamily;
@@ -140,6 +141,8 @@ public final class SurfaceProbeTestMod {
 			new ResourceLocation("minecraft", "nether"), BIOME_A, BIOME_B)));
 	private static final int MINIMUM_CHUNK = 63;
 	private static final int MAXIMUM_CHUNK = 65;
+	private static final int OVERRIDE_MIN_CHUNK = 68;
+	private static final int OVERRIDE_MAX_CHUNK = 70;
 	private static final int FLUID_PROBE_MIN_CHUNK_X = 60;
 	private static final int FLUID_PROBE_MAX_CHUNK_X = 62;
 	private static final int EXPECTED_COLUMNS = 9 * 16 * 16;
@@ -359,29 +362,133 @@ public final class SurfaceProbeTestMod {
 		if (phase.equals("fresh") && Files.exists(marker)) {
 			throw new IllegalStateException("Fresh surface probe retained a reload marker");
 		}
+		if (previous != null) {
+			// A replacement changes the live provider, so inspect the saved chunks
+			// instead of reinterpreting old terrain through the new provider.
+			for (DimensionType dimension : new DimensionType[] { OPEN, ROOFED }) {
+				String key = dimension == OPEN ? "open.saved_hash" : "roofed.saved_hash";
+				String actual = hashSavedChunks(requireLevel(event, dimension));
+				if (!actual.equals(previous.getProperty(key))) {
+					throw new IllegalStateException("Saved terrain changed after reload: " + key);
+				}
+			}
+			int[] override = verifyBiomeOverride(event.getServer(), phase);
+			if (!Integer.toString(override[0]).equals(previous.getProperty("override.biome_a"))
+					|| !Integer.toString(override[1]).equals(previous.getProperty("override.biome_b"))) {
+				throw new IllegalStateException("Replacement changed across reload");
+			}
+			previous.setProperty("reload_verified", "true");
+			writeMarker(marker, previous);
+			LOGGER.info("SURFACEPROBE PASS phase=reload saved chunks and replacement verified");
+			event.getServer().initiateShutdown(false);
+			return;
+		}
 
 		Map<String, AuditResult> results = new LinkedHashMap<>();
 		results.put("open", auditDimension(requireLevel(event, OPEN), false));
 		results.put("roofed", auditDimension(requireLevel(event, ROOFED), true));
 		Properties current = properties(overworld.getSeed(), results);
-		if (previous == null) {
-			writeMarker(marker, current);
-		} else {
-			for (String name : current.stringPropertyNames()) {
-				String expected = previous.getProperty(name);
-				String actual = current.getProperty(name);
-				if (!actual.equals(expected)) {
-					throw new IllegalStateException("Reloaded surface value changed for " + name
-							+ ": expected " + expected + " but found " + actual);
-				}
-			}
-			previous.setProperty("reload_verified", "true");
-			writeMarker(marker, previous);
-		}
+		int[] override = verifyBiomeOverride(event.getServer(), phase);
+		current.setProperty("override.biome_a", Integer.toString(override[0]));
+		current.setProperty("override.biome_b", Integer.toString(override[1]));
+		current.setProperty("open.saved_hash", hashSavedChunks(requireLevel(event, OPEN)));
+		current.setProperty("roofed.saved_hash", hashSavedChunks(requireLevel(event, ROOFED)));
+		writeMarker(marker, current);
 
 		LOGGER.info("SURFACEPROBE PASS phase={} open={} roofed={}",
 				phase, results.get("open"), results.get("roofed"));
 		event.getServer().initiateShutdown(false);
+	}
+
+	private static int[] verifyBiomeOverride(MinecraftServer server, String phase) {
+		ServerWorld end = server.getWorld(OPEN);
+		if ("fresh".equals(phase)) {
+			int[] original = countBiomes(end, MINIMUM_CHUNK, MAXIMUM_CHUNK);
+			Path profile = worldRoot(server).resolve("serverconfig").resolve("orespawn-worldgen.json");
+			JsonObject edited = BiomeEditorProbeBridge.replace(
+					WorldGeologyProfileManager.activeProfile().rootCopy(), OPEN_ID.toString(),
+					BIOME_A.toString(), BIOME_B.toString());
+			try (BufferedWriter writer = Files.newBufferedWriter(profile)) {
+				new GsonBuilder().setPrettyPrinting().create().toJson(edited, writer);
+			} catch (IOException exception) {
+				throw new IllegalStateException("Could not save the biome replacement", exception);
+			}
+			if (!WorldGeologyProfileManager.reloadActiveProfile()) {
+				throw new IllegalStateException("Could not activate the biome replacement");
+			}
+			int[] unchanged = countBiomes(end, MINIMUM_CHUNK, MAXIMUM_CHUNK);
+			if (unchanged[0] != original[0] || unchanged[1] != original[1]) {
+				throw new IllegalStateException("Biome replacement rewrote existing terrain");
+			}
+		}
+		int[] generated = countBiomes(end, OVERRIDE_MIN_CHUNK, OVERRIDE_MAX_CHUNK);
+		if (generated[0] != 0 || generated[1] != EXPECTED_COLUMNS) {
+			throw new IllegalStateException("Biome replacement missed new terrain: a="
+					+ generated[0] + ", b=" + generated[1]);
+		}
+		return generated;
+	}
+
+	private static int[] countBiomes(ServerWorld world, int minimumChunk, int maximumChunk) {
+		int biomeA = 0;
+		int biomeB = 0;
+		for (int chunkZ = minimumChunk; chunkZ <= maximumChunk; chunkZ++) {
+			for (int chunkX = minimumChunk; chunkX <= maximumChunk; chunkX++) {
+				Chunk chunk = world.getChunk(chunkX, chunkZ);
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					int blockX = (chunkX << 4) + x;
+					int blockZ = (chunkZ << 4) + z;
+					// The live provider changes after a profile reload; saved chunk biomes do not.
+					ResourceLocation id = biomeId(world, chunk.getBiomes().getNoiseBiome(
+							Math.floorDiv(blockX, 4), 16, Math.floorDiv(blockZ, 4)));
+					if (BIOME_A.equals(id)) biomeA++;
+					else if (BIOME_B.equals(id)) biomeB++;
+					else throw new IllegalStateException("Unexpected fixture biome " + id);
+				}
+			}
+		}
+		return new int[] { biomeA, biomeB };
+	}
+
+	private static String hashSavedChunks(ServerWorld world) {
+		java.security.MessageDigest digest;
+		try {
+			digest = java.security.MessageDigest.getInstance("SHA-256");
+		} catch (java.security.NoSuchAlgorithmException exception) {
+			throw new IllegalStateException(exception);
+		}
+		BlockPos.Mutable pos = new BlockPos.Mutable();
+		for (int chunkZ = MINIMUM_CHUNK; chunkZ <= MAXIMUM_CHUNK; chunkZ++) {
+			for (int chunkX = MINIMUM_CHUNK; chunkX <= MAXIMUM_CHUNK; chunkX++) {
+				Chunk chunk = world.getChunk(chunkX, chunkZ);
+				for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
+					int blockX = (chunkX << 4) + x;
+					int blockZ = (chunkZ << 4) + z;
+					for (int y = 0; y < 256; y++) {
+						int state = Block.getStateId(chunk.getBlockState(pos.setPos(blockX, y, blockZ)));
+						digest.update((byte) (state >>> 24));
+						digest.update((byte) (state >>> 16));
+						digest.update((byte) (state >>> 8));
+						digest.update((byte) state);
+					}
+				}
+				for (int quartZ = 0; quartZ < 4; quartZ++) for (int quartX = 0; quartX < 4; quartX++) {
+					for (int quartY = 0; quartY < 64; quartY++) {
+						Biome biome = chunk.getBiomes().getNoiseBiome((chunkX << 2) + quartX,
+								quartY, (chunkZ << 2) + quartZ);
+						ResourceLocation id = biomeId(world, biome);
+						digest.update(id.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+						digest.update((byte) 0);
+					}
+				}
+			}
+		}
+		StringBuilder hex = new StringBuilder(64);
+		for (byte value : digest.digest()) {
+			hex.append(Character.forDigit((value >>> 4) & 15, 16));
+			hex.append(Character.forDigit(value & 15, 16));
+		}
+		return hex.toString();
 	}
 
 	private static Path worldRoot(MinecraftServer server) {

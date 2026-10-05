@@ -27,7 +27,7 @@ import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/** Opt-in integrated benchmark used to keep worldgen overhead measurable. */
+/** Measures chunk generation when a benchmark is explicitly requested. */
 public final class WorldgenBenchmark {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static final String PROPERTY = "orespawn.worldgenBenchmarkMode";

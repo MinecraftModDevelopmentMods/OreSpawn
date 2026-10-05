@@ -51,6 +51,7 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		boolean place(FeaturePlaceContext<GateConfig> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
 			if (OreSpawnOreGeneration.takesOverVanillaOre(
 					WorldIds.dimension(context.level()), context.config().output)) return false;

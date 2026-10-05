@@ -14,8 +14,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 
 /**
- * Converts vanilla weather products in loaded columns to configured materials.
- * Aquifer fluids are handled directly by the chunk generator.
+ * Replaces vanilla snow and ice with the configured materials in loaded columns.
+ * The chunk generator handles aquifer fluids separately.
  */
 public final class WorldMaterialWeather {
 	private WorldMaterialWeather() {

@@ -24,4 +24,11 @@ class TextFieldWidget extends net.minecraft.client.gui.widget.TextFieldWidget {
 	void setMaxLength(int length) {
 		setMaxStringLength(length);
 	}
+
+	void setBounds(int x, int y, int width, int height) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	}
 }

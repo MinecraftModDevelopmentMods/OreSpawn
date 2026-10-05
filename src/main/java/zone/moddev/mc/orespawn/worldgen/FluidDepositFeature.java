@@ -41,6 +41,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 /** One allocation-light feature for all provider-owned underground fluid deposits. */
 public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
@@ -52,6 +53,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	private static final Object CLASSIFIER_LOCK = new Object();
 
 	private static ConfiguredFeature<?, ?> configuredFeature;
+	private static Map<String, BakedDeposit> resolvedHostRules = Collections.emptyMap();
 	private static volatile Map<ResourceLocation, BakedDeposit[]> depositsByDimension = EMPTY_DIMENSIONS;
 	private static volatile Map<ResourceLocation, BakedGeomeConfig> geomeConfigs = Collections.emptyMap();
 	private static volatile Map<ResourceLocation, GeomeGeology> classifiers = Collections.emptyMap();
@@ -71,8 +73,18 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 	}
 
 	public static void refreshWorldConfig() {
+		refreshWorldConfig(Collections.emptyMap());
+	}
+
+	static void refreshTagOnlyWorldConfig() {
+		refreshWorldConfig(resolvedHostRules);
+	}
+
+	private static void refreshWorldConfig(Map<String, BakedDeposit> previous) {
 		JsonObject profile = WorldGeologyProfileManager.activeProfile().rootCopy();
-		depositsByDimension = bakeDeposits(profile);
+		Map<String, BakedDeposit> resolved = new HashMap<>();
+		depositsByDimension = bakeDeposits(profile, previous, resolved);
+		resolvedHostRules = resolved;
 		Map<ResourceLocation, BakedGeomeConfig> configs = new HashMap<>();
 		for (ResourceLocation dimension : depositsByDimension.keySet()) {
 			BakedGeomeConfig config = WorldIds.OVERWORLD.equals(dimension)
@@ -211,7 +223,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 					BlockState existing = chunk.getBlockState(cursor);
 					if (deposit.accepts(existing, geome, config)) {
 						cursor.setPos(x, y, z);
-						// Output was validated while baking; keep a final runtime guard for registry oddities.
+						// Check again before writing: a deposit must never place air or a non-fluid block.
 						if (deposit.output.getBlock() != Blocks.AIR && !deposit.output.getFluidState().isEmpty()) {
 							chunk.setBlockState(cursor, deposit.output, false);
 							changed = true;
@@ -305,7 +317,8 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 				|| (state.getMaterial().blocksMovement() && state.getFluidState().isEmpty());
 	}
 
-	private static Map<ResourceLocation, BakedDeposit[]> bakeDeposits(JsonObject profile) {
+	private static Map<ResourceLocation, BakedDeposit[]> bakeDeposits(JsonObject profile,
+			Map<String, BakedDeposit> previous, Map<String, BakedDeposit> resolved) {
 		if (!bool(profile, "place_fluid_deposits", true)
 				|| !profile.has("fluid_deposits") || !profile.get("fluid_deposits").isJsonObject()) {
 			return EMPTY_DIMENSIONS;
@@ -318,7 +331,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!bool(deposit, "enabled", true)) continue;
 			Block output = block(string(deposit, "block", ""));
-			if (output == null || output == Blocks.AIR || output.getDefaultState().getFluidState().isEmpty()
+			if (!FluidBlocks.isFluidBlock(output)
 					|| !deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) {
 				LOGGER.warn("Ignoring invalid fluid deposit '{}'", depositEntry.getKey());
 				continue;
@@ -332,9 +345,16 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 				if (dimensionId == null) continue;
 				BakedGeomeConfig config = WorldIds.OVERWORLD.equals(dimensionId)
 						? GeomeConfig.baked() : GeomeConfig.baked(dimensionId);
-				BakedDeposit baked = bakeDeposit(output.getDefaultState(), rule, config,
-						resolvedTags);
+				String key = depositEntry.getKey() + "|" + dimensionId;
+				BakedDeposit baked = previous.get(key);
+				Set<Block> explicitHosts = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
+				addBlocks(explicitHosts, rule.get("host_blocks"));
+				// As with ores, leave successful block/family hosts unchanged during the tag retry.
+				if (baked == null || (baked.familyMask == 0 && explicitHosts.isEmpty())) {
+					baked = bakeDeposit(output.getDefaultState(), rule, config, resolvedTags);
+				}
 				if (baked != null) {
+					resolved.put(key, baked);
 					grouped.computeIfAbsent(dimensionId, ignored -> new ArrayList<>()).add(baked);
 				} else {
 					LOGGER.warn("Ignoring invalid fluid deposit '{}' in '{}'",
