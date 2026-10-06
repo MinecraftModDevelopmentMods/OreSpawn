@@ -102,6 +102,8 @@ def createSurfaceProcess = { String phase, Object dependency ->
             arguments.add(classpathJar.absolutePath)
             arguments.add(runTask.mainClass.orNull ?: 'net.minecraftforge.userdev.LaunchTesting')
             arguments.addAll(runTask.args)
+            arguments.removeAll { it == '--nogui' || it == 'nogui' }
+            arguments.add('nogui')
             // The generated ForgeGradle task keeps the project-directory default
             // after a clean configuration.  The integration world must stay in
             // its disposable build-owned directory instead.
