@@ -42,6 +42,7 @@ benchmarkModes.each { String mode ->
         doLast {
             delete runDirectory
             runDirectory.mkdirs()
+            project.ext.oreSpawnBuild.prepareTestForgeConfig(runDirectory)
             copy {
                 if (baselineJar.isPresent()) {
                     File oreSpawn = file(baselineJar.get())

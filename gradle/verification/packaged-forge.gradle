@@ -28,6 +28,7 @@ tasks.register('preparePackagedSurfaceIntegration') {
     doLast {
         delete packagedSurfaceRunDirectory
         packagedSurfaceRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(packagedSurfaceRunDirectory)
         copy {
             from releaseJar
             from packagedSurfaceProbeJar
@@ -110,6 +111,7 @@ tasks.register('preparePackagedClientIntegration') {
     doLast {
         delete packagedClientRunDirectory
         packagedClientRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(packagedClientRunDirectory)
         copy {
             from releaseJar
             from packagedClientProbeJar

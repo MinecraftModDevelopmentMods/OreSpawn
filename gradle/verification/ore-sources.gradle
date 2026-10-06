@@ -104,6 +104,7 @@ tasks.register('oreSourcesClientIntegrationTest', Exec) {
     doFirst {
         delete directory
         directory.mkdirs()
+        shared.prepareTestForgeConfig(directory)
         def launch = shared.oreSourcesClientLaunch()
         workingDir directory
         environment launch.environment
@@ -137,6 +138,7 @@ tasks.register('oreSourcesClientIntegrationTest', Exec) {
         doLast {
             delete runDirectory
             runDirectory.mkdirs()
+            shared.prepareTestForgeConfig(runDirectory)
             copy {
                 from shared.releaseJar
                 labels.each { from fixtureJars[it] }

@@ -32,6 +32,7 @@ def finalTasks = []
             // This directory is build-owned; no manual saves are used here.
             delete runDirectory
             runDirectory.mkdirs()
+            shared.prepareTestForgeConfig(runDirectory)
             copy { from shared.releaseJar; from packagedJar; into new File(runDirectory, 'mods') }
             new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
             new File(runDirectory, 'server.properties').setText('''\

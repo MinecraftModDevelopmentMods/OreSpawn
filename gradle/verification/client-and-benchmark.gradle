@@ -45,6 +45,7 @@ task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
     doLast {
         delete surfaceIntegrationRunDirectory
         surfaceIntegrationRunDirectory.mkdirs()
+        project.ext.oreSpawnBuild.prepareTestForgeConfig(surfaceIntegrationRunDirectory)
         copy {
             from surfaceIntegrationTestModJar.archiveFile
             into new File(surfaceIntegrationRunDirectory, 'mods')

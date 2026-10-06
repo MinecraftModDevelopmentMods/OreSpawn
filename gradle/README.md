@@ -26,6 +26,11 @@ Packaged checks require `packagedForgeServerRuntime` and
 installs. They are not part of an ordinary `check`; the server command ends in
 literal `nogui`.
 
+Disposable runs write Forge's complete `fml.toml` defaults before startup to
+avoid first-run file-watcher races. This helper only writes below `build/`
+and leaves existing files alone. Configuration parsing exceptions fail the
+log audit even when Forge logs them at INFO level.
+
 `nativeOreIntegrationTest` compares the shipped quartz host tag with explicit
 Netherrack hosts in fresh terrain, the exact saved world, and new chunks after
 a depth edit. It also checks a tag-only fluid deposit at startup.

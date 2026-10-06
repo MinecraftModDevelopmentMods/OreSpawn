@@ -45,6 +45,7 @@ def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrash
                     line.contains('NoSuchMethodError') ||
                     line.contains('NoClassDefFoundError') ||
                     line.contains('ExceptionInInitializerError') ||
+                    line.contains('com.electronwill.nightconfig.core.io.ParsingException:') ||
                     line.contains('Tried to assign a mutable BlockPos') ||
                     line.contains('causing cascading worldgen lag')
             if ((unexpectedSeverity && !knownNoise) || fatalText) {
@@ -55,6 +56,25 @@ def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrash
     if (!failures.isEmpty()) {
         throw new GradleException("${context} logged unexpected errors:\n"
                 + failures.take(20).join('\n'))
+    }
+}
+
+// Write Forge's defaults before its file watcher starts. First-run corrections
+// can otherwise race with the watcher, especially on a fast Linux runner.
+def prepareTestForgeConfig = { File directory ->
+    String buildRoot = layout.buildDirectory.get().asFile.canonicalPath + File.separator
+    if (!directory.canonicalPath.startsWith(buildRoot)) {
+        throw new GradleException('Test configuration must stay inside the build directory')
+    }
+    File config = new File(directory, 'config/fml.toml')
+    if (!config.exists()) {
+        config.parentFile.mkdirs()
+        config.setText('''\
+versionCheck = true
+splashscreen = true
+defaultConfigPath = "defaultconfigs"
+maxThreads = -1
+''', 'UTF-8')
     }
 }
 
@@ -88,6 +108,30 @@ task runtimeLogScannerTest {
         try { assertRuntimeLogsClean(probe, 'scanner-severity-probe', [] as Set) }
         catch (GradleException expected) { rejected = true }
         if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        new File(logs, 'latest.log').setText(
+                '[Thread-1/INFO] [STDERR]: com.electronwill.nightconfig.core.io.ParsingException: Invalid TOML data\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-config-parse-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a configuration parsing exception')
+        prepareTestForgeConfig(probe)
+        File fmlConfig = new File(probe, 'config/fml.toml')
+        String defaults = fmlConfig.getText('UTF-8')
+        ['versionCheck = true', 'splashscreen = true',
+                'defaultConfigPath = "defaultconfigs"', 'maxThreads = -1'].each { String value ->
+            if (defaults.readLines().count(value) != 1) {
+                throw new GradleException("Missing or repeated Forge test default: ${value}")
+            }
+        }
+        fmlConfig.setText('maxThreads = 3\n', 'UTF-8')
+        prepareTestForgeConfig(probe)
+        if (fmlConfig.getText('UTF-8') != 'maxThreads = 3\n') {
+            throw new GradleException('Test preparation overwrote an existing Forge configuration')
+        }
+        rejected = false
+        try { prepareTestForgeConfig(file('run')) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Test configuration escaped the build directory')
         delete probe
     }
 }
@@ -123,3 +167,4 @@ check.dependsOn verifyMineralogyOracleIsolation
 }
 
 project.ext.oreSpawnBuild.assertRuntimeLogsClean = assertRuntimeLogsClean
+project.ext.oreSpawnBuild.prepareTestForgeConfig = prepareTestForgeConfig
