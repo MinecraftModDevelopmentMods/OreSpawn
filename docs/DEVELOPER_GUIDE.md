@@ -12,6 +12,8 @@
 | Add covered underground oil or another fluid | Provider schema 3 fluid deposit |
 | Add or place biomes without a framework dependency | Provider schema 4 biome palette |
 | Replace surfaces, aquifers, snow, or ice | Provider schema 4 dimension materials |
+| Share placement between equivalent ore blocks | Provider schema 5 material and placement channel, with one exact block tag |
+| Add an OreSpawn-linked settings screen | Client-only `WorldSettingsExtensionRegistry` |
 | Inspect active geology at runtime | `GeologyProfileView` and `GeologySampler` |
 
 Strata are optional. If no enabled terrain dimension has eligible rocks,
@@ -21,7 +23,7 @@ blocks or tags.
 
 ## Provider JSON Quick Start
 
-Put a schema-4 file in your mod jar at:
+Put a schema-5 file in your mod jar at:
 
 ```text
 src/main/resources/data/examplemod/orespawn/provider.json
@@ -33,7 +35,7 @@ stone without enabling strata:
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "ores": {
@@ -212,3 +214,14 @@ vegetation, structure and chest sentinels, the roof underside, and exact save
 reload behavior. Run `gradlew check` (or `gradlew build`, which includes it)
 before publishing any change to biome registration, palettes, surfaces,
 feature ordering, height handling, or profile persistence.
+
+For a manual shared-ore test, generate the Eclipse runs and use
+`runOreSourcesClient.launch` (also available as `runTestOreSourcesClient.launch`).
+It loads two dummy MMD providers in a separate `run-ore-sources` directory and
+preserves earlier manual saves. The coloured wool blocks are fixture markers,
+not shipped ores. Ordinary launches and release jars exclude these fixtures.
+
+The opt-in `nativeOreIntegrationTest` checks managed Nether quartz and a
+tag-only fluid deposit in an official Forge 36 server. It compares tag and
+explicit hosts, exact-save reloads, and depth edits that affect new chunks only.
+Pass `packagedForgeServerRuntime` with the official installation path.

@@ -45,6 +45,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 /** One allocation-light feature for all provider-owned underground fluid deposits. */
 public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
@@ -330,7 +331,7 @@ public final class FluidDepositFeature extends ContextFeature<NoFeatureConfig> {
 			JsonObject deposit = depositEntry.getValue().getAsJsonObject();
 			if (!bool(deposit, "enabled", true)) continue;
 			Block output = block(string(deposit, "block", ""));
-			if (output == null || output == Blocks.AIR || output.defaultBlockState().getFluidState().isEmpty()
+			if (!FluidBlocks.isFluidBlock(output)
 					|| !deposit.has("dimensions") || !deposit.get("dimensions").isJsonObject()) {
 				LOGGER.warn("Ignoring invalid fluid deposit '{}'", depositEntry.getKey());
 				continue;

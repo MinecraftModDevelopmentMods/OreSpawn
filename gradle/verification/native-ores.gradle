@@ -1,0 +1,110 @@
+// A real Nether checks the shipped host tag and explicit block hosts.
+// The fixture is compiled separately and never joins a production classpath.
+def shared = project.ext.oreSpawnBuild
+def classes = layout.buildDirectory.dir('native-ore-fixture/classes')
+def compile = tasks.register('compileNativeOreProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/nativeOreIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = classes
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = 'UTF-8'
+}
+def jar = tasks.register('nativeOreProbeJar', Jar) {
+    dependsOn compile
+    archiveFileName = 'nativeoreprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('native-ore-fixture')
+    from classes
+    from 'src/nativeOreIntegrationTest/resources'
+}
+def packagedJar = renamer.classes(jar) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('native-ore-fixture/nativeoreprobe-reobf.jar')
+}
+def serverRuntime = providers.gradleProperty('packagedForgeServerRuntime')
+def finalTasks = []
+['Default', 'Explicit'].each { scenario ->
+    File runDirectory = file("${buildDir}/native-ore-${scenario.toLowerCase()}-run")
+    def prepare = tasks.register("prepareNativeOre${scenario}") {
+        dependsOn shared.releaseJar, packagedJar
+        doLast {
+            // This directory is build-owned; no manual saves are used here.
+            delete runDirectory
+            runDirectory.mkdirs()
+            copy { from shared.releaseJar; from packagedJar; into new File(runDirectory, 'mods') }
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(runDirectory, 'server.properties').setText('''\
+level-name=native-ore-world
+level-seed=4192643144957839458
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        }
+    }
+    def previous = prepare
+    ['Fresh', 'Reload', 'Edited'].each { phase ->
+        def dependency = previous
+        previous = tasks.register("nativeOre${scenario}${phase}", Exec) {
+            group = 'verification'
+            description = "Checks managed quartz with ${scenario.toLowerCase()} hosts (${phase.toLowerCase()})."
+            dependsOn dependency
+            doFirst {
+                if (!serverRuntime.isPresent()) {
+                    throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 36 installation>')
+                }
+                File launcher = new File(file(serverRuntime.get()), 'forge-1.16.5-36.2.34.jar')
+                if (!launcher.isFile()) throw new GradleException("Missing official Forge launcher: ${launcher}")
+                workingDir runDirectory
+                commandLine shared.java8Launcher.get().executablePath.asFile.absolutePath,
+                        '-Xms512m', '-Xmx2g', "-Dnativeoreprobe.phase=${phase.toLowerCase()}",
+                        "-Dnativeoreprobe.host=${scenario.toLowerCase()}", '-jar', launcher.absolutePath, 'nogui'
+            }
+            doLast {
+                Properties result = new Properties()
+                File marker = new File(runDirectory, 'native-ore-world/nativeoreprobe.properties')
+                if (!marker.isFile()) throw new GradleException("Quartz audit is missing: ${marker}")
+                marker.withInputStream { result.load(it) }
+                if (result.getProperty("${phase.toLowerCase()}_verified") != 'true') {
+                    throw new GradleException("Quartz ${phase.toLowerCase()} was not verified")
+                }
+                shared.assertRuntimeLogsClean(runDirectory, "Native quartz ${scenario} ${phase}", [] as Set)
+                if (new File(runDirectory, 'logs/latest.log').getText('UTF-8')
+                        .contains("Ignoring invalid placement rule for OreSpawn-managed ore 'minecraft:nether_quartz_ore'")) {
+                    throw new GradleException('Managed quartz was rejected during startup')
+                }
+                copy { from new File(runDirectory, 'logs/latest.log'); into new File(runDirectory, 'audit-logs');
+                    rename { "${phase.toLowerCase()}.log" } }
+                copy { from marker; into new File(runDirectory, 'audit-logs');
+                    rename { "${phase.toLowerCase()}.properties" } }
+            }
+        }
+    }
+    finalTasks.add(previous)
+}
+tasks.register('nativeOreIntegrationTest') {
+    group = 'verification'
+    description = 'Checks quartz defaults, explicit hosts, exact-save reload and new-terrain-only edits.'
+    dependsOn finalTasks
+    doLast {
+        ['fresh', 'reload', 'edited'].each { phase ->
+            Properties tagged = new Properties()
+            Properties explicit = new Properties()
+            file("${buildDir}/native-ore-default-run/audit-logs/${phase}.properties")
+                    .withInputStream { tagged.load(it) }
+            file("${buildDir}/native-ore-explicit-run/audit-logs/${phase}.properties")
+                    .withInputStream { explicit.load(it) }
+            ['quartz', 'blocks_sha256', 'biomes_sha256', 'new_terrain_quartz', 'water', 'new_terrain_water'].each { key ->
+                if (tagged.getProperty(key) != explicit.getProperty(key)) {
+                    throw new GradleException("Tag and explicit quartz hosts differ for ${phase}: ${key}")
+                }
+            }
+        }
+        logger.lifecycle('Tag and explicit quartz hosts produce identical terrain, fresh/reload/edited')
+    }
+}

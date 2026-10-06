@@ -10,7 +10,6 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.widget.Widget;
-import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
@@ -73,7 +72,7 @@ final class OreSpawnScreenLayout {
 			return new Button(x, y, width, height, message, onPress);
 		}
 		return new Button(x, y, width, height, fitted, onPress,
-				(button, poseStack, mouseX, mouseY) -> screen.renderTooltip(poseStack,
+				(button, mouseX, mouseY) -> screen.renderTooltip(button.currentPoseStack(),
 						font.split(message, Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY));
 	}
 
@@ -107,6 +106,10 @@ final class OreSpawnScreenLayout {
 				return;
 			}
 		}
+	}
+
+	static void renderExplanations(OreSpawnScreen screen, int mouseX, int mouseY) {
+		renderExplanations(screen, screen.currentPoseStack(), mouseX, mouseY);
 	}
 
 	private static final class ExplainedWidget {

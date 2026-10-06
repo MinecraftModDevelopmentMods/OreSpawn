@@ -1,0 +1,457 @@
+def surfaceIntegrationClasses = project.ext.oreSpawnBuild.surfaceIntegrationClasses
+def prepareEclipseResources = project.ext.oreSpawnBuild.prepareEclipseResources
+
+// Use Eclipse's generated arguments so the Gradle launch finds Forge 36's assets and native libraries.
+project.ext.oreSpawnBuild.oreSourcesClientLaunch = {
+    def xml = new groovy.xml.XmlParser(false, false).parse(file('runOreSourcesClient.launch'))
+    def attribute = { String key -> xml.stringAttribute.find { it.@key == key }.@value }
+    Map<String, String> environment = [:]
+    xml.mapAttribute.find {
+        it.@key == 'org.eclipse.debug.core.environmentVariables'
+    }.mapEntry.each { environment[it.@key.toString()] = it.@value.toString() }
+    List<File> archives = []
+    xml.listAttribute.find {
+        it.@key == 'org.eclipse.jdt.launching.CLASSPATH'
+    }.listEntry.each { entry ->
+        def runtime = new groovy.xml.XmlParser(false, false).parseText(entry.@value.toString())
+        if (runtime.@externalArchive) archives.add(file(runtime.@externalArchive.toString()))
+    }
+    [mainClass: attribute('org.eclipse.jdt.launching.MAIN_TYPE'),
+            jvmArguments: org.apache.tools.ant.types.Commandline.translateCommandline(
+                    attribute('org.eclipse.jdt.launching.VM_ARGUMENTS')) as List,
+            arguments: org.apache.tools.ant.types.Commandline.translateCommandline(
+                    attribute('org.eclipse.jdt.launching.PROGRAM_ARGUMENTS')) as List,
+            environment: environment, archives: archives]
+}
+
+task syncForge36EclipseLaunches(dependsOn: compileSurfaceIntegrationTestMod) {
+    group = 'ide'
+    dependsOn 'prepareOreSourcesClient'
+    doLast {
+        String mainClass = 'net.minecraftforge.userdev.LaunchTesting'
+        String mainOutput = new File(projectDir, 'bin/main').absolutePath
+		String ordinaryModClasses = "${mod_id}%%${mainOutput}${File.pathSeparator}${mod_id}%%${mainOutput}"
+        String fixtureOutput = surfaceIntegrationClasses.absolutePath
+        String fixtureResources = new File(projectDir, 'src/biomeIntegrationTest/resources').absolutePath
+        String fixtureModClasses = "${mod_id}%%${mainOutput}${File.pathSeparator}${mod_id}%%${mainOutput}${File.pathSeparator}" +
+                "surfaceprobe%%${fixtureOutput}${File.pathSeparator}surfaceprobe%%${fixtureResources}"
+        def environmentEntries = { String launchTarget ->
+                "    <mapEntry key=\"MCP_MAPPINGS\" value=\"${mapping_channel}_${mapping_version}\"/>\r\n" +
+                "    <mapEntry key=\"MCP_VERSION\" value=\"${mcp_version}\"/>\r\n" +
+                "    <mapEntry key=\"FORGE_VERSION\" value=\"${forge_version}\"/>\r\n" +
+                "    <mapEntry key=\"FORGE_GROUP\" value=\"net.minecraftforge\"/>\r\n" +
+                "    <mapEntry key=\"target\" value=\"${launchTarget}\"/>\r\n" +
+                "    <mapEntry key=\"MC_VERSION\" value=\"${minecraft_version}\"/>\r\n"
+		}
+		['Client', 'Server', 'Data'].each { String runName ->
+			File launch = file("run${runName}.launch")
+			if (!launch.isFile()) {
+				throw new GradleException("Missing generated Eclipse launch: ${launch}")
+			}
+			String text = launch.getText('UTF-8')
+			if (text.contains('<mapAttribute key="org.eclipse.debug.core.environmentVariables"/>')) {
+				String launchTarget = [Client: 'fmluserdevclient', Server: 'fmluserdevserver',
+						Data: 'fmluserdevdata'][runName]
+				text = text.replace(
+						'<mapAttribute key="org.eclipse.debug.core.environmentVariables"/>',
+						'<mapAttribute key="org.eclipse.debug.core.environmentVariables">\r\n' +
+						environmentEntries(launchTarget) +
+						"    <mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>\r\n" +
+						'</mapAttribute>')
+			}
+			text = text.replace(
+					'<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
+					"<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
+			text = text.replaceFirst(
+					/<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
+					java.util.regex.Matcher.quoteReplacement(
+							"<mapEntry key=\"MOD_CLASSES\" value=\"${ordinaryModClasses}\"/>"))
+			if (!text.contains('key="target"')) {
+				String launchTarget = [Client: 'fmluserdevclient', Server: 'fmluserdevserver',
+						Data: 'fmluserdevdata'][runName]
+				text = text.replace('    <mapEntry key="MOD_CLASSES"',
+						environmentEntries(launchTarget) + '    <mapEntry key="MOD_CLASSES"')
+			}
+			if (!text.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+				text = text.replace('</launchConfiguration>',
+						'    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE" value="true"/>\r\n' +
+						'</launchConfiguration>')
+			}
+			launch.setText(text, 'UTF-8')
+		}
+        ['Fresh', 'Reload'].each { String phase ->
+            File launch = file("runSurfaceIntegration${phase}.launch")
+            if (!launch.isFile()) {
+                throw new GradleException("Missing generated Eclipse launch: ${launch}")
+            }
+            String text = launch.getText('UTF-8')
+            text = text.replace(
+                    '<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>',
+                    "<stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"${mainClass}\"/>")
+            text = text.replaceFirst(
+                    /<mapEntry key="MOD_CLASSES" value="[^"]*"\/>/,
+                    java.util.regex.Matcher.quoteReplacement(
+                            "<mapEntry key=\"MOD_CLASSES\" value=\"${fixtureModClasses}\"/>"))
+            if (!text.contains('key="target"')) {
+                text = text.replace('    <mapEntry key="MOD_CLASSES"',
+                        environmentEntries('fmluserdevserver') + '    <mapEntry key="MOD_CLASSES"')
+            }
+            launch.setText(text, 'UTF-8')
+        }
+        // Reuse the ordinary launch's mappings, native libraries and JRE.
+        // Only this named profile loads the dummy mods.
+        def shared = project.ext.oreSpawnBuild
+        def parser = new groovy.xml.XmlParser(false, false)
+        parser.setTrimWhitespace(true)
+        def manualLaunch = parser.parse(file('runClient.launch'))
+        manualLaunch.stringAttribute.find {
+            it.@key == 'org.eclipse.jdt.launching.WORKING_DIRECTORY'
+        }.@value = file('run-ore-sources').absolutePath
+        manualLaunch.mapAttribute.find {
+            it.@key == 'org.eclipse.debug.core.environmentVariables'
+        }.mapEntry.find { it.@key == 'MOD_CLASSES' }.@value =
+                shared.oreSourcesClientModClasses(file('bin/main'))
+        def classpath = manualLaunch.listAttribute.find {
+            it.@key == 'org.eclipse.jdt.launching.CLASSPATH'
+        }
+        shared.oreSourceFixtureOutputs.values().each { File output ->
+            def entry = new Node(null, 'runtimeClasspathEntry', [
+                    externalArchive: output.absolutePath, type: '2', path: '5'])
+            classpath.appendNode('listEntry', [value: groovy.xml.XmlUtil.serialize(entry)])
+        }
+        String manualLaunchText = groovy.xml.XmlUtil.serialize(manualLaunch).replace('\r\n', '\n')
+        // Refresh the earlier filename too, since Eclipse may still have it selected.
+        ['runOreSourcesClient.launch', 'runTestOreSourcesClient.launch'].each { name ->
+            file(name).setText(manualLaunchText, 'UTF-8')
+        }
+    }
+}
+
+task verifyForge36EclipseLaunchIsolation {
+    group = 'verification'
+    doLast {
+        ['runClient.launch', 'runServer.launch', 'runData.launch'].each { String launchName ->
+            File launch = file(launchName)
+            String launchText = launch.getText('UTF-8')
+            if (launchText.contains('Mineralogy-') ||
+                    !launchText.contains('org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE')) {
+                throw new GradleException("Ordinary Eclipse launch is not isolated from test oracles: ${launch}")
+            }
+        }
+    }
+}
+
+syncForge36EclipseLaunches.finalizedBy verifyForge36EclipseLaunchIsolation
+
+tasks.matching { it.name == 'genEclipseRuns' }.all {
+    finalizedBy syncForge36EclipseLaunches
+}
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+        // Let Gradle expand mods.toml first; otherwise Eclipse overwrites bin/main's version with ${version}.
+        file.whenMerged { classpath ->
+            classpath.entries.removeAll { entry ->
+                entry instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder
+                        && ['src/main/resources', 'src/generated/resources'].contains(entry.path)
+            }
+            if (!classpath.entries.any { entry -> entry.path == 'build/resources/main' }) {
+                classpath.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder(
+                        'build/resources/main', 'bin/main'))
+            }
+        }
+    }
+    synchronizationTasks 'isolateEclipseProductionRuns'
+}
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+tasks.register('configureEclipseBuildship') {
+    group = 'ide'
+    doLast {
+        File preferencesFile = file('.settings/org.eclipse.buildship.core.prefs')
+        Properties preferences = new Properties()
+        [
+                'eclipse.preferences.version'    : '1',
+                'connection.gradle.distribution': 'GRADLE_DISTRIBUTION(WRAPPER)',
+                'connection.gradle.user.home'   : gradle.gradleUserHomeDir.canonicalPath,
+                'connection.project.dir'        : '',
+                'gradle.user.home'               : gradle.gradleUserHomeDir.canonicalPath,
+                'override.workspace.settings'   : 'true'
+        ].each { key, value -> preferences.setProperty(key, value) }
+        preferencesFile.parentFile.mkdirs()
+        preferencesFile.withOutputStream {
+            preferences.store(it, 'Generated by OreSpawn Buildship configuration.')
+        }
+    }
+}
+tasks.register('isolateEclipseProductionRuns') {
+    group = 'ide'
+    dependsOn tasks.named('genEclipseRuns')
+    dependsOn syncForge36EclipseLaunches
+    dependsOn tasks.named('configureEclipseBuildship')
+    dependsOn prepareEclipseResources
+    doLast {
+        [
+                'OreSpawn_Client.launch': 'GradleStart',
+                'OreSpawn_Server.launch': 'GradleStartServer'
+        ].each { String name, String mainClass ->
+            File launch = file(name)
+            if (launch.isFile() && launch.getText('UTF-8').contains(mainClass)
+                    && !launch.delete()) {
+                throw new GradleException("Could not remove obsolete launch ${name}")
+            }
+        }
+        fileTree(project.projectDir) { include 'run*.launch' }.files.each { launch ->
+            String contents = launch.getText('UTF-8')
+            contents = contents.replace(
+                    'key="MC_VERSION" value="${MC_VERSION}"',
+                    "key=\"MC_VERSION\" value=\"${minecraft_version}\"")
+            launch.setText(contents.replace('\r\n', '\n'), 'UTF-8')
+        }
+    }
+}
+tasks.register('verifyEclipseProductionClasspath') {
+    group = 'verification'
+    dependsOn tasks.named('eclipseClasspath')
+    dependsOn tasks.named('isolateEclipseProductionRuns')
+    dependsOn tasks.named('verifyLegacyOracleIsolation')
+    dependsOn 'verifyOreSourcesClientLaunch'
+    dependsOn 'eclipseResourceRebuildTest'
+    doLast {
+        File prefs = file('.settings/org.eclipse.buildship.core.prefs')
+        if (!prefs.isFile()) throw new GradleException('Missing Buildship preferences')
+        Properties buildshipPreferences = new Properties()
+        prefs.withInputStream { buildshipPreferences.load(it) }
+        String expectedGradleHome = gradle.gradleUserHomeDir.canonicalPath
+        if (buildshipPreferences.getProperty('connection.gradle.user.home') != expectedGradleHome
+                || buildshipPreferences.getProperty('gradle.user.home') != expectedGradleHome
+                || buildshipPreferences.getProperty('override.workspace.settings') != 'true') {
+            throw new GradleException(
+                    "Eclipse Buildship must use the validated Gradle home ${expectedGradleHome}")
+        }
+        Set<String> legacyLwjglArtifacts = configurations.compileClasspath.resolvedConfiguration
+                .resolvedArtifacts
+                .findAll { it.moduleVersion.id.group == 'org.lwjgl.lwjgl' }
+                .collect { "${it.moduleVersion.id.group}:${it.name}:${it.moduleVersion.id.version}" }
+                .toSet()
+        if (!legacyLwjglArtifacts.isEmpty()) {
+            throw new GradleException(
+                    "Forge 1.16 Eclipse classpath contains sealed LWJGL 2 artifacts: ${legacyLwjglArtifacts}")
+        }
+        File eclipseClasspath = file('.classpath')
+        if (!eclipseClasspath.isFile()) throw new GradleException('Eclipse .classpath was not generated')
+        String classpathText = eclipseClasspath.getText('UTF-8')
+        if (!classpathText.contains('path="build/resources/main"')
+                || classpathText.contains('path="src/main/resources"')
+                || classpathText.contains('path="src/generated/resources"')) {
+            throw new GradleException('Eclipse must consume only Gradle-processed production resources')
+        }
+        [
+                'META-INF/mods.toml',
+                'META-INF/orespawn/docs/README.md',
+                'META-INF/orespawn/docs/VERSIONS.md'
+        ].each { relative ->
+            if (!new File('bin/main', relative).isFile()) {
+                throw new GradleException("Eclipse output is missing ${relative}")
+            }
+        }
+        File processedMetadata = file("${buildDir}/resources/main/META-INF/mods.toml")
+        File eclipseMetadata = file('bin/main/META-INF/mods.toml')
+        if (!java.util.Arrays.equals(processedMetadata.bytes, eclipseMetadata.bytes)
+                || eclipseMetadata.getText('UTF-8').contains('${version}')
+                || !eclipseMetadata.getText('UTF-8').contains("version=\"${project.version}\"")) {
+            throw new GradleException('Eclipse output contains unexpanded or stale Forge mod metadata')
+        }
+        List<String> forbidden = [
+                'src/test', 'bin/test', 'build/classes/java/test',
+                'biomeIntegrationTest', 'clientIntegrationTest',
+                'oreSourceMineralsTest', 'oreSourceAdvantageTest', 'worldHashTest',
+                'nativeOreIntegrationTest', 'nativeoreprobe', 'native-ore-fixture',
+                'surfaceprobe', 'clientprobe', 'worldhashprobe', 'oresource-minerals',
+                'oresource-advantage', 'junit-', 'opentest4j-',
+                'Mineralogy-1.16.5-5.2.0.jar', 'C:\\Users\\John'
+        ]
+        String mainOutput = new File(projectDir, 'bin/main').absolutePath
+        String expectedModClasses = "${mod_id}%%${mainOutput}${File.pathSeparator}${mod_id}%%${mainOutput}"
+        ['runClient.launch', 'runServer.launch', 'runData.launch'].each { name ->
+            File launch = file(name)
+            if (!launch.isFile()) throw new GradleException("Missing ${name}")
+            String contents = launch.getText('UTF-8')
+            List<String> leaked = forbidden.findAll { contents.contains(it) }
+            if (!leaked.isEmpty()) {
+                throw new GradleException("${name} exposes test/local content: ${leaked}")
+            }
+            if (!contents.contains('ATTR_EXCLUDE_TEST_CODE')
+                    || !contents.contains('PROJECT_ATTR" value="OreSpawn"')) {
+                throw new GradleException("${name} is not a production-only OreSpawn launch")
+            }
+            if (!contents.contains("MOD_CLASSES\" value=\"${expectedModClasses}\"")) {
+                throw new GradleException("${name} lacks Forge 36 merged output discovery")
+            }
+        }
+    }
+}
+
+// A Java rebuild copies resources from the declared source folders again.
+// Check that step too: copying processed files into bin/main once is not enough.
+tasks.register('eclipseResourceRebuildTest') {
+    group = 'verification'
+    description = 'Checks an Eclipse resource rebuild retains expanded Forge metadata and bundled guides.'
+    dependsOn tasks.named('eclipseClasspath'), tasks.named('processResources')
+    doLast {
+        def xml = new groovy.xml.XmlParser(false, false).parse(file('.classpath'))
+        List<String> resourceFolders = xml.classpathentry.findAll { entry ->
+            entry.@kind == 'src' && entry.@output == 'bin/main'
+                    && entry.@path != 'src/main/java'
+        }.collect { it.@path.toString() }
+        File rebuilt = file("${buildDir}/eclipse-resource-rebuild-test")
+        project.sync {
+            resourceFolders.each { from file(it) }
+            into rebuilt
+        }
+        File metadata = new File(rebuilt, 'META-INF/mods.toml')
+        File processed = file("${buildDir}/resources/main/META-INF/mods.toml")
+        if (!metadata.isFile() || metadata.getText('UTF-8').contains('${version}')
+                || !java.util.Arrays.equals(metadata.bytes, processed.bytes)) {
+            throw new GradleException('Eclipse rebuild copied unexpanded or stale Forge mod metadata')
+        }
+        if (resourceFolders != ['build/resources/main']) {
+            throw new GradleException("Eclipse must rebuild from processed resources only: ${resourceFolders}")
+        }
+        ['README.md', 'VERSIONS.md'].each { name ->
+            if (!new File(rebuilt, "META-INF/orespawn/docs/${name}").isFile()) {
+                throw new GradleException("Eclipse rebuild lost the bundled guide ${name}")
+            }
+        }
+    }
+}
+
+tasks.named('check') { dependsOn tasks.named('eclipseResourceRebuildTest') }
+
+// LaunchTesting reads these values from the environment before starting ModLauncher.
+// Without them, the client fails before Forge can discover any mods.
+def clientBootstrapEnvironment = [
+        target: 'fmluserdevclient',
+        MC_VERSION: project.minecraft_version,
+        FORGE_VERSION: project.forge_version,
+        FORGE_GROUP: 'net.minecraftforge',
+        MCP_VERSION: project.mcp_version,
+        MCP_MAPPINGS: "${mapping_channel}_${mapping_version}".toString()
+]
+def verifyClientBootstrap = { xml, String launchName ->
+    Map<String, String> environment = [:]
+    xml.mapAttribute.find {
+        it.@key == 'org.eclipse.debug.core.environmentVariables'
+    }?.mapEntry?.each { environment[it.@key.toString()] = it.@value.toString() }
+    clientBootstrapEnvironment.each { key, expected ->
+        if (environment[key] != expected.toString()) {
+            throw new GradleException("${launchName} needs ${key}=${expected} in its Forge environment")
+        }
+    }
+}
+
+tasks.register('oreSourcesClientLaunchContractTest') {
+    group = 'verification'
+    description = 'Rejects missing or incorrect Forge bootstrap settings before an ore-source client starts.'
+    doLast {
+        def valid = new Node(null, 'launchConfiguration')
+        def environment = valid.appendNode('mapAttribute', [
+                key: 'org.eclipse.debug.core.environmentVariables'])
+        clientBootstrapEnvironment.each { key, value ->
+            environment.appendNode('mapEntry', [key: key, value: value])
+        }
+        verifyClientBootstrap(valid, 'complete client fixture')
+        clientBootstrapEnvironment.keySet().each { key ->
+            ['missing', 'incorrect'].each { scenario ->
+                def invalid = new groovy.xml.XmlParser(false, false).parseText(
+                        groovy.xml.XmlUtil.serialize(valid))
+                def entry = invalid.mapAttribute.mapEntry.find { it.@key == key }
+                if (scenario == 'missing') entry.parent().remove(entry)
+                else entry.@value = 'incorrect'
+                boolean rejected = false
+                try { verifyClientBootstrap(invalid, "${scenario} ${key} fixture") }
+                catch (GradleException expected) { rejected = true }
+                if (!rejected) throw new GradleException("Client launch accepted ${scenario} ${key}")
+            }
+        }
+        verifyClientBootstrap(valid, 'unchanged client fixture')
+    }
+}
+
+tasks.named('check') { dependsOn tasks.named('oreSourcesClientLaunchContractTest') }
+
+tasks.register('verifyOreSourcesClientLaunch') {
+    group = 'verification'
+    description = 'Checks the manual ore-source profile stays separate from production and automated probes.'
+    dependsOn tasks.named('isolateEclipseProductionRuns')
+    doLast {
+        ['runOreSourcesClient.launch', 'runTestOreSourcesClient.launch'].each { name ->
+            File launch = file(name)
+            if (!launch.isFile()) throw new GradleException("Missing ore-source client launch: ${name}")
+            def xml = new groovy.xml.XmlParser(false, false).parse(launch)
+            verifyClientBootstrap(xml, name)
+            String workingDirectory = xml.stringAttribute.find {
+                it.@key == 'org.eclipse.jdt.launching.WORKING_DIRECTORY'
+            }.@value
+            if (workingDirectory != file('run-ore-sources').absolutePath) {
+                throw new GradleException('Manual ore-source client must use run-ore-sources')
+            }
+            String modClasses = xml.mapAttribute.find {
+                it.@key == 'org.eclipse.debug.core.environmentVariables'
+            }.mapEntry.find { it.@key == 'MOD_CLASSES' }.@value
+            def shared = project.ext.oreSpawnBuild
+            if (modClasses != shared.oreSourcesClientModClasses(file('bin/main'))) {
+                throw new GradleException('Manual ore-source client is missing its isolated dummy providers')
+            }
+            String contents = launch.getText('UTF-8')
+            ['bin/test', 'src/test', 'junit-', 'clientprobe', 'surfaceprobe',
+                    'oresourceprobe.phase', 'clientprobe.enabled'].each { forbidden ->
+                if (contents.contains(forbidden)) {
+                    throw new GradleException("Manual ore-source client leaked ${forbidden}")
+                }
+            }
+            shared.oreSourceFixtureOutputs.values().each { File output ->
+                if (!new File(output, 'META-INF/mods.toml').isFile()
+                        || !shared.oreSourcesClientLaunch().archives.contains(output)) {
+                    throw new GradleException("Manual ore-source client is missing fixture output ${output}")
+                }
+            }
+        }
+        if (!java.util.Arrays.equals(file('runOreSourcesClient.launch').bytes,
+                file('runTestOreSourcesClient.launch').bytes)) {
+            throw new GradleException('The earlier ore-source launch name must match runOreSourcesClient')
+        }
+    }
+}
+
+tasks.register('verifyCommandPortability') {
+    group = 'verification'
+    description = 'Rejects shell-specific launch wrappers and hard-coded classpath separators.'
+    doLast {
+        List<File> commandSources = [file('build.gradle')]
+        commandSources.addAll(fileTree('gradle') { include '**/*.gradle' }.files)
+        commandSources.addAll(fileTree('.github/workflows') { include '*.yml', '*.yaml' }.files)
+        String gradleSource = commandSources.findAll { it.name.endsWith('.gradle') }
+                .collect { it.getText('UTF-8') }.join('\n')
+        commandSources.each { File source ->
+            String text = source.getText('UTF-8')
+            if (text =~ /(?i)(?:commandLine|executable|run:)\s*[^\n]*(?:cmd(?:\.exe)?\s+\/c|powershell(?:\.exe)?\s+-command|(?:bash|sh)\s+-c)/) {
+                throw new GradleException("Shell-specific command wrapper in ${source}")
+            }
+        }
+        if (!gradleSource.contains('commandLine(([javaExecutable.absolutePath] + arguments) as List<String>)')
+                || !gradleSource.contains('join(File.pathSeparator)')
+                || !gradleSource.contains('${File.pathSeparator}')) {
+            throw new GradleException('Runtime commands and exploded-mod paths must use native argument/path APIs')
+        }
+    }
+}
+
+tasks.named('check') { dependsOn tasks.named('verifyCommandPortability') }
+tasks.named('check') { dependsOn tasks.named('verifyMavenCoordinates') }
