@@ -1,3 +1,21 @@
+Version 4.1.0.116051
+
+* Add a directory for loaded provider mods and optional add-on settings screens.
+* Group OreSpawn-managed ores by exact block tags. Balanced, Single, Custom,
+  and Keep Original policies keep one placement budget per channel without
+  changing existing worlds' saved behaviour.
+* Add a biome directory with exact new-terrain replacement, palette settings,
+  and dimension-wide materials controls. Existing chunks are never rewritten.
+* Preserve missing-mod settings and dormant imported Ore Dictionary aliases.
+  Provider, global, and world schemas are now 5, 8, and 7; API major remains 1.
+* Reject invalid Geome IDs without silently renaming them.
+* Keep expanded Forge metadata through Eclipse rebuilds and provide an isolated
+  Ore Sources launch for testing shared ores from two dummy providers.
+* Check managed Nether quartz, tag-only fluid hosts, saved-world reloads and
+  depth changes in newly generated chunks.
+* Honour managed vanilla ore ranges when Forge reloads configured features
+  from datapacks, while keeping their original placement order and delegates.
+
 Version 4.0.16.116051
 
 * Adopt the shared 4.0.16 release identity. Forge 1.16 has no server-side

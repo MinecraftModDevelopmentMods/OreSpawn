@@ -55,9 +55,17 @@ public final class ClientProbeTestMod {
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
 	private List<Widget> worldCreationButtons;
+	private Method hideWindow;
 
 	public ClientProbeTestMod() {
 		instance = this;
+		if (Boolean.getBoolean("clientprobe.hidden")) {
+			try {
+				hideWindow = Class.forName("org.lwjgl.glfw.GLFW").getMethod("glfwHideWindow", long.class);
+			} catch (ReflectiveOperationException failure) {
+				throw new IllegalStateException("Could not hide the automatic client probe", failure);
+			}
+		}
 	}
 
 	@SubscribeEvent
@@ -94,13 +102,35 @@ public final class ClientProbeTestMod {
 		probe.handleClientTick();
 	}
 
+	private static void verifyDummyOreSources() {
+		GeologyEditorSession session = new GeologyEditorSession(
+				zone.moddev.mc.orespawn.worldgen.GeomeConfig.globalProfile());
+		GeologyEditorSession.OreSourceGroup sulfur = session.oreSourceGroups().stream()
+				.filter(group -> "orespawn:sulfur".equals(group.material))
+				.findFirst().orElseThrow(() -> new IllegalStateException("Shared Sulfur group is missing"));
+		Set<String> owners = new HashSet<>();
+		for (GeologyEditorSession.OreSourceCandidate candidate : sulfur.candidates) owners.add(candidate.owner);
+		if (!owners.contains("baseminerals") || !owners.contains("electricadvantage")
+				|| sulfur.outputCandidates().size() != 3) {
+			throw new IllegalStateException("The manual profile must expose both providers and all three outputs");
+		}
+		System.out.println("ORE_SOURCES_CLIENT_PROBE providers=2 outputs=3 verified=true");
+	}
+
 	private void handleClientTick() {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (++stateTicks > 3600) fail(minecraft, "Timed out in client probe state " + state);
 		try {
+			if (hideWindow != null) {
+				try { hideWindow.invoke(null, minecraft.getWindow().getWindow()); }
+				catch (ReflectiveOperationException failure) {
+					throw new IllegalStateException("Could not hide the automatic client probe", failure);
+				}
+			}
 			switch (state) {
 				case 0:
 					if (minecraft.screen instanceof MainMenuScreen) {
+						if (Boolean.getBoolean("clientprobe.oreSources")) verifyDummyOreSources();
 						minecraft.setScreen(CreateWorldScreen.create(minecraft.screen));
 						nextState(1);
 					}
@@ -213,6 +243,9 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(Screen screen) {
 		for (Widget widget : widgets(screen)) {
+			// Lists draw their own rows, and the cog has a descriptive tooltip.
+			// Neither uses a visible button caption.
+			if (widget instanceof CompactScrollList || widget instanceof CogButton) continue;
 			String caption = TextFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")

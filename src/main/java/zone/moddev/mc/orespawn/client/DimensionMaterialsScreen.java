@@ -18,7 +18,8 @@ final class DimensionMaterialsScreen extends Screen {
 	private TextFieldWidget deepY;
 
 	DimensionMaterialsScreen(Screen parent, GeologyEditorSession session, String dimension) {
-		super(new TranslationTextComponent("screen.orespawn.dimension_materials"));
+		super(new TranslationTextComponent("screen.orespawn.dimension_materials",
+				BiomeWorldMaterialsScreen.dimensionName(dimension)));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -88,8 +89,12 @@ final class DimensionMaterialsScreen extends Screen {
 	@Override
 	public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTick) {
 		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new StringTextComponent(dimension), width / 2, 30, 0xCCCCCC);
+		drawCenteredString(poseStack, font, title, width / 2, 8, 0xFFFFFF);
+		drawCenteredString(poseStack, font, new StringTextComponent(dimension), width / 2, 23, 0xAAAAAA);
+		drawCenteredString(poseStack, font, OreSpawnScreenLayout.fit(font,
+				new TranslationTextComponent("label.orespawn.dimension_materials.scope",
+						BiomeWorldMaterialsScreen.dimensionName(dimension)), width - 16),
+				width / 2, 38, 0xFFFF55);
 		super.render(poseStack, mouseX, mouseY, partialTick);
 		OreSpawnScreenLayout.renderExplanations(this, poseStack, mouseX, mouseY);
 	}

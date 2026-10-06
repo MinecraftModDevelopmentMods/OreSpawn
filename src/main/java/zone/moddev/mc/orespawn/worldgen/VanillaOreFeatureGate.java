@@ -19,6 +19,8 @@ import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.NoFeatureConfig;
 import net.minecraft.world.gen.feature.IFeatureConfig;
+import net.minecraft.world.gen.feature.OreFeatureConfig;
+import net.minecraft.world.gen.feature.ReplaceBlockConfig;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -96,8 +98,15 @@ public final class VanillaOreFeatureGate {
 			if (!wrapped) {
 				ConfiguredFeature<?, ?> replacement = featureId == null ? null
 						: suppressibleGates.get(featureId);
+				// Datapack loading copies configured features on Forge 36. Those
+				// copies have no key in the static registry; retain their actual
+				// delegate and identify only standard, single-output vanilla ores.
+				if (featureId == null && nativeOutput(feature.get()) != null) {
+					replacement = SUPPRESSIBLE_FEATURE.configured(new SuppressibleConfig(feature));
+				}
 				if (replacement != null) {
-					features.set(featureIndex, () -> replacement);
+					ConfiguredFeature<?, ?> wrapper = replacement;
+					features.set(featureIndex, () -> wrapper);
 					changed = true;
 				}
 			}
@@ -136,6 +145,28 @@ public final class VanillaOreFeatureGate {
 	private static boolean isStandardOreFeature(ConfiguredFeature<?, ?> configuredFeature) {
 		return configuredFeature.getFeatures().anyMatch(configured ->
 				configured.feature() == Feature.ORE || configured.feature() == Feature.NO_SURFACE_ORE);
+	}
+
+	static Block nativeOutput(ConfiguredFeature<?, ?> feature) {
+		Block output = null;
+		for (ConfiguredFeature<?, ?> child : (Iterable<ConfiguredFeature<?, ?>>) feature.getFeatures()::iterator) {
+			if (child.feature() == Feature.DECORATED) continue;
+			Block candidate;
+			if ((child.feature() == Feature.ORE || child.feature() == Feature.NO_SURFACE_ORE)
+					&& child.config() instanceof OreFeatureConfig) {
+				candidate = ((OreFeatureConfig) child.config()).state.getBlock();
+			} else if (child.feature() == Feature.EMERALD_ORE && child.config() instanceof ReplaceBlockConfig) {
+				candidate = ((ReplaceBlockConfig) child.config()).state.getBlock();
+			} else return null;
+			ResourceLocation id = Registry.BLOCK.getKey(candidate);
+			boolean known = false;
+			for (Definition definition : DEFINITIONS) {
+				if (definition.oreBlockId.equals(id)) known = true;
+			}
+			if (!known || (output != null && output != candidate)) return null;
+			output = candidate;
+		}
+		return output;
 	}
 
 	private static Definition[] definitions() {
@@ -187,6 +218,7 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		boolean place(FeaturePlaceContext<NoFeatureConfig> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 				return false;
 			}
@@ -205,9 +237,11 @@ public final class VanillaOreFeatureGate {
 				.xmap(SuppressibleConfig::new, value -> value.delegate)
 				.codec();
 		final Supplier<ConfiguredFeature<?, ?>> delegate;
+		final Block nativeOutput;
 
 		SuppressibleConfig(Supplier<ConfiguredFeature<?, ?>> delegate) {
 			this.delegate = delegate;
+			this.nativeOutput = VanillaOreFeatureGate.nativeOutput(delegate.get());
 		}
 	}
 
@@ -219,7 +253,11 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		boolean place(FeaturePlaceContext<SuppressibleConfig> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
+			Block output = context.config().nativeOutput;
+			if (output != null && OreSpawnOreGeneration.takesOverVanillaOre(
+					context.level().getLevel().dimension(), output)) return false;
 			return context.config().delegate.get().place(context.level(), context.chunkGenerator(),
 					context.random(), context.origin());
 		}
