@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.16.117011`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.117011`: the OreSpawn 4.1
 feature set for Minecraft 1.17.1 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
@@ -53,6 +53,15 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+**Ore Sources** groups ores by exact block tags such as `forge:ores/sulfur`.
+When two loaded ordinary MMD providers share one tag, new worlds use a
+Balanced output policy and one placement budget per channel. Older worlds keep
+their saved Keep Original behaviour. Imported Ore Dictionary aliases remain
+visible but dormant until you assign a known exact block tag. The **Biomes**
+directory can replace one loaded biome with another in new terrain; its
+**Overworld Materials** control applies across the dimension, not just the
+selected biome.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -116,11 +125,16 @@ Import or refresh the project with Eclipse Buildship, then run
 ForgeGradle 7.0.34, the Gradle 9.6.1 wrapper, Forge 37.1.1, official Minecraft
 1.17.1 mappings, and pack format 7. Ordinary Eclipse launches exclude tests
 and fixtures. Published jars are deterministic, SRG-reobfuscated for the Forge
-36 runtime, audited for their six access-transformer rules and contents, and
+37 runtime, audited for their six access-transformer rules and contents, and
 accompanied by SHA-256 checksums.
 
-Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
-Public developer and AI integration guidance lives in `docs/` and is included
+The player and developer guides live in `docs/` and are included
 in the built jar.
+
+For a manual shared-ore test, run `prepareOreSourcesClient genEclipseRuns`,
+then use `runOreSourcesClient.launch` (or `runTestOreSourcesClient.launch`).
+That profile loads two isolated dummy providers and uses `run-ore-sources`;
+preparing it does not clear your settings or saves. The ordinary client,
+server and data launches remain production-only.
 
 OreSpawn is licensed under LGPL-2.1.

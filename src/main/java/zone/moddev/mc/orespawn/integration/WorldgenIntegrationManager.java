@@ -47,6 +47,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 /** Internal owner of provider discovery, validation, merging, and lifecycle. */
 public final class WorldgenIntegrationManager {
@@ -165,6 +166,56 @@ public final class WorldgenIntegrationManager {
 
 	public static synchronized Set<String> activeProviderIds() {
 		return Collections.unmodifiableSet(new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
+	}
+
+	/** A stable snapshot of integrations for the client Mods directory. */
+	public static synchronized List<ProviderIntegrationInfo> providerIntegrations() {
+		Set<String> ids = new LinkedHashSet<>();
+		ids.addAll(API_PROVIDERS.keySet());
+		ids.addAll(RESOURCE_PROVIDERS.keySet());
+		ids.addAll(FILE_PROVIDER_IDS);
+		ids.addAll(ACTIVE_PROVIDERS.keySet());
+		ids.addAll(INVALID_PROVIDERS);
+		List<String> sorted = new ArrayList<>(ids);
+		Collections.sort(sorted);
+		List<ProviderIntegrationInfo> result = new ArrayList<>();
+		for (String id : sorted) {
+			JsonObject root = FILE_PROVIDERS.get(id);
+			if (root == null) root = RESOURCE_PROVIDERS.get(id);
+			ProviderDefinition active = ACTIVE_PROVIDERS.get(id);
+			if (root == null && active != null) root = active.root;
+			WorldgenProvider api = API_PROVIDERS.get(id);
+			boolean hasProvider = root != null || api != null || FILE_PROVIDER_IDS.contains(id);
+			result.add(new ProviderIntegrationInfo(id, hasProvider, hasProvider,
+					root == null ? (api == null ? -1 : 5) : integer(root, "schema_version", -1),
+					root == null ? (api == null ? -1 : api.revision())
+							: integer(root, "provider_revision", -1),
+					getProviderStatus(id), INVALID_PROVIDERS.contains(id),
+					Collections.emptyList()));
+		}
+		return Collections.unmodifiableList(result);
+	}
+
+	/** The editor works on copies, so changing a screen cannot alter a provider definition. */
+	public static synchronized BiomeProviderDefaultsSnapshot biomeProviderDefaults() {
+		JsonObject palettes = new JsonObject();
+		JsonObject materials = new JsonObject();
+		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
+			copyOwnedDefaults(provider, "biome_palettes", palettes);
+			copyOwnedDefaults(provider, "dimension_materials", materials);
+		}
+		return new BiomeProviderDefaultsSnapshot(palettes, materials,
+				new LinkedHashSet<>(ACTIVE_PROVIDERS.keySet()));
+	}
+
+	private static void copyOwnedDefaults(ProviderDefinition provider, String section,
+			JsonObject target) {
+		for (Entry<String, JsonElement> entry : provider.section(section).entrySet()) {
+			if (!entry.getValue().isJsonObject()) continue;
+			JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
+			value.addProperty("source_provider", provider.modId);
+			target.add(entry.getKey(), value);
+		}
 	}
 
 	/** Merge new provider-owned defaults without overwriting pack or world values. */
@@ -442,7 +493,7 @@ public final class WorldgenIntegrationManager {
 
 	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
-		if (schema != 1 && schema != 2 && schema != 3 && schema != 4) {
+		if (schema != 1 && schema != 2 && schema != 3 && schema != 4 && schema != 5) {
 			throw new JsonSyntaxException("unsupported schema_version");
 		}
 		if (!providerId.equals(string(root, "provider_modid", ""))) {
@@ -486,7 +537,7 @@ public final class WorldgenIntegrationManager {
 				if ("rocks".equals(section)) {
 					validateRock(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("ores".equals(section)) {
-					validateOre(entry.getKey(), entry.getValue().getAsJsonObject());
+					validateOre(entry.getKey(), entry.getValue().getAsJsonObject(), schema);
 				} else if ("geomes".equals(section)) {
 					validateGeome(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("biome_rules".equals(section)) {
@@ -540,7 +591,11 @@ public final class WorldgenIntegrationManager {
 		validateWeights(optionalObject(rock, "geomes"));
 	}
 
-	private static void validateOre(String idText, JsonObject ore) {
+	private static void validateOre(String idText, JsonObject ore, int schema) {
+		if (schema < 5 && ore.has("material")) {
+			throw new JsonSyntaxException("ore material requires provider schema 5");
+		}
+		if (ore.has("material")) new ResourceLocation(string(ore, "material", ""));
 		String blockId = string(ore, "block", idText);
 		Block output = block(blockId);
 		if (output == null || output == Blocks.AIR) {
@@ -554,19 +609,23 @@ public final class WorldgenIntegrationManager {
 		}
 		for (Entry<String, JsonElement> entry : dimensions.entrySet()) {
 			new ResourceLocation(entry.getKey());
-			validateOreRule(idText, entry);
+			validateOreRule(idText, entry, schema);
 		}
 		for (Entry<String, JsonElement> entry : selectors.entrySet()) {
 			OreDimensionSelector.fromId(new ResourceLocation(entry.getKey()));
-			validateOreRule(idText, entry);
+			validateOreRule(idText, entry, schema);
 		}
 	}
 
-	private static void validateOreRule(String idText, Entry<String, JsonElement> entry) {
+	private static void validateOreRule(String idText, Entry<String, JsonElement> entry, int schema) {
 			if (!entry.getValue().isJsonObject()) {
 				throw new JsonSyntaxException("ore dimension is not an object: " + entry.getKey());
 			}
 			JsonObject rule = entry.getValue().getAsJsonObject();
+			if (schema < 5 && rule.has("placement_channel")) {
+				throw new JsonSyntaxException("ore placement_channel requires provider schema 5");
+			}
+			if (rule.has("placement_channel")) new ResourceLocation(string(rule, "placement_channel", ""));
 			if (!bool(rule, "enabled", true)) return;
 			int minY = integer(rule, "min_y", Integer.MIN_VALUE);
 			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
@@ -673,7 +732,7 @@ public final class WorldgenIntegrationManager {
 	private static void validateFluidDeposit(String id, JsonObject deposit) {
 		String blockId = string(deposit, "block", "");
 		Block output = block(blockId);
-		if (output == null || output == Blocks.AIR || output.defaultBlockState().getFluidState().isEmpty()) {
+		if (!FluidBlocks.isFluidBlock(output)) {
 			throw new JsonSyntaxException("fluid deposit output is not a fluid block: " + blockId);
 		}
 		JsonObject dimensions = requiredObject(deposit, "dimensions");
@@ -804,7 +863,7 @@ public final class WorldgenIntegrationManager {
 		for (String key : new String[] { "default_fluid", "deep_aquifer_fluid" }) {
 			if (!materials.has(key)) continue;
 			Block value = block(materials.get(key).getAsString());
-			if (value == null || value == Blocks.AIR || value.defaultBlockState().getFluidState().isEmpty()) {
+			if (!FluidBlocks.isFluidBlock(value)) {
 				throw new JsonSyntaxException("dimension material is not a fluid block for " + id + ": "
 						+ materials.get(key).getAsString());
 			}
@@ -1030,6 +1089,58 @@ public final class WorldgenIntegrationManager {
 		JsonObject section(String name) {
 			return optionalObject(root, name);
 		}
+	}
+
+	/** Provider status shown by the client without exposing mutable provider data. */
+	public static final class ProviderIntegrationInfo {
+		private final String modId;
+		private final boolean nativeOs4;
+		private final boolean provider;
+		private final int schemaVersion;
+		private final int providerRevision;
+		private final ProviderStatus status;
+		private final boolean rejected;
+		private final List<Integer> legacyLineages;
+
+		public ProviderIntegrationInfo(String modId, boolean nativeOs4, boolean provider,
+				int schemaVersion, int providerRevision, ProviderStatus status,
+				boolean rejected, List<Integer> legacyLineages) {
+			this.modId = modId;
+			this.nativeOs4 = nativeOs4;
+			this.provider = provider;
+			this.schemaVersion = schemaVersion;
+			this.providerRevision = providerRevision;
+			this.status = status;
+			this.rejected = rejected;
+			this.legacyLineages = Collections.unmodifiableList(new ArrayList<>(legacyLineages));
+		}
+
+		public String modId() { return modId; }
+		public boolean nativeOs4() { return nativeOs4; }
+		public boolean hasProvider() { return provider; }
+		public int schemaVersion() { return schemaVersion; }
+		public int providerRevision() { return providerRevision; }
+		public ProviderStatus status() { return status; }
+		public boolean rejected() { return rejected; }
+		public List<Integer> legacyLineages() { return legacyLineages; }
+	}
+
+	/** Copy-on-read provider defaults used for GUI resets, not a public API. */
+	public static final class BiomeProviderDefaultsSnapshot {
+		private final JsonObject palettes;
+		private final JsonObject materials;
+		private final Set<String> activeProviders;
+
+		private BiomeProviderDefaultsSnapshot(JsonObject palettes, JsonObject materials,
+				Set<String> activeProviders) {
+			this.palettes = JsonCopies.copy(palettes);
+			this.materials = JsonCopies.copy(materials);
+			this.activeProviders = Collections.unmodifiableSet(new LinkedHashSet<>(activeProviders));
+		}
+
+		public JsonObject biomePalettesCopy() { return JsonCopies.copy(palettes); }
+		public JsonObject dimensionMaterialsCopy() { return JsonCopies.copy(materials); }
+		public Set<String> activeProviderIds() { return activeProviders; }
 	}
 
 	public static final class TemplateDefinition {

@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[37,)"
+license="LGPL-2.1"
+
+[[mods]]
+modId="baseminerals"
+version="1"
+displayName="Future Base Minerals Test"
+description='''Test-only OreSpawn provider fixture.'''
+
+[[dependencies.baseminerals]]
+modId="orespawn"
+mandatory=true
+versionRange="[4.1.0,5.0.0)"
+ordering="AFTER"
+side="BOTH"

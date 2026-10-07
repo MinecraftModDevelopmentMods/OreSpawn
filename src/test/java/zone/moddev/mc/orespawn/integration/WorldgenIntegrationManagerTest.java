@@ -38,6 +38,10 @@ class WorldgenIntegrationManagerTest {
 		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
 				"examplemod", provider("minecraft:stone", true, 3)));
 		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", provider("minecraft:brain_coral_wall_fan", true, 3)));
+		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", provider("minecraft:bubble_column", true, 3)));
+		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
 				"examplemod", provider("missingmod:not_here", true, 3)));
 	}
 

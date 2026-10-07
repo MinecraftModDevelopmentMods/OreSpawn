@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -47,7 +48,7 @@ public final class WorldgenProvider {
 		return revision;
 	}
 
-	/** Returns a defensive JSON representation matching provider schema 4. */
+	/** Returns a defensive JSON representation matching provider schema 5. */
 	public JsonObject toJson() {
 		return JsonCopies.copy(definition);
 	}
@@ -209,7 +210,7 @@ public final class WorldgenProvider {
 			requireOwned(dimensionMaterials.keySet(), "dimension materials");
 			requireOwned(templates.keySet(), "template");
 			JsonObject root = new JsonObject();
-			root.addProperty("schema_version", 4);
+			root.addProperty("schema_version", 5);
 			root.addProperty("provider_modid", modId);
 			root.addProperty("provider_revision", revision);
 			root.add("rocks", object(rocks));
@@ -347,6 +348,7 @@ public final class WorldgenProvider {
 	public static final class OreDefinition implements JsonDefinition {
 		private final ResourceLocation id;
 		private final ResourceLocation block;
+		private final ResourceLocation material;
 		private final boolean enabled;
 		private final boolean nativeGeneration;
 		private final ResourceLocation deepOutput;
@@ -360,6 +362,7 @@ public final class WorldgenProvider {
 		private OreDefinition(Builder builder) {
 			id = builder.id;
 			block = builder.block;
+			material = builder.material;
 			enabled = builder.enabled;
 			nativeGeneration = builder.nativeGeneration;
 			deepOutput = builder.deepOutput;
@@ -375,6 +378,8 @@ public final class WorldgenProvider {
 		public static Builder builder(ResourceLocation id, ResourceLocation block) { return new Builder(id, block); }
 		public ResourceLocation id() { return id; }
 		public ResourceLocation block() { return block; }
+		/** Material shared by interchangeable ore outputs. */
+		public Optional<ResourceLocation> material() { return Optional.ofNullable(material); }
 		public boolean enabled() { return enabled; }
 		public List<OreOutputDefinition> outputs() { return outputs; }
 		public boolean suppressVanilla() { return suppressVanilla; }
@@ -386,6 +391,7 @@ public final class WorldgenProvider {
 		public JsonObject toJson() {
 			JsonObject json = new JsonObject();
 			json.addProperty("block", block.toString());
+			if (material != null) json.addProperty("material", material.toString());
 			json.addProperty("enabled", enabled);
 			json.addProperty("native_generation", nativeGeneration);
 			json.addProperty("suppress_vanilla", suppressVanilla);
@@ -411,6 +417,7 @@ public final class WorldgenProvider {
 		public static final class Builder {
 			private final ResourceLocation id;
 			private final ResourceLocation block;
+			private ResourceLocation material;
 			private boolean enabled = true;
 			private boolean nativeGeneration;
 			private ResourceLocation deepOutput;
@@ -427,6 +434,7 @@ public final class WorldgenProvider {
 				this.block = Objects.requireNonNull(block, "block");
 			}
 			public Builder enabled(boolean value) { enabled = value; return this; }
+			public Builder material(ResourceLocation value) { material = Objects.requireNonNull(value); return this; }
 			public Builder nativeGeneration(boolean value) { nativeGeneration = value; return this; }
 			public Builder suppressVanilla(boolean value) { suppressVanilla = value; return this; }
 			public Builder retrogen(boolean value) { retrogen = value; return this; }
@@ -518,6 +526,7 @@ public final class WorldgenProvider {
 		private final int maxQuantity;
 		private final OrePattern pattern;
 		private final ResourceLocation patternType;
+		private final ResourceLocation placementChannel;
 		private final JsonObject patternSettings;
 		private final OreHeightDistribution heightDistribution;
 		private final double discardChanceOnAirExposure;
@@ -545,6 +554,9 @@ public final class WorldgenProvider {
 			maxQuantity = builder.maxQuantity;
 			pattern = builder.pattern;
 			patternType = builder.patternType;
+			placementChannel = builder.placementChannel != null ? builder.placementChannel
+					: builder.patternType != null ? builder.patternType
+					: new ResourceLocation("orespawn", "standard");
 			patternSettings = JsonCopies.copy(builder.patternSettings);
 			heightDistribution = builder.heightDistribution;
 			discardChanceOnAirExposure = builder.discardChanceOnAirExposure;
@@ -576,6 +588,8 @@ public final class WorldgenProvider {
 		public int maxQuantity() { return maxQuantity; }
 		public OrePattern pattern() { return pattern; }
 		public ResourceLocation patternType() { return patternType; }
+		/** Placement frequency, shape and host budget are selected per channel. */
+		public ResourceLocation placementChannel() { return placementChannel; }
 		public JsonObject patternSettings() { return JsonCopies.copy(patternSettings); }
 		public OreHeightDistribution heightDistribution() { return heightDistribution; }
 		public double discardChanceOnAirExposure() { return discardChanceOnAirExposure; }
@@ -614,6 +628,7 @@ public final class WorldgenProvider {
 				configuredPattern.add("settings", JsonCopies.copy(patternSettings));
 				json.add("pattern", configuredPattern);
 			}
+			json.addProperty("placement_channel", placementChannel.toString());
 			json.addProperty("height_distribution", heightDistribution.configName());
 			json.addProperty("discard_chance_on_air_exposure", discardChanceOnAirExposure);
 			json.addProperty("spread", spread);
@@ -642,6 +657,7 @@ public final class WorldgenProvider {
 			private int maxQuantity = 8;
 			private OrePattern pattern = OrePattern.VEIN;
 			private ResourceLocation patternType;
+			private ResourceLocation placementChannel;
 			private JsonObject patternSettings = new JsonObject();
 			private OreHeightDistribution heightDistribution = OreHeightDistribution.UNIFORM;
 			private double discardChanceOnAirExposure;
@@ -676,6 +692,10 @@ public final class WorldgenProvider {
 			public Builder pattern(ResourceLocation type, JsonObject settings) {
 				patternType = Objects.requireNonNull(type, "type");
 				patternSettings = JsonCopies.copy(Objects.requireNonNull(settings, "settings"));
+				return this;
+			}
+			public Builder placementChannel(ResourceLocation value) {
+				placementChannel = Objects.requireNonNull(value);
 				return this;
 			}
 			public Builder heightDistribution(OreHeightDistribution value) { heightDistribution = Objects.requireNonNull(value); return this; }

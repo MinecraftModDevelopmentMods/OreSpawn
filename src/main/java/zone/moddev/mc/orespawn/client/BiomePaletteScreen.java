@@ -1,23 +1,29 @@
 package zone.moddev.mc.orespawn.client;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 
-import net.minecraft.client.gui.components.Button;
+import zone.moddev.mc.orespawn.client.BiomeDirectoryModel.Palette;
+
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 
-final class BiomePaletteScreen extends Screen {
+/** Lists every palette in effective profile order for one dimension. */
+final class BiomePaletteScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
-	private int page;
+	private CompactScrollList list;
+	private int scroll;
+	private String armedPalette;
+	private int resetScope;
 
 	BiomePaletteScreen(Screen parent, GeologyEditorSession session, String dimension) {
-		super(new TranslatableComponent("screen.orespawn.biome_palette"));
+		super(new TranslatableComponent("screen.orespawn.biome_palettes"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
@@ -25,56 +31,92 @@ final class BiomePaletteScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int contentWidth = Math.min(390, Math.max(280, width - 24));
+		OreSpawnScreenLayout.beginHelp(this);
+		int contentWidth = Math.min(520, Math.max(300, width - 20));
 		int left = (width - contentWidth) / 2;
-		int removeWidth = 70;
-		int listTop = 48;
-		int controlsY = height - 52;
-		List<String> ids = session.biomePlacementIds(dimension);
-		int pageSize = Math.max(1, (controlsY - listTop) / 24);
-		int pageCount = Math.max(1, (ids.size() + pageSize - 1) / pageSize);
-		page = Math.max(0, Math.min(page, pageCount - 1));
-		int start = page * pageSize;
-		for (int i = 0; i < pageSize && start + i < ids.size(); i++) {
-			String id = ids.get(start + i);
-			int y = listTop + i * 24;
-			addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, y,
-					contentWidth - removeWidth - 5, 20, new TextComponent(id),
-					button -> minecraft.setScreen(new BiomePlacementScreen(this, session,
-							dimension, id))));
-			addRenderableWidget(new Button(left + contentWidth - removeWidth, y, removeWidth, 20,
-					new TranslatableComponent("button.orespawn.remove"),
-					button -> { session.removeBiomePlacement(dimension, id); rebuildWidgets(); }));
-		}
-		Button previous = addRenderableWidget(new Button(left, controlsY, 45, 20,
-				new TextComponent("<"), button -> { page--; rebuildWidgets(); }));
-		Button next = addRenderableWidget(new Button(left + 50, controlsY, 45, 20,
-				new TextComponent(">"), button -> { page++; rebuildWidgets(); }));
-		previous.active = page > 0;
-		next.active = page + 1 < pageCount;
-		addRenderableWidget(OreSpawnScreenLayout.button(this, font,
-				left + contentWidth - 150, controlsY, 150, 20,
-				new TranslatableComponent("button.orespawn.add_biome"),
-				button -> minecraft.setScreen(new BiomePickerScreen(this, session, id -> {
-					session.addBiomePlacement(dimension, id);
-					minecraft.setScreen(new BiomePlacementScreen(this, session, dimension, id));
-				}))));
-		addRenderableWidget(new Button(width / 2 - 75, height - 28, 150, 20,
+		List<Palette> palettes = session.biomeDirectory().palettes(dimension);
+		int listTop = 38;
+		int listHeight = Math.max(32, height - listTop - 62);
+		list = addButton(new CompactScrollList(this, left, listTop, contentWidth, listHeight) {
+			@Override protected int size() { return palettes.size(); }
+			@Override protected String rowText(int index) {
+				Palette palette = palettes.get(index);
+				return (palette.enabled ? "[x] " : "[ ] ") + (palette.order + 1) + ". " + palette.id;
+			}
+			@Override protected boolean rowEnabled(int index) { return !palettes.get(index).override; }
+			@Override protected int rowColor(int index) {
+				return palettes.get(index).override ? 0x55FFFF : palettes.get(index).enabled ? 0xFFFFFF : 0x888888;
+			}
+			@Override protected void onRowPressed(int index) {
+				Palette palette = palettes.get(index);
+				if (!palette.override) minecraft.setScreen(new BiomePaletteSettingsScreen(
+						BiomePaletteScreen.this, session, palette.id));
+			}
+			@Override protected int rowActionWidth(int index) { return 18; }
+			@Override protected void drawRowAction(Minecraft minecraft, int index, int x, int y,
+					int width, int height, boolean hovered) {
+				drawCenteredString(font, armedPalette != null && armedPalette.equals(palettes.get(index).id)
+						? "!" : "R", x + width / 2, y + 4, hovered ? 0xFFFFFF : 0xAAAAAA);
+			}
+			@Override protected void onRowActionPressed(int index) { resetPalette(palettes.get(index)); }
+			@Override protected List<String> rowTooltip(int index) {
+				Palette palette = palettes.get(index);
+				List<String> lines = new ArrayList<>();
+				lines.add(palette.id);
+				lines.add(net.minecraft.client.resources.language.I18n.get(
+						"label.orespawn.biome.palette_owner_order", palette.owner, palette.order + 1));
+				if (palette.override) lines.add(net.minecraft.client.resources.language.I18n.get(
+						"tooltip.orespawn.biome.override_palette"));
+				return lines;
+			}
+			@Override protected List<String> rowActionTooltip(int index) {
+				return java.util.Collections.singletonList(net.minecraft.client.resources.language.I18n.get(
+						armedPalette != null && armedPalette.equals(palettes.get(index).id)
+								? "button.orespawn.biome.confirm_reset_palette"
+								: "button.orespawn.biome.reset_palette"));
+			}
+		});
+		list.setFirstIndex(scroll);
+		int half = (contentWidth - 4) / 2;
+		int resetY = height - 52;
+		addButton(OreSpawnScreenLayout.button(this, font, left, resetY, half, 20,
+				new TranslatableComponent(resetScope == 1 ? "button.orespawn.biome.confirm_reset_dimension"
+						: "button.orespawn.biome.reset_dimension"), button -> resetDimension()));
+		addButton(OreSpawnScreenLayout.button(this, font, left + half + 4, resetY, half, 20,
+				new TranslatableComponent(resetScope == 2 ? "button.orespawn.biome.confirm_reset_all"
+						: "button.orespawn.biome.reset_all"), button -> resetAll()));
+		addButton(new Button(width / 2 - 75, height - 28, 150, 20,
 				CommonComponents.GUI_DONE, button -> onClose()));
 	}
 
-	private void rebuildWidgets() {
-		clearWidgets();
-		init();
+	private void resetPalette(Palette palette) {
+		resetScope = 0;
+		if (!palette.id.equals(armedPalette)) { armedPalette = palette.id; rebuild(); return; }
+		session.resetBiomePalette(palette.id); armedPalette = null; rebuild();
 	}
+
+	private void resetDimension() {
+		armedPalette = null;
+		if (resetScope != 1) { resetScope = 1; rebuild(); return; }
+		session.resetBiomeDimension(dimension); resetScope = 0; rebuild();
+	}
+
+	private void resetAll() {
+		armedPalette = null;
+		if (resetScope != 2) { resetScope = 2; rebuild(); return; }
+		session.resetAllBiomeManagement(); resetScope = 0; rebuild();
+	}
+
+	private void rebuild() { if (list != null) scroll = list.firstIndex(); clearWidgets(); init(); }
 
 	@Override public void onClose() { minecraft.setScreen(parent); }
 
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-		renderBackground(poseStack);
-		drawCenteredString(poseStack, font, title, width / 2, 12, 0xFFFFFF);
-		drawCenteredString(poseStack, font, new TextComponent(dimension), width / 2, 28, 0xCCCCCC);
-		super.render(poseStack, mouseX, mouseY, partialTick);
+	public void render(int mouseX, int mouseY, float partialTick) {
+		renderBackground();
+		drawCenteredString(font, title, width / 2, 9, 0xFFFFFF);
+		drawCenteredString(font, new TextComponent(dimension), width / 2, 23, 0xAAAAAA);
+		super.render(mouseX, mouseY, partialTick);
+		OreSpawnScreenLayout.renderExplanations(this, mouseX, mouseY);
 	}
 }

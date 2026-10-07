@@ -25,12 +25,18 @@ player deliberately adds them. You can remove the starter rocks or add blocks
 from installed mods before creating the world.
 
 Mods can also offer new biomes and world materials without enabling strata.
-Use **Biomes & World Materials** to inspect installed dimension palettes,
-surface blocks, aquifer fluids, snow, and ice. The picker only accepts real
+Use **Biomes** to inspect loaded biomes, placement palettes, and surface rules.
+Replacing a biome changes only newly generated terrain. The dimension's
+**Materials** button changes aquifer fluid, snow, or ice across every biome in
+that dimension, not only the biome currently selected. The picker only accepts
 installed registry entries. Missing optional compatibility biomes are skipped
 safely instead of breaking world creation.
 
 ## What The Main Controls Mean
+
+Geome IDs are case-sensitive registry names, such as `example:cocoa_basin`.
+The editor trims surrounding spaces but rejects uppercase or duplicate IDs
+instead of renaming them.
 
 - **Template** selects a complete setup supplied by OreSpawn, a mod, or a pack.
 - **Sky** creates broad rock layers and geological regions called geomes. The
@@ -48,11 +54,13 @@ safely instead of breaking world creation.
   installed mod. These are covered underground deposits, not exposed vanilla
   lakes. **Solid Cover** controls the roof thickness, while **Solid Shell**
   prevents a deposit from opening into a cave at its sides or underside.
-- **Biomes & World Materials** controls broad biome regions and what their
-  surfaces, underground water, snow, and ice are made from. **Augment** mixes
-  new biomes into the existing source; **Replace** creates a complete provider
-  style. Namespace scope protects other biome mods unless a pack deliberately
-  opts them in.
+- **Biomes** lists installed and referenced biomes and their placement rules.
+  **Replace in new terrain with...** is an exact, one-to-one choice and does
+  not rewrite existing chunks. Palette settings still offer **Augment** for a
+  provider mix or **Replace** for a complete provider style.
+- **Ore Sources** groups interchangeable ores by exact block tags. Balanced
+  shares one placement budget across eligible outputs; Single picks one output;
+  Custom lets you choose weights. Keep Original leaves every rule independent.
 
 **World Materials** applies across an entire dimension. **Aquifer Fluid**
 changes the normal below-sea-level fluid, while **Deep Aquifer** can use a
