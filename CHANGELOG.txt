@@ -1,3 +1,18 @@
+Version 4.1.0.117011
+
+* Add a mod directory and material-group ore controls, including exact block-tag
+  aliases and sensible defaults when multiple managed MMD mods share an ore.
+* Add a biome directory with exact new-terrain replacement and dimension-wide
+  material controls. Existing chunks remain unchanged.
+* Preserve older profiles and missing-mod settings while upgrading the provider,
+  global, and world schemas to 5, 8, and 7.
+* Split the build logic into smaller, commented scripts and use LF text files.
+* Keep managed vanilla ore settings effective when a saved biome contains an
+  inline feature copy, including stone and deepslate variants.
+* Reject invalid Geome IDs without silently renaming them.
+* Add isolated shared-ore client launches and strengthen Eclipse, checksum and
+  runtime-log checks.
+
 Version 4.0.16.117011
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run

@@ -23,6 +23,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class WorldGeologyProfileTest {
+	@org.junit.jupiter.api.BeforeAll
+	static void bootstrapMinecraft() {
+		zone.moddev.mc.orespawn.test.Forge36TestBootstrap.registerVanilla();
+	}
+
 	@Test
 	void schemaThreeOilMigratesToNamedFluidDeposit() {
 		JsonObject legacy = completeGlobalFixture();

@@ -63,6 +63,10 @@ public final class GeomeConfig {
 	private static final Path CONFIG_V3_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v3.bak");
 	private static final Path CONFIG_V4_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v4.bak");
 	private static final Path CONFIG_V5_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v5.bak");
+	private static final Path CONFIG_V6_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v6.bak");
+	private static final Path CONFIG_V7_BACKUP_PATH = Paths.get("config", "orespawn-worldgen.v7.bak");
+	private static final Path MATERIAL_GROUPS_BACKUP_PATH = Paths.get("config",
+			"orespawn-worldgen.pre-material-groups.bak");
 	private static final Path BIOME_DEFAULTS_BACKUP_PATH = Paths.get("config",
 			"orespawn-worldgen.pre-biome-revision-3.bak");
 	private static final Path WORLDGEN_ALIAS_DEFAULTS_BACKUP_PATH = Paths.get("config",
@@ -72,7 +76,7 @@ public final class GeomeConfig {
 	private static final Path CONFIG_TEMP_PATH = Paths.get("config", "orespawn-worldgen.json.tmp");
 	private static final Path PROVIDER_DEFAULTS_BACKUP_PATH = Paths.get("config",
 			"orespawn-worldgen.pre-provider-defaults.bak");
-	public static final int SCHEMA_VERSION = 6;
+	public static final int SCHEMA_VERSION = 8;
 	private static final int BIOME_DEFAULTS_REVISION = 3;
 	private static final int WORLDGEN_ALIAS_DEFAULTS_REVISION = 1;
 	private static final int ORE_DEFAULTS_REVISION = 10;
@@ -99,6 +103,7 @@ public final class GeomeConfig {
 		JsonObject root = loadConfig();
 		boolean changed = OreSpawnOreIntegration.mergeProviderOres(root);
 		changed |= FluidDepositMigration.normalize(root);
+		changed |= OreSourcePolicies.initialize(root, false);
 		if (changed) {
 			writeProviderMerge(root);
 		}
@@ -164,6 +169,23 @@ public final class GeomeConfig {
 		return globalBaseProfile;
 	}
 
+	/** Saves accepted material names and tag aliases as defaults for new worlds. */
+	public static synchronized boolean persistOreMaterialGroups(JsonObject groups) {
+		JsonObject updated = globalBaseConfigSnapshot();
+		updated.add(OreMaterialGroups.SECTION, JsonCopies.copy(groups));
+		OreMaterialGroups.initialize(updated);
+		updated.addProperty("schema_version", SCHEMA_VERSION);
+		if (!writeUpdatedConfig(updated, MATERIAL_GROUPS_BACKUP_PATH)) return false;
+		globalBaseConfigRoot = JsonCopies.copy(updated);
+		globalBaseProfile = WorldGeologyProfile.fromGlobalConfig(updated,
+				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
+		JsonObject effective = applyFreshWorldTemplate(updated);
+		globalConfigRoot = JsonCopies.copy(effective);
+		globalProfile = WorldGeologyProfile.fromGlobalConfig(effective,
+				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
+		return true;
+	}
+
 	static boolean hasTerrainReplacement(ResourceKey<Level> dimension) {
 		return terrainDimension(dimension) != null;
 	}
@@ -196,13 +218,15 @@ public final class GeomeConfig {
 			int schemaVersion = getInt(root, "schema_version", 1);
 			if (schemaVersion < SCHEMA_VERSION) {
 				JsonObject migrated = schemaVersion <= 1 ? migrateV1(root) : JsonCopies.copy(root);
-				migrated = migrateToV6(migrated, defaults);
+				migrated = migrateToV8(migrated, defaults);
 				writeMigratedConfig(migrated,
 						schemaVersion <= 1 ? CONFIG_BACKUP_PATH
 								: schemaVersion == 2 ? CONFIG_V2_BACKUP_PATH
 										: schemaVersion == 3 ? CONFIG_V3_BACKUP_PATH
 												: schemaVersion == 4 ? CONFIG_V4_BACKUP_PATH
-														: CONFIG_V5_BACKUP_PATH);
+												: schemaVersion == 5 ? CONFIG_V5_BACKUP_PATH
+														: schemaVersion == 6 ? CONFIG_V6_BACKUP_PATH
+														: CONFIG_V7_BACKUP_PATH);
 				return migrated;
 			}
 			if (schemaVersion > SCHEMA_VERSION) {
@@ -653,14 +677,15 @@ public final class GeomeConfig {
 		return refreshBiomeDefaults(migrated, defaultConfig());
 	}
 
-	private static JsonObject migrateToV6(JsonObject original, JsonObject defaults) {
+	private static JsonObject migrateToV8(JsonObject original, JsonObject defaults) {
 		JsonObject migrated = getInt(original, "biome_defaults_revision", 0) < BIOME_DEFAULTS_REVISION
 				? refreshBiomeDefaults(original, defaults) : JsonCopies.copy(original);
 		FluidDepositMigration.normalize(migrated);
 		for (String key : new String[] { "geology_mode", "place_fluid_deposits", "fluid_deposits",
 				"manage_vanilla_ores", "ore_defaults_revision", "cyano", "ores",
 				"ore_providers", "providers", "worldgen_aliases", "default_template",
-				"terrain_dimensions", "biome_palettes", "dimension_materials" }) {
+				"terrain_dimensions", "biome_palettes", "dimension_materials",
+				OreMaterialGroups.SECTION, OreSourcePolicies.SECTION }) {
 			if (!migrated.has(key)) {
 				migrated.add(key, JsonCopies.copy(defaults.get(key)));
 			}
@@ -1459,6 +1484,8 @@ public final class GeomeConfig {
 		root.add("terrain_dimensions", new JsonObject());
 		root.add("biome_palettes", new JsonObject());
 		root.add("dimension_materials", new JsonObject());
+		root.add(OreMaterialGroups.SECTION, OreMaterialGroups.defaults());
+		root.add(OreSourcePolicies.SECTION, new JsonObject());
 		JsonObject retrogen = new JsonObject();
 		retrogen.addProperty("enabled", false);
 		retrogen.addProperty("force", false);

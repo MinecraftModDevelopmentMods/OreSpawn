@@ -27,9 +27,11 @@ class ReleaseWorkflowContractTest {
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
 		Path buildFile = Paths.get("build.gradle");
 		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String publishing = new String(Files.readAllBytes(Paths.get("gradle", "release", "publishing.gradle")),
+				StandardCharsets.UTF_8);
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 	}
 

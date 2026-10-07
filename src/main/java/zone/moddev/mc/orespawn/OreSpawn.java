@@ -65,6 +65,7 @@ public class OreSpawn {
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStarting);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
