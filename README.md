@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.16.118021`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.118021`: the OreSpawn 4.1
 feature set for Minecraft 1.18.2 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
@@ -53,6 +53,15 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+**Ore Sources** groups ores by exact block tags such as `forge:ores/sulfur`.
+When two loaded ordinary MMD providers share one tag, new worlds use a
+Balanced output policy and one placement budget per channel. Older worlds keep
+their saved Keep Original behaviour. Imported Ore Dictionary aliases remain
+visible but dormant until you assign a known exact block tag. The **Biomes**
+directory can replace one loaded biome with another in new terrain; its
+**Overworld Materials** control applies across the dimension, not just the
+selected biome.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -104,6 +113,12 @@ Minecraft 1.18.2; the build rejects a different Java 17 toolchain:
 .\gradlew.bat genEclipseRuns verifyEclipseProductionClasspath --no-daemon
 ```
 
+For a manual duplicate-ore test, use `runOreSourcesClient.launch` (also named
+`runTestOreSourcesClient.launch`). It loads two isolated dummy providers and
+keeps its worlds and settings in `run-ore-sources`. Ordinary launches do not
+load those providers. See [the build guide](gradle/README.md) for the automated
+fresh/reload and managed Nether ore checks.
+
 `build` runs the standard `check` lifecycle. In addition to the JUnit suite,
 that lifecycle packages a test-only provider mod and verifies exposed,
 underwater, filler, and ceiling surfaces in open and ceiling normal-noise
@@ -119,8 +134,6 @@ and fixtures. Published jars are deterministic, SRG-reobfuscated for the Forge
 40 runtime, audited for their six access-transformer rules and contents, and
 accompanied by SHA-256 checksums.
 
-Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
-Public developer and AI integration guidance lives in `docs/` and is included
-in the built jar.
+Developer and player guides live in `docs/` and are included in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.
