@@ -16,6 +16,7 @@ import java.util.Set;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import zone.moddev.mc.orespawn.util.JsonCopies;
 import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,7 @@ class LocalizationParityTest {
 	 * Human-facing prose must never be added here merely to make this test pass.
 	 */
 	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES = Map.ofEntries(
+			Map.entry("screen.orespawn.biomes", Set.of("fr_ca.json", "fr_fr.json")),
 			Map.entry("button.orespawn.world_settings", Set.of(
 					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
@@ -78,8 +80,8 @@ class LocalizationParityTest {
 	@Test
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {
 		JsonObject english = read(LANG_DIR.resolve("en_us.json"));
-		Set<String> englishKeys = english.keySet();
-		assertEquals(357, englishKeys.size(),
+		Set<String> englishKeys = JsonCopies.keys(english);
+		assertEquals(510, englishKeys.size(),
 				"The target locale contract changed; review every shipped translation");
 		Set<String> localeFiles = new HashSet<>();
 		Set<String> observedIntentionalEnglishValues = new HashSet<>();

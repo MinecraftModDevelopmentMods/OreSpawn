@@ -1,0 +1,247 @@
+// These tiny mods represent providers that have not yet been ported to this
+// Minecraft version. They live outside sourceSets.main and ship in neither
+// OreSpawn nor its published API jar.
+def shared = project.ext.oreSpawnBuild
+def fixtureClasses = [:]
+def fixtureJars = [:]
+def fixtureOutputs = [:]
+def prepareFixtureOutputs = []
+['Minerals': 'oreSourceMineralsTest', 'Advantage': 'oreSourceAdvantageTest'].each { label, folder ->
+    File classes = file("${buildDir}/ore-source-fixture/${label.toLowerCase()}-classes")
+    def compile = tasks.register("compileOreSource${label}Fixture", JavaCompile) {
+        dependsOn tasks.named('classes')
+        source fileTree("src/${folder}/java")
+        classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+        destinationDirectory = classes
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        options.encoding = 'UTF-8'
+    }
+    def jar = tasks.register("oreSource${label}FixtureJar", Jar) {
+        dependsOn compile
+        archiveFileName = "oresource-${label.toLowerCase()}.jar"
+        destinationDirectory = file("${buildDir}/ore-source-fixture")
+        from classes
+        from "src/${folder}/resources"
+    }
+    fixtureClasses[label] = classes
+    File clientOutput = file("${buildDir}/ore-source-fixture/${label.toLowerCase()}-mod")
+    prepareFixtureOutputs.add(tasks.register("prepareOreSource${label}Client", Sync) {
+        dependsOn compile
+        from classes
+        from "src/${folder}/resources"
+        into clientOutput
+    })
+    fixtureOutputs[label] = clientOutput
+    fixtureJars[label] = renamer.classes(jar) {
+        map.from minecraft.dependency.toSrgFile
+        output = layout.buildDirectory.file("ore-source-fixture/oresource-${label.toLowerCase()}-reobf.jar")
+    }
+}
+
+// Only this named profile loads the dummy providers; it keeps manual saves.
+File clientDirectory = file('run-ore-sources')
+def clientModClasses = { File mainOutput ->
+    List<String> entries = ["${mod_id}%%${mainOutput}"]
+    ['Minerals': 'baseminerals', 'Advantage': 'electricadvantage'].each { label, id ->
+        entries.add("${id}%%${fixtureOutputs[label]}")
+    }
+    entries.join(File.pathSeparator)
+}
+shared.oreSourceFixtureOutputs = fixtureOutputs
+shared.oreSourcesClientModClasses = clientModClasses
+
+tasks.register('prepareOreSourcesClient') {
+    group = 'ide'
+    description = 'Prepares two dummy ore providers without clearing manual settings or saves.'
+    dependsOn prepareFixtureOutputs, tasks.named('classes')
+    doLast {
+        new File(clientDirectory, 'mods').mkdirs()
+        copy { from sourceSets.main.output; into file('bin/main') }
+    }
+}
+
+tasks.register('runOreSourcesClient', JavaExec) {
+    group = 'forgegradle runs'
+    description = 'Opens a separate client with simulated Base Minerals and Electric Advantage ores.'
+    dependsOn tasks.named('verifyOreSourcesClientLaunch')
+    javaLauncher = shared.java17Launcher
+    doFirst {
+        def launch = shared.oreSourcesClientLaunch()
+        mainClass = launch.mainClass
+        args = launch.arguments
+        jvmArgs = launch.jvmArguments
+        classpath = files(sourceSets.main.runtimeClasspath, launch.archives, file('bin/main'))
+        environment launch.environment
+        workingDir clientDirectory
+        File crashes = new File(clientDirectory, 'crash-reports')
+        ext.priorCrashes = crashes.isDirectory()
+                ? fileTree(crashes).files.collect { it.absolutePath } as Set : [] as Set
+    }
+    doLast {
+        shared.assertRuntimeLogsClean(clientDirectory, 'ore sources manual client', ext.priorCrashes)
+    }
+}
+tasks.register('runTestOreSourcesClient') {
+    group = 'forgegradle runs'
+    description = 'Alias for the manual shared-ore client.'
+    dependsOn tasks.named('runOreSourcesClient')
+}
+
+def clientProbeOutput = file("${buildDir}/ore-source-fixture/client-probe-mod")
+def prepareClientProbe = tasks.register('prepareOreSourcesClientProbe', Sync) {
+    dependsOn tasks.named('compileClientIntegrationTestMod')
+    from file("${buildDir}/client-integration-fixture/classes")
+    from 'src/clientIntegrationTest/resources'
+    into clientProbeOutput
+}
+tasks.register('oreSourcesClientIntegrationTest', Exec) {
+    group = 'verification'
+    description = 'Checks the shared-ore launch and fresh/reloaded rendered worlds.'
+    dependsOn 'verifyOreSourcesClientLaunch', prepareClientProbe
+    File directory = file("${buildDir}/ore-sources-client-integration-run")
+    doFirst {
+        delete directory
+        directory.mkdirs()
+        shared.prepareTestForgeConfig(directory)
+        def launch = shared.oreSourcesClientLaunch()
+        workingDir directory
+        environment launch.environment
+        environment 'MOD_CLASSES', clientModClasses(file('bin/main')) +
+                "${File.pathSeparator}clientprobe%%${clientProbeOutput}"
+        List<String> arguments = new ArrayList<>(launch.jvmArguments)
+        arguments.addAll(['-Xmx2g', '-Dclientprobe.enabled=true', '-Dclientprobe.hidden=true',
+                '-Dclientprobe.oreSources=true', '-cp',
+                files(sourceSets.main.runtimeClasspath, launch.archives, file('bin/main'), clientProbeOutput).files
+                        .collect { it.absolutePath }.join(File.pathSeparator), launch.mainClass])
+        arguments.addAll(launch.arguments)
+        commandLine(([shared.java17Launcher.get().executablePath.asFile.absolutePath] + arguments) as List<String>)
+    }
+    doLast {
+        Properties result = new Properties()
+        File marker = new File(directory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) throw new GradleException('Shared-ore client did not complete')
+        marker.withInputStream { result.load(it) }
+        ['world_settings_opened', 'long_editor_roundtrip', 'first_world_rendered', 'reload_rendered'].each {
+            if (result.getProperty(it) != 'true') throw new GradleException("Shared-ore client failed ${it}")
+        }
+        shared.assertRuntimeLogsClean(directory, 'shared-ore development client', [] as Set)
+    }
+}
+
+def serverRuntime = providers.gradleProperty('packagedForgeServerRuntime')
+['One': ['Minerals'], 'Both': ['Minerals', 'Advantage']].each { scenario, labels ->
+    File runDirectory = file("${buildDir}/ore-source-${scenario.toLowerCase()}-run")
+    def prepare = tasks.register("prepareOreSource${scenario}") {
+        dependsOn shared.releaseJar
+        labels.each { dependsOn fixtureJars[it] }
+        doLast {
+            delete runDirectory
+            runDirectory.mkdirs()
+            shared.prepareTestForgeConfig(runDirectory)
+            copy {
+                from shared.releaseJar
+                labels.each { from fixtureJars[it] }
+                into new File(runDirectory, 'mods')
+            }
+            new File(runDirectory, 'server.properties').setText('''\
+level-name=ore-source-world
+level-seed=49110
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        }
+    }
+    def fresh = tasks.register("oreSource${scenario}Fresh", Exec) {
+        group = 'verification'
+        dependsOn prepare
+        doFirst {
+            if (!serverRuntime.isPresent()) {
+                throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 40 installation>')
+            }
+            workingDir runDirectory
+            commandLine shared.forge40ServerCommand(file(serverRuntime.get()), runDirectory,
+                    ['-Doresourceprobe.phase=fresh'])
+        }
+        doLast {
+            File marker = new File(runDirectory, 'ore-source-world/oresourceprobe.properties')
+            if (!marker.isFile()) throw new GradleException("Fresh ore-source marker is missing: ${marker}")
+            shared.assertRuntimeLogsClean(runDirectory, "${scenario} ore-source fresh", [] as Set)
+        }
+    }
+    def reload = tasks.register("oreSource${scenario}Reload", Exec) {
+        group = 'verification'
+        dependsOn fresh
+        doFirst {
+            workingDir runDirectory
+            commandLine shared.forge40ServerCommand(file(serverRuntime.get()), runDirectory,
+                    ['-Doresourceprobe.phase=reload'])
+        }
+        doLast {
+            File marker = new File(runDirectory, 'ore-source-world/oresourceprobe.properties')
+            Properties result = new Properties()
+            marker.withInputStream { result.load(it) }
+            if (result.getProperty('reload_verified') != 'true') {
+                throw new GradleException("${scenario} ore-source reload did not verify")
+            }
+            shared.assertRuntimeLogsClean(runDirectory, "${scenario} ore-source reload", [] as Set)
+        }
+    }
+    tasks.register("oreSource${scenario}IntegrationTest") {
+        group = 'verification'
+        dependsOn reload
+    }
+}
+
+File bothRun = file("${buildDir}/ore-source-both-run")
+File advantageJar = new File(bothRun, 'mods/oresource-advantage-reobf.jar')
+File parkedJar = new File(bothRun, 'oresource-advantage-reobf.jar')
+def missing = tasks.register('oreSourceBothMissing', Exec) {
+    group = 'verification'
+    dependsOn tasks.named('oreSourceBothReload')
+    doFirst {
+        java.nio.file.Files.move(advantageJar.toPath(), parkedJar.toPath())
+        workingDir bothRun
+        commandLine shared.forge40ServerCommand(file(serverRuntime.get()), bothRun,
+                ['-Doresourceprobe.phase=missing'])
+    }
+    doLast {
+        Properties result = new Properties()
+        new File(bothRun, 'ore-source-world/oresourceprobe.properties').withInputStream { result.load(it) }
+        if (result.getProperty('missing_verified') != 'true') {
+            throw new GradleException('Missing-provider reload did not verify')
+        }
+        shared.assertRuntimeLogsClean(bothRun, 'Both ore-source provider missing', [] as Set,
+                ['This world was saved with mod electricadvantage which appears to be missing'])
+    }
+}
+tasks.register('oreSourceBothRestored', Exec) {
+    group = 'verification'
+    dependsOn missing
+    doFirst {
+        java.nio.file.Files.move(parkedJar.toPath(), advantageJar.toPath())
+        workingDir bothRun
+        commandLine shared.forge40ServerCommand(file(serverRuntime.get()), bothRun,
+                ['-Doresourceprobe.phase=restored'])
+    }
+    doLast {
+        Properties result = new Properties()
+        new File(bothRun, 'ore-source-world/oresourceprobe.properties').withInputStream { result.load(it) }
+        if (result.getProperty('restored_verified') != 'true') {
+            throw new GradleException('Restored-provider reload did not verify')
+        }
+        shared.assertRuntimeLogsClean(bothRun, 'Both ore-source provider restored', [] as Set)
+    }
+}
+
+tasks.register('oreSourceFixtureIntegrationTest') {
+    group = 'verification'
+    description = 'Checks one and two future MMD providers, then removes and restores one on the same save.'
+    dependsOn tasks.named('oreSourceOneIntegrationTest'), tasks.named('oreSourceBothRestored')
+}

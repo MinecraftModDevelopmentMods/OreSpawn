@@ -36,9 +36,11 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
 /** Bakes and installs optional biome and dimension-material integration. */
 final class BiomeWorldgenManager {
+	private static final String UI_OVERRIDE_PREFIX = "orespawn:ui/biome_overrides/";
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceKey<Level>, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
@@ -111,11 +113,11 @@ final class BiomeWorldgenManager {
 		return new BakedBiomeWorldgen(palettes, surfaces, materials);
 	}
 
-	private static List<Palette> bakePalettes(JsonObject root, Registry<Biome> registry,
+	static List<Palette> bakePalettes(JsonObject root, Registry<Biome> registry,
 			ResourceLocation dimension, Map<Holder<Biome>, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
-		for (Entry<String, JsonElement> paletteEntry : section.entrySet()) {
+		for (Entry<String, JsonElement> paletteEntry : orderedPaletteEntries(section)) {
 			if (!paletteEntry.getValue().isJsonObject()) continue;
 			JsonObject json = paletteEntry.getValue().getAsJsonObject();
 			if (!bool(json, "enabled", true)
@@ -174,6 +176,17 @@ final class BiomeWorldgenManager {
 					bakedEntries, bakeChoices(registry, json, bakedEntries)));
 		}
 		return result;
+	}
+
+	static List<Entry<String, JsonElement>> orderedPaletteEntries(JsonObject section) {
+		List<Entry<String, JsonElement>> ordered = new ArrayList<>();
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (!entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		return ordered;
 	}
 
 	private static Map<Biome, Choice> bakeChoices(Registry<Biome> registry,
@@ -306,7 +319,7 @@ final class BiomeWorldgenManager {
 			Block block = ForgeRegistries.BLOCKS.getValue(
 					new ResourceLocation(json.get(key).getAsString()));
 			if (block == null || block == Blocks.AIR
-					|| (fluid && block.defaultBlockState().getFluidState().isEmpty())) return null;
+					|| (fluid && !FluidBlocks.isFluidBlock(block))) return null;
 			return block.defaultBlockState();
 		} catch (RuntimeException e) {
 			return null;

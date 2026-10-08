@@ -25,8 +25,13 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
+		StringBuilder sources = new StringBuilder();
+		for (Path buildFile : new Path[] { Paths.get("build.gradle"),
+				Paths.get("gradle", "release", "artifacts.gradle"),
+				Paths.get("gradle", "release", "publishing.gradle") }) {
+			sources.append(new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8));
+		}
+		String build = sources.toString();
 		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
 		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
 		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
@@ -34,12 +39,26 @@ class ReleaseWorkflowContractTest {
 	}
 
 	@Test
-	void hostedWorkflowsUseThePinnedTemurinJdkForGradleAndCompilation() throws Exception {
+	void hostedWorkflowsUsePinnedJdksAndExerciseAColdForgeBootstrap() throws Exception {
 		for (String workflow : new String[] { "ci.yml", "codeql-analysis.yml" }) {
 			String text = new String(Files.readAllBytes(
 					Paths.get(".github", "workflows", workflow)), StandardCharsets.UTF_8);
-			assertEquals(1, occurrences(text, "actions/setup-java@"),
-					workflow + " must not replace the pinned toolchain with a second JDK");
+			int jobCount = workflow.equals("ci.yml") ? 2 : 1;
+			int invocationCount = workflow.equals("ci.yml") ? 3 : 1;
+			assertEquals(jobCount * 3, occurrences(text, "actions/setup-java@"));
+			assertEquals(jobCount, occurrences(text, "java-version: '25.0.3+9.0.LTS'"));
+			assertEquals(jobCount, occurrences(text, "java-version: '8.0.502+7'"));
+			assertEquals(jobCount, occurrences(text, "java-version: '17.0.1+12'"));
+			assertTrue(text.lastIndexOf("java-version: '17.0.1+12'")
+					> text.lastIndexOf("java-version: '25.0.3+9.0.LTS'"));
+			assertTrue(text.lastIndexOf("java-version: '17.0.1+12'")
+					> text.lastIndexOf("java-version: '8.0.502+7'"));
+			assertEquals(invocationCount, occurrences(text,
+					"$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64"));
+			assertEquals(invocationCount, occurrences(text,
+					"-Dorg.gradle.java.installations.auto-detect=false"));
+			assertEquals(invocationCount, occurrences(text,
+					"-Dorg.gradle.java.installations.auto-download=false"));
 			assertTrue(text.contains("distribution: temurin"),
 					workflow + " must use Temurin");
 			assertTrue(text.contains("java-version: '17.0.1+12'"),
@@ -47,6 +66,12 @@ class ReleaseWorkflowContractTest {
 			assertFalse(text.contains("distribution: microsoft"),
 					workflow + " must not replace the exact Temurin Gradle runtime");
 		}
+		String ci = Files.readString(Paths.get(".github", "workflows", "ci.yml"));
+		assertTrue(ci.contains("name: Cold Forge bootstrap"));
+		assertTrue(ci.contains("test ! -e .gradle"));
+		assertTrue(ci.contains("test ! -e \"$GRADLE_USER_HOME\""));
+		assertTrue(ci.contains("classes verifyLegacyFixtures verifyMavenizerCompatibilityFixture"));
+		assertTrue(ci.contains("--rerun-tasks --offline --no-daemon --no-build-cache"));
 	}
 
 	private static int occurrences(String text, String needle) {

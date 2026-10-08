@@ -10,7 +10,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
@@ -67,18 +66,18 @@ final class OreSpawnScreenLayout {
 	}
 
 	static Button button(Screen screen, Font font, int x, int y, int width, int height,
-			Component message, Button.OnPress onPress) {
+			Component message, net.minecraft.client.gui.components.Button.OnPress onPress) {
 		Component fitted = fit(font, message, Math.max(0, width - 8));
 		if (fitted == message) {
 			return new Button(x, y, width, height, message, onPress);
 		}
 		return new Button(x, y, width, height, fitted, onPress,
-				(button, poseStack, mouseX, mouseY) -> screen.renderTooltip(poseStack,
+				(button, mouseX, mouseY) -> screen.renderTooltip(button.currentPoseStack(),
 						font.split(message, Math.max(180, Math.min(310, screen.width - 20))), mouseX, mouseY));
 	}
 
 	static Button explainedButton(Screen screen, Font font, int x, int y, int width, int height,
-			Component message, Button.OnPress onPress, String translationKey) {
+			Component message, net.minecraft.client.gui.components.Button.OnPress onPress, String translationKey) {
 		return explain(screen, button(screen, font, x, y, width, height, message, onPress), translationKey);
 	}
 
@@ -107,6 +106,10 @@ final class OreSpawnScreenLayout {
 				return;
 			}
 		}
+	}
+
+	static void renderExplanations(OreSpawnScreen screen, int mouseX, int mouseY) {
+		renderExplanations(screen, screen.currentPoseStack(), mouseX, mouseY);
 	}
 
 	private static final class ExplainedWidget {

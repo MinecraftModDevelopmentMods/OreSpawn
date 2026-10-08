@@ -23,7 +23,7 @@ import net.minecraft.world.level.biome.Biome;
 
 class OreSpawnOreGenerationTest {
 	@Test
-	void biomeFiltersRetainUnknownDynamicRegistryKeys() {
+	void biomeFiltersRetainUnknownDynamicResourceKeys() {
 		ResourceKey<Biome> sodaOcean = ResourceKey.create(Registry.BIOME_REGISTRY,
 				new ResourceLocation("cakeworld", "soda_ocean"));
 		JsonObject rule = new JsonObject();
