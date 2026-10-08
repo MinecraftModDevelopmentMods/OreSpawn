@@ -1,0 +1,289 @@
+// Launch the finished jar in disposable official Forge installations.
+def shared = project.ext.oreSpawnBuild
+def java17Launcher = shared.java17Launcher
+def assertRuntimeLogsClean = shared.assertRuntimeLogsClean
+def releaseJar = shared.releaseJar
+def packagedSurfaceProbeJar = shared.packagedSurfaceProbeJar
+def packagedClientProbeJar = shared.packagedClientProbeJar
+def documentationFiles = shared.documentationFiles
+def assertDocumentationTree = shared.assertDocumentationTree
+def packagedForgeServerRuntime = providers.gradleProperty('packagedForgeServerRuntime')
+def packagedForgeClientRuntime = providers.gradleProperty('packagedForgeClientRuntime')
+def packagedClientJavaExecutable = providers.gradleProperty('packagedClientJavaExecutable')
+
+def requireRuntimeDirectory = { Provider<String> configuredPath, String propertyName ->
+    if (!configuredPath.isPresent()) {
+        throw new GradleException("Pass -P${propertyName}=<official Forge 40 runtime directory>")
+    }
+    File runtime = file(configuredPath.get())
+    if (!runtime.isDirectory()) {
+        throw new GradleException("${propertyName} does not name a directory: ${runtime}")
+    }
+    runtime
+}
+
+def packagedSurfaceRunDirectory = file("${buildDir}/packaged-surface-run")
+tasks.register('preparePackagedSurfaceIntegration') {
+    dependsOn releaseJar
+    dependsOn packagedSurfaceProbeJar
+    doLast {
+        delete packagedSurfaceRunDirectory
+        packagedSurfaceRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(packagedSurfaceRunDirectory)
+        copy {
+            from releaseJar
+            from packagedSurfaceProbeJar
+            into new File(packagedSurfaceRunDirectory, 'mods')
+        }
+        new File(packagedSurfaceRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(packagedSurfaceRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+def packagedSurfaceFresh = tasks.register('packagedSurfaceFresh', Exec) {
+    group = 'verification'
+    dependsOn tasks.named('preparePackagedSurfaceIntegration')
+    doFirst {
+        File runtime = requireRuntimeDirectory(packagedForgeServerRuntime,
+                'packagedForgeServerRuntime')
+        File libraries = new File(runtime, 'libraries')
+        File forgeDirectory = new File(libraries,
+                'net/minecraftforge/forge/1.18.2-40.3.0')
+        File launcher = new File(forgeDirectory, 'forge-1.18.2-40.3.0-server.jar')
+        File sourceArguments = new File(forgeDirectory,
+                System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+                        ? 'win_args.txt' : 'unix_args.txt')
+        [launcher, sourceArguments, libraries].each {
+            if (!it.exists()) throw new GradleException("Incomplete official server runtime: ${it}")
+        }
+        File absoluteArguments = new File(packagedSurfaceRunDirectory, 'forge-server-args.txt')
+        String libraryPath = libraries.canonicalPath.replace('\\', '/') + '/'
+        absoluteArguments.setText(sourceArguments.getText('UTF-8')
+                .replace('libraries/', libraryPath)
+                .replace('-DlibraryDirectory=libraries',
+                        "-DlibraryDirectory=${libraries.canonicalPath}"), 'UTF-8')
+        workingDir packagedSurfaceRunDirectory
+        commandLine java17Launcher.get().executablePath.asFile.absolutePath,
+                '-Xms512m', '-Xmx2g', '-Dsurfaceprobe.integrationPhase=fresh',
+                "@${absoluteArguments.absolutePath}", 'nogui'
+    }
+    doLast {
+        File marker = new File(packagedSurfaceRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        if (!marker.isFile()) throw new GradleException('Packaged fresh surface marker is missing')
+        assertRuntimeLogsClean(packagedSurfaceRunDirectory,
+                'packaged surface fresh', [] as Set)
+    }
+}
+def packagedSurfaceReload = tasks.register('packagedSurfaceReload', Exec) {
+    group = 'verification'
+    dependsOn packagedSurfaceFresh
+    doFirst {
+        File runtime = requireRuntimeDirectory(packagedForgeServerRuntime,
+                'packagedForgeServerRuntime')
+        File libraries = new File(runtime, 'libraries')
+        File forgeDirectory = new File(libraries,
+                'net/minecraftforge/forge/1.18.2-40.3.0')
+        File sourceArguments = new File(forgeDirectory,
+                System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+                        ? 'win_args.txt' : 'unix_args.txt')
+        File absoluteArguments = new File(packagedSurfaceRunDirectory, 'forge-server-args.txt')
+        String libraryPath = libraries.canonicalPath.replace('\\', '/') + '/'
+        absoluteArguments.setText(sourceArguments.getText('UTF-8')
+                .replace('libraries/', libraryPath)
+                .replace('-DlibraryDirectory=libraries',
+                        "-DlibraryDirectory=${libraries.canonicalPath}"), 'UTF-8')
+        workingDir packagedSurfaceRunDirectory
+        commandLine java17Launcher.get().executablePath.asFile.absolutePath,
+                '-Xms512m', '-Xmx2g', '-Dsurfaceprobe.integrationPhase=reload',
+                "@${absoluteArguments.absolutePath}", 'nogui'
+    }
+    doLast {
+        assertRuntimeLogsClean(packagedSurfaceRunDirectory,
+                'packaged surface reload', [] as Set)
+    }
+}
+tasks.register('packagedSurfaceIntegrationTest') {
+    group = 'verification'
+    dependsOn packagedSurfaceReload
+    doLast {
+        File marker = new File(packagedSurfaceRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties values = new Properties()
+        marker.withInputStream { values.load(it) }
+        if (values.getProperty('reload_verified') != 'true') {
+            throw new GradleException('Packaged surface reload was not verified')
+        }
+    }
+}
+
+def packagedClientRunDirectory = file("${buildDir}/packaged-client-run")
+tasks.register('preparePackagedClientIntegration') {
+    dependsOn releaseJar
+    dependsOn packagedClientProbeJar
+    doLast {
+        delete packagedClientRunDirectory
+        packagedClientRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(packagedClientRunDirectory)
+        copy {
+            from releaseJar
+            from packagedClientProbeJar
+            into new File(packagedClientRunDirectory, 'mods')
+        }
+        new File(packagedClientRunDirectory, 'options.txt').setText(
+                'fullscreen:false\nlang:en_us\n', 'UTF-8')
+        File configDirectory = new File(packagedClientRunDirectory, 'config')
+        configDirectory.mkdirs()
+        new File(configDirectory, 'orespawn-common.toml').setText('''\
+# Bootstrap fallbacks. Detailed settings live in orespawn-worldgen.json.
+[worldgen]
+    # Master switch for configured terrain replacement.
+    place_terrain = true
+    # Allowed Values: GEOME, LEGACY
+    fallback_geology_mode = "GEOME"
+    # Range: 4 ~ 32767
+    cyano_region_size = 256
+    # Range: 1.0 ~ 32767.0
+    cyano_layer_reach = 32.0
+    # Range: 1 ~ 255
+    cyano_layer_thickness = 8
+''', 'UTF-8')
+    }
+}
+def packagedClientProcess = tasks.register('packagedClientProcess', Exec) {
+    group = 'verification'
+    dependsOn tasks.named('preparePackagedClientIntegration')
+    doFirst {
+        File runtime = requireRuntimeDirectory(packagedForgeClientRuntime,
+                'packagedForgeClientRuntime')
+        String forgeVersionId = ['1.18.2-forge-40.3.0', 'forge-40.3.0'].find { candidate ->
+            new File(runtime, "versions/${candidate}/${candidate}.json").isFile()
+        }
+        if (forgeVersionId == null) {
+            throw new GradleException('Official client runtime has no Forge 40.3.0 profile')
+        }
+        File forgeJsonFile = new File(runtime,
+                "versions/${forgeVersionId}/${forgeVersionId}.json")
+        File baseJsonFile = new File(runtime, 'versions/1.18.2/1.18.2.json')
+        File baseJar = new File(runtime, 'versions/1.18.2/1.18.2.jar')
+        File nativesDirectory = new File(runtime, "natives/${forgeVersionId}")
+        [forgeJsonFile, baseJsonFile, baseJar, new File(runtime, 'libraries'),
+                new File(runtime, 'assets'), nativesDirectory].each {
+            if (!it.exists()) throw new GradleException("Incomplete official client runtime: ${it}")
+        }
+
+        def slurper = new groovy.json.JsonSlurper()
+        Map forgeJson = (Map) slurper.parse(forgeJsonFile)
+        Map baseJson = (Map) slurper.parse(baseJsonFile)
+        Map<String, File> classpathByModule = new LinkedHashMap<>()
+        [baseJson, forgeJson].each { Map metadata ->
+            ((List) metadata.libraries).each { Map library ->
+                List<Map> rules = (List<Map>) library.rules
+                boolean allowed = rules == null || rules.isEmpty()
+                if (rules != null) {
+                    rules.each { Map rule ->
+                        Map os = (Map) rule.os
+                        boolean matches = os == null
+                                || (os.name == 'windows'
+                                && (os.arch == null || os.arch == System.getProperty('os.arch')))
+                        if (matches) allowed = rule.action == 'allow'
+                    }
+                }
+                if (!allowed) return
+                String relative = (String) ((Map) ((Map) library.downloads).artifact).path
+                File artifact = new File(runtime, "libraries/${relative}")
+                if (!artifact.isFile()) {
+                    throw new GradleException("Missing official client library: ${artifact}")
+                }
+                List<String> coordinates = ((String) library.name).split(':') as List<String>
+                String module = coordinates.size() >= 2
+                        ? "${coordinates[0]}:${coordinates[1]}" : (String) library.name
+                classpathByModule.put(module, artifact)
+            }
+        }
+        List<File> classpathFiles = new ArrayList<>(classpathByModule.values())
+        classpathFiles.add(baseJar)
+
+        String libraryDirectory = new File(runtime, 'libraries').absolutePath
+        List<String> forgeJvmArguments = ((List<String>) ((Map) forgeJson.arguments).jvm)
+                .collect { String argument ->
+                    argument.replace('${library_directory}', libraryDirectory)
+                            .replace('${classpath_separator}', File.pathSeparator)
+                            .replace('${version_name}', (String) forgeJson.inheritsFrom)
+                }
+
+        List<String> gameArguments = []
+        gameArguments.addAll((List<String>) ((Map) forgeJson.arguments).game)
+        gameArguments.addAll([
+                '--username', 'OreSpawnValidation',
+                '--version', (String) forgeJson.id,
+                '--gameDir', packagedClientRunDirectory.absolutePath,
+                '--assetsDir', new File(runtime, 'assets').absolutePath,
+                '--assetIndex', (String) ((Map) baseJson.assetIndex).id,
+                '--uuid', '00000000-0000-0000-0000-000000000001',
+                '--accessToken', 'validation-token',
+                '--userType', 'legacy',
+                '--versionType', 'release',
+                '--width', '854', '--height', '480'
+        ])
+        workingDir packagedClientRunDirectory
+        File clientJava = packagedClientJavaExecutable.isPresent()
+                ? file(packagedClientJavaExecutable.get())
+                : java17Launcher.get().executablePath.asFile
+        if (!clientJava.isFile()) {
+            throw new GradleException("packagedClientJavaExecutable does not name a Java executable: ${clientJava}")
+        }
+        List<String> clientCommand = [
+                clientJava.absolutePath,
+                '-Xms512m', '-Xmx2g', '-Dclientprobe.enabled=true', '-Dclientprobe.hidden=true',
+                "-Djava.library.path=${nativesDirectory.absolutePath}",
+                '-Dminecraft.launcher.brand=orespawn-validation',
+                '-Dminecraft.launcher.version=1'
+        ]
+        clientCommand.addAll(forgeJvmArguments)
+        clientCommand.addAll([
+                '-cp', classpathFiles.collect { it.absolutePath }.join(File.pathSeparator),
+                (String) forgeJson.mainClass
+        ])
+        clientCommand.addAll(gameArguments)
+        commandLine(clientCommand)
+    }
+}
+tasks.register('packagedClientIntegrationTest') {
+    group = 'verification'
+    dependsOn packagedClientProcess
+    doLast {
+        File marker = new File(packagedClientRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) {
+            throw new GradleException('Packaged client completion marker is missing')
+        }
+        Properties values = new Properties()
+        marker.withInputStream { values.load(it) }
+        ['world_settings_opened', 'long_editor_roundtrip',
+                'first_world_rendered', 'reload_rendered'].each { key ->
+            if (values.getProperty(key) != 'true') {
+                throw new GradleException("Packaged client failed ${key}: ${values}")
+            }
+        }
+        assertDocumentationTree(new File(packagedClientRunDirectory,
+                'config/orespawn-guide'), documentationFiles(), 'runtime guide export')
+        assertRuntimeLogsClean(packagedClientRunDirectory,
+                'packaged client', [] as Set)
+    }
+}
+
+tasks.register('packagedRuntimeIntegrationTest') {
+    group = 'verification'
+    description = 'Runs the exact reobfuscated jars in official Forge 40 server and client runtimes.'
+    dependsOn tasks.named('packagedSurfaceIntegrationTest')
+    dependsOn tasks.named('packagedClientIntegrationTest')
+}

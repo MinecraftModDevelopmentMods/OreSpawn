@@ -102,6 +102,10 @@ public final class ClientProbeTestMod {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (++stateTicks > 3600) fail(minecraft, "Timed out in client probe state " + state);
 		try {
+			if (Boolean.getBoolean("clientprobe.hidden")) {
+				Class.forName("org.lwjgl.glfw.GLFW").getMethod("glfwHideWindow", long.class)
+						.invoke(null, minecraft.getWindow().getWindow());
+			}
 			switch (state) {
 				case 0:
 					if (minecraft.screen instanceof TitleScreen) {
@@ -132,6 +136,7 @@ public final class ClientProbeTestMod {
 				case 2:
 					if (minecraft.screen instanceof OreSpawnWorldSettingsScreen && editorFrames >= 2) {
 						worldSettingsOpened = true;
+						if (Boolean.getBoolean("clientprobe.oreSources")) SharedOreClientProbe.verify();
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.screen);
 						validateLongEditorRoundTrip(minecraft, minecraft.screen);
 						nextState(3);
@@ -200,7 +205,7 @@ public final class ClientProbeTestMod {
 				default:
 					break;
 			}
-		} catch (RuntimeException | IOException failure) {
+		} catch (RuntimeException | IOException | ReflectiveOperationException failure) {
 			fail(minecraft, failure.toString());
 		}
 	}
@@ -220,14 +225,28 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(Screen screen) {
 		for (AbstractWidget widget : widgets(screen)) {
+			// Text fields carry their value rather than a caption. Compact lists
+			// and cogs explain themselves through row text, icons, and tooltips.
+			if (!(widget instanceof Button) && !(widget instanceof CycleButton)) continue;
+			if (isVisualControl(widget)) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.getMessage());
+				throw new IllegalStateException("Invalid client caption in "
+						+ screen.getClass().getSimpleName() + " / "
+						+ widget.getClass().getName() + ": " + widget.getMessage());
 			}
 		}
+	}
+
+	private static boolean isVisualControl(AbstractWidget widget) {
+		for (Class<?> type = widget.getClass(); type != null; type = type.getSuperclass()) {
+			String name = type.getSimpleName();
+			if ("CogButton".equals(name) || "CompactScrollList".equals(name)) return true;
+		}
+		return false;
 	}
 
 	private void validateLongEditorRoundTrip(Minecraft minecraft, Screen parent) {

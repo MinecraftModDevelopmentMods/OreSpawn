@@ -9,6 +9,8 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -25,6 +27,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.event.world.WorldEvent;
@@ -42,6 +45,8 @@ public final class WorldGeologyProfileManager {
 	private static volatile Object pendingNewWorldSession;
 	private static volatile WorldGeologyProfile activeProfile;
 	private static volatile MinecraftServer activeServer;
+	private static final Map<String, String> deferredFreshPolicies = new LinkedHashMap<>();
+	private static volatile boolean freshPolicyDiscoveryPending;
 
 	private WorldGeologyProfileManager() {
 		throw new IllegalAccessError("Not an instantiable class");
@@ -107,7 +112,9 @@ public final class WorldGeologyProfileManager {
 				.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile profile = readProfile(profilePath, globalProfile());
 		JsonObject merged = profile.rootCopy();
-		if (OreSpawnOreIntegration.mergeProviderOres(merged)) {
+		boolean changed = OreSpawnOreIntegration.mergeProviderOres(merged);
+		changed |= OreSourcePolicies.initialize(merged, true);
+		if (changed) {
 			profile = profile.withRoot(merged);
 			writeProfile(profilePath, profile);
 		}
@@ -118,6 +125,8 @@ public final class WorldGeologyProfileManager {
 
 	public static void onServerAboutToStart(ServerAboutToStartEvent event) {
 		activeServer = event.getServer();
+		deferredFreshPolicies.clear();
+		freshPolicyDiscoveryPending = false;
 		BiomeTypeCompatibility.useRegistry(event.getServer().registryAccess()
 				.registryOrThrow(Registry.BIOME_REGISTRY));
 		Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT).normalize();
@@ -132,6 +141,7 @@ public final class WorldGeologyProfileManager {
 			JsonObject merged = profile.rootCopy();
 			String beforeMerge = merged.toString();
 			OreSpawnOreIntegration.mergeProviderOres(merged);
+			OreSourcePolicies.initialize(merged, true);
 			if (!beforeMerge.equals(merged.toString())) {
 				profile = profile.withRoot(merged);
 				writeProfile(profilePath, profile);
@@ -158,6 +168,11 @@ public final class WorldGeologyProfileManager {
 				profile = fallback.copy();
 				source = "installed-pack fresh-world";
 			}
+			profile = initializeNewWorldPolicies(profile, generatedWorld);
+			if (!generatedWorld) {
+				rememberUnreviewedDefaults(profile, fallback);
+				freshPolicyDiscoveryPending = true;
+			}
 			writeProfile(profilePath, profile);
 			LOGGER.info("Created OreSpawn world geology profile '{}' from {} settings",
 					profilePath, source);
@@ -172,12 +187,103 @@ public final class WorldGeologyProfileManager {
 				profile.enabledFluidDepositCount(), profile.fluidDepositCount());
 	}
 
+	private static void rememberUnreviewedDefaults(WorldGeologyProfile profile,
+			WorldGeologyProfile defaults) {
+		JsonObject current = profile.rootCopy().getAsJsonObject(OreSourcePolicies.SECTION);
+		JsonObject baseline = defaults.rootCopy().getAsJsonObject(OreSourcePolicies.SECTION);
+		if (current == null || baseline == null) return;
+		for (Map.Entry<String, JsonElement> entry : current.entrySet()) {
+			if (!entry.getValue().isJsonObject() || !baseline.has(entry.getKey())
+					|| !baseline.get(entry.getKey()).isJsonObject()) continue;
+			JsonObject policy = entry.getValue().getAsJsonObject();
+			if (!"keep_separate".equals(policy.has("mode") ? policy.get("mode").getAsString() : "")
+					|| !policy.has("review_required") || !policy.get("review_required").getAsBoolean()
+					|| !sameOreSourceChoice(policy, baseline.getAsJsonObject(entry.getKey()))) continue;
+			deferredFreshPolicies.put(entry.getKey(), policy.toString());
+		}
+	}
+
+	private static boolean sameOreSourceChoice(JsonObject current, JsonObject baseline) {
+		// Tags can finish loading between the global profile and world creation.
+		// Compare the player's choices, not the discovered candidate snapshots.
+		for (String field : new String[] { "mode", "output_mode", "outputs", "placement_sources" }) {
+			if (!java.util.Objects.equals(current.get(field), baseline.get(field))) return false;
+		}
+		return true;
+	}
+
+	/** Block tags are ready by this event, before Forge decorates spawn chunks. */
+	public static void onServerStarting(ServerStartingEvent event) {
+		if (event.getServer() == activeServer) resolveFreshPoliciesBeforeGeneration();
+	}
+
+	public static void resolveFreshPoliciesBeforeGeneration() {
+		if (freshPolicyDiscoveryPending) resolveFreshPoliciesOnce();
+	}
+
+	private static synchronized void resolveFreshPoliciesOnce() {
+		if (!freshPolicyDiscoveryPending || activeServer == null) return;
+		JsonObject refreshed = activeProfile().rootCopy();
+		JsonObject policies = refreshed.getAsJsonObject(OreSourcePolicies.SECTION);
+		boolean hadConsolidatedPolicies = hasConsolidatedPolicies(policies);
+		if (policies != null) {
+			for (Map.Entry<String, String> entry : deferredFreshPolicies.entrySet()) {
+				if (policies.has(entry.getKey())
+						&& entry.getValue().equals(policies.get(entry.getKey()).toString())) {
+					policies.remove(entry.getKey());
+				}
+			}
+		}
+		deferredFreshPolicies.clear();
+		OreSourcePolicies.initialize(refreshed, false);
+		boolean hasConsolidatedPolicies = hasConsolidatedPolicies(
+				refreshed.getAsJsonObject(OreSourcePolicies.SECTION));
+		WorldGeologyProfile next = activeProfile().withRoot(refreshed);
+		if (!next.rootCopy().equals(activeProfile().rootCopy())) {
+			Path path = activeServer.getWorldPath(LevelResource.ROOT).normalize()
+					.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
+			if (writeProfile(path, next)) {
+				activeProfile = next;
+				// Keep Original changes only editor metadata. Re-baking ores here
+				// would alter the first generated chunks for no gameplay benefit.
+				if (hadConsolidatedPolicies || hasConsolidatedPolicies)
+					OreSpawnOreGeneration.refreshWorldConfig();
+				LOGGER.info("Resolved fresh-world ore-source defaults before managed ore placement");
+			}
+		}
+		freshPolicyDiscoveryPending = false;
+	}
+
+	private static boolean hasConsolidatedPolicies(JsonObject policies) {
+		if (policies == null) return false;
+		for (Map.Entry<String, JsonElement> entry : policies.entrySet()) {
+			if (!entry.getValue().isJsonObject()) continue;
+			JsonObject policy = entry.getValue().getAsJsonObject();
+			if (policy.has("mode") && policy.get("mode").isJsonPrimitive()
+					&& "consolidated".equals(policy.get("mode").getAsString()))
+				return true;
+		}
+		return false;
+	}
+
+	static WorldGeologyProfile initializeNewWorldPolicies(WorldGeologyProfile profile,
+			boolean generatedWorld) {
+		JsonObject initialized = profile.rootCopy();
+		// A world with generated chunks keeps its original ore budgets on upgrade.
+		if (generatedWorld) initialized.remove(OreSourcePolicies.SECTION);
+		OreSourcePolicies.initialize(initialized, generatedWorld);
+		return profile.withRoot(initialized);
+	}
+
 	public static void onServerStopped(ServerStoppedEvent event) {
+		deferredFreshPolicies.clear();
+		freshPolicyDiscoveryPending = false;
 		activeServer = null;
 		activeProfile = null;
 		BiomeTypeCompatibility.clearRegistry();
 		GeomeConfig.applyWorldProfile(globalProfile());
 		BiomeWorldgenManager.clear();
+		VanillaOreFeatureGate.clearInlineGates();
 		StoneReplacer.refreshWorldConfig();
 		OreSpawnOreGeneration.refreshWorldConfig();
 		FluidDepositFeature.refreshWorldConfig();
@@ -261,8 +367,10 @@ public final class WorldGeologyProfileManager {
 			if (oreDefaultsRefreshed) {
 				root = GeomeConfig.refreshWorldOreDefaults(root);
 			}
+			boolean sourcePoliciesRefreshed = OreSourcePolicies.initialize(root, true);
 			WorldGeologyProfile profile = WorldGeologyProfile.fromJson(root, fallback);
-			if (schema < WorldGeologyProfile.SCHEMA_VERSION || oreDefaultsRefreshed) {
+			if (schema < WorldGeologyProfile.SCHEMA_VERSION || oreDefaultsRefreshed
+					|| sourcePoliciesRefreshed) {
 				boolean canWrite = schema >= WorldGeologyProfile.SCHEMA_VERSION
 						|| preserveBeforeSchemaMigration(path, schema);
 				canWrite &= !oreDefaultsRefreshed || preserveBeforeOreDefaultsRefresh(path);
@@ -274,6 +382,9 @@ public final class WorldGeologyProfileManager {
 					if (oreDefaultsRefreshed) {
 						LOGGER.info("Updated untouched managed-ore rules in world geology profile '{}' to revision {}",
 								path, GeomeConfig.oreDefaultsRevision());
+					}
+					if (sourcePoliciesRefreshed) {
+						LOGGER.info("Refreshed OreSpawn ore-source policies in world geology profile '{}'", path);
 					}
 				} else if (oreDefaultsRefreshed) {
 					LOGGER.warn("Could not persist updated OreSpawn ore defaults for world profile '{}'; "

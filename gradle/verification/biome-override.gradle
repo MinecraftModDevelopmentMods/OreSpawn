@@ -1,0 +1,106 @@
+// A disposable world proves that a saved replacement affects new chunks only.
+// The probe mod is shared with the benchmark and never joins a release jar.
+def biomeOverrideShared = project.ext.oreSpawnBuild
+def biomeOverrideRuntime = providers.gradleProperty('packagedForgeServerRuntime')
+File biomeOverrideRun = file("${buildDir}/biome-override-run")
+File biomeOverrideWorld = new File(biomeOverrideRun, 'biome-override-world')
+File biomeOverrideMarker = new File(biomeOverrideWorld, 'biomeoverrideprobe.properties')
+
+def prepareBiomeOverride = tasks.register('prepareBiomeOverrideProbe') {
+    dependsOn biomeOverrideShared.releaseJar, tasks.named('renameWorldHashProbeJar')
+    doLast {
+        delete biomeOverrideRun
+        biomeOverrideRun.mkdirs()
+        biomeOverrideShared.prepareTestForgeConfig(biomeOverrideRun)
+        copy {
+            from biomeOverrideShared.releaseJar
+            from tasks.named('renameWorldHashProbeJar')
+            into new File(biomeOverrideRun, 'mods')
+        }
+        new File(biomeOverrideRun, 'server.properties').setText('''\
+level-name=biome-override-world
+level-seed=49110
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(biomeOverrideRun, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def biomeOverrideFresh = tasks.register('biomeOverrideFresh', Exec) {
+    group = 'verification'
+    dependsOn prepareBiomeOverride
+    doFirst {
+        if (!biomeOverrideRuntime.isPresent()) {
+            throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 40 installation>')
+        }
+        workingDir biomeOverrideRun
+        commandLine biomeOverrideShared.forge40ServerCommand(file(biomeOverrideRuntime.get()),
+                biomeOverrideRun, ['-Dorespawn.biomeOverridePhase=fresh'])
+    }
+    doLast {
+        if (!biomeOverrideMarker.isFile()) {
+            throw new GradleException('Fresh biome override marker is missing')
+        }
+        biomeOverrideShared.assertRuntimeLogsClean(biomeOverrideRun, 'biome override fresh', [] as Set)
+    }
+}
+
+def writeBiomeOverride = tasks.register('writeBiomeOverride') {
+    dependsOn biomeOverrideFresh
+    doLast {
+        Properties marker = new Properties()
+        biomeOverrideMarker.withInputStream { marker.load(it) }
+        String source = marker.getProperty('source')
+        if (source == null || !source.contains(':')) {
+            throw new GradleException("Missing source biome in ${biomeOverrideMarker}")
+        }
+        String target = source == 'minecraft:desert' ? 'minecraft:plains' : 'minecraft:desert'
+        File profileFile = new File(biomeOverrideWorld, 'serverconfig/orespawn-worldgen.json')
+        if (!profileFile.isFile()) throw new GradleException("Missing world profile ${profileFile}")
+        Map profile = (Map) new groovy.json.JsonSlurper().parse(profileFile)
+        Map palettes = profile.biome_palettes instanceof Map ? (Map) profile.biome_palettes
+                : new LinkedHashMap()
+        profile.biome_palettes = palettes
+        palettes['orespawn:ui/biome_overrides/minecraft_overworld'] = [
+                dimension: 'minecraft:overworld', enabled: true, mode: 'replace',
+                scope: 'all', region_size: 'tiny', coverage: 1.0D,
+                fallback_weight: 0.0D,
+                biomes: [(target): [enabled: true, weight: 1.0D,
+                        similar_biomes: [source]]]
+        ]
+        profileFile.setText(groovy.json.JsonOutput.prettyPrint(
+                groovy.json.JsonOutput.toJson(profile)) + '\n', 'UTF-8')
+        marker.setProperty('target', target)
+        biomeOverrideMarker.withOutputStream { marker.store(it, 'Disposable biome override probe') }
+    }
+}
+
+def biomeOverrideReload = tasks.register('biomeOverrideReload', Exec) {
+    group = 'verification'
+    dependsOn writeBiomeOverride
+    doFirst {
+        workingDir biomeOverrideRun
+        commandLine biomeOverrideShared.forge40ServerCommand(file(biomeOverrideRuntime.get()),
+                biomeOverrideRun, ['-Dorespawn.biomeOverridePhase=reload'])
+    }
+    doLast {
+        Properties marker = new Properties()
+        biomeOverrideMarker.withInputStream { marker.load(it) }
+        if (marker.getProperty('reload_verified') != 'true') {
+            throw new GradleException('Biome override did not pass new-terrain and no-retrogen checks')
+        }
+        biomeOverrideShared.assertRuntimeLogsClean(biomeOverrideRun, 'biome override reload', [] as Set)
+    }
+}
+
+tasks.register('biomeOverrideIntegrationTest') {
+    group = 'verification'
+    description = 'Proves an exact replacement changes new chunks without rewriting saved chunks.'
+    dependsOn biomeOverrideReload
+}

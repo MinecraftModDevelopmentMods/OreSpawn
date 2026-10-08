@@ -55,8 +55,8 @@ Examples:
 | 1.14.4 | Forge | `114041` | `4.0.8.114041` |
 | 1.15.2 | Forge | `115021` | `4.0.9.115021` |
 | 1.16.5 | Forge | `116051` | `4.0.9.116051` |
-| 1.17.1 | Forge | `117011` | `4.0.9.117011` |
-| 1.18.2 | Forge | `118021` | `4.0.16.118021` |
+| 1.17.1 | Forge | `117011` | `4.1.0.117011` |
+| 1.18.2 | Forge | `118021` | `4.1.0.118021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -163,6 +163,11 @@ public samples use the same stable quart-biome cell at three-dimensional biome
 boundaries, and then to `4.0.16.118021` so GameTest benchmark runs leave
 shutdown and result reporting to the test harness. A branch
 may therefore legitimately skip functional version numbers.
+
+The 1.17.1 and 1.18.2 lines now advance to 4.1.0 for material-group ore
+policies, the loaded-mod directory, and exact new-terrain biome replacements.
+The 1.18.2 build keeps its `118021` target suffix, API major 1, and existing
+registry identities while provider/global/world schemas advance to 5/8/7.
 
 This provides three useful guarantees:
 
