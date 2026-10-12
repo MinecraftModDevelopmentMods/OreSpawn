@@ -1,0 +1,100 @@
+// Generate an old chunk, save a replacement, then verify only new terrain changes.
+def shared = project.ext.oreSpawnBuild
+def hashClasses = layout.buildDirectory.dir('world-hash-fixture/classes')
+def compileWorldHashProbe = tasks.register('compileWorldHashProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/worldHashTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(hashClasses)
+    javaCompiler.set(javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(25) })
+    options.release = 25
+    options.encoding = 'UTF-8'
+}
+def worldHashProbeJar = tasks.register('worldHashProbeJar', Jar) {
+    dependsOn compileWorldHashProbe
+    archiveFileName = 'worldhashprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('world-hash-fixture')
+    from hashClasses
+    from 'src/worldHashTest/resources'
+}
+File runDir = layout.buildDirectory.dir('biome-override-run').get().asFile
+File worldDir = new File(runDir, 'biome-override-world')
+File markerFile = new File(worldDir, 'biomeoverrideprobe.properties')
+def prepare = tasks.register('prepareBiomeOverrideProbe') {
+    dependsOn worldHashProbeJar
+    doLast {
+        delete runDir
+        runDir.mkdirs()
+        shared.prepareTestNeoForgeConfig(runDir)
+        copy {
+            from worldHashProbeJar.flatMap { it.archiveFile }
+            into new File(runDir, 'mods')
+        }
+        new File(runDir, 'server.properties').setText('''\
+level-name=biome-override-world
+level-seed=49110
+level-type=minecraft:normal
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(runDir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def writeOverride = tasks.register('writeBiomeOverride') {
+    dependsOn 'runBiomeOverrideFresh'
+    doLast {
+        if (!markerFile.isFile()) throw new GradleException("Missing fresh biome marker: ${markerFile}")
+        Properties marker = new Properties()
+        markerFile.withInputStream { marker.load(it) }
+        String source = marker.getProperty('source')
+        if (source == null || !source.contains(':')) {
+            throw new GradleException("Missing source biome in ${markerFile}")
+        }
+        String target = source == 'minecraft:desert' ? 'minecraft:plains' : 'minecraft:desert'
+        File profileFile = new File(worldDir, 'serverconfig/orespawn-worldgen.json')
+        if (!profileFile.isFile()) throw new GradleException("Missing world profile: ${profileFile}")
+        Map profile = (Map) new groovy.json.JsonSlurper().parse(profileFile)
+        Map palettes = profile.biome_palettes instanceof Map ? (Map) profile.biome_palettes
+                : new LinkedHashMap()
+        profile.biome_palettes = palettes
+        palettes['orespawn:ui/biome_overrides/minecraft_overworld'] = [
+                dimension: 'minecraft:overworld', enabled: true, mode: 'replace',
+                scope: 'all', region_size: 'tiny', coverage: 1.0D,
+                fallback_weight: 0.0D,
+                biomes: [(target): [enabled: true, weight: 1.0D,
+                        similar_biomes: [source]]]
+        ]
+        profileFile.setText(groovy.json.JsonOutput.prettyPrint(
+                groovy.json.JsonOutput.toJson(profile)) + '\n', 'UTF-8')
+        marker.setProperty('target', target)
+        markerFile.withOutputStream { marker.store(it, 'Disposable biome override probe') }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runBiomeOverrideFresh') dependsOn prepare
+    if (name == 'runBiomeOverrideReload') dependsOn writeOverride
+    if (name == 'runBiomeOverrideFresh' || name == 'runBiomeOverrideReload') {
+        doFirst { ext.biomeOverridePriorCrashes = shared.runtimeCrashSnapshot(workingDir) }
+        doLast {
+            shared.assertRuntimeLogsClean(workingDir, name, ext.biomeOverridePriorCrashes as Set)
+        }
+    }
+}
+tasks.register('biomeOverrideIntegrationTest') {
+    group = 'verification'
+    description = 'Proves exact replacement changes new chunks without rewriting saved chunks.'
+    dependsOn 'runBiomeOverrideReload'
+    doLast {
+        Properties marker = new Properties()
+        markerFile.withInputStream { marker.load(it) }
+        if (marker.getProperty('reload_verified') != 'true') {
+            throw new GradleException('Biome replacement did not pass fresh/reload verification')
+        }
+    }
+}

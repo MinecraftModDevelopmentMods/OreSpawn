@@ -1,0 +1,21 @@
+license="LGPL-2.1"
+
+[[mods]]
+modId="nativeoreprobe"
+version="1"
+displayName="OreSpawn Native Ore Test"
+description='''Test-only quartz, fluid and server-lifetime audit.'''
+
+[[dependencies.nativeoreprobe]]
+modId="orespawn"
+type="required"
+versionRange="[4.1.0,5.0.0)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.nativeoreprobe]]
+modId="minecraft"
+type="required"
+versionRange="[26.3]"
+ordering="NONE"
+side="BOTH"

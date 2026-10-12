@@ -84,7 +84,7 @@ public class StoneReplacer implements Feature {
 		return features.removeIf(StoneReplacer::isVanillaMatchingStoneFeature);
 	}
 
-	static boolean wrapVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
+	static synchronized boolean wrapVanillaMatchingStoneFeatures(List<Holder<PlacedFeature>> features) {
 		boolean changed = false;
 		for (int i = 0; i < features.size(); i++) {
 			Holder<PlacedFeature> original = features.get(i);
@@ -95,6 +95,10 @@ public class StoneReplacer implements Feature {
 			changed = true;
 		}
 		return changed;
+	}
+
+	static synchronized void clearMatchingStoneGates() {
+		MATCHING_STONE_GATES.clear();
 	}
 
 	public static com.mojang.serialization.MapCodec<? extends Feature>

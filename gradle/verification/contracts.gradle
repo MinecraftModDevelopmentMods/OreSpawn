@@ -1,0 +1,70 @@
+// Portable commands and cold-bootstrap assumptions.
+tasks.register('verifyCommandPortability') {
+    group = 'verification'
+    description = 'Rejects shell-specific wrappers in generic Gradle task execution.'
+    doLast {
+        List<File> commandSources = [file('build.gradle')]
+        commandSources.addAll(fileTree('.github/workflows') { include '*.yml', '*.yaml' }.files)
+        commandSources.each { File source ->
+            String text = source.getText('UTF-8')
+            if (text =~ /(?i)(?:commandLine|executable)\s*[^\n]*(?:cmd(?:\.exe)?\s+\/c|powershell(?:\.exe)?\s+-command|(?:bash|sh)\s+-c)/) {
+                throw new GradleException("Shell-specific command wrapper in ${source}")
+            }
+        }
+    }
+}
+
+tasks.register('verifyColdNeoForgeBootstrapContract') {
+    group = 'verification'
+    description = 'Verifies that CI qualifies NeoGradle from an isolated Java 25 cache without Forge tooling or forced source decompilation.'
+    doLast {
+        Properties gradleProperties = new Properties()
+        file('gradle.properties').withInputStream { gradleProperties.load(it) }
+        if (gradleProperties.getProperty('neogradle.subsystems.decompiler.enabled') != null) {
+            throw new GradleException('NeoForge 26.3 must retain its validated binary userdev path')
+        }
+
+        String workflow = file('.github/workflows/ci.yml').getText('UTF-8')
+        [
+                'Cold NeoForge bootstrap',
+                'orespawn-neoforge-cold-cache',
+                '--no-build-cache',
+                '--offline',
+                './gradlew classes verifyLegacyFixtures --no-daemon',
+                './gradlew classes verifyLegacyFixtures --offline --no-daemon',
+                './gradlew check build javadoc',
+                '-Declipse.application=org.eclipse.jdt.ls.core.id1',
+                "java-version: '25.0.3+9.0.LTS'"
+        ].each { required ->
+            if (!workflow.contains(required)) {
+                throw new GradleException("Cold NeoForge bootstrap is missing ${required}")
+            }
+        }
+        ['MinecraftMavenizer', 'mavenizer', 'net.minecraftforge.gradle',
+                'neogradle.subsystems.decompiler.enabled=true',
+                "java-version: '21", "java-version: '17", "java-version: '8"].each { forbidden ->
+            if (workflow.contains(forbidden)) {
+                throw new GradleException("Cold NeoForge bootstrap contains Forge-only tooling: ${forbidden}")
+            }
+        }
+        ['./gradlew clean check', './gradlew clean classes'].each { combined ->
+            if (workflow.contains(combined)) {
+                throw new GradleException(
+                        "NeoGradle clean must run separately from model consumers: ${combined}")
+            }
+        }
+
+        String codeQlWorkflow = file('.github/workflows/codeql-analysis.yml').getText('UTF-8')
+        if (!codeQlWorkflow.contains('./gradlew clean --no-daemon')
+                || codeQlWorkflow.contains('clean classes')) {
+            throw new GradleException(
+                    'CodeQL must clean once before its cache-preserving compilation retry loop')
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyCommandPortability')
+    dependsOn tasks.named('verifyMavenCoordinates')
+    dependsOn tasks.named('verifyColdNeoForgeBootstrapContract')
+}

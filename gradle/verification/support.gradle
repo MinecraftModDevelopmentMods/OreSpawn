@@ -1,0 +1,255 @@
+// Test isolation and runtime log checks shared by the development gates.
+def mineralogy5OracleJar = project.ext.oreSpawnBuild.mineralogy5OracleJar
+
+// Prepare only disposable runs. A manual profile's settings always belong to its user.
+def prepareTestNeoForgeConfig = { File runDirectory ->
+    String buildRoot = layout.buildDirectory.get().asFile.canonicalPath + File.separator
+    if (!runDirectory.canonicalPath.startsWith(buildRoot)) {
+        throw new GradleException('Test configuration must stay inside the build directory')
+    }
+    File config = new File(runDirectory, 'config/fml.toml')
+    if (!config.exists()) {
+        config.parentFile.mkdirs()
+        config.setText(file('ci-fixtures/config/neoforge-26.3-fml.toml').getText('UTF-8'), 'UTF-8')
+    }
+}
+
+// Use an installed production runtime, not the userdev classpath or a shell wrapper.
+def neoForgeServerCommand = { File runtime, File runDirectory, List<String> extraJvmArguments ->
+    String version = providers.gradleProperty('packagedNeoForgeVersion').getOrElse(neo_version)
+    String argumentName = org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'win_args.txt' : 'unix_args.txt'
+    File installedArguments = new File(runtime, "libraries/net/neoforged/neoforge/${version}/${argumentName}")
+    if (!installedArguments.isFile()) throw new GradleException("Missing official NeoForge arguments: ${installedArguments}")
+    String libraryRoot = runtime.canonicalPath.replace('\\', '/') + '/libraries'
+    String arguments = installedArguments.getText('UTF-8')
+            .replace('libraries/', libraryRoot + '/')
+            .replace('-DlibraryDirectory=libraries', '-DlibraryDirectory=' + libraryRoot)
+    arguments = arguments.readLines().collect { line ->
+        line.contains(libraryRoot) && line.contains(' ') ? '"' + line.replace('"', '\\"') + '"' : line
+    }.join('\n') + '\n'
+    File argumentFile = new File(runDirectory, 'server.args')
+    argumentFile.setText(arguments, 'UTF-8')
+    File java = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }.get().executablePath.asFile
+    [java.absolutePath, '-Xmx3G'] + extraJvmArguments + ['@' + argumentFile.absolutePath, 'nogui']
+}
+
+project.ext.oreSpawnBuild.prepareTestNeoForgeConfig = prepareTestNeoForgeConfig
+project.ext.oreSpawnBuild.neoForgeServerCommand = neoForgeServerCommand
+tasks.register('verifyLegacyOracleIsolation') {
+    group = 'verification'
+    dependsOn tasks.named('verifyLegacyFixtures')
+    doLast {
+        configurations.findAll { it.canBeResolved }.each { configuration ->
+            if (configuration.files.any { it.canonicalFile == mineralogy5OracleJar.canonicalFile }) {
+                throw new GradleException("Mineralogy oracle leaked into ${configuration.name}")
+            }
+        }
+    }
+}
+
+// Several registry-focused tests initialize the real global config singleton.
+// Keep that target-native coverage without creating or changing a developer's
+// checkout config as a side effect of `test` or `build`.
+def unitTestWorldgenConfig = file('config/orespawn-worldgen.json')
+def unitTestWorldgenConfigWasPresent = false
+byte[] unitTestWorldgenConfigBytes = null
+tasks.named('test', Test).configure {
+    doFirst {
+        unitTestWorldgenConfigWasPresent = unitTestWorldgenConfig.isFile()
+        unitTestWorldgenConfigBytes = unitTestWorldgenConfigWasPresent
+                ? unitTestWorldgenConfig.bytes : null
+    }
+}
+def preserveDeveloperWorldgenConfig = tasks.register('preserveDeveloperWorldgenConfig') {
+    doLast {
+        if (unitTestWorldgenConfigWasPresent) {
+            byte[] after = unitTestWorldgenConfig.isFile() ? unitTestWorldgenConfig.bytes : null
+            if (after == null || !java.util.Arrays.equals(unitTestWorldgenConfigBytes, after)) {
+                unitTestWorldgenConfig.parentFile.mkdirs()
+                unitTestWorldgenConfig.bytes = unitTestWorldgenConfigBytes
+                throw new GradleException('Unit tests changed config/orespawn-worldgen.json; the original was restored')
+            }
+        } else if (unitTestWorldgenConfig.isFile()) {
+            delete unitTestWorldgenConfig
+        }
+    }
+}
+tasks.named('test') {
+    finalizedBy preserveDeveloperWorldgenConfig
+}
+
+// A NeoForge process is not green merely because it returns exit code zero.
+// The loader can log a worldgen/linkage failure and still shut down normally.
+// NeoForge 26.3 and its plain official MDK produce this exact OSHI diagnostic
+// on the current Windows host before mod loading. Keep the allowance scoped to
+// the emitting class and complete message; every other ERROR/FATAL remains fatal.
+def acceptedNeoForge263LogNoise = [
+        ~/.*\[main\/ERROR\] \[oshi\.driver\.windows\.registry\.HkeyPerformanceDataUtil\/\]: Unable to locate English counter names in registry Perflib 009\. Counters may need to be rebuilt:\s*/
+]
+
+def runtimeCrashSnapshot = { File runDirectory ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (!crashDirectory.isDirectory()) return [] as Set
+    return fileTree(crashDirectory) { include '**/*' }.files
+            .findAll { it.isFile() }.collect { it.absolutePath } as Set
+}
+
+def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrashes ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        def crashes = fileTree(crashDirectory) { include '**/*' }.files
+                .findAll { it.isFile() && !priorCrashes.contains(it.absolutePath) }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (!logsDirectory.isDirectory()) return
+    def failures = []
+    [new File(logsDirectory, 'latest.log'), new File(logsDirectory, 'debug.log')]
+            .findAll { it.isFile() }.each { File log ->
+        int lineNumber = 0
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean knownNoise = acceptedNeoForge263LogNoise.any { line =~ it }
+            boolean fatalText = line.contains('Encountered an unexpected exception') ||
+                    line.contains('Exception stopping the server') ||
+                    line.contains('Migration audit failed') ||
+                    line.contains('java.lang.Error:') ||
+                    line.contains('NoSuchFieldError') ||
+                    line.contains('NoSuchMethodError') ||
+                    line.contains('AbstractMethodError') ||
+                    line.contains('NoClassDefFoundError') ||
+                    line.contains('ExceptionInInitializerError') ||
+                    line.contains('com.electronwill.nightconfig.core.io.ParsingException:') ||
+                    line.contains('Tried to assign a mutable BlockPos') ||
+                    line.contains('causing cascading worldgen lag')
+            if ((unexpectedSeverity && !knownNoise) || fatalText) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+tasks.register('runtimeLogScannerTest') {
+    group = 'verification'
+    description = 'Proves runtime log validation rejects real NeoForge failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs'); logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[Server thread/INFO] [neoforge]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-clean-log-probe', [] as Set)
+        new File(logs, 'latest.log').setText(
+                '[16Sept2026 08:00:15.959] [main/ERROR] [oshi.driver.windows.registry.HkeyPerformanceDataUtil/]: Unable to locate English counter names in registry Perflib 009. Counters may need to be rebuilt: \n',
+                'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-neoforge-263-windows-control-probe', [] as Set)
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-mutable-position-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/DEBUG] [neoforge]: Minecraft loaded a new chunk while populating another, causing cascading worldgen lag.\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-cascading-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted cascading worldgen')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-severity-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        new File(logs, 'latest.log').setText(
+                '[main/INFO] [neoforge]: java.lang.NoSuchFieldError: COMMON\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-renamed-config-field-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a missing config field')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/INFO] [neoforge]: java.lang.AbstractMethodError: BiomeModifier.modify\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-biome-modifier-signature-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a missing biome modifier method')
+        new File(logs, 'latest.log').setText(
+                '[Thread-1/INFO] [STDERR]: com.electronwill.nightconfig.core.io.ParsingException: Invalid TOML data\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-config-parse-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a configuration parsing exception')
+        prepareTestNeoForgeConfig(probe)
+        File config = new File(probe, 'config/fml.toml')
+        Properties defaults = new Properties()
+        config.withInputStream { defaults.load(it) }
+        if (defaults.getProperty('earlyWindowControl') != 'true'
+                || defaults.getProperty('disableConfigWatcher') != 'false'
+                || defaults.getProperty('maxThreads') != '-1') {
+            throw new GradleException('Disposable FML configuration does not match the target defaults')
+        }
+        config.setText('manual sentinel\n', 'UTF-8')
+        prepareTestNeoForgeConfig(probe)
+        if (config.getText('UTF-8') != 'manual sentinel\n') {
+            throw new GradleException('Test preparation overwrote an existing configuration')
+        }
+        rejected = false
+        try { prepareTestNeoForgeConfig(projectDir) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Test preparation accepted a manual run directory')
+        delete probe
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'runtimeLogScannerTest'
+}
+
+tasks.register('verifyMineralogyOracleIsolation') {
+    group = 'verification'
+    description = 'Prevents published Mineralogy engines from leaking into Gradle configurations or ordinary Eclipse launches.'
+    doLast {
+        configurations.each { configuration ->
+            if (configuration.canBeResolved &&
+                    configuration.files.any { it.name ==~ /Mineralogy-.*\.jar/ }) {
+                throw new GradleException("Mineralogy oracle leaked into Gradle configuration ${configuration.name}")
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyMineralogyOracleIsolation'
+}
+
+['runClient', 'runServer', 'runGameTestServer', 'runClientData'].each { String taskName ->
+    tasks.matching { it.name == taskName }.configureEach { JavaExec runTask ->
+        doFirst {
+            new File(runTask.workingDir, 'mods').mkdirs()
+            if (taskName == 'runGameTestServer') {
+                File serverProperties = new File(runTask.workingDir, 'server.properties')
+                if (!serverProperties.isFile()) {
+                    serverProperties.setText('# Generated for the OreSpawn GameTest gate\n', 'UTF-8')
+                }
+            }
+            runTask.ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(runTask.workingDir)
+        }
+        doLast {
+            assertRuntimeLogsClean(runTask.workingDir, taskName,
+                    runTask.ext.oreSpawnCrashSnapshot as Set)
+        }
+    }
+}
+
+project.ext.oreSpawnBuild.runtimeCrashSnapshot = runtimeCrashSnapshot
+project.ext.oreSpawnBuild.assertRuntimeLogsClean = assertRuntimeLogsClean

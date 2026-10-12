@@ -69,7 +69,7 @@ Examples:
 | 26.1.2 | NeoForge | `2601022` | `4.0.16.2601022` |
 | 26.2 | Forge | `2602001` | `4.0.16.2602001` |
 | 26.2 | NeoForge | `2602002` | `4.0.16.2602002` |
-| 26.3 | NeoForge | `2603002` | `4.0.16.2603002` |
+| 26.3 | NeoForge | `2603002` | `4.1.0.2603002` |
 
 Historical MMD releases may also have four numeric components but may have used
 the fourth component differently. This policy applies prospectively; it does
@@ -132,7 +132,7 @@ For example:
 Minecraft 26.1.2 / Forge    / OreSpawn 4.0.6.2601021
 Minecraft 26.2   / Forge    / OreSpawn 4.0.6.2602001
 Minecraft 26.2   / NeoForge / OreSpawn 4.0.6.2602002
-Minecraft 26.3   / NeoForge / OreSpawn 4.0.6.2603002
+Minecraft 26.3   / NeoForge / OreSpawn 4.1.0.2603002
 ```
 
 Target-specific implementation details may differ internally where Minecraft

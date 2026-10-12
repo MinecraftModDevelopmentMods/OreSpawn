@@ -5,6 +5,7 @@ import java.util.List;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -28,6 +29,13 @@ public final class OreSpawnBiomeModifier implements BiomeModifier {
 		if (phase == Phase.ADD && !WorldgenBenchmark.isVanillaBaseline()) {
 			apply(builder.getGenerationSettings());
 		}
+	}
+
+	/** Uses the same feature order on newer NeoForge builds that pass registry access. */
+	public void modify(RegistryAccess registries, Holder<Biome> biome,
+			Phase phase, BiomeInfo.Builder builder) {
+		// Keep both signatures: older loaders call the method above, newer loaders call this one.
+		modify(biome, phase, builder);
 	}
 
 	@Override
