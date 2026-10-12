@@ -37,9 +37,14 @@ class ReleaseWorkflowContractTest {
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
 		Path buildFile = Paths.get("build.gradle");
 		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String publishing = new String(Files.readAllBytes(Paths.get("gradle", "release", "publishing.gradle")),
+				StandardCharsets.UTF_8);
+		String contracts = new String(Files.readAllBytes(Paths.get("gradle", "verification", "contracts.gradle")),
+				StandardCharsets.UTF_8);
+		assertTrue(build.contains("apply from: 'gradle/release/publishing.gradle'"));
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(contracts.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 	}
 
@@ -107,13 +112,30 @@ class ReleaseWorkflowContractTest {
 	@Test
 	void eclipseAlwaysPinsBuildshipToTheActiveJava25Runtime() throws Exception {
 		String build = new String(Files.readAllBytes(
-				Paths.get("build.gradle")), StandardCharsets.UTF_8);
+				Paths.get("gradle", "ide", "eclipse.gradle")), StandardCharsets.UTF_8);
 		assertTrue(build.contains("existingGradleHome = preferences.getProperty("));
 		assertTrue(build.contains("gradle.gradleUserHomeDir"));
 		assertTrue(build.contains("preferences.setProperty('java.home', System.getProperty('java.home'))"));
 		assertTrue(build.contains("JAVA_VERSION=\"25.0.3\""));
 		assertTrue(build.contains("IMPLEMENTOR=\"Eclipse Adoptium\""));
 		assertFalse(build.contains("requestedGradleHome == null || requestedGradleHome.trim().isEmpty()) {\n            return"));
+	}
+
+	@Test
+	void eclipseVerifiesTheActualNeoGradleLaunchesAndExcludesTestCode() throws Exception {
+		String script = Files.readString(Paths.get("gradle/ide/eclipse.gradle"));
+		assertTrue(script.contains("fileTree('.eclipse/configurations')"));
+		assertTrue(script.contains("org.eclipse.jdt.launching.ATTR_EXCLUDE_TEST_CODE"));
+		assertTrue(script.contains("The ordinary client must keep its own run directory"));
+		assertTrue(script.contains("runTestOreSourcesClient.launch"));
+	}
+
+	@Test
+	void releaseChecksumsTrackTheActualJarInputs() throws Exception {
+		String script = Files.readString(Paths.get("gradle/release/artifacts.gradle"));
+		String task = script.substring(script.indexOf("tasks.register('writeReleaseChecksums')"));
+		assertTrue(task.contains("inputs.files(expectedReleaseFiles.map"));
+		assertTrue(task.contains("libs/${it}"));
 	}
 
 	private static int occurrences(String text, String needle) {

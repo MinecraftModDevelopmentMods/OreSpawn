@@ -1,3 +1,16 @@
+Version 4.1.0.2603002
+
+* Restore biome and ore-source list text, status labels and scrollbar arrows on Minecraft 26.3.
+* Fix compact-list selection and scrollbar dragging with Minecraft 26.3's mouse-button numbering.
+* Move Help & Guide beside Recommended Defaults and keep world-creation controls clear of the footer.
+* Support NeoForge 26.3's renamed config type and updated biome modifier without dropping older builds or changing the common config file.
+* Apply managed vanilla ore rules to inline native features and release server-owned wrappers when a world closes.
+* Reject invalid geome IDs without rewriting them, and strengthen config, checksum and Eclipse launch checks.
+* Add provider extensions, a mod directory, Ore Sources and built-in MMD conflict defaults.
+* Add the biome directory, exact new-terrain replacements and dimension material controls.
+* Keep existing worlds' ore rules while starting new shared-tag MMD groups Balanced.
+* Split the NeoGradle build into smaller scripts and keep tracked text in LF format.
+
 Version 4.0.16.2603002
 
 * Port the accepted NeoForge 26.2 implementation to Minecraft 26.3 and

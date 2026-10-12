@@ -4,7 +4,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.config.ModConfig;
 
 /** Small bootstrap fallback; the JSON profile is the authoritative worldgen configuration. */
 public final class OreSpawnConfig {
@@ -27,7 +26,7 @@ public final class OreSpawnConfig {
 	}
 
 	public static void register(ModContainer container) {
-		container.registerConfig(ModConfig.Type.COMMON, SPEC, "orespawn-common.toml");
+		container.registerConfig(NeoForgeConfigType.local(), SPEC, "orespawn-common.toml");
 	}
 
 	public static void bake() {

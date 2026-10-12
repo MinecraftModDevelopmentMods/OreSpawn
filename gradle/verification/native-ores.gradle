@@ -1,0 +1,105 @@
+// Check real Nether terrain with the ordinary jar; the probe is test-only.
+def shared = project.ext.oreSpawnBuild
+def classes = layout.buildDirectory.dir('native-ore-fixture/classes')
+def compile = tasks.register('compileNativeOreProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/nativeOreIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = classes
+    options.release = 25
+    options.encoding = 'UTF-8'
+}
+def probeJar = tasks.register('nativeOreProbeJar', Jar) {
+    dependsOn compile
+    archiveFileName = 'nativeoreprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('native-ore-fixture')
+    from classes
+    from 'src/nativeOreIntegrationTest/resources'
+}
+def runtime = providers.gradleProperty('packagedNeoForgeServerRuntime')
+def comparisonJar = providers.gradleProperty('nativeOreSpawnJar')
+def finalTasks = []
+['Default', 'Explicit'].each { scenario ->
+    File runDirectory = layout.buildDirectory.dir("native-ore-${scenario.toLowerCase(Locale.ROOT)}-run").get().asFile
+    def prepare = tasks.register("prepareNativeOre${scenario}") {
+        dependsOn tasks.named('jar'), probeJar
+        doLast {
+            delete runDirectory
+            runDirectory.mkdirs()
+            shared.prepareTestNeoForgeConfig(runDirectory)
+            copy {
+                from comparisonJar.isPresent() ? file(comparisonJar.get()) : tasks.named('jar').flatMap { it.archiveFile }
+                from probeJar.flatMap { it.archiveFile }
+                into new File(runDirectory, 'mods')
+            }
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(runDirectory, 'server.properties').setText('''\
+level-name=native-ore-world
+level-seed=4192643144957839458
+online-mode=false
+server-port=0
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        }
+    }
+    def previous = prepare
+    ['Fresh', 'Reload', 'Edited'].each { phase ->
+        def dependency = previous
+        previous = tasks.register("nativeOre${scenario}${phase}", Exec) {
+            group = 'verification'
+            description = "Checks managed quartz with ${scenario.toLowerCase(Locale.ROOT)} hosts (${phase.toLowerCase(Locale.ROOT)})."
+            dependsOn dependency
+            doFirst {
+                if (!runtime.isPresent()) throw new GradleException('Pass -PpackagedNeoForgeServerRuntime=<official NeoForge installation>')
+                workingDir runDirectory
+                // One generation worker makes independent host-form runs comparable.
+                commandLine shared.neoForgeServerCommand(file(runtime.get()), runDirectory,
+                        ['-XX:ActiveProcessorCount=2', '-Dio.netty.transport.noNative=true',
+                         "-Dnativeoreprobe.phase=${phase.toLowerCase(Locale.ROOT)}",
+                         "-Dnativeoreprobe.host=${scenario.toLowerCase(Locale.ROOT)}"])
+            }
+            doLast {
+                File marker = new File(runDirectory, 'native-ore-world/nativeoreprobe.properties')
+                Properties result = new Properties()
+                if (!marker.isFile()) throw new GradleException("Missing quartz audit: ${marker}")
+                marker.withInputStream { result.load(it) }
+                if (result.getProperty("${phase.toLowerCase(Locale.ROOT)}_verified") != 'true') {
+                    throw new GradleException("Quartz ${phase.toLowerCase(Locale.ROOT)} was not verified")
+                }
+                shared.assertRuntimeLogsClean(runDirectory, "Native quartz ${scenario} ${phase}", [] as Set)
+                copy {
+                    from new File(runDirectory, 'logs/latest.log')
+                    into new File(runDirectory, 'audit-logs')
+                    rename { "${phase.toLowerCase(Locale.ROOT)}.log" }
+                }
+                copy {
+                    from marker
+                    into new File(runDirectory, 'audit-logs')
+                    rename { "${phase.toLowerCase(Locale.ROOT)}.properties" }
+                }
+            }
+        }
+    }
+    finalTasks.add(previous)
+}
+tasks.register('nativeOreIntegrationTest') {
+    group = 'verification'
+    description = 'Checks quartz tag/explicit hosts, exact-save reload and new-terrain-only edits.'
+    dependsOn finalTasks
+    doLast {
+        ['fresh', 'reload', 'edited'].each { phase ->
+            Properties tagged = new Properties()
+            Properties explicit = new Properties()
+            file("${buildDir}/native-ore-default-run/audit-logs/${phase}.properties").withInputStream { tagged.load(it) }
+            file("${buildDir}/native-ore-explicit-run/audit-logs/${phase}.properties").withInputStream { explicit.load(it) }
+            ['quartz', 'blocks_sha256', 'biomes_sha256', 'new_terrain_quartz', 'water', 'new_terrain_water'].each { key ->
+                if (tagged.getProperty(key) != explicit.getProperty(key)) {
+                    throw new GradleException("Tag and explicit quartz hosts differ for ${phase}: ${key}")
+                }
+            }
+        }
+        logger.lifecycle('Tag and explicit quartz hosts produce identical terrain, fresh/reload/edited')
+    }
+}

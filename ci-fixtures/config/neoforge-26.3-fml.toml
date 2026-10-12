@@ -1,0 +1,14 @@
+# Stock FML 12.0.0 settings for disposable test runs, not for manual profiles.
+disableConfigWatcher = false
+earlyWindowControl = true
+maxThreads = -1
+versionCheck = true
+debugOpenGl = false
+defaultConfigPath = "defaultconfigs"
+disableOptimizedDFU = true
+earlyWindowProvider = "fmlearlywindow"
+earlyWindowWidth = 854
+earlyWindowHeight = 480
+earlyWindowMaximized = false
+earlyLoadingScreenTheme = ""
+dependencyOverrides = {}
