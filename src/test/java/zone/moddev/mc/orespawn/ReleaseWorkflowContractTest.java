@@ -131,6 +131,13 @@ class ReleaseWorkflowContractTest {
 	}
 
 	@Test
+	void hostedEclipseCheckRequestsNativeLaunchGeneration() throws Exception {
+		String workflow = Files.readString(Paths.get(".github/workflows/ci.yml"));
+		assertTrue(workflow.contains("-Declipse.application=org.eclipse.jdt.ls.core.id1"),
+				"A clean CI checkout must ask NeoGradle to generate Eclipse launches");
+	}
+
+	@Test
 	void releaseChecksumsTrackTheActualJarInputs() throws Exception {
 		String script = Files.readString(Paths.get("gradle/release/artifacts.gradle"));
 		String task = script.substring(script.indexOf("tasks.register('writeReleaseChecksums')"));

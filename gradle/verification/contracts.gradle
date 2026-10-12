@@ -33,6 +33,7 @@ tasks.register('verifyColdNeoForgeBootstrapContract') {
                 './gradlew classes verifyLegacyFixtures --no-daemon',
                 './gradlew classes verifyLegacyFixtures --offline --no-daemon',
                 './gradlew check build javadoc',
+                '-Declipse.application=org.eclipse.jdt.ls.core.id1',
                 "java-version: '25.0.3+9.0.LTS'"
         ].each { required ->
             if (!workflow.contains(required)) {
