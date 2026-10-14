@@ -2,9 +2,13 @@ package zone.moddev.mc.orespawn.client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
@@ -20,6 +24,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.tabs.GridLayoutTab;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
@@ -38,6 +43,9 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private final List<AbstractWidget> terrainControls = new ArrayList<>();
 	private final List<CycleButton<Boolean>> vanillaOresButtons = new ArrayList<>();
 	private final List<Button> fluidEditorButtons = new ArrayList<>();
+	private final List<AbstractWidget> fullWidthControls = new ArrayList<>();
+	private final Map<Button, Component> buttonLabels = new HashMap<>();
+	private final Set<Button> explainedButtons = new HashSet<>();
 
 	private GeologyMode geologyMode;
 	private Preset horizontalSize;
@@ -53,7 +61,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 			List<String> availableDimensions) {
 		super(Component.literal("OreSpawn"));
 		this.worldScreen = worldScreen;
-		this.session = new GeologyEditorSession(profile, availableDimensions);
+		this.session = new GeologyEditorSession(profile, availableDimensions,
+				BiomeDirectoryModel.worldCreationRegistry(worldScreen));
 		this.templateChoices = availableTemplates(profile);
 		setProfile(profile);
 		buildControls();
@@ -72,8 +81,10 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 							Component.translatable("option.orespawn.template"),
 							(button, value) -> selectTemplate(value.id)), row++);
 		}
-		addFull(button(Component.translatable("button.orespawn.recommended"), FULL_WIDTH,
-				this::resetRecommended, "tooltip.orespawn.main.recommended"), row++);
+		layout.addChild(button(Component.translatable("button.orespawn.recommended"), COLUMN_WIDTH,
+				this::resetRecommended, "tooltip.orespawn.main.recommended"), row, 0);
+		layout.addChild(button(Component.translatable("button.orespawn.help"), COLUMN_WIDTH,
+				this::openHelp), row++, 1);
 		buildStandaloneControls(row);
 		buildTerrainControls(row);
 		refreshControlState();
@@ -89,8 +100,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		addFull(button(Component.translatable("button.orespawn.biomes_world_materials"),
 				FULL_WIDTH, this::openBiomeWorldMaterials, "tooltip.orespawn.main.biomes_materials"),
 				firstRow + 3, compactControls);
-		addFull(button(Component.translatable("button.orespawn.help"), FULL_WIDTH,
-				this::openHelp), firstRow + 4, compactControls);
+		addFull(button(Component.translatable("button.orespawn.mods"), FULL_WIDTH,
+				this::openMods, "tooltip.orespawn.main.mods"), firstRow + 4, compactControls);
 	}
 
 	private void buildTerrainControls(int firstRow) {
@@ -132,8 +143,29 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 				firstRow + 4, 1, terrainControls);
 		add(button(Component.translatable("button.orespawn.advanced"), COLUMN_WIDTH,
 				this::openAdvanced, "tooltip.orespawn.main.advanced"), firstRow + 5, 0, terrainControls);
-		add(button(Component.translatable("button.orespawn.help"), COLUMN_WIDTH,
-				this::openHelp), firstRow + 5, 1, terrainControls);
+		add(button(Component.translatable("button.orespawn.mods"), COLUMN_WIDTH,
+				this::openMods, "tooltip.orespawn.main.mods"), firstRow + 5, 1, terrainControls);
+	}
+
+	@Override
+	public void doLayout(ScreenRectangle area) {
+		// The grid also measures hidden controls, so allow for the larger terrain layout.
+		int rows = 7 + (templateChoices.size() > 1 ? 1 : 0);
+		layout.rowSpacing(OreSpawnScreenLayout.worldCreationRowSpacing(area.height(), rows));
+		int contentWidth = OreSpawnScreenLayout.worldCreationContentWidth(area.width());
+		int columnWidth = (contentWidth - 5) / 2;
+		layout.visitWidgets(control -> {
+			control.setWidth(fullWidthControls.contains(control) ? contentWidth : columnWidth);
+			if (control instanceof Button button && buttonLabels.containsKey(button)) {
+				Component label = buttonLabels.get(button);
+				Component fitted = OreSpawnScreenLayout.fit(Minecraft.getInstance().font, label, control.getWidth() - 8);
+				button.setMessage(fitted);
+				if (!explainedButtons.contains(button)) {
+					button.setTooltip(fitted == label ? null : Tooltip.create(label));
+				}
+			}
+		});
+		super.doLayout(area);
 	}
 
 	private CycleButton<Boolean> vanillaOresButton() {
@@ -174,6 +206,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private Button button(Component label, int width, Runnable action) {
 		Component fitted = OreSpawnScreenLayout.fit(Minecraft.getInstance().font, label, width - 8);
 		Button button = Button.builder(fitted, selected -> action.run()).width(width).build();
+		buttonLabels.put(button, label);
 		if (!fitted.getString().equals(label.getString())) {
 			button.setTooltip(Tooltip.create(label));
 		}
@@ -183,6 +216,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 	private Button button(Component label, int width, Runnable action, String tooltipKey) {
 		Button button = button(label, width, action);
 		button.setTooltip(tooltip(tooltipKey));
+		explainedButtons.add(button);
 		return button;
 	}
 
@@ -193,6 +227,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private void addFull(AbstractWidget control, int row) {
 		layout.addChild(control, row, 0, 1, 2);
+		fullWidthControls.add(control);
 	}
 
 	private void addFull(AbstractWidget control, int row, List<AbstractWidget> group) {
@@ -210,6 +245,7 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		}
 		for (Button button : fluidEditorButtons) {
 			Component label = fluidEditorLabel();
+			buttonLabels.put(button, label);
 			button.setMessage(OreSpawnScreenLayout.fit(
 					Minecraft.getInstance().font, label, button.getWidth() - 8));
 			button.setTooltip(tooltip("tooltip.orespawn.main.fluid_editor"));
@@ -306,6 +342,11 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private void openHelp() {
 		Minecraft.getInstance().setScreen(new OreSpawnGuideScreen(returnScreen()));
+	}
+
+	private void openMods() {
+		commit();
+		Minecraft.getInstance().setScreen(new OreSpawnModsScreen(returnScreen()));
 	}
 
 	private Screen returnScreen() {

@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 
 class FluidDepositFeatureTest {
 	@Test
-	void explicitBiomeFiltersBakeAsDynamicRegistryKeys() {
+	void explicitBiomeFiltersBakeAsDynamicResourceKeys() {
 		JsonObject rule = new JsonObject();
 		JsonArray ids = new JsonArray();
 		ids.add("minecraft:cold_ocean");
