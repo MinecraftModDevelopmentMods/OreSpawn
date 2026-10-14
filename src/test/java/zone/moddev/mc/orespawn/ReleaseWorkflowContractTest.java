@@ -35,8 +35,13 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
+		StringBuilder sources = new StringBuilder();
+		for (Path buildFile : new Path[] { Paths.get("build.gradle"),
+				Paths.get("gradle", "release", "artifacts.gradle"),
+				Paths.get("gradle", "release", "publishing.gradle") }) {
+			sources.append(new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8));
+		}
+		String build = sources.toString();
 		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
 		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
 		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
@@ -93,6 +98,17 @@ class ReleaseWorkflowContractTest {
 				"CodeQL retries must preserve exact Gradle arguments");
 		assertTrue(text.contains("failed after $attempt attempts"),
 				"CodeQL must fail rather than hide a persistent bootstrap defect");
+	}
+
+	@Test
+	void coldBootstrapCompilesTheTargetAndReplaysItOffline() throws Exception {
+		String text = Files.readString(Paths.get(".github", "workflows", "ci.yml"));
+		assertEquals(2, occurrences(text,
+				"./gradlew classes verifyLegacyFixtures verifyMavenizerCompatibilityFixture"));
+		assertTrue(text.contains("--offline --rerun-tasks --no-daemon --no-build-cache"));
+		assertTrue(text.contains("applied 0 rule(s) for net.minecraftforge:forge:1.20.6-50.2.0 (explicit no-op)"));
+		assertTrue(text.contains("markers-before.sha256"));
+		assertTrue(text.contains("markers-after.sha256"));
 	}
 
 	private static int occurrences(String text, String needle) {
