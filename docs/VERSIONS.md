@@ -52,8 +52,8 @@ Examples:
 | Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.13.2 | Forge | `113021` | `4.1.0.113021` |
-| 1.14.4 | Forge | `114041` | `4.1.0.114041` |
-| 1.15.2 | Forge | `115021` | `4.1.0.115021` |
+| 1.14.4 | Forge | `114041` | `4.1.1.114041` |
+| 1.15.2 | Forge | `115021` | `4.1.1.115021` |
 | 1.16.5 | Forge | `116051` | `4.0.16.116051` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
@@ -163,10 +163,13 @@ GameTest harness, so it keeps its ordinary dedicated benchmark auto-stop without
 a compatibility shim. A branch may therefore legitimately skip functional
 version numbers.
 
-The 1.15.2 line now advances to 4.1.0 for material-group ore policies,
+The 1.15.2 line advances to 4.1.0 for material-group ore policies,
 the loaded-mod directory, and exact new-terrain biome replacements. It keeps
-the `114041` target suffix, API major 1, and the target's existing registry
+the `115021` target suffix, API major 1, and the target's existing registry
 identities while provider/global/world schemas advance to 5/8/7.
+
+Version 4.1.1 fixes a crash in the settings screens during development runs.
+The same fix is included in the Forge 1.14.4 and 1.15.2 releases.
 
 This provides three useful guarantees:
 
