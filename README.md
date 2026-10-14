@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.16.120011`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.120011`: the OreSpawn 4.1
 feature set for Minecraft 1.20.1 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
@@ -53,6 +53,15 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+**Ore Sources** groups ores by exact block tags such as `forge:ores/sulfur`.
+When two loaded ordinary MMD providers share one tag, new worlds use a
+Balanced output policy and one placement budget per channel. Older worlds keep
+their saved Keep Original behaviour. Imported Ore Dictionary aliases remain
+visible but dormant until you assign a known exact block tag. The **Biomes**
+directory can replace one loaded biome with another in new terrain; its
+**Overworld Materials** control applies across the dimension, not just the
+selected biome.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -119,8 +128,12 @@ and fixtures. Published jars are deterministic, SRG-reobfuscated for the Forge
 47 runtime, audited for their four access-transformer rules and contents, and
 accompanied by SHA-256 checksums.
 
-Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
-Public developer and AI integration guidance lives in `docs/` and is included
-in the built jar.
+Developer and player guides live in `docs/` and are included in the built jar.
+
+For shared-ore GUI testing, generate the Eclipse launches and open
+`runTestOreSourcesClient.launch`. It loads two small dummy MMD providers in a
+separate `run-ore-sources` instance. The ordinary client stays fixture-free.
+Build-script ownership and the opt-in generation gates are in
+[`gradle/README.md`](gradle/README.md).
 
 OreSpawn is licensed under LGPL-2.1.

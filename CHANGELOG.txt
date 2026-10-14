@@ -1,3 +1,17 @@
+Version 4.1.0.120011
+
+* Add a Mods directory and Ore Sources editor for choosing how shared ores generate.
+* Balance shared ores from loaded MMD providers in new worlds, using one placement budget per channel. Existing worlds keep their saved choices.
+* Add custom ore groups, clear review status and reset controls. Keep settings for missing mods so they can be restored later.
+* Add a Biomes directory with placement settings and exact biome replacement in new terrain. Existing chunks are left alone.
+* Make it clear that world materials apply to the whole dimension, not just the selected biome.
+* Show only fluid blocks in fluid selectors and use clearer names for blocks without translated labels.
+* Move Help & Guide beside Recommended Defaults and keep the main menus clear of the footer at smaller sizes.
+* Preserve older profiles when upgrading the provider, global and world formats to schemas 5, 8 and 7.
+* Reject invalid geome IDs rather than silently changing their case. Keep vanilla ore wrappers shared across biomes and clear their cached registry references when the server stops.
+* Split the build into smaller, commented scripts and use LF line endings for shared text files.
+* Add a separate shared-ore test launch and checks for Nether hosts, saved settings and world reloads.
+
 Version 4.0.16.120011
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run

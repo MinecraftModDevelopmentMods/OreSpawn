@@ -23,10 +23,12 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
+import net.minecraft.core.registries.Registries;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -34,6 +36,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
+import net.minecraftforge.registries.ForgeRegistries;
 import zone.moddev.mc.orespawn.client.OreSpawnWorldSettingsScreen;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 
@@ -54,6 +57,9 @@ public final class ClientProbeTestMod {
 	private int editorFrames;
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
+	private int creationBiomeCount;
+	private int staticBiomeCount;
+	private int loadedBiomeCount;
 	private List<GuiEventListener> worldCreationButtons;
 
 	public ClientProbeTestMod() {
@@ -96,9 +102,15 @@ public final class ClientProbeTestMod {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (++stateTicks > 3600) fail(minecraft, "Timed out in client probe state " + state);
 		try {
+			if (Boolean.getBoolean("clientprobe.hidden")) {
+				org.lwjgl.glfw.GLFW.glfwHideWindow(minecraft.getWindow().getWindow());
+			}
 			switch (state) {
 				case 0:
-					if (minecraft.screen instanceof TitleScreen) {
+					if (minecraft.screen instanceof AccessibilityOnboardingScreen) {
+						minecraft.screen.onClose();
+						System.out.println("CLIENT_PROBE onboarding_continue=true");
+					} else if (minecraft.screen instanceof TitleScreen) {
 						CreateWorldScreen.openFresh(minecraft, minecraft.screen);
 						nextState(1);
 					}
@@ -112,6 +124,12 @@ public final class ClientProbeTestMod {
 					break;
 				case 2:
 					if (minecraft.screen instanceof CreateWorldScreen && stateTicks >= 2) {
+						CreateWorldScreen creation = (CreateWorldScreen) minecraft.screen;
+						creationBiomeCount = creation.getUiState().getSettings()
+								.worldgenLoadContext().registryOrThrow(Registries.BIOME).size();
+						staticBiomeCount = ForgeRegistries.BIOMES.getEntries().size();
+						if (Boolean.getBoolean("clientprobe.oreSources")) SharedOreClientProbe.verify();
+						MainMenuLayoutProbe.verify(creation);
 						validateCaptions(minecraft.screen);
 						validateLongEditorRoundTrip(minecraft, minecraft.screen);
 						nextState(3);
@@ -148,6 +166,8 @@ public final class ClientProbeTestMod {
 				case 5:
 					break;
 				case 6:
+					if (minecraft.level != null) loadedBiomeCount = minecraft.level.registryAccess()
+							.registryOrThrow(Registries.BIOME).size();
 					if (minecraft.screen instanceof ConfirmScreen) {
 						pressWorldCreationConfirmation((ConfirmScreen) minecraft.screen);
 					}
@@ -212,14 +232,28 @@ public final class ClientProbeTestMod {
 
 	private static void validateCaptions(Screen screen) {
 		for (AbstractWidget widget : widgets(screen)) {
+			// Text fields carry their value rather than a caption. Compact lists
+			// and cogs explain themselves through row text, icons, and tooltips.
+			if (!(widget instanceof Button) && !(widget instanceof CycleButton)) continue;
+			if (isVisualControl(widget)) continue;
 			String caption = ChatFormatting.stripFormatting(widget.getMessage().getString());
 			if (caption == null || caption.trim().isEmpty()
 					|| caption.contains("options.generic_value")
 					|| caption.startsWith("button.orespawn.")
 					|| caption.startsWith("option.orespawn.")) {
-				throw new IllegalStateException("Invalid client caption: " + widget.getMessage());
+				throw new IllegalStateException("Invalid client caption in "
+						+ screen.getClass().getSimpleName() + " / "
+						+ widget.getClass().getName() + ": " + widget.getMessage());
 			}
 		}
+	}
+
+	private static boolean isVisualControl(AbstractWidget widget) {
+		for (Class<?> type = widget.getClass(); type != null; type = type.getSuperclass()) {
+			String name = type.getSimpleName();
+			if ("CogButton".equals(name) || "CompactScrollList".equals(name)) return true;
+		}
+		return false;
 	}
 
 	private void validateLongEditorRoundTrip(Minecraft minecraft, Screen parent) {
@@ -497,7 +531,11 @@ public final class ClientProbeTestMod {
 	private void writeMarker() throws IOException {
 		Properties values = new Properties();
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
+		values.setProperty("main_menu_layout", Boolean.toString(MainMenuLayoutProbe.completed()));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
+		values.setProperty("creation_biome_count", Integer.toString(creationBiomeCount));
+		values.setProperty("static_biome_count", Integer.toString(staticBiomeCount));
+		values.setProperty("loaded_biome_count", Integer.toString(loadedBiomeCount));
 		values.setProperty("editor_routes", Integer.toString(editorRoutes.size()));
 		values.setProperty("editor_classes", editorRoutes.toString());
 		values.setProperty("first_world_rendered", Boolean.toString(firstWorldFrames >= 8));
