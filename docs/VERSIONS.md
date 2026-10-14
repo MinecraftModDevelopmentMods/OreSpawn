@@ -57,7 +57,7 @@ Examples:
 | 1.16.5 | Forge | `116051` | `4.0.9.116051` |
 | 1.17.1 | Forge | `117011` | `4.0.9.117011` |
 | 1.18.2 | Forge | `118021` | `4.0.10.118021` |
-| 1.19.4 | Forge | `119041` | `4.0.16.119041` |
+| 1.19.4 | Forge | `119041` | `4.1.0.119041` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.6.2601021` |
@@ -167,6 +167,11 @@ without touching buried or authored weather materials. It then advanced to
 quart-biome cell at three-dimensional biome boundaries, and to
 `4.0.16.119041` so GameTest benchmark runs leave shutdown and result reporting
 to the test harness.
+
+The 1.19.4 line now advances to 4.1.0 for material-group ore policies, the
+loaded-mod directory, and exact new-terrain biome replacements. It keeps its
+`119041` target suffix, API major 1, and existing registry identities while
+provider/global/world schemas advance to 5/8/7.
 
 This provides three useful guarantees:
 

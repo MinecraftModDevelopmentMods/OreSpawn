@@ -53,7 +53,8 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 			List<String> availableDimensions) {
 		super(Component.literal("OreSpawn"));
 		this.worldScreen = worldScreen;
-		this.session = new GeologyEditorSession(profile, availableDimensions);
+		this.session = new GeologyEditorSession(profile, availableDimensions,
+				BiomeDirectoryModel.worldCreationRegistry(worldScreen));
 		this.templateChoices = availableTemplates(profile);
 		setProfile(profile);
 		buildControls();
@@ -89,8 +90,10 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 		addFull(button(Component.translatable("button.orespawn.biomes_world_materials"),
 				FULL_WIDTH, this::openBiomeWorldMaterials, "tooltip.orespawn.main.biomes_materials"),
 				firstRow + 3, compactControls);
-		addFull(button(Component.translatable("button.orespawn.help"), FULL_WIDTH,
-				this::openHelp), firstRow + 4, compactControls);
+		add(button(Component.translatable("button.orespawn.mods"), COLUMN_WIDTH,
+				this::openMods, "tooltip.orespawn.main.mods"), firstRow + 4, 0, compactControls);
+		add(button(Component.translatable("button.orespawn.help"), COLUMN_WIDTH,
+				this::openHelp), firstRow + 4, 1, compactControls);
 	}
 
 	private void buildTerrainControls(int firstRow) {
@@ -132,8 +135,10 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 				firstRow + 4, 1, terrainControls);
 		add(button(Component.translatable("button.orespawn.advanced"), COLUMN_WIDTH,
 				this::openAdvanced, "tooltip.orespawn.main.advanced"), firstRow + 5, 0, terrainControls);
-		add(button(Component.translatable("button.orespawn.help"), COLUMN_WIDTH,
-				this::openHelp), firstRow + 5, 1, terrainControls);
+		add(button(Component.translatable("button.orespawn.mods"), COLUMN_WIDTH,
+				this::openMods, "tooltip.orespawn.main.mods"), firstRow + 5, 1, terrainControls);
+		addFull(button(Component.translatable("button.orespawn.help"), FULL_WIDTH,
+				this::openHelp), firstRow + 6, terrainControls);
 	}
 
 	private CycleButton<Boolean> vanillaOresButton() {
@@ -306,6 +311,11 @@ final class OreSpawnWorldCreationTab extends GridLayoutTab {
 
 	private void openHelp() {
 		Minecraft.getInstance().setScreen(new OreSpawnGuideScreen(returnScreen()));
+	}
+
+	private void openMods() {
+		commit();
+		Minecraft.getInstance().setScreen(new OreSpawnModsScreen(returnScreen()));
 	}
 
 	private Screen returnScreen() {

@@ -1,5 +1,5 @@
 {
-  "schema_version": 6,
+  "schema_version": 8,
   "geology_mode": "geome",
   "place_fluid_deposits": true,
   "manage_vanilla_ores": false,
@@ -32,6 +32,8 @@
   "biome_palettes": {},
   "dimension_materials": {},
   "ores": {},
+  "ore_material_groups": {},
+  "ore_source_policies": {},
   "fluid_deposits": {},
   "retrogen": {
     "enabled": false,

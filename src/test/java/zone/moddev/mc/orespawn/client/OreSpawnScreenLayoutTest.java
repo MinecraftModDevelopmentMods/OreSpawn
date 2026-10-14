@@ -23,16 +23,24 @@ class OreSpawnScreenLayoutTest {
 					.sorted()
 					.toList();
 		}
-		assertEquals(24, screens.size(), "Review this render-order gate when screens are added or removed");
+		assertEquals(29, screens.size(), "Review this render-order gate when screens are added or removed");
 		for (Path screen : screens) {
 			String source = Files.readString(screen, StandardCharsets.UTF_8);
-			int render = source.indexOf("public void render(PoseStack");
-			int background = source.indexOf("renderBackground(poseStack);", render);
-			int widgets = source.indexOf("super.render(poseStack", render);
 			String name = screen.getFileName().toString();
-			assertTrue(render >= 0, name + " must own its 1.19.4 render pass");
-			assertTrue(background > render, name + " must clear the previous frame");
-			assertTrue(widgets > background, name + " must clear before drawing widgets and tooltips");
+			if ("OreSpawnScreen.java".equals(name)) continue;
+			if (source.contains("extends OreSpawnScreen")) {
+				int render = source.indexOf("public void render(int");
+				int background = source.indexOf("renderBackground();", render);
+				int widgets = source.indexOf("super.render(mouseX", render);
+				assertTrue(render >= 0 && background > render && widgets > background,
+						name + " must clear its compact frame before widgets");
+			} else {
+				int render = source.indexOf("public void render(PoseStack");
+				int background = source.indexOf("renderBackground(poseStack);", render);
+				int widgets = source.indexOf("super.render(poseStack", render);
+				assertTrue(render >= 0 && background > render && widgets > background,
+						name + " must clear its frame before widgets");
+			}
 		}
 	}
 
@@ -54,6 +62,27 @@ class OreSpawnScreenLayoutTest {
 	@Test
 	void compactOrePlacementRowsStayAboveFooterAtMinimumTestHeight() {
 		assertCompactOrePlacementClearsFooter(240);
+	}
+
+	@Test
+	void oreSourcesKeepTwoCompactListsAtBothSupportedSizes() {
+		assertEquals(406, OreSourceListScreen.contentWidth(426));
+		assertEquals(174, OreSourceListScreen.leftPaneWidth(426));
+		assertEquals(209, OreSourceListScreen.listHeight(265));
+		assertEquals(300, OreSourceListScreen.contentWidth(320));
+		assertEquals(129, OreSourceListScreen.leftPaneWidth(320));
+		assertEquals(184, OreSourceListScreen.listHeight(240));
+		assertEquals(80, OreSourceGroupSettingsScreen.aliasListHeight(265));
+		assertEquals(64, OreSourceGroupSettingsScreen.aliasListHeight(240));
+		assertEquals(58, OreSourceListScreen.compactFilterWidth(110, 48));
+	}
+
+	@Test
+	void biomeDirectoryUsesPagesOnlyAtTheMinimumSize() {
+		assertTrue(426 >= BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(320 < BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(265) > 0);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(240) > 0);
 	}
 
 	private static void assertRowsClearFooter(int height) {
