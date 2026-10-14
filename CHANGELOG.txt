@@ -1,3 +1,17 @@
+Version 4.1.0.120061
+
+* Add a Mods directory showing each installed mod's OreSpawn settings.
+* Add Ore Sources controls for shared ores, with Balanced, Single, Custom and Keep Original choices.
+* Start known shared MMD ores in Balanced mode, with one placement budget and all eligible outputs selected.
+* Add custom ore groups, review controls, resets and clearer placement-source choices.
+* Add a biome directory, exact replacements in new terrain and provider palette settings.
+* Make World Materials clearly dimension-wide rather than specific to the selected biome.
+* Keep missing-mod settings and saved world policies when upgrading profiles to schemas 5, 8 and 7.
+* Keep Help & Guide beside Recommended Defaults so the main menus fit smaller windows.
+* Restrict fluid-deposit block selection to fluids and wrap empty-list messages.
+* Clear native ore wrappers when a server stops so settings are rebuilt for the next world.
+* Split the build into smaller commented scripts, improve Eclipse test launches and use LF for shared text files.
+
 Version 4.0.16.120061
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run
