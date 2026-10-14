@@ -14,15 +14,17 @@ class TextFieldWidget extends net.minecraft.client.gui.widget.TextFieldWidget {
 	}
 
 	void setValue(String value) {
-		setText(value);
+		// Official remapping gives the native method our alias name. Keep this
+		// a superclass call so imported jars cannot dispatch back into this bridge.
+		super.setText(value);
 	}
 
 	String getValue() {
-		return getText();
+		return super.getText();
 	}
 
 	void setMaxLength(int length) {
-		setMaxStringLength(length);
+		super.setMaxStringLength(length);
 	}
 
 	void setBounds(int x, int y, int width, int height) {

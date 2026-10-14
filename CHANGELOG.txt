@@ -1,3 +1,8 @@
+Version 4.1.1.114041
+
+* Fixed a crash when opening or editing OreSpawn's settings in development runs.
+  The fix has also been checked in a normal Forge installation.
+
 Version 4.1.0.114041
 
 * Reject invalid Geome IDs instead of silently renaming them.
