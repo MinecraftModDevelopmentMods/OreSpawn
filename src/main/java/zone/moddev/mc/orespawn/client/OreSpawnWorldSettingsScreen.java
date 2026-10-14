@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.FormationSettings.Preset;
+import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
@@ -17,6 +18,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -58,7 +60,10 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	OreSpawnWorldSettingsScreen(Screen parent, WorldGeologyProfile profile, List<String> availableDimensions) {
 		super(Component.translatable("screen.orespawn.world_settings"));
 		this.parent = parent;
-		this.session = new GeologyEditorSession(profile, availableDimensions);
+		this.session = parent instanceof CreateWorldScreen
+				? new GeologyEditorSession(profile, availableDimensions,
+						BiomeDirectoryModel.worldCreationRegistry((CreateWorldScreen) parent))
+				: new GeologyEditorSession(profile, availableDimensions);
 		templateChoices = availableTemplates(profile);
 		setProfile(profile);
 	}
@@ -115,9 +120,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 					contentWidth, BUTTON_HEIGHT,
 					Component.translatable("button.orespawn.biomes_world_materials"),
 					button -> openBiomeWorldMaterials()), "tooltip.orespawn.main.biomes_materials"));
-			addRenderableWidget(OreSpawnScreenLayout.button(
-					this, font, left, top + (row * rowIndex),
-					contentWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.mods"),
+					button -> openMods(), "tooltip.orespawn.main.mods"));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
 					button -> openHelp()));
 		} else {
 			geologyModeButton = addRenderableWidget(CycleButton.builder(this::geologyModeName)
@@ -158,18 +165,18 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 					columnWidth, BUTTON_HEIGHT,
 					Component.translatable("button.orespawn.biomes_world_materials"),
 					button -> openBiomeWorldMaterials()), "tooltip.orespawn.main.biomes_materials"));
-			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
-					this, font, left, top + (row * rowIndex),
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.advanced"),
-					button -> openAdvanced()), "tooltip.orespawn.main.advanced"));
-			addRenderableWidget(OreSpawnScreenLayout.button(
-					this, font, right, top + (row * rowIndex++),
+					button -> openAdvanced(), "tooltip.orespawn.main.advanced"));
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, right, top + (row * rowIndex++),
+					columnWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits(),
+					"tooltip.orespawn.main.fluid_editor"));
+			addRenderableWidget(OreSpawnScreenLayout.explainedButton(this, font, left, top + (row * rowIndex),
+					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.mods"),
+					button -> openMods(), "tooltip.orespawn.main.mods"));
+			addRenderableWidget(OreSpawnScreenLayout.button(this, font, right, top + (row * rowIndex),
 					columnWidth, BUTTON_HEIGHT, Component.translatable("button.orespawn.help"),
 					button -> openHelp()));
-			addRenderableWidget(OreSpawnScreenLayout.explain(OreSpawnScreenLayout.button(
-					this, font, left, top + (row * rowIndex),
-					contentWidth, BUTTON_HEIGHT, fluidEditorLabel(), button -> openFluidDeposits()),
-					"tooltip.orespawn.main.fluid_editor"));
 		}
 		addRenderableWidget(OreSpawnScreenLayout.button(this, font, left, this.height - 28, columnWidth, BUTTON_HEIGHT,
 				CommonComponents.GUI_DONE, button -> saveAndClose()));
@@ -289,6 +296,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 			validationError = Component.literal(errors.get(0));
 			return;
 		}
+		if (session.oreMaterialGroupsChanged()
+				&& !GeomeConfig.persistOreMaterialGroups(session.oreMaterialGroupsCopy())) {
+			validationError = Component.translatable("error.orespawn.ore_source.defaults_write");
+			return;
+		}
 		WorldGeologyProfileManager.setPendingNewWorldProfile(session.profile());
 		minecraft.setScreen(parent);
 	}
@@ -331,6 +343,11 @@ public final class OreSpawnWorldSettingsScreen extends Screen {
 	private void openFluidDeposits() {
 		syncSession();
 		minecraft.setScreen(new FluidDepositListScreen(this, session));
+	}
+
+	private void openMods() {
+		syncSession();
+		minecraft.setScreen(new OreSpawnModsScreen(this));
 	}
 
 	private void openHelp() {
