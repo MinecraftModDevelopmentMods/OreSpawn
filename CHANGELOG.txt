@@ -6,6 +6,7 @@ Version 4.1.0.121011
 * Keep Help & Guide beside Recommended Defaults so the main menus fit smaller windows.
 * Reject invalid geome IDs without silently changing their spelling.
 * Recognise inline native ore features and clear wrappers when a server stops.
+* Make noise arithmetic explicit without changing its results.
 * Add separate shared-ore test launches and stronger Eclipse, cold-cache and runtime checks.
 * Split the build into smaller commented scripts and normalize tracked text to LF.
 
