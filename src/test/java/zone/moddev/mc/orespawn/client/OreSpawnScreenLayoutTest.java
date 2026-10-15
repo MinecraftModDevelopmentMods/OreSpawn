@@ -4,6 +4,9 @@ import static java.lang.reflect.Modifier.isFinal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,8 +61,39 @@ class OreSpawnScreenLayoutTest {
 	}
 
 	@Test
+	void helpSharesTheRecommendedDefaultsHeaderInBothMainEditors() throws IOException {
+		for (String screen : List.of("OreSpawnWorldCreationTab", "OreSpawnWorldSettingsScreen")) {
+			String source = Files.readString(Path.of(
+					"src/main/java/zone/moddev/mc/orespawn/client/" + screen + ".java"));
+			int recommended = source.indexOf("button.orespawn.recommended");
+			int help = source.indexOf("button.orespawn.help");
+			int body = source.indexOf(screen.endsWith("Tab")
+					? "buildStandaloneControls(row)" : "if (!terrain)", recommended);
+			assertTrue(recommended >= 0 && help > recommended && help < body,
+					"Help belongs beside Recommended Defaults, above the main controls: " + screen);
+			assertEquals(help, source.lastIndexOf("button.orespawn.help"),
+					"The editor should have one Help button, not a second footer row");
+		}
+	}
+
+	@Test
 	void compactMainRowsStayAboveFooter() {
 		assertRowsClearFooter(240);
+	}
+
+	@Test
+	void worldCreationGridFitsWithAndWithoutTheTemplateRow() {
+		for (int availableHeight : new int[] {170, 180, 183, 205, 208}) {
+			for (int rows : new int[] {7, 8}) {
+				int spacing = OreSpawnScreenLayout.worldCreationRowSpacing(availableHeight, rows);
+				assertTrue(rows * 20 + (rows - 1) * spacing <= availableHeight - 2,
+						"The grid must stop before Minecraft's footer separator");
+			}
+		}
+		assertEquals(4, OreSpawnScreenLayout.worldCreationRowSpacing(180, 7));
+		assertEquals(2, OreSpawnScreenLayout.worldCreationRowSpacing(180, 8));
+		assertEquals(300, OreSpawnScreenLayout.worldCreationContentWidth(320));
+		assertEquals(385, OreSpawnScreenLayout.worldCreationContentWidth(426));
 	}
 
 	@Test
@@ -75,6 +109,27 @@ class OreSpawnScreenLayoutTest {
 	@Test
 	void compactOrePlacementRowsStayAboveFooterAtMinimumTestHeight() {
 		assertCompactOrePlacementClearsFooter(240);
+	}
+
+	@Test
+	void oreSourcesKeepTwoCompactListsAtBothSupportedSizes() {
+		assertEquals(406, OreSourceListScreen.contentWidth(426));
+		assertEquals(174, OreSourceListScreen.leftPaneWidth(426));
+		assertEquals(209, OreSourceListScreen.listHeight(265));
+		assertEquals(300, OreSourceListScreen.contentWidth(320));
+		assertEquals(129, OreSourceListScreen.leftPaneWidth(320));
+		assertEquals(184, OreSourceListScreen.listHeight(240));
+		assertEquals(80, OreSourceGroupSettingsScreen.aliasListHeight(265));
+		assertEquals(64, OreSourceGroupSettingsScreen.aliasListHeight(240));
+		assertEquals(58, OreSourceListScreen.compactFilterWidth(110, 48));
+	}
+
+	@Test
+	void biomeDirectoryUsesPagesOnlyAtTheMinimumSize() {
+		assertTrue(426 >= BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(320 < BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(265) > 0);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(240) > 0);
 	}
 
 	private static void assertRowsClearFooter(int height) {

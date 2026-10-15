@@ -1,5 +1,19 @@
 # OreSpawn Developer Guide
 
+## Checking a local build
+
+Run the offline tests, build, Javadocs, artifact audit and checksum tasks before
+sharing a candidate. Also run `genEclipseRuns` and
+`verifyEclipseProductionClasspath` if you use Eclipse.
+
+For shared-ore testing, `runOreSourcesClient.launch` and
+`runTestOreSourcesClient.launch` load two simulated providers in
+`run-ore-sources`. They keep their settings separate from the ordinary client.
+The automatic client checks use disposable directories under `build` instead.
+`nativeOreIntegrationTest` checks native Nether hosts, exact-save reloads,
+new-terrain edits and wrapper cleanup. See `gradle/README.md` for task ownership
+and the official-runtime properties used by the packaged checks.
+
 ## Decide Which Integration You Need
 
 | Goal | Recommended integration |
@@ -12,6 +26,8 @@
 | Add covered underground oil or another fluid | Provider schema 3 fluid deposit |
 | Add or place biomes without a framework dependency | Provider schema 4 biome palette |
 | Replace surfaces, aquifers, snow, or ice | Provider schema 4 dimension materials |
+| Share placement between equivalent ore blocks | Provider schema 5 material and placement channel, with one exact block tag |
+| Add an OreSpawn-linked settings screen | Client-only `WorldSettingsExtensionRegistry` |
 | Inspect active geology at runtime | `GeologyProfileView` and `GeologySampler` |
 
 Strata are optional. If no enabled terrain dimension has eligible rocks,
@@ -21,7 +37,7 @@ blocks or tags.
 
 ## Provider JSON Quick Start
 
-Put a schema-4 file in your mod jar at:
+Put a schema-5 file in your mod jar at:
 
 ```text
 src/main/resources/data/examplemod/orespawn/provider.json
@@ -33,7 +49,7 @@ stone without enabling strata:
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "ores": {
