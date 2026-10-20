@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "OreSpawn native ore integration fixtures",
+    "max_format": 94,
+    "min_format": [94, 1]
+  }
+}

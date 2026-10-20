@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -35,8 +34,7 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
+		String build = buildScripts("build.gradle", "gradle/release/publishing.gradle");
 		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
 		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
 		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
@@ -97,7 +95,7 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void eclipseOutputsCannotNestInsideForgeMergedOutput() throws Exception {
-		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
+		String build = buildScripts("build.gradle", "gradle/ide/eclipse.gradle");
 		assertTrue(build.contains("defaultOutputDir = file('bin/default')"));
 		assertTrue(build.contains("entry instanceof org.gradle.plugins.ide.eclipse.model.Output"));
 		assertTrue(build.contains("entry.path = 'bin/default'"));
@@ -115,5 +113,13 @@ class ReleaseWorkflowContractTest {
 			offset += needle.length();
 		}
 		return count;
+	}
+
+	private static String buildScripts(String... paths) throws Exception {
+		StringBuilder text = new StringBuilder();
+		for (String path : paths) {
+			text.append(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8));
+		}
+		return text.toString();
 	}
 }

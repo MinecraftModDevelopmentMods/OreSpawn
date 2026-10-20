@@ -12,6 +12,8 @@
 | Add covered underground oil or another fluid | Provider schema 3 fluid deposit |
 | Add or place biomes without a framework dependency | Provider schema 4 biome palette |
 | Replace surfaces, aquifers, snow, or ice | Provider schema 4 dimension materials |
+| Share placement between equivalent ore blocks | Provider schema 5 material and placement channel, with one exact block tag |
+| Add an OreSpawn-linked settings screen | Client-only `WorldSettingsExtensionRegistry` |
 | Inspect active geology at runtime | `GeologyProfileView` and `GeologySampler` |
 
 Strata are optional. If no enabled terrain dimension has eligible rocks,
@@ -21,7 +23,7 @@ blocks or tags.
 
 ## Provider JSON Quick Start
 
-Put a schema-4 file in your mod jar at:
+Put a schema-5 file in your mod jar at:
 
 ```text
 src/main/resources/data/examplemod/orespawn/provider.json
@@ -33,7 +35,7 @@ stone without enabling strata:
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "ores": {
@@ -193,6 +195,24 @@ operator-controlled profile reloads. Existing chunks are unchanged unless
 bounded ore or bedrock retrogen is enabled.
 
 ## Distribution Checklist
+
+The opt-in `nativeOreIntegrationTest` checks managed quartz and fluid deposits
+in ordinary Nether terrain, using both host tags and explicit blocks. It checks
+fresh generation, exact-save reload, edits in new terrain and shutdown cleanup.
+Pass `-PpackagedForgeServerRuntime=<official Forge 61 installation>`.
+
+For shared-ore GUI testing, `runOreSourcesClient` loads simulated Base Minerals
+and Electric Advantage providers in a separate manual directory. Its Eclipse
+alias is `runTestOreSourcesClient.launch`. `oreSourcesClientIntegrationTest`
+runs the automatic hidden client, including main-menu layouts and world reload.
+`clientIntegrationProcess -PoreSpawnClientProbe=true` checks the ordinary
+development client without using manual saves. The automatic clients check the
+directory against the active world-creation and loaded biome registries.
+
+Fixture preparation writes complete Forge defaults only beneath `build`, and
+never overwrites an existing configuration. Runtime checks reject parsing
+exceptions even if the loader logs them below ERROR. Cold-cache CI compiles
+the actual target, then forces an offline replay of the same build.
 
 1. Validate the provider file against `schemas/orespawn-provider.schema.json`.
 2. Test without OreSpawn if your mod declares it optional; otherwise declare a

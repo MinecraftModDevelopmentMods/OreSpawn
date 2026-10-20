@@ -5,11 +5,10 @@ import java.util.Arrays;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
@@ -19,6 +18,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	private final Screen parent;
 	private final GeologyEditorSession session;
 	private final String dimension;
+	private final String paletteId;
 	private final String biomeId;
 	private Tab tab = Tab.PLACEMENT;
 	private EditBox weight;
@@ -30,10 +30,21 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 
 	BiomePlacementScreen(Screen parent, GeologyEditorSession session,
 			String dimension, String biomeId) {
+		this(parent, session, dimension, paletteId(session, dimension), biomeId);
+	}
+
+	private static String paletteId(GeologyEditorSession session, String dimension) {
+		if (session.biomePaletteId(dimension) == null) session.biomePalette(dimension, true);
+		return session.biomePaletteId(dimension);
+	}
+
+	BiomePlacementScreen(Screen parent, GeologyEditorSession session,
+			String dimension, String paletteId, String biomeId) {
 		super(Component.translatable("screen.orespawn.biome_placement"));
 		this.parent = parent;
 		this.session = session;
 		this.dimension = dimension;
+		this.paletteId = paletteId;
 		this.biomeId = biomeId;
 	}
 
@@ -51,21 +62,21 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 					selected -> { saveFields(); tab = value; rebuildWidgets(); }));
 			button.active = value != tab;
 		}
-		JsonObject placement = session.biomePlacement(dimension, biomeId);
-		addRenderableWidget(OreSpawnScreenLayout.explain(
-				CycleButton.onOffBuilder(bool(placement, "enabled", true)).create(
-						left, 64, contentWidth, 20,
+		JsonObject placement = session.biomePlacementByPalette(paletteId, biomeId);
+		OreSpawnScreenLayout.explain(this, addRenderableWidget(CycleButton.onOffBuilder(
+				bool(placement, "enabled", true))
+				.create(left, 64, contentWidth, 20,
 						Component.translatable("option.orespawn.enabled"),
-						(button, value) -> placement.addProperty("enabled", value)),
-				"tooltip.orespawn.enabled"));
+						(button, value) -> placement.addProperty("enabled", value))),
+				"tooltip.orespawn.enabled");
 		if (tab == Tab.PLACEMENT) initPlacement(left, half, placement);
 		else if (tab == Tab.CLIMATE) initClimate(left, half, placement);
 		else initSurface(left, contentWidth, placement);
 		addRenderableWidget(OreSpawnScreenLayout.plainButton(left, OreSpawnScreenLayout.footerY(height),
 				half, 20, CommonComponents.GUI_DONE, button -> { saveFields(); onClose(); }));
-		addRenderableWidget(OreSpawnScreenLayout.plainButton(left + half + 5, OreSpawnScreenLayout.footerY(height),
+		addRenderableWidget(new Button(left + half + 5, OreSpawnScreenLayout.footerY(height),
 				half, 20, Component.translatable("button.orespawn.remove"), button -> {
-					session.removeBiomePlacement(dimension, biomeId);
+					session.removeBiomePlacementByPalette(paletteId, biomeId);
 					onClose();
 				}));
 	}
@@ -159,7 +170,7 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 	}
 
 	private void saveFields() {
-		JsonObject placement = session.biomePlacement(dimension, biomeId);
+		JsonObject placement = session.biomePlacementByPalette(paletteId, biomeId);
 		if (weight != null) putDouble(placement, "weight", weight, 0.0D, 1000.0D);
 		if (minTemperature != null) putDouble(placement, "min_temperature", minTemperature, -2.0D, 2.0D);
 		if (maxTemperature != null) putDouble(placement, "max_temperature", maxTemperature, -2.0D, 2.0D);
@@ -187,10 +198,8 @@ final class BiomePlacementScreen extends OreSpawnScreen {
 
 	@Override
 	protected void renderForeground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-
 		graphics.drawCenteredString(font, title, width / 2, 10, OreSpawnScreenLayout.TEXT_PRIMARY);
 		graphics.drawCenteredString(font, Component.literal(biomeId), width / 2, 28, OreSpawnScreenLayout.TEXT_SOFT);
-
 	}
 
 	private static JsonObject object(JsonObject root, String key) {

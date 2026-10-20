@@ -1,0 +1,437 @@
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+import java.util.jar.Manifest
+import java.util.zip.ZipFile
+
+// Runtime log checks and sealed fixtures are shared by the other scripts.
+def shared = project.ext.oreSpawnBuild
+def sha256Of = shared.sha256Of
+def mavenizerFixtureChecksums = shared.mavenizerFixtureChecksums
+def mavenizerCompatibilityJar = shared.mavenizerCompatibilityJar
+def mavenizerRuleManifest = shared.mavenizerRuleManifest
+def mavenizerSourcePatch = shared.mavenizerSourcePatch
+def mavenizerLicense = shared.mavenizerLicense
+def mavenizerReadme = shared.mavenizerReadme
+def mineralogy5OracleJar = shared.mineralogy5OracleJar
+def mineralogy5OracleSha256 = shared.mineralogy5OracleSha256
+def java21Launcher = shared.java21Launcher
+tasks.register('verifyLegacyFixtures') {
+    group = 'verification'
+    description = 'Verifies the sealed Mineralogy 1.18.2 5.4.0 oracle used only by isolated tests.'
+    inputs.file mineralogy5OracleJar
+    doLast {
+        if (!mineralogy5OracleJar.isFile()) {
+            throw new GradleException("Missing mandatory Mineralogy oracle: ${mineralogy5OracleJar}")
+        }
+        MessageDigest digest = MessageDigest.getInstance('SHA-256')
+        mineralogy5OracleJar.withInputStream { input ->
+            byte[] buffer = new byte[8192]
+            for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+                if (read > 0) digest.update(buffer, 0, read)
+            }
+        }
+        String actual = digest.digest().encodeHex().toString().toUpperCase()
+        if (actual != mineralogy5OracleSha256) {
+            throw new GradleException("Mineralogy oracle checksum mismatch: ${actual}")
+        }
+    }
+}
+
+tasks.register('verifyMavenizerCompatibilityFixture') {
+    group = 'verification'
+    description = 'Verifies the sealed target-aware ForgeGradle Mavenizer compatibility tool.'
+    inputs.files mavenizerFixtureChecksums.keySet()
+    doLast {
+        mavenizerFixtureChecksums.each { fixture, expected ->
+            if (!fixture.isFile()) {
+                throw new GradleException("Missing Mavenizer compatibility fixture: ${fixture}")
+            }
+            String actual = sha256Of(fixture)
+            if (actual != expected) {
+                throw new GradleException("Mavenizer compatibility fixture checksum mismatch for " +
+                        "${fixture.name}: expected ${expected}, found ${actual}")
+            }
+        }
+
+        def parsed = new JsonSlurper().parse(mavenizerRuleManifest.asFile)
+        String target = 'net.minecraftforge:forge:1.21.11-61.1.0'
+        if (parsed.schema != 1 || parsed.targets.keySet() != [target] as Set) {
+            throw new GradleException('Mavenizer target-rule manifest has unexpected targets or schema')
+        }
+        def forgeRules = parsed.targets[target]
+        if (forgeRules.expectedApplications != 0 || !forgeRules.rules.isEmpty()) {
+            throw new GradleException('Forge 61 Mavenizer target must be an explicit zero-rule qualification')
+        }
+
+        ZipFile fixtureJar = new ZipFile(mavenizerCompatibilityJar.asFile)
+        try {
+            def embeddedEntry = fixtureJar.getEntry(
+                    'META-INF/orespawn/minecraft-source-compatibility.json')
+            if (embeddedEntry == null) {
+                throw new GradleException('Mavenizer fixture is missing its embedded target-rule manifest')
+            }
+            byte[] embedded = fixtureJar.getInputStream(embeddedEntry).withCloseable { it.readAllBytes() }
+            byte[] external = mavenizerRuleManifest.asFile.bytes
+            if (!Arrays.equals(embedded, external)) {
+                throw new GradleException('Embedded and externally audited Mavenizer manifests differ')
+            }
+
+            def patcherEntry = fixtureJar.getEntry(
+                    'net/minecraftforge/mcmaven/impl/util/SourceCompatibilityPatcher.class')
+            if (patcherEntry == null) {
+                throw new GradleException('Mavenizer fixture is missing SourceCompatibilityPatcher')
+            }
+            byte[] classHeader = fixtureJar.getInputStream(patcherEntry).withCloseable {
+                it.readNBytes(8)
+            }
+            if (classHeader.length != 8 || classHeader[0..3] !=
+                    [0xCA, 0xFE, 0xBA, 0xBE].collect { (byte) it }) {
+                throw new GradleException('Mavenizer compatibility class has an invalid class header')
+            }
+            int classMajor = ((classHeader[6] & 0xff) << 8) | (classHeader[7] & 0xff)
+            if (classMajor != 69) {
+                throw new GradleException("Mavenizer compatibility tool must use Java 25 bytecode, found ${classMajor}")
+            }
+
+            def jarManifestEntry = fixtureJar.getEntry('META-INF/MANIFEST.MF')
+            Manifest jarManifest = new Manifest(fixtureJar.getInputStream(jarManifestEntry))
+            if (jarManifest.mainAttributes.getValue('Main-Class') !=
+                    'net.minecraftforge.mcmaven.cli.Main') {
+                throw new GradleException('Mavenizer compatibility fixture has an unexpected main class')
+            }
+        } finally {
+            fixtureJar.close()
+        }
+
+        String readme = mavenizerReadme.asFile.getText('UTF-8')
+        String patchText = mavenizerSourcePatch.asFile.getText('UTF-8')
+        String licenseText = mavenizerLicense.asFile.getText('UTF-8')
+        if (!readme.contains('6968241ce7a0a902cdc1c534b976e8373a423091')
+                || !readme.contains('Temurin `25.0.3+9`')
+                || !readme.contains('1.21.11-61.1.0')) {
+            throw new GradleException('Mavenizer provenance, target, or Java 25 build instructions are incomplete')
+        }
+        if (!patchText.contains('SourceCompatibilityPatcher.java')
+                || !patchText.contains('minecraft-source-compatibility.json')) {
+            throw new GradleException('Mavenizer source patch is incomplete')
+        }
+        if (!licenseText.contains('GNU LESSER GENERAL PUBLIC LICENSE')) {
+            throw new GradleException('Mavenizer LGPL-2.1 licence fixture is incomplete')
+        }
+    }
+}
+
+tasks.register('verifyLegacyOracleIsolation') {
+    group = 'verification'
+    description = 'Keeps the sealed Mineralogy oracle test-visible but production-invisible.'
+    dependsOn tasks.named('verifyLegacyFixtures')
+    doLast {
+        configurations.findAll { it.canBeResolved }.each { configuration ->
+            if (configuration.files.any { it.canonicalFile == mineralogy5OracleJar.canonicalFile }) {
+                throw new GradleException("Mineralogy oracle leaked into ${configuration.name}")
+            }
+        }
+    }
+}
+
+tasks.register('verifyJava21Toolchain') {
+    group = 'verification'
+    doLast {
+        def metadata = java21Launcher.get().metadata
+        String runtimeVersion = metadata.javaRuntimeVersion
+        if (project.java_toolchain_version != '21.0.7+6'
+                || metadata.vendor.toString() != 'Eclipse Temurin'
+                || !(runtimeVersion == '21.0.7+6' || runtimeVersion == '21.0.7+6-LTS')) {
+            throw new GradleException("Expected Temurin ${project.java_toolchain_version}, found " +
+                    "${metadata.vendor} ${runtimeVersion} at ${metadata.installationPath}")
+        }
+    }
+}
+// Registry-focused tests initialize the real global config singleton. Keep
+// that target-native coverage without leaving a generated checkout config.
+def unitTestWorldgenConfig = file('config/orespawn-worldgen.json')
+def unitTestWorldgenConfigWasPresent = false
+byte[] unitTestWorldgenConfigBytes = null
+tasks.named('test', Test).configure {
+    doFirst {
+        unitTestWorldgenConfigWasPresent = unitTestWorldgenConfig.isFile()
+        unitTestWorldgenConfigBytes = unitTestWorldgenConfigWasPresent
+                ? unitTestWorldgenConfig.bytes : null
+    }
+}
+def preserveDeveloperWorldgenConfig = tasks.register('preserveDeveloperWorldgenConfig') {
+    doLast {
+        if (unitTestWorldgenConfigWasPresent) {
+            byte[] after = unitTestWorldgenConfig.isFile() ? unitTestWorldgenConfig.bytes : null
+            if (after == null || !java.util.Arrays.equals(unitTestWorldgenConfigBytes, after)) {
+                unitTestWorldgenConfig.parentFile.mkdirs()
+                unitTestWorldgenConfig.bytes = unitTestWorldgenConfigBytes
+            }
+        } else if (unitTestWorldgenConfig.isFile()) {
+            delete unitTestWorldgenConfig
+        }
+    }
+}
+tasks.named('test', Test).configure {
+    finalizedBy preserveDeveloperWorldgenConfig
+}
+
+// A Forge process is not green merely because it returns exit code zero. The
+// loader can log a worldgen/linkage failure and still shut down normally.
+def acceptedForge61LogNoise = [
+        ~/FML appears to be missing any signature data/,
+        ~/Found multiple arguments for option fml\.mcVersion/,
+        ~/Found multiple arguments for option fml\.forgeVersion/,
+        ~/\/ERROR\] \[net\.minecraft\.client\.Minecraft\/\]: Failed to verify authentication$/,
+        ~/\/ERROR\] \[net\.minecraft\.client\.Minecraft\/\]: Failed to fetch user properties$/,
+        ~/\/ERROR\] \[com\.mojang\.realmsclient\.client\.RealmsClient\/\]: Failed to fetch Realms feature flags$/,
+        ~/\/ERROR\] \[com\.mojang\.realmsclient\.RealmsAvailability\/\]: Couldn't connect to realms$/,
+        ~/\/(?:ERROR|FATAL)\] \[net\.minecraftforge\.fml\.network\.simple\.IndexedMessageCodec\/SIMPLENET\]: Received empty payload on channel fml:handshake$/,
+        ~/\/FATAL\] \[net\.minecraftforge\.common\.ForgeConfig\/CORE\]: Forge config just got changed on the file system!$/,
+        ~/\/FATAL\] \[net\.minecraftforge\.fml\.packs\.ModFileResourcePack\/\]: Failed to clean up tempdir /,
+        ~/^java\.lang\.UnsupportedOperationException: Reflective setAccessible\(true\) disabled$/,
+        ~/^java\.lang\.IllegalAccessException: symbolic reference class is not accessible: class jdk\.internal\.misc\.Unsafe, from class io\.netty\.util\.internal\.PlatformDependent0 \(module io\.netty\.common\)$/,
+        ~/^com\.mojang\.authlib\.exceptions\.InvalidCredentialsException: Status: 401$/,
+        ~/^Caused by: com\.mojang\.authlib\.exceptions\.MinecraftClientHttpException: Status: 401$/,
+        ~/^com\.mojang\.realmsclient\.exception\.RealmsServiceException: Realms authentication error with message 'java\.lang\.RuntimeException: Failed to parse into SignedJWT: (?:validation-token|0)'$/
+]
+
+def runtimeCrashSnapshot = { File runDirectory ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (!crashDirectory.isDirectory()) return [] as Set
+    return fileTree(crashDirectory) { include '**/*' }.files
+            .findAll { it.isFile() }.collect { it.absolutePath } as Set
+}
+
+def assertRuntimeLogsClean = { File runDirectory, String context, Set priorCrashes,
+        List expectedErrors = [] ->
+    File crashDirectory = new File(runDirectory, 'crash-reports')
+    if (crashDirectory.isDirectory()) {
+        def crashes = fileTree(crashDirectory) { include '**/*' }.files
+                .findAll { it.isFile() && !priorCrashes.contains(it.absolutePath) }
+        if (!crashes.isEmpty()) {
+            throw new GradleException("${context} produced crash report ${crashes.first()}")
+        }
+    }
+
+    File logsDirectory = new File(runDirectory, 'logs')
+    if (!logsDirectory.isDirectory()) return
+    def failures = []
+    [new File(logsDirectory, 'latest.log'), new File(logsDirectory, 'debug.log')]
+            .findAll { it.isFile() }.each { File log ->
+        int lineNumber = 0
+        boolean profileLookupTimedOut = false
+        log.eachLine('UTF-8') { String line ->
+            lineNumber++
+            if (line ==~ /^\[.*\/(?:TRACE|DEBUG|INFO|WARN|ERROR|FATAL)\].*/) {
+                profileLookupTimedOut = false
+            }
+            boolean unexpectedSeverity = line ==~ /.*\/(?:ERROR|FATAL)\].*/
+            boolean profileTimeoutRoot = line ==~ /^com\.mojang\.authlib\.exceptions\.MinecraftClientException: Failed to read from https:\/\/sessionserver\.mojang\.com\/session\/minecraft\/profile\/[a-f0-9]{32}\?unsigned=false due to Read timed out$/
+            boolean profileTimeoutCause = profileLookupTimedOut &&
+                    line == 'Caused by: java.net.SocketTimeoutException: Read timed out'
+            boolean knownNoise = acceptedForge61LogNoise.any { line =~ it } ||
+                    expectedErrors.any { line.contains(it) } || profileTimeoutRoot || profileTimeoutCause
+            boolean exceptionRoot = line ==~ /^(?:Caused by: )?[A-Za-z_$][A-Za-z0-9_.$]*(?:Exception|Error)(?::.*)?$/
+            if (exceptionRoot) profileLookupTimedOut = profileTimeoutRoot || profileTimeoutCause
+            boolean fatalText = line.contains('Encountered an unexpected exception') ||
+                    line.contains('Exception stopping the server') ||
+                    line.contains('Migration audit failed') ||
+                    line.contains('java.lang.Error:') ||
+                    line.contains('NoSuchMethodError') ||
+                    line.contains('NoClassDefFoundError') ||
+                    line.contains('ExceptionInInitializerError') ||
+                    line.contains('com.electronwill.nightconfig.core.io.ParsingException:') ||
+                    line.contains('Tried to assign a mutable BlockPos') ||
+                    line.contains('causing cascading worldgen lag')
+            if (fatalText || ((unexpectedSeverity || exceptionRoot) && !knownNoise)) {
+                failures.add("${log.name}:${lineNumber}: ${line}")
+            }
+        }
+    }
+    if (!failures.isEmpty()) {
+        throw new GradleException("${context} logged unexpected errors:\n"
+                + failures.take(20).join('\n'))
+    }
+}
+
+// Match Forge 61's FMLConfig defaults before its file watcher starts.
+// Existing files and manual game directories must never be overwritten.
+def prepareTestForgeConfig = { File directory ->
+    String buildRoot = layout.buildDirectory.get().asFile.canonicalPath + File.separator
+    if (!directory.canonicalPath.startsWith(buildRoot)) {
+        throw new GradleException('Test configuration must stay inside the build directory')
+    }
+    File config = new File(directory, 'config/fml.toml')
+    if (!config.exists()) {
+        config.parentFile.mkdirs()
+        config.setText('''\
+earlyWindowControl = true
+maxThreads = -1
+versionCheck = true
+defaultConfigPath = "defaultconfigs"
+disableOptimizedDFU = true
+earlyWindowProvider = "fmlearlywindow"
+earlyWindowWidth = 854
+earlyWindowHeight = 480
+earlyWindowFBScale = 1
+earlyWindowMaximized = false
+earlyWindowSkipGLVersions = []
+earlyWindowSquir = false
+earlyWindowShowCPU = false
+earlyWindowLogHelpMessage = true
+''', 'UTF-8')
+    }
+}
+shared.prepareTestForgeConfig = prepareTestForgeConfig
+
+task runtimeLogScannerTest {
+    group = 'verification'
+    description = 'Proves runtime log validation accepts documented Forge noise and rejects real failures.'
+    doLast {
+        File probe = file("${buildDir}/runtime-log-scanner-test")
+        delete probe
+        File logs = new File(probe, 'logs'); logs.mkdirs()
+        new File(logs, 'latest.log').setText(
+                '[main/ERROR] [FML]: FML appears to be missing any signature data\n'
+                + '[Render thread/ERROR] [net.minecraft.client.Minecraft/]: Failed to verify authentication\n'
+                + '[Download-2/ERROR] [net.minecraft.client.Minecraft/]: Failed to fetch user properties\n'
+                + 'com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401\n'
+                + 'Caused by: com.mojang.authlib.exceptions.MinecraftClientHttpException: Status: 401\n'
+                + '[Download-2/ERROR] [com.mojang.realmsclient.client.RealmsClient/]: Failed to fetch Realms feature flags\n'
+                + "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: validation-token'\n"
+                + "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'\n"
+                + '[IO-Worker-1/ERROR] [com.mojang.realmsclient.RealmsAvailability/]: Couldn\'t connect to realms\n'
+                + '[Client thread/ERROR] [net.minecraftforge.fml.network.simple.IndexedMessageCodec/SIMPLENET]: Received empty payload on channel fml:handshake\n'
+                + '[Server thread/INFO] [FML]: Done\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-accepted-noise-probe', [] as Set)
+        new File(logs, 'debug.log').setText(
+                'java.lang.UnsupportedOperationException: Reflective setAccessible(true) disabled\n'
+                + 'java.lang.IllegalAccessException: symbolic reference class is not accessible: class jdk.internal.misc.Unsafe, from class io.netty.util.internal.PlatformDependent0 (module io.netty.common)\n',
+                'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-forge61-netty-noise-probe', [] as Set)
+        new File(logs, 'debug.log').delete()
+        new File(logs, 'latest.log').setText(
+                '[Server thread/WARN]: Tried to assign a mutable BlockPos to tick data...\n', 'UTF-8')
+        boolean rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-mutable-position-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a mutable BlockPos leak')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/DEBUG] [FML]: Minecraft loaded a new chunk while populating another, causing cascading worldgen lag.\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-cascading-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted cascading worldgen')
+        new File(logs, 'latest.log').setText(
+                '[Server thread/ERROR] [example]: Unexpected fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-severity-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected ERROR line')
+        new File(logs, 'latest.log').setText(
+                'java.lang.IllegalStateException: Unexpected unlogged fixture failure\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-exception-root-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected exception root')
+        new File(logs, 'latest.log').setText(
+                'com.mojang.authlib.exceptions.MinecraftClientException: Failed to read from https://sessionserver.mojang.com/session/minecraft/profile/380df991f603344ca090369bad2a924a?unsigned=false due to Read timed out\n'
+                + '\tat com.mojang.authlib.minecraft.client.MinecraftClient.get(MinecraftClient.java:1)\n'
+                + 'Caused by: java.net.SocketTimeoutException: Read timed out\n', 'UTF-8')
+        assertRuntimeLogsClean(probe, 'scanner-offline-profile-timeout-probe', [] as Set)
+        new File(logs, 'latest.log').setText(
+                'Caused by: java.net.SocketTimeoutException: Read timed out\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-unrelated-timeout-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unrelated timeout')
+        new File(logs, 'latest.log').setText(
+                "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: unexpected-token'\n", 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-unexpected-auth-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted an unexpected authentication failure')
+        new File(logs, 'latest.log').setText(
+                '[Thread-1/INFO] [STDERR]: com.electronwill.nightconfig.core.io.ParsingException: Invalid TOML data\n', 'UTF-8')
+        rejected = false
+        try { assertRuntimeLogsClean(probe, 'scanner-config-parse-probe', [] as Set) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Runtime log scanner accepted a configuration parsing exception')
+        prepareTestForgeConfig(probe)
+        File preparedConfig = new File(probe, 'config/fml.toml')
+        if (preparedConfig.readLines('UTF-8').count { it.contains(' = ') } != 14) {
+            throw new GradleException('Incomplete Forge 61 test defaults')
+        }
+        preparedConfig.setText('maxThreads = 3\n', 'UTF-8')
+        prepareTestForgeConfig(probe)
+        if (preparedConfig.getText('UTF-8') != 'maxThreads = 3\n') {
+            throw new GradleException('Test preparation overwrote existing Forge settings')
+        }
+        rejected = false
+        try { prepareTestForgeConfig(file('run')) }
+        catch (GradleException expected) { rejected = true }
+        if (!rejected) throw new GradleException('Test preparation escaped the build directory')
+        delete probe
+    }
+}
+
+check.dependsOn runtimeLogScannerTest
+
+task verifyMineralogyOracleIsolation {
+    group = 'verification'
+    description = 'Prevents published Mineralogy engines from leaking into Gradle configurations or ordinary Eclipse launches.'
+    doLast {
+        configurations.each { configuration ->
+            if (configuration.canBeResolved &&
+                    configuration.files.any { it.name ==~ /Mineralogy-.*\.jar/ }) {
+                throw new GradleException("Mineralogy oracle leaked into Gradle configuration ${configuration.name}")
+            }
+        }
+    }
+}
+
+check.dependsOn verifyMineralogyOracleIsolation
+
+['runClient', 'runServer', 'runGameTestServer', 'runData'].each { String taskName ->
+    tasks.matching { it.name == taskName }.all { JavaExec runTask ->
+        File runtimeDirectory = taskName == 'runGameTestServer'
+                ? layout.buildDirectory.dir('gametest-benchmark-run').get().asFile
+                : taskName == 'runClient' && providers.gradleProperty('oreSpawnClientProbe').isPresent()
+                        ? layout.buildDirectory.dir('client-userdev-run').get().asFile
+                : taskName == 'runData'
+                        ? layout.projectDirectory.dir('run-data').asFile
+                        : layout.projectDirectory.dir('run').asFile
+        // Capture preserved developer crash reports during configuration as
+        // well as immediately before launch. ForgeGradle may prepare the run
+        // directory in an earlier doFirst action, so relying on only the
+        // latter snapshot can incorrectly classify historic reports as new.
+        Set configuredCrashSnapshot = runtimeCrashSnapshot(runtimeDirectory)
+        doFirst {
+			new File(runtimeDirectory, 'mods').mkdirs()
+			if (taskName == 'runGameTestServer') {
+				new File(runtimeDirectory, 'server.properties').setText('''\
+level-name=gametest-benchmark-world
+level-seed=-4965128775892001975
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+			}
+            runTask.ext.oreSpawnCrashSnapshot = configuredCrashSnapshot +
+                    runtimeCrashSnapshot(runtimeDirectory)
+        }
+        doLast {
+            assertRuntimeLogsClean(runtimeDirectory, taskName,
+                    runTask.ext.oreSpawnCrashSnapshot as Set)
+        }
+    }
+}
+
+
+shared.assertRuntimeLogsClean = assertRuntimeLogsClean
+shared.runtimeCrashSnapshot = runtimeCrashSnapshot
