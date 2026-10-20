@@ -335,7 +335,7 @@ public final class LegacyOs3Bridge {
 		}
 		for (Map.Entry<String, JsonObject> provider : providers.entrySet()) {
 			try {
-				writeAtomicIfChanged(configDirectory.resolve(provider.getKey() + "-orespawn.json"), provider.getValue());
+				writeProviderIfAbsent(configDirectory.resolve(provider.getKey() + "-orespawn.json"), provider.getValue());
 			} catch (IOException failure) {
 				REPORT.add("provider_write_failed=" + provider.getKey() + ":" + failure.getClass().getSimpleName());
 				LOGGER.error("Could not write migrated OS3 provider {}", provider.getKey(), failure);
@@ -792,6 +792,16 @@ public final class LegacyOs3Bridge {
 		return 0;
 	}
 
+	static void writeProviderIfAbsent(Path destination, JsonObject value) throws IOException {
+		// An existing OS4 file is a pack's choice, even on its first legacy import.
+		if (Files.isRegularFile(destination)) {
+			REPORT.add("provider_preserved=" + destination.getFileName());
+			return;
+		}
+
+		writeAtomicIfChanged(destination, value);
+	}
+
 	private static void writeAtomicIfChanged(Path destination, JsonObject value) throws IOException {
 		byte[] data = (GSON.toJson(value) + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
 		if (Files.isRegularFile(destination) && Arrays.equals(Files.readAllBytes(destination), data)) {
@@ -833,7 +843,8 @@ public final class LegacyOs3Bridge {
 			String lower = row.toLowerCase(java.util.Locale.ROOT);
 			if (lower.startsWith("config_source=") || lower.startsWith("resource_loaded=")
 					|| lower.startsWith("config_registered=")) sources.add(row);
-			if ((lower.startsWith("provider_written=") || lower.startsWith("provider_unchanged="))
+			if ((lower.startsWith("provider_written=") || lower.startsWith("provider_unchanged=")
+					|| lower.startsWith("provider_preserved="))
 					&& !lower.contains("migration-report")) providers.add(row);
 			if (lower.contains("_failed=") || lower.contains("_rejected=")
 					|| lower.contains("_ignored=") || lower.contains("_unresolved=")
@@ -842,12 +853,12 @@ public final class LegacyOs3Bridge {
 			}
 		}
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.1.0.112021 Upgrade Report");
+		lines.add("OreSpawn 4.1.1.112021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.");
 		lines.add("- Legacy sources read: " + sources.size());
-		lines.add("- OS4 provider files written or verified: " + providers.size());
+		lines.add("- OS4 provider files written or retained: " + providers.size());
 		lines.add("- Unique items requiring review: " + warnings.size());
 		lines.add("");
 		lines.add(warnings.isEmpty()

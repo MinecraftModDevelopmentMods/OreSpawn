@@ -1,3 +1,10 @@
+Version 4.1.1.112021
+
+* Keep existing provider settings when importing older ore files for the first
+  time, instead of replacing them with the older settings.
+* Describe preserved settings as retained rather than verified in the upgrade
+  report. Invalid files are still checked by the normal provider loader.
+
 Version 4.1.0.112021
 
 * Clarify dimension-wide material controls and replace light-equivalent custom

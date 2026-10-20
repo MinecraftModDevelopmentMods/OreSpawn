@@ -81,6 +81,12 @@ legacy-ID behaviour.
 Migration is non-destructive. OreSpawn writes `config/orespawn-worldgen.json`
 only when that target does not already exist and retains every source file.
 
+An existing `config/<modid>-orespawn.json` override is also kept unchanged,
+even when legacy files are imported for the first time. The upgrade report
+records that the existing provider settings were retained, not validated.
+An unfinished or invalid override is left for the normal provider validator;
+migration does not replace it with defaults or older settings.
+
 When `config/mineralogy-geomes.json` exists, OreSpawn imports the Mineralogy 6
 profile directly, updates its schema marker, and records `migrated_from`.
 

@@ -1,6 +1,7 @@
 package zone.moddev.mc.orespawn.documentation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,7 @@ class DocumentationExporterTest {
 					"runtime export differs for " + relative);
 		}
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("README.md")));
+		assertFalse(Files.exists(temporaryDirectory.resolve("AGENTS.md")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("DEVELOPER_GUIDE.md")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("BIOMES.md")));
 		assertTrue(Files.isRegularFile(temporaryDirectory.resolve("examples/examplemod-orespawn.json")));
