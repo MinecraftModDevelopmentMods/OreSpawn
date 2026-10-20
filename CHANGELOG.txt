@@ -1,3 +1,16 @@
+Version 4.1.0.121111
+
+* Restore visible text in biome and ore lists, status labels and related editor screens.
+* Add the mod directory, material-group ore controls, and built-in MMD conflict defaults.
+* Add exact new-terrain biome replacement and dimension-wide material controls.
+* Preserve old profiles and missing-mod settings when upgrading schemas to 5, 8, and 7.
+* Keep Help & Guide beside Recommended Defaults and fit both main menus to smaller windows.
+* Reject invalid geome IDs without silently changing their spelling.
+* Recognise inline native ore features and release their wrappers when a server stops.
+* Add shared-ore test launches, native ore generation checks and compiled cold-cache replay.
+* Make noise arithmetic explicit without changing its results.
+* Split the build into smaller commented scripts and normalize tracked text to LF.
+
 Version 4.0.16.121111
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run
