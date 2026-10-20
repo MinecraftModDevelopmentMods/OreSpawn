@@ -6,6 +6,9 @@ shaded or embeddable engine artifact.
 
 Choose the guide that matches what you are doing:
 
+For mod or modpack integration, start with the developer guide, then use the
+API and provider references for the details.
+
 - [Player and server guide](PLAYER_GUIDE.md)
 - [Developer quick start and complete integration map](DEVELOPER_GUIDE.md)
 - [Configuration field reference](CONFIGURATION.md)
@@ -18,7 +21,6 @@ Choose the guide that matches what you are doing:
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Versioning and release identities](VERSIONS.md)
-- [Compact instructions for coding agents](AGENTS.md)
 
 Validated examples are in `examples/`; JSON Schemas are in `schemas/`.
 The provider and migration guides include OS3-compatible ranged quantities and
