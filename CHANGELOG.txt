@@ -1,3 +1,12 @@
+Version 4.1.1.110021
+
+* Keep existing provider settings when importing older OS1 or OS3 files for
+  the first time, instead of replacing them with the older settings.
+* Describe preserved settings as retained rather than verified in the upgrade
+  report. Invalid files are still checked by the normal provider loader.
+* Keep the documentation index in docs/README.md and stop bundling the old
+  duplicate guide.
+
 Version 4.1.0.110021
 
 * Clarify dimension-wide material controls and replace light-equivalent custom

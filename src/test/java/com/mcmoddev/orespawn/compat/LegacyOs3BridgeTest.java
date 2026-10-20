@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +43,99 @@ class LegacyOs3BridgeTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
 		Forge12TestBootstrap.registerVanilla();
+	}
+
+	@Test
+	void keepsAnExistingProviderDuringTheFirstImportAndReload() throws Exception {
+		LegacyOs3Bridge.resetProgrammaticForTests("overridefixture");
+		Path legacy = temporary.resolve("orespawn3");
+		Files.createDirectories(legacy);
+		Files.write(legacy.resolve("overridefixture.json"),
+				"{\"spawns\":{}}".getBytes(StandardCharsets.UTF_8));
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String existing = "{ \"schema_version\": 5, \"provider_modid\": \"orespawn\", \"provider_revision\": 9 }\n";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertFalse(Files.exists(temporary.resolve("orespawn-orespawn.json.os3-backup")));
+		Path report = temporary.resolve("orespawn-upgrade-report.txt");
+		String firstReport = new String(Files.readAllBytes(report), StandardCharsets.UTF_8);
+		assertTrue(firstReport.contains("provider_preserved=orespawn-orespawn.json"));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertEquals(firstReport, new String(Files.readAllBytes(report), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void describesAnUnvalidatedOverrideAsRetainedRatherThanVerified() throws Exception {
+		LegacyOs3Bridge.resetProgrammaticForTests("reportfixture");
+		Path legacy = temporary.resolve("orespawn3");
+		Files.createDirectories(legacy);
+		Files.write(legacy.resolve("reportfixture.json"),
+				"{\"spawns\":{}}".getBytes(StandardCharsets.UTF_8));
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String existing = "{ unfinished user edit";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		String report = new String(Files.readAllBytes(
+				temporary.resolve("orespawn-upgrade-report.txt")), StandardCharsets.UTF_8);
+		assertTrue(report.contains("OS4 provider files written or retained: 1"));
+		assertFalse(report.contains("written or verified"));
+		assertTrue(report.contains("provider_preserved=orespawn-orespawn.json"));
+	}
+
+	private static void migrateLegacyDirectory(Path directory) throws Exception {
+		Method migration = LegacyOs3Bridge.class.getDeclaredMethod("migrateConfigDirectory", Path.class);
+		migration.setAccessible(true);
+		migration.invoke(null, directory);
+	}
+
+
+	@Test
+	void keepsAnExistingProviderOverrideDuringLegacyImport() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		String existing = "{ \"schema_version\": 5, \"provider_modid\": \"basemetals\", \"provider_revision\": 1 }\n";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, new JsonObject());
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertFalse(Files.exists(temporary.resolve("basemetals-orespawn.json.os3-backup")));
+		assertTrue(LegacyOs3Bridge.reportForTests().contains("provider_preserved=basemetals-orespawn.json"));
+	}
+
+	@Test
+	void leavesAMalformedOverrideForTheNormalProviderValidator() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		String existing = "{ unfinished user edit";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, new JsonObject());
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void writesAnImportedProviderOnlyWhenNoOverrideExists() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		JsonObject imported = new JsonObject();
+		imported.addProperty("provider_modid", "basemetals");
+		imported.addProperty("provider_revision", 1);
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, imported);
+		String first = new String(Files.readAllBytes(destination), StandardCharsets.UTF_8);
+		assertEquals(imported, new JsonParser().parse(first));
+
+		imported.addProperty("provider_revision", 9);
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, imported);
+		assertEquals(first, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
 	}
 
 	@Test

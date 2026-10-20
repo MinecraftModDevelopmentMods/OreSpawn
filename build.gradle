@@ -189,8 +189,8 @@ tasks.register('verifyDocumentationParity') {
     dependsOn tasks.named('processResources')
     doLast {
         List<File> tracked = trackedDocumentationFiles()
-        if (tracked.size() != 21) {
-            throw new GradleException("Expected 21 tracked documentation files, found ${tracked.size()}")
+        if (tracked.size() != 20) {
+            throw new GradleException("Expected 20 tracked documentation files, found ${tracked.size()}")
         }
         tracked.each { File source ->
             String relative = documentationRelativePath(source)
@@ -212,10 +212,6 @@ tasks.named('processResources', ProcessResources) {
 
     filesMatching('mcmod.info') {
         expand version: project.version, mcversion: project.minecraft_version
-    }
-    from('docs/AGENTS.md') {
-        into ''
-        rename { 'AGENTS.md' }
     }
     from('docs') {
         into 'META-INF/orespawn/docs'
