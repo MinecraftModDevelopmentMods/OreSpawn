@@ -1,3 +1,11 @@
+Version 4.1.2.112021
+
+* Respect Manage Vanilla Ores for imported OS1/OS3 rules. With it off, leave
+  vanilla ore generation alone and keep those rules saved but inactive.
+* With vanilla management on, use the imported placement settings without
+  adding a second Minecraft or OreSpawn default pass. Keep saved settings,
+  dimension limits and existing chunks unchanged.
+
 Version 4.1.1.112021
 
 * Keep existing provider settings when importing older ore files for the first
