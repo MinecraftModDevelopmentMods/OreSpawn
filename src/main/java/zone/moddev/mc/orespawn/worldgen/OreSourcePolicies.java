@@ -201,11 +201,12 @@ final class OreSourcePolicies {
 		for (Entry<String, JsonElement> oreEntry : ores.entrySet()) {
 			if (!oreEntry.getValue().isJsonObject()) continue;
 			JsonObject ore = oreEntry.getValue().getAsJsonObject();
-			boolean oreActive = bool(ore, "enabled", true)
-					&& (!bool(ore, "native_generation", false) || manageVanillaOres);
 			ResourceLocation blockId = resource(string(ore, "block", oreEntry.getKey()));
 			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
 			if (block == null || block == Blocks.AIR) continue;
+			boolean vanillaRule = bool(ore, "native_generation", false)
+					|| OreSpawnOreGeneration.isImportedVanillaOre(resource(oreEntry.getKey()), block, ore);
+			boolean oreActive = bool(ore, "enabled", true) && (!vanillaRule || manageVanillaOres);
 			int metadata = integer(ore, "metadata", 0);
 			ItemStack stack = new ItemStack(block, 1, metadata);
 			Inference inferred = inferMaterial(root, oreNames(stack));
