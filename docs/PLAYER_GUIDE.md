@@ -46,6 +46,8 @@ dormant instead of breaking world creation.
   region.
 - **Manage Vanilla Ores** lets OreSpawn replace vanilla ore features with the
   configured OreSpawn rules. Leave it off to keep normal Minecraft placement.
+  Imported vanilla-ore rules stay saved but inactive while it is off. Turning
+  it on uses those settings without adding a second vanilla placement pass.
 - **Ore Sources** opens the material-group editor beside **Add Block**. Compact
   scrolling lists keep relevant groups on the left and the deduplicated union
   of installed ore blocks represented by their aliases on the right. Ordinary
