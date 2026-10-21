@@ -1071,12 +1071,12 @@ public final class SurfaceProbeTestMod {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		for (int index = 0; index < NATURAL_SOURCES.length; index++) {
 			int x = naturalX(minX, index), z = naturalZ(minZ, index);
-			chunk.setBlockState(pos.setPos(x, GROUND_Y - 12, z), NATURAL_SOURCES[index]);
-			chunk.setBlockState(pos.setPos(x, GROUND_Y - 11, z),
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 12, z).toImmutable(), NATURAL_SOURCES[index]);
+			chunk.setBlockState(pos.setPos(x, GROUND_Y - 11, z).toImmutable(),
 					index < NATURAL_SOURCES.length / 2
 							? Blocks.AIR.getDefaultState() : Blocks.WATER.getDefaultState());
 		}
-		chunk.setBlockState(pos.setPos(minX + 11, GROUND_Y - 24, minZ + 12),
+		chunk.setBlockState(pos.setPos(minX + 11, GROUND_Y - 24, minZ + 12).toImmutable(),
 				Blocks.BEDROCK.getDefaultState());
 		BlockPos chestPos = new BlockPos(minX + 12, GROUND_Y - 24, minZ + 12);
 		world.setBlockState(chestPos, Blocks.CHEST.getDefaultState(), 2);

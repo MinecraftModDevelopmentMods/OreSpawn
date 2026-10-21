@@ -123,6 +123,28 @@ replacement, retrogen, forced retrogen, flat bedrock, and bedrock thickness.
 Unknown numeric dimensions and obsolete block states are reported instead of
 guessed. Review `config/orespawn-migration/migration-report.txt` after import.
 
+**Manage Vanilla Ores** controls imported vanilla-ore rules as well as the
+modern defaults. With it off, imported vanilla rules remain saved but inactive:
+they neither place ore nor suppress Minecraft's normal ore pass. Importing a
+rule does not turn the switch on. Migration copies the old **Replace Vanilla
+Oregen** setting when present; an existing saved world keeps its own setting.
+
+With management on, an enabled imported vanilla-ore rule replaces the matching
+Minecraft ore pass in the dimensions it covers. Its custom frequency, height,
+vein size, hosts, biome limits and retrogen setting are kept. If OreSpawn's newer
+vanilla default is also enabled, the imported rule takes precedence rather
+than adding a second pass. Saved Ore Sources selections are applied before
+removing duplicate defaults. Disabled rules and dimensions do not claim that ore.
+
+This also applies to previously imported `orespawn:legacy/...` rules and the
+bridge's provider-owned `<modid>:legacy/...` rules in saved world profiles.
+Rules mapped to a modern provider ID keep the importer's `source_mod: legacy`
+marker and follow the same switch.
+The saved switch, placement settings and retrogen options are kept,
+and ore already placed in existing chunks is left alone. Newly generated
+chunks follow the saved management switch; existing excess ore is not removed.
+Turning management off and back on does not discard the imported settings.
+
 Global schemas 1-7 and world schemas 1-6 are upgraded in memory and persisted
 where safe. A schema-1 world held only mode/oil/formation choices and is
 overlaid on the effective installed-pack profile. A schema-2 world is already
