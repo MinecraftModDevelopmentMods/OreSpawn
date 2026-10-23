@@ -38,6 +38,30 @@ final class NativeOreProbeBridge {
 		}
 	}
 
+	static void verifyQuartzPasses(boolean managed, boolean imported) {
+		try {
+			Class<?> generation = Class.forName("zone.moddev.mc.orespawn.worldgen.OreSpawnOreGeneration");
+			Field cache = generation.getDeclaredField("oresByDimension");
+			cache.setAccessible(true);
+			Object[] ores = (Object[]) ((Map<?, ?>) cache.get(null)).get(Level.NETHER);
+			int count = ores == null ? 0 : ores.length;
+			if (count != (managed ? 1 : 0)) {
+				throw new IllegalStateException("Unexpected managed quartz pass count: " + count);
+			}
+			if (managed) {
+				Field id = ores[0].getClass().getDeclaredField("ruleId");
+				id.setAccessible(true);
+				String expected = imported ? "orespawn:legacy/quartz" : "minecraft:nether_quartz_ore";
+				if (!expected.equals(id.get(ores[0]).toString())) {
+					throw new IllegalStateException("Wrong quartz placement source: " + id.get(ores[0]));
+				}
+			}
+			System.out.println("NATIVE_ORE_PROBE managed=" + managed + " imported=" + imported + " passes=" + count);
+		} catch (ReflectiveOperationException failure) {
+			throw new IllegalStateException("Could not inspect imported quartz placement", failure);
+		}
+	}
+
 	static boolean controlsFluid() {
 		try {
 			Class<?> generation = Class.forName("zone.moddev.mc.orespawn.worldgen.FluidDepositFeature");

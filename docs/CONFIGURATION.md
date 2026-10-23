@@ -52,6 +52,12 @@ report for the exact decision.
 | `flat_bedrock` | object | Opt-in flat bedrock controls |
 | `worldgen_aliases` | ID-to-ID object | Replacement output aliases resolved while baking |
 
+Imported vanilla ore rules obey `manage_vanilla_ores`. With it off, their
+settings remain saved but vanilla placement is unchanged. With it on, a valid,
+enabled import replaces the matching native default in its eligible dimensions.
+Saved Ore Sources placement choices still take precedence. This does not change
+custom non-imported ore rules or enable retrogen.
+
 ## Enumerated Values
 
 | Setting | Accepted values |

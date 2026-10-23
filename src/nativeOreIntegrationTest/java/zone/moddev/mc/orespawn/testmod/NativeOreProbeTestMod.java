@@ -71,7 +71,7 @@ public final class NativeOreProbeTestMod {
 				JsonObject onlyQuartz = new JsonObject();
 				onlyQuartz.add(QUARTZ, ores.get(QUARTZ));
 				root.add("ores", onlyQuartz);
-				root.addProperty("manage_vanilla_ores", true);
+				root.addProperty("manage_vanilla_ores", managed());
 				root.addProperty("place_fluid_deposits", true);
 				root.add("fluid_deposits", fluidProfile());
 				root.add("terrain_dimensions", new JsonObject());
@@ -82,7 +82,16 @@ public final class NativeOreProbeTestMod {
 				retrogen.addProperty("revision", 0);
 				root.add("retrogen", retrogen);
 			}
-			JsonObject rule = root.getAsJsonObject("ores").getAsJsonObject(QUARTZ)
+			JsonObject ores = root.getAsJsonObject("ores");
+			if (imported() && "fresh".equals(phase)) {
+				JsonObject legacy = ores.getAsJsonObject(QUARTZ).deepCopy();
+				legacy.addProperty("block", QUARTZ);
+				legacy.addProperty("source_mod", "legacy");
+				legacy.addProperty("native_generation", false);
+				legacy.addProperty("retrogen", false);
+				ores.add("orespawn:legacy/quartz", legacy);
+			}
+			JsonObject rule = ores.getAsJsonObject(imported() ? "orespawn:legacy/quartz" : QUARTZ)
 					.getAsJsonObject("dimensions").getAsJsonObject(NETHER);
 			rule.addProperty("min_y", "edited".equals(phase) ? 100 : 24);
 			rule.addProperty("max_y", "edited".equals(phase) ? 104 : 28);
@@ -114,9 +123,10 @@ public final class NativeOreProbeTestMod {
 	private void audit(ServerStartedEvent event) {
 		MinecraftServer server = event.getServer();
 		String phase = System.getProperty("nativeoreprobe.phase", "fresh");
-		if (!NativeOreProbeBridge.controlsQuartz()) {
-			throw new IllegalStateException("Quartz is not controlled by OreSpawn before generation");
+		if (NativeOreProbeBridge.controlsQuartz() != managed()) {
+			throw new IllegalStateException("Quartz takeover disagrees with Manage Vanilla Ores");
 		}
+		NativeOreProbeBridge.verifyQuartzPasses(managed(), imported());
 		if (!NativeOreProbeBridge.controlsFluid()) {
 			throw new IllegalStateException("Tag-only fluid was not baked before generation");
 		}
@@ -183,7 +193,9 @@ public final class NativeOreProbeTestMod {
 							blocks.update((byte) id);
 							if (state.getBlock() == Blocks.WATER) water++;
 							if (state.getBlock() == Blocks.NETHER_QUARTZ_ORE) {
-								if (y < minY || y > maxY) throw new IllegalStateException("Quartz outside managed range at " + cursor);
+								if (managed() && (y < minY || y > maxY)) {
+									throw new IllegalStateException("Quartz outside managed range at " + cursor);
+								}
 								quartz++;
 							}
 						}
@@ -199,6 +211,14 @@ public final class NativeOreProbeTestMod {
 		result.setProperty("blocks_sha256", hex(blocks.digest()));
 		result.setProperty("biomes_sha256", hex(biomes.digest()));
 		return result;
+	}
+
+	private static boolean managed() {
+		return Boolean.parseBoolean(System.getProperty("nativeoreprobe.manage", "true"));
+	}
+
+	private static boolean imported() {
+		return Boolean.getBoolean("nativeoreprobe.imported");
 	}
 
 	private static JsonObject fluidProfile() {
