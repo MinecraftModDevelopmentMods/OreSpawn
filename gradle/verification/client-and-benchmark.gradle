@@ -1,0 +1,172 @@
+// Fixture clients and surface worlds stay out of the production source set.
+def shared = project.ext.oreSpawnBuild
+def assertRuntimeLogsClean = shared.assertRuntimeLogsClean
+def clientIntegrationClasses = file("${buildDir}/client-integration-fixture/classes")
+tasks.register('compileClientIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = clientIntegrationClasses
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    options.encoding = 'UTF-8'
+}
+tasks.register('clientIntegrationTestModJar', Jar) {
+    dependsOn tasks.named('compileClientIntegrationTestMod')
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = file("${buildDir}/client-integration-fixture")
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+def packagedClientProbeJar = tasks.named('clientIntegrationTestModJar', Jar)
+
+def clientIntegrationRunDirectory = file("${buildDir}/client-integration-run")
+def isolatedClientProbe = providers.gradleProperty('isolatedClientProbe')
+        .map { it.toBoolean() }.orElse(false)
+def prepareClientIntegration = tasks.register('prepareClientIntegration') {
+    group = 'verification'
+    description = 'Stages the test-only probe in an isolated Forge userdev client directory.'
+    dependsOn packagedClientProbeJar
+    doLast {
+        if (!isolatedClientProbe.get()) {
+            throw new GradleException('Pass -PisolatedClientProbe=true to keep the userdev client out of run/')
+        }
+        delete clientIntegrationRunDirectory
+        clientIntegrationRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(clientIntegrationRunDirectory)
+        copy {
+            from packagedClientProbeJar
+            into new File(clientIntegrationRunDirectory, 'mods')
+        }
+        new File(clientIntegrationRunDirectory, 'options.txt').setText(
+                'fullscreen:false\nrenderDistance:8\nsimulationDistance:5\n', 'UTF-8')
+    }
+}
+tasks.matching { it.name == 'runClient' }.configureEach {
+    if (isolatedClientProbe.get()) dependsOn prepareClientIntegration
+}
+tasks.register('clientIntegrationProcess') {
+    group = 'verification'
+    description = 'Checks the 4.1 screens and fresh/reloaded world in an isolated userdev client.'
+    dependsOn 'runClient'
+    doLast {
+        File marker = new File(clientIntegrationRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) throw new GradleException('Userdev client completion marker is missing')
+        Properties values = new Properties()
+        marker.withInputStream { values.load(it) }
+        ['world_settings_opened', 'main_menu_layout', 'editor_text_visible', 'long_editor_roundtrip', 'ore_sources_opened',
+                'mods_opened', 'first_world_rendered', 'reload_rendered'].each { key ->
+            if (values.getProperty(key) != 'true') {
+                throw new GradleException("Userdev client failed ${key}: ${values}")
+            }
+        }
+        if (Integer.parseInt(values.getProperty('editor_routes', '0')) < 7) {
+            throw new GradleException("Userdev client did not render every editor route: ${values}")
+        }
+        shared.assertRuntimeLogsClean(clientIntegrationRunDirectory,
+                'userdev client', [] as Set, shared.isolatedClientAuthNoise)
+    }
+}
+
+def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
+task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = surfaceIntegrationClasses
+    sourceCompatibility = '25'
+    targetCompatibility = '25'
+    options.encoding = 'UTF-8'
+}
+
+task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = file("${buildDir}/surface-integration-fixture")
+    manifest {
+        attributes 'MixinConfigs': 'surfaceprobe.mixins.json'
+    }
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
+task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        surfaceIntegrationRunDirectory.mkdirs()
+        shared.prepareTestForgeConfig(surfaceIntegrationRunDirectory)
+        copy {
+            from surfaceIntegrationTestModJar.archiveFile
+            into new File(surfaceIntegrationRunDirectory, 'mods')
+        }
+        new File(surfaceIntegrationRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(surfaceIntegrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def surfaceIntegrationFreshProcess = tasks.register('surfaceIntegrationFreshProcess') {
+    group = 'verification'
+    dependsOn 'runSurfaceIntegrationFresh'
+}
+tasks.matching { it.name == 'runSurfaceIntegrationFresh' }.all {
+    dependsOn prepareSurfaceIntegrationTest
+}
+tasks.matching { it.name == 'runSurfaceIntegrationReload' }.all {
+    mustRunAfter surfaceIntegrationFreshProcess
+}
+surfaceIntegrationFreshProcess.configure {
+    doLast {
+        File marker = new File(surfaceIntegrationRunDirectory,
+                'gametestserver/gametestworld/surfaceprobe-integration.properties')
+        if (!marker.isFile()) {
+            throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
+        }
+        assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+                'surface integration fresh phase', [] as Set)
+    }
+}
+def surfaceIntegrationReloadProcess = tasks.register('surfaceIntegrationReloadProcess') {
+    group = 'verification'
+    dependsOn surfaceIntegrationFreshProcess
+    dependsOn 'runSurfaceIntegrationReload'
+}
+surfaceIntegrationReloadProcess.configure {
+    doLast {
+        assertRuntimeLogsClean(surfaceIntegrationRunDirectory,
+                'surface integration reload phase', [] as Set)
+    }
+}
+
+task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
+    group = 'verification'
+    doLast {
+        File marker = new File(surfaceIntegrationRunDirectory,
+                'gametestserver/gametestworld/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+check.dependsOn surfaceIntegrationTest
+
+def packagedSurfaceProbeJar = tasks.named('surfaceIntegrationTestModJar', Jar)
+
+
+shared.surfaceIntegrationClasses = surfaceIntegrationClasses
+shared.surfaceIntegrationRunDirectory = surfaceIntegrationRunDirectory
+shared.packagedClientProbeJar = packagedClientProbeJar
+shared.packagedSurfaceProbeJar = packagedSurfaceProbeJar

@@ -28,6 +28,7 @@ import net.minecraftforge.event.level.ChunkDataEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.fml.common.Mod;
@@ -73,6 +74,7 @@ public class OreSpawn {
 		ChunkEvent.Load.BUS.addListener(WorldMaterialWeather::onChunkLoad);
 		TickEvent.LevelTickEvent.Post.BUS.addListener(WorldMaterialWeather::onWorldTick);
 		ServerAboutToStartEvent.BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		ServerStartingEvent.BUS.addListener(WorldGeologyProfileManager::onServerStarting);
 		LevelEvent.Load.BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
 		ServerStoppedEvent.BUS.addListener(WorldGeologyProfileManager::onServerStopped);
 		ChunkDataEvent.Load.BUS.addListener(OreRetrogenManager::onChunkLoad);

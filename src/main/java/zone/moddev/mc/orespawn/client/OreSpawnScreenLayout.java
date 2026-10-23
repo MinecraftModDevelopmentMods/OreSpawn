@@ -2,7 +2,6 @@ package zone.moddev.mc.orespawn.client;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -31,6 +30,14 @@ final class OreSpawnScreenLayout {
 
 	static int mainRowSpacing(int height) {
 		return compact(height) ? 22 : 24;
+	}
+
+	static int worldCreationRowSpacing(int availableHeight, int rows) {
+		return rows <= 1 ? 4 : Math.min(4, Math.max(0, (availableHeight - 2 - rows * 20) / (rows - 1)));
+	}
+
+	static int worldCreationContentWidth(int width) {
+		return Math.min(385, Math.max(5, width - 20));
 	}
 
 	static int mainTitleY(int height) {
@@ -65,29 +72,45 @@ final class OreSpawnScreenLayout {
 	}
 
 	static Button button(Screen screen, Font font, int x, int y, int width, int height,
-			Component message, Button.OnPress onPress) {
+			Component message, net.minecraft.client.gui.components.Button.OnPress onPress) {
 		Component fitted = fit(font, message, Math.max(0, width - 8));
-		Button.Builder builder = Button.builder(fitted, onPress).bounds(x, y, width, height);
-		if (fitted != message) {
-			builder.tooltip(Tooltip.create(message));
-		}
-		return builder.build();
+		Button button = new Button(x, y, width, height, fitted, onPress);
+		if (fitted != message) button.setTooltip(Tooltip.create(message));
+		return button;
 	}
 
 	static Button plainButton(int x, int y, int width, int height,
 			Component message, Button.OnPress onPress) {
-		return Button.builder(message, onPress).bounds(x, y, width, height).build();
+		return new Button(x, y, width, height, message, onPress);
+	}
+
+	static Button explainedButton(Screen screen, Font font, int x, int y, int width, int height,
+			Component message, Button.OnPress onPress, String translationKey) {
+		return explain(button(screen, font, x, y, width, height, message, onPress), translationKey);
 	}
 
 	static Button plainButton(int x, int y, int width, int height,
 			Component message, Button.OnPress onPress, Component tooltip) {
-		return Button.builder(message, onPress).bounds(x, y, width, height)
-				.tooltip(Tooltip.create(tooltip)).build();
+		Button button = new Button(x, y, width, height, message, onPress);
+		button.setTooltip(Tooltip.create(tooltip));
+		return button;
 	}
 
 	static <T extends AbstractWidget> T explain(T widget, String translationKey) {
 		widget.setTooltip(Tooltip.create(Component.translatable(translationKey)));
 		return widget;
+	}
+
+	static <T extends AbstractWidget> T explain(Screen screen, T widget, String translationKey) {
+		return explain(widget, translationKey);
+	}
+
+	static void renderExplanations(Screen screen, int mouseX, int mouseY) {
+		// Minecraft renders widget tooltips itself.
+	}
+
+	static void beginHelp(Screen screen) {
+		// Tooltips are attached directly to widgets on this target.
 	}
 
 	static Component tooltip(java.util.List<Component> lines) {
