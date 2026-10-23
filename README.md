@@ -17,11 +17,17 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.0.16.2601021`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.2601021`: the OreSpawn 4.1
 feature set for Minecraft 26.1.2 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 ## What Happens When It Is Installed?
+
+Help & Guide sits beside Recommended Defaults, leaving room above Minecraft's
+footer at smaller window sizes. For manual shared-ore testing in Eclipse, use
+`runOreSourcesClient.launch` or its identical `runTestOreSourcesClient.launch`
+alias. These load two test providers in `run-ore-sources`; ordinary `runClient`
+keeps its own settings and saves.
 
 OreSpawn is deliberately passive on its own. It does not replace stone, remove
 vanilla ores, or change the Nether merely because the jar is installed. A
@@ -53,6 +59,15 @@ Important files:
 
 Profile edits affect newly generated chunks. Ore and flat-bedrock retrogen are
 separate opt-in features; OreSpawn never retro-generates rock strata.
+
+**Ore Sources** groups ores by exact block tags such as `forge:ores/sulfur`.
+When two loaded ordinary MMD providers share one tag, new worlds use a
+Balanced output policy and one placement budget per channel. Older worlds keep
+their saved Keep Original behaviour. Imported Ore Dictionary aliases remain
+visible but dormant until you assign a known exact block tag. The **Biomes**
+directory can replace one loaded biome with another in new terrain; its
+**Overworld Materials** control applies across the dimension, not just the
+selected biome.
 
 When an already-generated world has saved Mineralogy 1.10, 1.12, or 5.x mod
 metadata but no OreSpawn world profile, OreSpawn reads the matching published
@@ -119,8 +134,6 @@ Eclipse launches exclude tests and fixtures. Published jars are deterministic an
 runtime names, are audited for their four access-transformer rules and contents, and
 accompanied by SHA-256 checksums.
 
-Machine-specific `AGENTS.md` and `agent-notes/` files are intentionally ignored.
-Public developer and AI integration guidance lives in `docs/` and is included
-in the built jar.
+Developer and player guides live in `docs/` and are included in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.
