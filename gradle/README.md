@@ -12,7 +12,7 @@ responsibility so maintainers can find the relevant task quickly.
 | `verification/ore-sources.gradle` | Test-only future MMD providers and missing-provider reloads. |
 | `verification/performance.gradle` | Matched world-generation checks with optional sibling mods. |
 | `verification/biome-override.gradle` | New-terrain biome replacement and no-retrogen probe. |
-| `verification/native-ores.gradle` | Managed Nether quartz, tag/block hosts, reloads and wrapper cleanup. |
+| `verification/native-ores.gradle` | Managed and imported Nether quartz, vanilla OFF parity, tag/block hosts, reloads and wrapper cleanup. |
 | `release/artifacts.gradle` | Release jars, bundled guides, artifact audits and checksums. |
 | `release/publishing.gradle` | Maven coordinates, credentials and opt-in publication. |
 | `ide/eclipse.gradle` | Generated launches, Buildship setup and production-classpath isolation. |

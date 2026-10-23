@@ -139,7 +139,7 @@ public final class VanillaOreFeatureGate {
 		return output;
 	}
 
-	private static Block vanillaOreFamily(Block block) {
+	static Block vanillaOreFamily(Block block) {
 		// Stone and deepslate variants share one managed placement rule.
 		if (block == Blocks.COAL_ORE || block == Blocks.DEEPSLATE_COAL_ORE) return Blocks.COAL_ORE;
 		if (block == Blocks.IRON_ORE || block == Blocks.DEEPSLATE_IRON_ORE) return Blocks.IRON_ORE;

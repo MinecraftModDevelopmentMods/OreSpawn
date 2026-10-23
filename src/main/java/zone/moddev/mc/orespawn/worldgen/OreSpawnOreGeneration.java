@@ -268,9 +268,12 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 			if (ruleId == null) ruleId = oreId;
 			outputBundles.put(ruleId.toString(), new BakedOutputBundle(
 					output.defaultBlockState(), deepOutput, deepOutputMaxY, outputs));
-			if (!oreEnabled || (nativeGeneration && !manageVanillaOres)) continue;
+			boolean importedVanilla = !nativeGeneration && isImportedVanillaOre(ruleId, output, oreJson);
+			// Keep imported settings, but let vanilla place its own ores while management is off.
+			if (!oreEnabled || (!manageVanillaOres && (nativeGeneration || importedVanilla))) continue;
 			Identifier material = OreSourcePolicies.material(profile, oreJson, output);
-			BakedOreRule rule = new BakedOreRule(output, manageVanillaOres && suppressVanilla);
+			BakedOreRule rule = new BakedOreRule(ruleId, output,
+					manageVanillaOres && (importedVanilla || suppressVanilla), nativeGeneration, importedVanilla);
 
 			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
 				Identifier dimensionId = resource(dimensionEntry.getKey());
@@ -333,10 +336,11 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 						rule.selector, dimension);
 				if (selected != null) {
 					combined.add(selected);
-					if (rule.suppressVanilla) suppressed.add(rule.output);
+					if (rule.suppressVanilla) rule.addSuppressedOutputs(suppressed);
 				}
 			}
 			combined = arbitrate(profile, combined, outputBundles);
+			combined = preferImportedVanilla(rules, combined);
 			result.put(dimension, combined.toArray(new BakedOre[combined.size()]));
 			vanillaOutputs.put(dimension, Collections.unmodifiableSet(suppressed));
 		}
@@ -345,9 +349,10 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		for (BakedOreRule rule : rules) {
 			if (rule.selector == null) continue;
 			selectorList.add(rule.selector);
-			if (rule.suppressVanilla) selectorOutputs.add(rule.output);
+			if (rule.suppressVanilla) rule.addSuppressedOutputs(selectorOutputs);
 		}
 		selectorList = arbitrate(profile, selectorList, outputBundles);
+		selectorList = preferImportedVanilla(rules, selectorList);
 		BakedOre[] selectorResult = selectorList.toArray(new BakedOre[selectorList.size()]);
 		LOGGER.info("Baked {} OreSpawn-managed ore definitions across {} dimensions",
 				rules.size(), result.size());
@@ -358,6 +363,35 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 		return new BakedOres(Collections.unmodifiableMap(result),
 				Collections.unmodifiableMap(immutableVanillaOutputs), selectorResult,
 				Collections.unmodifiableSet(selectorOutputs));
+	}
+
+	static boolean isImportedVanillaOre(Identifier ruleId, Block output, JsonObject ore) {
+		return (ruleId != null && ruleId.getPath().startsWith("legacy/")
+				|| "legacy".equals(string(ore, "source_mod", "")))
+				&& VanillaOreFeatureGate.vanillaOreFamily(output) != null;
+	}
+
+	private static List<BakedOre> preferImportedVanilla(List<BakedOreRule> rules, List<BakedOre> selected) {
+		Map<Identifier, BakedOreRule> byId = new HashMap<>();
+		for (BakedOreRule rule : rules) byId.put(rule.ruleId, rule);
+		Set<Block> importedFamilies = Collections.newSetFromMap(new IdentityHashMap<>());
+		for (BakedOre ore : selected) {
+			BakedOreRule rule = byId.get(ore.ruleId);
+			if (rule != null && rule.importedVanilla) {
+				importedFamilies.add(VanillaOreFeatureGate.vanillaOreFamily(rule.output));
+			}
+		}
+		if (importedFamilies.isEmpty()) return selected;
+		List<BakedOre> result = new ArrayList<>();
+		for (BakedOre ore : selected) {
+			BakedOreRule rule = byId.get(ore.ruleId);
+			// Apply this after Ore Sources so an explicit saved placement choice wins.
+			if (rule == null || !rule.nativeGeneration
+					|| !importedFamilies.contains(VanillaOreFeatureGate.vanillaOreFamily(rule.output))) {
+				result.add(ore);
+			}
+		}
+		return result;
 	}
 
 	private static List<BakedOre> arbitrate(JsonObject profile, List<BakedOre> original,
@@ -842,15 +876,27 @@ public final class OreSpawnOreGeneration extends Feature<NoneFeatureConfiguratio
 	}
 
 	private static final class BakedOreRule {
+		final Identifier ruleId;
 		final Block output;
 		final boolean suppressVanilla;
+		final boolean nativeGeneration;
+		final boolean importedVanilla;
 		final Map<ResourceKey<Level>, BakedOre> explicit = new HashMap<>();
 		final Set<ResourceKey<Level>> explicitDimensions = new HashSet<>();
 		BakedOre selector;
 
-		BakedOreRule(Block output, boolean suppressVanilla) {
+		BakedOreRule(Identifier ruleId, Block output, boolean suppressVanilla,
+				boolean nativeGeneration, boolean importedVanilla) {
+			this.ruleId = ruleId;
 			this.output = output;
 			this.suppressVanilla = suppressVanilla;
+			this.nativeGeneration = nativeGeneration;
+			this.importedVanilla = importedVanilla;
+		}
+
+		void addSuppressedOutputs(Set<Block> outputs) {
+			outputs.add(output);
+			if (importedVanilla) outputs.add(VanillaOreFeatureGate.vanillaOreFamily(output));
 		}
 	}
 

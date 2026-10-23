@@ -48,6 +48,9 @@ safely instead of breaking world creation.
   region.
 - **Manage Vanilla Ores** lets OreSpawn replace vanilla ore features with the
   configured OreSpawn rules. Leave it off to keep normal Minecraft placement.
+  Imported vanilla rules stay saved but inactive while it is off. When it is
+  on, an active import replaces the matching shipped default rather than
+  adding another placement pass. Existing chunks are not rewritten.
 - **Fluid Deposits** appears after strata are enabled or when a mod or pack
   supplies a rule. Press **Add** to choose water, lava, or a fluid block from an
   installed mod. These are covered underground deposits, not exposed vanilla

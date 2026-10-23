@@ -22,7 +22,9 @@ def packagedJar = jar
 def serverRuntime = providers.gradleProperty('packagedForgeServerRuntime')
 def comparisonJar = providers.gradleProperty('nativeOreSpawnJar')
 def finalTasks = []
-['Default', 'Explicit'].each { scenario ->
+['Default', 'Explicit', 'Imported', 'OffControl', 'OffImported'].each { scenario ->
+    boolean imported = scenario in ['Imported', 'OffImported']
+    boolean managed = !scenario.startsWith('Off')
     File runDirectory = file("${buildDir}/native-ore-${scenario.toLowerCase()}-run")
     def prepare = tasks.register("prepareNativeOre${scenario}") {
         dependsOn shared.releaseJar, packagedJar
@@ -71,6 +73,8 @@ max-tick-time=-1
                 commandLine shared.forge64ServerCommand(file(serverRuntime.get()), runDirectory,
                         ['-XX:ActiveProcessorCount=2',
                          "-Dnativeoreprobe.phase=${phase.toLowerCase()}",
+                         "-Dnativeoreprobe.manage=${managed}",
+                         "-Dnativeoreprobe.imported=${imported}",
                          "-Dnativeoreprobe.host=${scenario.toLowerCase()}"])
             }
             doLast {
@@ -97,7 +101,7 @@ max-tick-time=-1
 }
 tasks.register('nativeOreIntegrationTest') {
     group = 'verification'
-    description = 'Checks quartz defaults, explicit hosts, exact-save reload and new-terrain-only edits.'
+    description = 'Checks quartz defaults and imports, vanilla OFF parity, reloads and new-terrain-only edits.'
     dependsOn finalTasks
     doLast {
         ['fresh', 'reload', 'edited'].each { phase ->
@@ -114,5 +118,21 @@ tasks.register('nativeOreIntegrationTest') {
             }
         }
         logger.lifecycle('Tag and explicit quartz hosts produce identical terrain, fresh/reload/edited')
+        [['default', 'imported'], ['offcontrol', 'offimported']].each { pair ->
+            ['fresh', 'reload', 'edited'].each { phase ->
+                def audits = pair.collect { scenario ->
+                    Properties result = new Properties()
+                    file("${buildDir}/native-ore-${scenario}-run/audit-logs/${phase}.properties")
+                            .withInputStream { result.load(it) }
+                    result
+                }
+                ['quartz', 'blocks_sha256', 'biomes_sha256', 'new_terrain_quartz', 'water', 'new_terrain_water'].each { key ->
+                    if (audits[0].getProperty(key) != audits[1].getProperty(key)) {
+                        throw new GradleException("Imported quartz changed ${pair}, ${phase}: ${key}")
+                    }
+                }
+            }
+        }
+        logger.lifecycle('Imported quartz: OFF matches native terrain; ON matches one configured pass; reload and no-retrogen verified')
     }
 }

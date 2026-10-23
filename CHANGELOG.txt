@@ -1,5 +1,7 @@
 Version 4.1.0.2601021
 
+* Leave imported vanilla ores inactive while Manage Vanilla Ores is off.
+* Use active imported settings instead of adding a second default placement pass when it is on.
 * Keep biome and ore-list text visible with Minecraft's ARGB renderer.
 * Move Help & Guide beside Recommended Defaults and fit both main menus above the footer.
 * Reject invalid geome IDs without changing their spelling.
