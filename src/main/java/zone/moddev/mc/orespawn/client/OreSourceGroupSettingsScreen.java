@@ -152,11 +152,10 @@ final class OreSourceGroupSettingsScreen extends OreSpawnScreen {
 			@Override protected String rowText(int index) {
 				String channel = channels.get(index);
 				List<OreSourceCandidate> choices = OreSourceListScreen.placementCandidates(group, channel);
-				String selected = group.placements.get(channel);
-				int choice = OreSourceListScreen.indexOf(choices, selected);
-				String source = choice < 0
+				OreSourceCandidate selected = selectedPlacementCandidate(group, channel);
+				String source = selected == null
 						? I18n.format("label.orespawn.ore_source.missing")
-						: OreSourceListScreen.candidateLabel(choices.get(choice));
+						: OreSourceListScreen.candidateLabel(selected);
 				return channelLabel(channel) + (placementSelectable(group, channel) ? " > " : " = ")
 						+ placementSourceLabel(source, choices.size());
 			}
@@ -189,6 +188,9 @@ final class OreSourceGroupSettingsScreen extends OreSpawnScreen {
 				lines.add(I18n.format("tooltip.orespawn.ore_source.placement_rules"));
 				if ("keep_separate".equals(group.mode)) {
 					lines.add(I18n.format("tooltip.orespawn.ore_source.placement_requires_consolidated"));
+				} else if (selectedPlacementCandidate(group, channel) != null
+						&& !selectedPlacementCandidate(group, channel).active) {
+					lines.add(I18n.format("tooltip.orespawn.ore_source.output_only"));
 				} else if (choices.isEmpty()) {
 					lines.add(I18n.format("tooltip.orespawn.ore_source.placement_missing"));
 				} else if (choices.size() == 1) {
@@ -325,6 +327,16 @@ final class OreSourceGroupSettingsScreen extends OreSpawnScreen {
 				&& OreSourceListScreen.placementCandidates(group, channel).size() > 1;
 	}
 
+	static OreSourceCandidate selectedPlacementCandidate(OreSourceGroup group, String channel) {
+		String selected = group.placements.get(channel);
+		for (OreSourceCandidate candidate : group.candidates) {
+			if (candidate.loaded && candidate.sourceId.equals(selected) && candidate.channel.equals(channel)) {
+				return candidate;
+			}
+		}
+		return null;
+	}
+
 	static String placementStatus(OreSourceGroup group, List<String> channels) {
 		if (channels.isEmpty()) return I18n.format("label.orespawn.ore_source.no_placement_rules");
 		if ("keep_separate".equals(group.mode)) {
@@ -333,7 +345,11 @@ final class OreSourceGroupSettingsScreen extends OreSpawnScreen {
 		boolean selectable = false;
 		for (String channel : channels) {
 			int choices = OreSourceListScreen.placementCandidates(group, channel).size();
-			if (choices == 0) return I18n.format("tooltip.orespawn.ore_source.placement_missing");
+			if (choices == 0) {
+				return I18n.format(selectedPlacementCandidate(group, channel) == null
+						? "tooltip.orespawn.ore_source.placement_missing"
+						: "tooltip.orespawn.ore_source.output_only");
+			}
 			selectable |= choices > 1;
 		}
 		return I18n.format(selectable ? "tooltip.orespawn.ore_source.placement_select"

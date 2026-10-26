@@ -1,0 +1,142 @@
+{
+  "schema_version": 7,
+  "manage_vanilla_ores": true,
+  "ore_material_groups": {
+    "orespawn:iron": {
+      "display_name": "Iron",
+      "ore_dictionary_entries": [
+        "oreIron"
+      ]
+    }
+  },
+  "ores": {
+    "orespawn:legacy/minecraft_iron_ore_0": {
+      "enabled": true,
+      "dimensions": {
+        "minecraft:overworld": {
+          "enabled": true,
+          "frequency": 3.25,
+          "quantity": 5,
+          "retrogen": false,
+          "host_blocks": [
+            "minecraft:stone"
+          ],
+          "pattern": "orespawn:default",
+          "min_y": 12,
+          "max_y": 18
+        }
+      },
+      "source_mod": "minecraft",
+      "block": "minecraft:iron_ore",
+      "dimension_selectors": {}
+    },
+    "example:alternative_iron": {
+      "enabled": true,
+      "dimensions": {
+        "minecraft:overworld": {
+          "enabled": true,
+          "frequency": 1.75,
+          "quantity": 5,
+          "retrogen": false,
+          "host_blocks": [
+            "minecraft:stone"
+          ],
+          "pattern": "orespawn:default",
+          "min_y": 12,
+          "max_y": 18
+        }
+      },
+      "source_mod": "orespawn",
+      "block": "minecraft:iron_ore",
+      "dimension_selectors": {}
+    },
+    "example:disabled_gold": {
+      "enabled": false,
+      "dimensions": {
+        "minecraft:overworld": {
+          "enabled": false,
+          "frequency": 0.5,
+          "quantity": 5,
+          "retrogen": false,
+          "host_blocks": [
+            "minecraft:stone"
+          ],
+          "pattern": "orespawn:default",
+          "min_y": 12,
+          "max_y": 18
+        }
+      },
+      "source_mod": "minecraft",
+      "block": "minecraft:gold_ore",
+      "dimension_selectors": {}
+    }
+  },
+  "ore_source_policies": {
+    "orespawn:iron|minecraft:overworld": {
+      "material": "orespawn:iron",
+      "domain": "minecraft:overworld",
+      "mode": "consolidated",
+      "output_mode": "balanced",
+      "review_required": false,
+      "outputs": {
+        "orespawn:legacy/minecraft_iron_ore_0": 1
+      },
+      "placement_sources": {
+        "orespawn:default": "orespawn:legacy/minecraft_iron_ore_0"
+      },
+      "candidates": [
+        {
+          "source_id": "orespawn:legacy/minecraft_iron_ore_0",
+          "owner": "minecraft",
+          "owner_name": "Minecraft",
+          "owner_version": "4.1.2.110021",
+          "registry_id": "minecraft:iron_ore",
+          "metadata": 0,
+          "placement_channel": "orespawn:default",
+          "ore_dictionary": [
+            "oreIron"
+          ],
+          "loaded": false,
+          "placement_active": true,
+          "external": false,
+          "enrichment": false,
+          "review_required": false
+        },
+        {
+          "source_id": "orespawn:legacy/minecraft_iron_ore_0",
+          "owner": "minecraft",
+          "owner_name": "Minecraft",
+          "owner_version": "4.1.2.110021",
+          "registry_id": "minecraft:iron_ore",
+          "metadata": 0,
+          "placement_channel": "orespawn:standard",
+          "ore_dictionary": [
+            "oreIron"
+          ],
+          "loaded": true,
+          "placement_active": true,
+          "external": false,
+          "enrichment": false,
+          "review_required": false
+        },
+        {
+          "source_id": "example:alternative_iron",
+          "owner": "orespawn",
+          "owner_name": "OreSpawn",
+          "owner_version": "4.1.2.110021",
+          "registry_id": "minecraft:iron_ore",
+          "metadata": 0,
+          "placement_channel": "orespawn:standard",
+          "ore_dictionary": [
+            "oreIron"
+          ],
+          "loaded": true,
+          "placement_active": true,
+          "external": false,
+          "enrichment": false,
+          "review_required": false
+        }
+      ]
+    }
+  }
+}

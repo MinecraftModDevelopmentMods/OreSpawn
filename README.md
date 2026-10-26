@@ -10,7 +10,7 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.1.2.110021`: the OreSpawn 4.1.2
+This branch builds target-qualified version `4.1.3.110021`: the OreSpawn 4.1.3
 feature set for Minecraft 1.10.2 and Forge. It adds stable generation identity,
 non-loading geology sampling, per-resource background control, existing-world
 provider merge policy, an Ore Sources arbiter for equivalent provider ores and

@@ -167,6 +167,13 @@ Original), preserving prior placement frequency, ordering and output behaviour.
 Missing selected sources and dormant policies remain recorded. Policy changes
 affect new chunks only and do not add retrogen.
 
+Legacy imports may spell built-in patterns as `orespawn:default` or another
+fully qualified built-in name. These are ordinary generation, so hybrid and
+replacement background limits apply to them. Saved Ore Sources choices under
+those older inferred channel names remain valid without changing the saved
+ore rule. Explicit channels, custom patterns, imported quantities and heights,
+and already generated chunks are left alone.
+
 The old `place_crude_oil` and singleton `oil` fields migrate to
 `place_fluid_deposits` and a provider-owned rule. A valid block becomes
 `<namespace>:fluid_deposit/<path>`; `minecraft:air` creates no rule. Mineralogy

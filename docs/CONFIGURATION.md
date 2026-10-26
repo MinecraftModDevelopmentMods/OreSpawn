@@ -308,6 +308,14 @@ informational because the original rules remain independent. The compact help
 and row tooltips explain fixed, selectable, missing and inactive states without
 reducing the alias-list height.
 
+Built-in patterns use the standard channel whether their names are short
+(`default`, `vein`) or fully qualified (`orespawn:default`, `orespawn:vein`).
+This lets a child's hybrid or replacement policy reduce imported ordinary
+veins too. An explicit `placement_channel` always wins, and third-party pattern
+channels remain independent. Older saved source selections still select the
+same rule; changing this classification does not rewrite their ore settings
+or existing terrain.
+
 Native vanilla ore rules are active placement sources only when
 `manage_vanilla_ores` is enabled. Changing that option refreshes the pending
 Ore Sources snapshot before the editor opens. While it is disabled, Group
@@ -336,6 +344,12 @@ DenseMetals entries are shown as enrichment rather than interchangeable output.
 BaseSciences has no ordinary ore-source role. An Ore Dictionary member whose
 generator is not controlled by OreSpawn is reported as external generation and
 is never suppressed, so total abundance may still be increased by that mod.
+
+Older imported profiles may still store a built-in pattern name as their
+placement channel. The Ore Sources editor shows a single ordinary placement
+row for that choice; opening the screen does not rewrite the saved profile.
+Explicit custom channels stay separate. A source whose placement is switched
+off remains listed as output-only, rather than being reported as a missing mod.
 
 ## Fluid Deposits, Retrogen, And Bedrock
 
