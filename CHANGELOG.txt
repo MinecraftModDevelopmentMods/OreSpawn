@@ -1,3 +1,19 @@
+Version 4.1.0.2602001
+
+* Leave imported vanilla ores inactive while Manage Vanilla Ores is off.
+* Use active imported settings instead of adding a second default placement pass when it is on.
+* Keep biome and ore-list text visible with Minecraft's ARGB renderer.
+* Move Help & Guide beside Recommended Defaults and fit both main menus above the footer.
+* Reject invalid geome IDs without changing their spelling.
+* Recognise inline vanilla ore features without changing mixed or unknown outputs.
+* Release ore wrappers when a server stops and keep their shared biome ordering.
+* Add shared-ore Eclipse profiles and real Nether fresh/reload checks.
+* Use Minecraft Mod Development as the jar vendor and replay cold builds offline.
+* Add the mod directory, material-group ore controls, and built-in MMD conflict defaults.
+* Add exact new-terrain biome replacement and dimension-wide material controls.
+* Preserve old profiles and missing-mod settings when upgrading schemas to 5, 8, and 7.
+* Split the build into smaller commented scripts and normalize tracked text to LF.
+
 Version 4.0.16.2602001
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run
