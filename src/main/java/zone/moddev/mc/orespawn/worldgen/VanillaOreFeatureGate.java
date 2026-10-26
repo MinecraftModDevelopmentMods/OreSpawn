@@ -16,6 +16,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.feature.AbstractOreFeature;
+import net.minecraft.world.level.levelgen.feature.BlockReplacement;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.OreFeature;
 import net.minecraft.world.level.levelgen.feature.ScatteredOreFeature;
@@ -50,7 +53,7 @@ public final class VanillaOreFeatureGate {
 		registry.register("suppressible_ore_gate", () -> SuppressibleGateFeature.CODEC);
 	}
 
-	static boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
+	static synchronized boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Holder<PlacedFeature> feature = features.get(featureIndex);
@@ -71,6 +74,12 @@ public final class VanillaOreFeatureGate {
 			}
 		}
 		return changed;
+	}
+
+	static synchronized void clearGates() {
+		// The codecs are permanent, but these holders belong to one server's registries.
+		VANILLA_GATES.clear();
+		SUPPRESSIBLE_GATES.clear();
 	}
 
 	private static Holder<PlacedFeature> vanillaGate(Holder<PlacedFeature> original,
@@ -104,6 +113,38 @@ public final class VanillaOreFeatureGate {
 	private static boolean isStandardOreFeature(PlacedFeature placed) {
 		return placed.getFeatures().anyMatch(feature -> feature.value() instanceof OreFeature
 				|| feature.value() instanceof ScatteredOreFeature);
+	}
+
+	static Block nativeOutput(Feature feature) {
+		Block output = null;
+		java.util.stream.Stream<Feature> features = java.util.stream.Stream.concat(
+				java.util.stream.Stream.of(feature), feature.getSubFeatures().map(Holder::value));
+		for (Feature child : (Iterable<Feature>) features::iterator) {
+			if (!(child instanceof OreFeature) && !(child instanceof ScatteredOreFeature)) return null;
+			AbstractOreFeature ore = (AbstractOreFeature) child;
+			if (ore.targetStates().isEmpty()) return null;
+			for (BlockReplacement target : ore.targetStates()) {
+				Block candidate = vanillaOreFamily(target.state().getBlock());
+				if (candidate == null || (output != null && output != candidate)) return null;
+				output = candidate;
+			}
+		}
+		return output;
+	}
+
+	static Block vanillaOreFamily(Block block) {
+		// Stone and deepslate variants share one managed placement rule.
+		if (block == Blocks.COAL_ORE || block == Blocks.DEEPSLATE_COAL_ORE) return Blocks.COAL_ORE;
+		if (block == Blocks.IRON_ORE || block == Blocks.DEEPSLATE_IRON_ORE) return Blocks.IRON_ORE;
+		if (block == Blocks.COPPER_ORE || block == Blocks.DEEPSLATE_COPPER_ORE) return Blocks.COPPER_ORE;
+		if (block == Blocks.GOLD_ORE || block == Blocks.DEEPSLATE_GOLD_ORE) return Blocks.GOLD_ORE;
+		if (block == Blocks.REDSTONE_ORE || block == Blocks.DEEPSLATE_REDSTONE_ORE) return Blocks.REDSTONE_ORE;
+		if (block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE) return Blocks.DIAMOND_ORE;
+		if (block == Blocks.LAPIS_ORE || block == Blocks.DEEPSLATE_LAPIS_ORE) return Blocks.LAPIS_ORE;
+		if (block == Blocks.EMERALD_ORE || block == Blocks.DEEPSLATE_EMERALD_ORE) return Blocks.EMERALD_ORE;
+		if (block == Blocks.NETHER_GOLD_ORE || block == Blocks.NETHER_QUARTZ_ORE
+				|| block == Blocks.ANCIENT_DEBRIS) return block;
+		return null;
 	}
 
 	private static Definition[] definitions() {
@@ -163,6 +204,7 @@ public final class VanillaOreFeatureGate {
 		@Override
 		public boolean place(WorldGenLevel world, ChunkGenerator chunkGenerator,
 				RandomSource random, BlockPos origin) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 				return false;
 			}
@@ -179,9 +221,11 @@ public final class VanillaOreFeatureGate {
 				.fieldOf("delegate")
 				.xmap(SuppressibleGateFeature::new, value -> value.delegate);
 		final Holder<Feature> delegate;
+		final Block nativeOutput;
 
 		SuppressibleGateFeature(Holder<Feature> delegate) {
 			this.delegate = delegate;
+			this.nativeOutput = nativeOutput(delegate.value());
 		}
 
 		@Override
@@ -192,7 +236,10 @@ public final class VanillaOreFeatureGate {
 		@Override
 		public boolean place(WorldGenLevel world, ChunkGenerator chunkGenerator,
 				RandomSource random, BlockPos origin) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
+			if (nativeOutput != null && OreSpawnOreGeneration.takesOverVanillaOre(
+					world.getLevel().dimension(), nativeOutput)) return false;
 			return delegate.value().place(world, chunkGenerator, random, origin);
 		}
 	}

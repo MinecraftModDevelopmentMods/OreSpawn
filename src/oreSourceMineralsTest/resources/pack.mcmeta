@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "Test-only Base Minerals OreSpawn fixture",
+    "max_format": 121,
+    "min_format": [97, 1]
+  }
+}

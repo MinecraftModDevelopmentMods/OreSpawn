@@ -14,5 +14,6 @@ public final class ClientSetup {
 	@SubscribeEvent
 	public static void clientSetup(FMLClientSetupEvent event) {
 		WorldCreationScreenHandler.register();
+		WorldSettingsExtensionNavigation.register();
 	}
 }
