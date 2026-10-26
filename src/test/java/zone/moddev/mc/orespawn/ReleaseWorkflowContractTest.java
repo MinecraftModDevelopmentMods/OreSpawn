@@ -34,12 +34,34 @@ class ReleaseWorkflowContractTest {
 	}
 
 	@Test
+	void coldBuildCompilesTheTargetAndReplaysItOffline() throws Exception {
+		String ci = Files.readString(Paths.get(".github", "workflows", "ci.yml"));
+		assertTrue(ci.contains("classes verifyLegacyFixtures verifyMavenizerCompatibilityFixture"));
+		assertTrue(ci.contains("--offline --rerun-tasks --no-daemon --no-build-cache"));
+		assertTrue(ci.contains("diff -u \"$RUNNER_TEMP/markers-before.sha256\""));
+	}
+
+	@Test
+	void jarVendorAndChecksumInputsAreExplicit() throws Exception {
+		Properties properties = new Properties();
+		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {
+			properties.load(input);
+		}
+		assertEquals("Minecraft Mod Development", properties.getProperty("mod_vendor"));
+		String artifacts = Files.readString(Paths.get("gradle", "release", "artifacts.gradle"));
+		assertTrue(artifacts.matches("(?s).*'Implementation-Vendor'\\s*:\\s*project\\.mod_vendor.*"));
+		assertTrue(artifacts.contains("inputs.files(expectedReleaseFiles.map"));
+	}
+
+	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
 		Path buildFile = Paths.get("build.gradle");
 		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String publishing = new String(Files.readAllBytes(Paths.get("gradle", "release", "publishing.gradle")),
+				StandardCharsets.UTF_8);
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 	}
 
@@ -79,7 +101,8 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void eclipseOutputsCannotNestInsideForgeMergedOutput() throws Exception {
-		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
+		String build = new String(Files.readAllBytes(Paths.get("gradle", "ide", "eclipse.gradle")),
+				StandardCharsets.UTF_8);
 		assertTrue(build.contains("defaultOutputDir = file('bin/default')"));
 		assertTrue(build.contains("entry instanceof org.gradle.plugins.ide.eclipse.model.Output"));
 		assertTrue(build.contains("entry.path = 'bin/default'"));
@@ -121,5 +144,13 @@ class ReleaseWorkflowContractTest {
 			offset += needle.length();
 		}
 		return count;
+	}
+
+	private static String buildScripts(String... paths) throws Exception {
+		StringBuilder text = new StringBuilder();
+		for (String path : paths) {
+			text.append(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8));
+		}
+		return text.toString();
 	}
 }

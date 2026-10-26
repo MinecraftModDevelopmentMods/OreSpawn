@@ -63,7 +63,7 @@ Examples:
 | 1.21.1 | Forge | `121011` | `4.0.16.121011` |
 | 1.21.11 | Forge | `121111` | `4.0.16.121111` |
 | 26.1.2 | Forge | `2601021` | `4.0.16.2601021` |
-| 26.2 | Forge | `2602001` | `4.0.16.2602001` |
+| 26.2 | Forge | `2602001` | `4.1.0.2602001` |
 | 26.2 | NeoForge | `2602002` | `4.0.6.2602002` |
 
 Historical MMD releases may also have four numeric components but may have used

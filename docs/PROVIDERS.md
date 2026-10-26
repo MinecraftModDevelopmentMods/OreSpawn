@@ -6,12 +6,20 @@ Provider mods may contribute through Forge IMC, a packaged resource at
 present malformed override leaves that provider inactive instead of silently
 falling back.
 
-Provider schema 4 supports `profile_defaults`, `rocks`, `ores`,
+Provider schema 5 supports `profile_defaults`, `rocks`, `ores`,
 `fluid_deposits`, `geomes`, `biome_rules`, `terrain_dimensions`, and
 `templates`, plus `biome_palettes` and `dimension_materials`. Each file requires a
 matching `provider_modid`, a positive `provider_revision`, and at least one
-contribution. Legacy schemas 1-3 remain accepted; schema 3 introduced fluid
-deposits and schema 4 introduces biome and world-material controls.
+contribution. Legacy schemas 1-4 remain accepted; schema 3 introduced fluid
+deposits, schema 4 added biome and world-material controls, and schema 5 adds
+optional `material` and `placement_channel` IDs for exact ore grouping.
+
+Use the same exact loaded block tag, such as `forge:ores/sulfur`, for ores that
+are interchangeable. OreSpawn never infers equivalence from similar block or
+mod names. When two ordinary MMD providers for the same tag are loaded, a new
+world starts Balanced with one placement budget per channel. An absent mod
+adds no phantom output or placement rule, and old worlds keep their saved
+choices. Enrichment and dimension-specific providers are kept separate.
 
 An ore-only provider does not need rocks, geomes, or terrain dimensions. Give
 each ore explicit host blocks or tags and OreSpawn will leave vanilla terrain,
