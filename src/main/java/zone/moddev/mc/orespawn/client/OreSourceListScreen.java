@@ -507,8 +507,12 @@ final class OreSourceListScreen extends OreSpawnScreen {
 					new TextComponentString(error), width - 24)), width / 2, height - 39, 0xFF5555);
 		}
 		if (selected(orderedGroups()) == null) {
-			drawCenteredString(font, new TextComponentTranslation("label.orespawn.ore_source.none"),
-					leftPaneX + (leftPaneWidth / 2), CONTENT_TOP + 10, 0xA0A0A0);
+			int y = CONTENT_TOP + 10;
+			for (String line : font.listFormattedStringToWidth(
+					I18n.format("label.orespawn.ore_source.none"), leftPaneWidth - 12)) {
+				drawString(font, new TextComponentString(line), leftPaneX + 6, y, 0xA0A0A0);
+				y += font.FONT_HEIGHT + 2;
+			}
 		}
 		updateWeightBounds();
 		super.render(mouseX, mouseY, partialTick);
