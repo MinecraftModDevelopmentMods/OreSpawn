@@ -6,6 +6,13 @@ shaded or embeddable engine artifact.
 
 Choose the guide that matches what you are doing:
 
+For a quick route through the documentation, start with the
+[developer guide](DEVELOPER_GUIDE.md) when integrating a mod, or the
+[player and server guide](PLAYER_GUIDE.md) when configuring a world.
+
+The focused guides below cover the supported integration paths. Use the
+versioning guide when choosing a matching Minecraft and loader build.
+
 - [Player and server guide](PLAYER_GUIDE.md)
 - [Developer quick start and complete integration map](DEVELOPER_GUIDE.md)
 - [Configuration field reference](CONFIGURATION.md)
@@ -18,7 +25,6 @@ Choose the guide that matches what you are doing:
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Versioning and release conventions](VERSIONS.md)
-- [Compact instructions for coding agents](AGENTS.md)
 
 Validated examples are in `examples/`; JSON Schemas are in `schemas/`.
 The provider and migration guides include OS3-compatible ranged quantities and
