@@ -1,0 +1,26 @@
+// Optional server fixtures stay outside the ordinary source sets and jars.
+gradle.afterProject { project, state ->
+    if (project != project.rootProject || state.failure != null) return
+    def classes = project.tasks.register('compileOreSourceQualification', JavaCompile) {
+        dependsOn project.tasks.named('classes')
+        source project.file('tools/qualification/ore-sources/OreSourceQualificationMod.java')
+        classpath = project.files(project.sourceSets.main.output, project.sourceSets.main.compileClasspath)
+        destinationDirectory = project.layout.buildDirectory.dir('ore-source-qualification/classes')
+        options.encoding = 'UTF-8'
+    }
+    def input = project.tasks.register('oreSourceQualificationInput', Jar) {
+        dependsOn classes
+        from classes.flatMap { it.destinationDirectory }
+        archiveFileName = 'ore-source-probe-deobf.jar'
+        destinationDirectory = project.layout.buildDirectory.dir('ore-source-qualification')
+    }
+    def packaged = project.renamer.classes(input) {
+        map.from project.minecraft.dependency.toSrgFile
+        output = project.layout.buildDirectory.file('ore-source-qualification/ore-source-probe.jar')
+    }
+    project.tasks.register('prepareOreSourceQualification') {
+        dependsOn packaged
+        group = 'verification'
+        description = 'Builds the isolated Forge 1.12 Ore Sources server probe.'
+    }
+}

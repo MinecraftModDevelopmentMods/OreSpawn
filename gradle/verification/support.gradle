@@ -22,7 +22,7 @@ def legacyFixtureHashes = [
 
 task verifyLegacyFixtures {
     group = 'verification'
-    description = 'Verifies the sealed ABI and migration corpus used only by isolated tests.'
+    description = 'Verifies the sealed Mineralogy and migration fixtures used only by isolated tests.'
     inputs.files legacyFixtureHashes.keySet().collect { new File(legacyFixtureRoot, it) }
     doLast {
         legacyFixtureHashes.each { String relativePath, String expectedHash ->
@@ -309,7 +309,6 @@ tasks.named('check') {
 // The other verification scripts use these helpers and fixture locations.
 // Keep this list small so the scripts remain understandable on their own.
 ext.oreSpawnVerification = [
-        fixtureArtifacts: legacyFixtureArtifacts,
         fixtureWorlds: legacyFixtureWorlds,
         mineralogy112Oracle: legacyMineralogy112OracleJar,
         java8Launcher: java8Launcher,

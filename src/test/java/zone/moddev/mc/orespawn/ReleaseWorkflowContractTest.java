@@ -14,6 +14,20 @@ import org.junit.jupiter.api.Test;
 
 class ReleaseWorkflowContractTest {
 	@Test
+	void verificationDoesNotOfferTheRemovedForge110AbiFixtures() throws Exception {
+		String migration = readScript("gradle/verification/legacy-and-migration.gradle");
+		for (String removed : new String[] {
+				"compileOs1AbiFixture", "os1AbiFixtureJar", "prepareOs1AbiRun", "os1AbiIntegrationProcess",
+				"compileOs3AbiFixture", "os3AbiFixtureJar", "prepareOs3AbiRun", "os3AbiIntegrationProcess",
+				"legacyAbiIntegrationTest", "configureLegacyAbiProcess", "src/os1AbiFixture", "src/os3AbiFixture" }) {
+			assertFalse(migration.contains(removed), "Obsolete 1.10 fixture wiring: " + removed);
+		}
+		assertTrue(migration.contains("legacyMineralogyGates"));
+		assertTrue(migration.contains("dependsOn legacyMineralogyGates"));
+		assertFalse(readScript("gradle/README.md").contains("legacyAbiIntegrationTest"));
+	}
+
+	@Test
 	void releaseAndHostedWorkflowContractsRemainTargetNative() throws Exception {
 		Properties properties = new Properties();
 		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {

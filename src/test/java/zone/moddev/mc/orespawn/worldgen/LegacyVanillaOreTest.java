@@ -375,6 +375,27 @@ class LegacyVanillaOreTest {
 		assertTrue(takeover(baked, WorldIds.OVERWORLD, Blocks.DIAMOND_ORE));
 	}
 
+	@Test
+	void importedDefaultPatternReceivesHybridAndReplacementScalingWithoutChangingItsSettings() throws Exception {
+		JsonObject profile = profile(true);
+		profile.getAsJsonObject("ores").add("orespawn:legacy/diamond_ore", rule(false, true));
+		String before = profile.toString();
+		Object[] imported = ores(bake(profile), WorldIds.OVERWORLD);
+
+		assertEquals(1, imported.length);
+		ResourceLocation channel = (ResourceLocation) field(imported[0], "channel");
+		ResourceLocation material = new ResourceLocation("orespawn:diamond");
+
+		assertEquals(OreSourcePolicies.STANDARD, channel);
+		assertEquals(0.15D, OreSpawnOreGeneration.channelBackgroundScale(material, channel, 0.15D, 1.0D));
+		assertEquals(0.0D, OreSpawnOreGeneration.channelBackgroundScale(material, channel, 0.0D, 1.0D));
+		assertEquals(0.375D, field(imported[0], "frequency"));
+		assertEquals(7, field(imported[0], "minY"));
+		assertEquals(11, field(imported[0], "maxY"));
+		assertEquals(false, field(imported[0], "retrogen"));
+		assertEquals(before, profile.toString());
+	}
+
 	private static JsonObject profile(boolean manageVanilla) {
 		JsonObject profile = new JsonObject();
 		profile.addProperty("manage_vanilla_ores", manageVanilla);

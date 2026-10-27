@@ -409,7 +409,7 @@ final class GeologyEditorSession {
 		List<OreSourceGroup> result = new ArrayList<>();
 		for (Entry<String, JsonElement> entry : section("ore_source_policies").entrySet()) {
 			if (!entry.getValue().isJsonObject()) continue;
-			JsonObject policy = entry.getValue().getAsJsonObject();
+			JsonObject policy = OreSourceEditorView.policy(root, entry.getValue().getAsJsonObject());
 			String material = string(policy, "material", "");
 			String domain = string(policy, "domain", "");
 			if (!validResource(material) || !validResource(domain)) continue;
@@ -983,8 +983,8 @@ final class GeologyEditorSession {
 	}
 
 	private static void refreshOreSourceStatus(JsonObject policy) {
-		Set<String> missing = new HashSet<>();
-		Set<String> inactivePlacements = new HashSet<>();
+		Set<String> loaded = new HashSet<>();
+		Set<String> loadedPlacements = new HashSet<>();
 		boolean external = false;
 		boolean review = bool(policy, "review_required", false);
 		if (policy.has("candidates") && policy.get("candidates").isJsonArray()) {
@@ -992,8 +992,10 @@ final class GeologyEditorSession {
 				if (!element.isJsonObject()) continue;
 				JsonObject candidate = element.getAsJsonObject();
 				String sourceId = string(candidate, "source_id", "");
-				if (!bool(candidate, "loaded", false)) missing.add(sourceId);
-				if (!bool(candidate, "placement_active", false)) inactivePlacements.add(sourceId);
+				if (bool(candidate, "loaded", false)) {
+					loaded.add(sourceId);
+					loadedPlacements.add(sourceId + "|" + string(candidate, "placement_channel", "orespawn:standard"));
+				}
 				external |= bool(candidate, "external", false) && bool(candidate, "loaded", false);
 			}
 		}
@@ -1005,10 +1007,10 @@ final class GeologyEditorSession {
 			return;
 		}
 		for (String id : outputs.keySet()) {
-			if (missing.contains(id)) { policy.addProperty("status", "missing_source"); return; }
+			if (!loaded.contains(id)) { policy.addProperty("status", "missing_source"); return; }
 		}
-		for (String id : placements.values()) {
-			if (missing.contains(id) || inactivePlacements.contains(id)) {
+		for (Entry<String, String> placement : placements.entrySet()) {
+			if (!loadedPlacements.contains(placement.getValue() + "|" + placement.getKey())) {
 				policy.addProperty("status", "missing_source"); return;
 			}
 		}

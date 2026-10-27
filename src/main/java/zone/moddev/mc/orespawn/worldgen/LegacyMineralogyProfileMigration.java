@@ -152,7 +152,7 @@ final class LegacyMineralogyProfileMigration {
 		Path report = worldRoot.resolve("serverconfig/orespawn-upgrade-report.txt");
 		List<String> missing = missingBlocks(igneous, metamorphic, sedimentary);
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.1.2.112021 Upgrade Report");
+		lines.add("OreSpawn 4.1.3.112021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Existing Mineralogy " + identity.version + " world detected.");

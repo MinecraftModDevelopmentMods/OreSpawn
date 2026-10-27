@@ -167,16 +167,45 @@ final class OreSourcePolicies {
 
 	static ResourceLocation placementChannel(JsonObject rule) {
 		ResourceLocation explicit = resource(string(rule, "placement_channel", ""));
-		if (explicit != null) return explicit;
+
+		if (explicit != null) {
+			return explicit;
+		}
+
 		JsonObject pattern = rule.has("pattern") && rule.get("pattern").isJsonObject()
 				? rule.getAsJsonObject("pattern") : null;
+
 		if (pattern != null) {
 			ResourceLocation type = resource(string(pattern, "type", ""));
-			if (type != null) return type;
+
+			if (type != null) {
+				return patternChannel(type);
+			}
 		}
+
 		String legacy = string(rule, "pattern", "");
 		ResourceLocation type = legacy.indexOf(':') >= 0 ? resource(legacy) : null;
-		return type != null ? type : STANDARD;
+		return type != null ? patternChannel(type) : STANDARD;
+	}
+
+	static ResourceLocation patternChannel(ResourceLocation type) {
+		// Imports name built-in patterns in full, but they still place ordinary veins.
+		// Only these known patterns share a channel; custom patterns stay independent.
+		if ("orespawn".equals(type.getNamespace())) {
+			switch (type.getPath()) {
+			case "default":
+			case "vein":
+			case "normal_cloud":
+			case "precision":
+			case "clusters":
+			case "underfluids":
+				return STANDARD;
+			default:
+				break;
+			}
+		}
+
+		return type;
 	}
 
 	static Inference inferMaterial(Iterable<String> oreNames) {
