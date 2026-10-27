@@ -1,0 +1,31 @@
+// Opt-in editor fixtures. Normal builds and release jars do not include them.
+gradle.afterProject { project, state ->
+    if (project != project.rootProject || state.failure != null) return
+
+    def classes = project.tasks.register('compileOreSourceEditorFixture', JavaCompile) {
+        dependsOn project.tasks.named('classes')
+        source project.file('tools/qualification/editor/EditorFixtureMod.java')
+        classpath = project.files(project.sourceSets.main.output, project.sourceSets.main.compileClasspath)
+        destinationDirectory = project.layout.buildDirectory.dir('editor-fixtures/classes')
+        options.encoding = 'UTF-8'
+    }
+
+    def input = project.tasks.register('oreSourceEditorFixtureInput', Jar) {
+        dependsOn classes
+        from classes.flatMap { it.destinationDirectory }
+        from(project.file('src/test/resources')) { include 'ore-source-editor/**' }
+        archiveFileName = 'editor-fixtures-deobf.jar'
+        destinationDirectory = project.layout.buildDirectory.dir('editor-fixtures')
+    }
+
+    def release = project.renamer.classes(input) {
+        map.from project.minecraft.dependency.toSrgFile
+        output = project.layout.buildDirectory.file('editor-fixtures/editor-fixtures.jar')
+    }
+
+    project.tasks.register('prepareOreSourceEditorFixture') {
+        dependsOn release
+        group = 'verification'
+        description = 'Builds the optional, packaged Ore Sources visual-test mod.'
+    }
+}

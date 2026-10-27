@@ -11,7 +11,7 @@ to the tasks they configure:
 | Script | Responsibility |
 | --- | --- |
 | `verification/support.gradle` | Sealed fixtures, Java 8 verification, Forge-run delegation, runtime log audits. |
-| `verification/legacy-and-migration.gradle` | Surface and migration worlds, Mineralogy lineage, opt-in OS1/OS3 ABI probes. |
+| `verification/legacy-and-migration.gradle` | Surface and migration worlds, including both Mineralogy lineages. |
 | `verification/client-and-benchmark.gradle` | Client integration and opt-in worldgen benchmark. |
 | `verification/packaged-forge.gradle` | Fresh/reload test of the reobfuscated jar under installed Forge 14. |
 | `release/artifacts.gradle` | API and release jars, release configuration and artifact audits, checksums. |
@@ -28,8 +28,12 @@ The routine offline gate runs `clean check build javadoc verifyReleaseArtifacts 
 Run `clientIntegrationProcess` separately for rendered client and editor coverage,
 and `genEclipseRuns verifyEclipseProductionClasspath` for ordinary production-only
 IDE launches.
-`legacyAbiIntegrationTest` and `benchmarkIntegrationProcess` remain opt-in
-compatibility and performance gates. The benchmark requires `benchmarkRunDir`;
-the packaged server gate requires `packagedMinecraftServerJar` and
+`benchmarkIntegrationProcess` is an opt-in performance gate and requires
+`benchmarkRunDir`. The packaged server gate requires `packagedMinecraftServerJar` and
 `packagedForgeLibrariesRoot`, and its server command ends with literal `nogui`.
 All gates support the existing `--offline --no-daemon` workflow.
+
+The ordinary tests cover the OS3 bridge and legacy Codec linkage. Published
+OS3 3.2.2 and 3.3.1 consumer binaries are also checked in separate packaged
+Forge runs with the sealed 1.12 fixtures. Those checks use the original
+target-native binaries, not the removed 1.10 fixture source layout.

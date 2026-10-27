@@ -534,8 +534,8 @@ public final class OreSpawnOreGeneration {
 					profile, first.material, first.policyDomain, available);
 			List<BakedOre> selected = new ArrayList<>();
 			for (Entry<ResourceLocation, ResourceLocation> placement : placements.entrySet()) {
-				ResourceLocation channel = placement.getKey();
 				ResourceLocation source = placement.getValue();
+				ResourceLocation channel = available.get(source);
 				for (BakedOre candidate : entry.getValue()) {
 					if (channel.equals(candidate.channel) && source.equals(candidate.ruleId)) {
 						selected.add(candidate.withSources(sources));
@@ -570,17 +570,52 @@ public final class OreSpawnOreGeneration {
 		JsonObject policy = policies.getAsJsonObject(key);
 		if (!"consolidated".equals(string(policy, "mode", "keep_separate"))) return null;
 		Map<ResourceLocation, ResourceLocation> result = new LinkedHashMap<>();
-		for (Entry<String, JsonElement> placement : objectOrEmpty(
-				policy, "placement_sources").entrySet()) {
+		JsonObject placements = objectOrEmpty(policy, "placement_sources");
+
+		for (Entry<String, JsonElement> placement : placements.entrySet()) {
 			ResourceLocation channel = resource(placement.getKey());
 			ResourceLocation source;
 			try { source = resource(placement.getValue().getAsString()); }
 			catch (RuntimeException invalid) { continue; }
-			if (channel != null && source != null && channel.equals(availableSourceChannels.get(source))) {
+
+			if (channel == null || source == null) {
+				continue;
+			}
+
+			ResourceLocation currentChannel = availableSourceChannels.get(source);
+			boolean retainedAlias = !placements.has(OreSourcePolicies.STANDARD.toString())
+					&& legacyChannelSelection(profile, source, domain, channel, currentChannel);
+
+			if (channel.equals(currentChannel) || retainedAlias) {
 				result.put(channel, source);
 			}
 		}
 		return Collections.unmodifiableMap(result);
+	}
+
+	private static boolean legacyChannelSelection(JsonObject profile, ResourceLocation source,
+			ResourceLocation domain, ResourceLocation savedChannel, ResourceLocation currentChannel) {
+		if (!OreSourcePolicies.STANDARD.equals(currentChannel)
+				|| !OreSourcePolicies.STANDARD.equals(OreSourcePolicies.patternChannel(savedChannel))) {
+			return false;
+		}
+
+		JsonObject ore = objectOrEmpty(objectOrEmpty(profile, "ores"), source.toString());
+		JsonObject dimensions = objectOrEmpty(ore, "dimensions");
+		JsonObject placement = dimensions.has(domain.toString())
+				? objectOrEmpty(dimensions, domain.toString())
+				: objectOrEmpty(objectOrEmpty(ore, "dimension_selectors"), domain.toString());
+
+		// Honour the old inferred name without changing a saved selection. A newer
+		// explicit channel or standard-channel choice must not fall back to this alias.
+		if (placement.has("placement_channel")) {
+			return false;
+		}
+
+		JsonObject pattern = objectOrEmpty(placement, "pattern");
+		ResourceLocation oldChannel = resource(pattern.has("type")
+				? string(pattern, "type", "") : string(placement, "pattern", ""));
+		return savedChannel.equals(oldChannel);
 	}
 
 	static int weightedIndex(double sample, double... weights) {
