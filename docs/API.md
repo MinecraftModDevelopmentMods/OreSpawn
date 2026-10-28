@@ -1,5 +1,19 @@
 # Java API
 
+## Exact legacy host states
+
+Since 4.1.4.110021, Java providers can use `hostState(blockId, metadata)` on the
+ore dimension builder. For example, `hostState(new ResourceLocation("minecraft",
+"stone"), 0)` accepts plain stone without also accepting granite, diorite or
+andesite. A third argument supplies a replacement weight between zero and one.
+
+`hostBlock` still selects the whole block, as before. Families and other hosts
+are alternatives, so do not add a broad stone or family selector when the
+restriction needs to be exact. This addition uses the existing JSON metadata
+matcher and does not change old providers. Mods that call the new method must
+require OreSpawn 4.1.4 or later; older providers keep their existing dependency
+range.
+
 This branch targets Minecraft 1.10.2 and Forge 12. Public examples therefore
 use the public `ResourceLocation(String, String)` constructor. Forge 12 has no
 `DeferredRegister`, so provider mods use OreSpawn's API-major-1
