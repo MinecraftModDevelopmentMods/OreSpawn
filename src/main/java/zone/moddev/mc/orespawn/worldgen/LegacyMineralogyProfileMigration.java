@@ -125,7 +125,7 @@ final class LegacyMineralogyProfileMigration {
 		}
 
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.1.3.110021 Upgrade Report");
+		lines.add("OreSpawn 4.1.4.110021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Existing Mineralogy " + mineralogyVersion

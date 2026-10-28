@@ -566,6 +566,7 @@ public final class WorldgenProvider {
 		private final Set<GeologyFamily> hostFamilies;
 		private final Map<ResourceLocation, Double> geomes;
 		private final Set<ResourceLocation> hostBlocks;
+		private final Map<ResourceLocation, Map<Integer, Double>> hostStates;
 		private final Set<ResourceLocation> hostTags;
 		private final Set<ResourceLocation> biomeIds;
 		private final Set<ResourceLocation> excludedBiomeIds;
@@ -597,6 +598,9 @@ public final class WorldgenProvider {
 			hostFamilies = Collections.unmodifiableSet(new LinkedHashSet<>(builder.hostFamilies));
 			geomes = immutableMap(builder.geomes);
 			hostBlocks = immutableSet(builder.hostBlocks);
+			Map<ResourceLocation, Map<Integer, Double>> states = new LinkedHashMap<>();
+			builder.hostStates.forEach((block, variants) -> states.put(block, immutableMap(variants)));
+			hostStates = immutableMap(states);
 			hostTags = immutableSet(builder.hostTags);
 			biomeIds = immutableSet(builder.biomeIds);
 			excludedBiomeIds = immutableSet(builder.excludedBiomeIds);
@@ -631,6 +635,8 @@ public final class WorldgenProvider {
 		public Set<GeologyFamily> hostFamilies() { return hostFamilies; }
 		public Map<ResourceLocation, Double> geomes() { return geomes; }
 		public Set<ResourceLocation> hostBlocks() { return hostBlocks; }
+		/** Exact legacy variants, separate from whole-block selectors. */
+		public Map<ResourceLocation, Map<Integer, Double>> hostStates() { return hostStates; }
 		public Set<ResourceLocation> hostTags() { return hostTags; }
 		public Set<ResourceLocation> biomeIds() { return biomeIds; }
 		public Set<ResourceLocation> excludedBiomeIds() { return excludedBiomeIds; }
@@ -679,7 +685,15 @@ public final class WorldgenProvider {
 			for (GeologyFamily family : hostFamilies) { families.add(new JsonPrimitive(family.configName())); }
 			json.add("host_families", families);
 			json.add("geomes", weights(geomes));
-			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
+			JsonArray hosts = weightedIds(hostBlocks, hostBlockWeights, "block");
+			hostStates.forEach((block, variants) -> variants.forEach((metadata, weight) -> {
+				JsonObject state = new JsonObject();
+				state.addProperty("block", block.toString());
+				state.addProperty("metadata", metadata);
+				if (weight != 1.0D) state.addProperty("weight", weight);
+				hosts.add(state);
+			}));
+			json.add("host_blocks", hosts);
 			json.add("host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
 			json.add("biome_ids", ids(biomeIds));
 			json.add("excluded_biome_ids", ids(excludedBiomeIds));
@@ -711,6 +725,7 @@ public final class WorldgenProvider {
 			private final Set<GeologyFamily> hostFamilies = new LinkedHashSet<>();
 			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();
 			private final Set<ResourceLocation> hostBlocks = new LinkedHashSet<>();
+			private final Map<ResourceLocation, Map<Integer, Double>> hostStates = new LinkedHashMap<>();
 			private final Set<ResourceLocation> hostTags = new LinkedHashSet<>();
 			private final Set<ResourceLocation> biomeIds = new LinkedHashSet<>();
 			private final Set<ResourceLocation> excludedBiomeIds = new LinkedHashSet<>();
@@ -751,6 +766,25 @@ public final class WorldgenProvider {
 			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
 			public Builder geomeWeight(ResourceLocation geome, double value) { geomes.put(geome, value); return this; }
 			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
+
+			/** Selects one legacy block variant, such as plain stone (metadata zero). */
+			public Builder hostState(ResourceLocation block, int metadata) {
+				return hostState(block, metadata, 1.0D);
+			}
+
+			/** Adds an exact variant with the same replacement weight as hostBlock. */
+			public Builder hostState(ResourceLocation block, int metadata, double weight) {
+				Objects.requireNonNull(block, "block");
+				if (metadata < 0 || metadata > 15) {
+					throw new IllegalArgumentException("Legacy host metadata must be within 0..15");
+				}
+
+				double validatedWeight = replacementWeight(weight);
+				hostStates.computeIfAbsent(block, ignored -> new LinkedHashMap<>())
+						.put(metadata, validatedWeight);
+				return this;
+			}
+
 			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
 			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
 			public Builder excludeBiome(ResourceLocation value) { excludedBiomeIds.add(value); return this; }
@@ -791,7 +825,8 @@ public final class WorldgenProvider {
 						|| nodeSize < 1 || nodeSize > 32) {
 					throw new IllegalStateException("Invalid ore placement values for " + dimension);
 				}
-				if (enabled && hostFamilies.isEmpty() && hostBlocks.isEmpty() && hostTags.isEmpty()) {
+				if (enabled && hostFamilies.isEmpty() && hostBlocks.isEmpty()
+						&& hostStates.isEmpty() && hostTags.isEmpty()) {
 					throw new IllegalStateException("Enabled ore dimension has no hosts: " + dimension);
 				}
 				return new OreDimensionDefinition(this);
