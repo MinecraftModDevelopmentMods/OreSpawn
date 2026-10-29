@@ -13,6 +13,7 @@ Version 4.1.0.120062
   server stops, while preserving shared feature identities across biomes.
 * Add an isolated shared-ore client profile and real Nether fresh/reload checks.
 * Use Minecraft Mod Development as the jar vendor.
+* Keep generated Javadoc artwork and license notices identical on Windows and Linux.
 
 * Add provider extensions, the mod directory, ore-source groups and built-in MMD conflict defaults.
 * Add the biome directory, exact new-terrain replacements and dimension material controls.

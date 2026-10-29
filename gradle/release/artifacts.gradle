@@ -20,6 +20,27 @@ def expectedReleaseFiles = providers.provider {
 }
 def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 
+def javadocLegalNames = ['ADDITIONAL_LICENSE_INFO', 'ASSEMBLY_EXCEPTION', 'LICENSE']
+def javadocLegalSource = providers.provider {
+    tasks.named('javadoc', Javadoc).get().javadocTool.get().metadata.installationPath
+            .dir('legal/java.base').asFile
+}
+
+// Some JDK ZIPs store these notices as link text. Package the actual notices
+// so Windows and Linux produce the same complete documentation archive.
+tasks.named('javadoc', Javadoc).configure {
+    inputs.files(javadocLegalSource.map { directory ->
+        javadocLegalNames.collect { new File(directory, it) }
+    })
+    doLast {
+        project.copy {
+            from javadocLegalSource
+            include javadocLegalNames
+            into new File(destinationDir, 'legal')
+        }
+    }
+}
+
 tasks.named('assemble') {
     dependsOn releaseJar
     dependsOn tasks.named('sourcesJar')
@@ -235,6 +256,15 @@ tasks.register('verifyReleaseArtifacts') {
             if (zip.getEntry('index.html') == null
                     || zip.getEntry('zone/moddev/mc/orespawn/api/OreSpawnApi.html') == null) {
                 throw new GradleException('Javadoc jar is missing its index or public OreSpawn API page')
+            }
+            javadocLegalNames.each { name ->
+                def entry = zip.getEntry("legal/${name}")
+                String expectedNotice = new File(javadocLegalSource.get(), name).getText('UTF-8')
+                        .replace('\r\n', '\n')
+                String actualNotice = entry == null ? '' : zip.getInputStream(entry).getText('UTF-8')
+                if (actualNotice != expectedNotice) {
+                    throw new GradleException("Javadoc legal/${name} differs from the JDK's actual notice")
+                }
             }
         }
     }

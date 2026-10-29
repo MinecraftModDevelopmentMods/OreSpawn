@@ -64,10 +64,17 @@ tasks.withType(AbstractArchiveTask).configureEach {
 
 def archiveTextSuffixes = [
         '.cfg', '.css', '.html', '.info', '.java', '.js', '.json', '.lang',
-        '.mcmeta', '.md', '.properties', '.toml', '.txt', '.xml'
+        '.mcmeta', '.md', '.properties', '.svg', '.toml', '.txt', '.xml'
 ]
 def archiveTextPatterns = archiveTextSuffixes.collect { "**/*${it}".toString() }
-archiveTextPatterns.addAll(['**/element-list', '**/package-list'])
+archiveTextPatterns.addAll(['**/element-list', '**/package-list',
+        '**/legal/LICENSE', '**/legal/ASSEMBLY_EXCEPTION', '**/legal/ADDITIONAL_LICENSE_INFO'])
+
+// A normalization policy change must rebuild the archives too.
+tasks.withType(Jar).configureEach {
+    inputs.property('normalizedArchiveTextPatterns', archiveTextPatterns)
+}
+
 def normalizeArchiveLineEndings = { details ->
     details.filter(FixCrLfFilter,
             eol: FixCrLfFilter.CrLf.newInstance('lf'),
