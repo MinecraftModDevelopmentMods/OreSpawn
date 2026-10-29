@@ -4,7 +4,10 @@ OreSpawn is a required NeoForge mod and a declarative world-generation engine.
 The normal jar is both the compile-time and runtime dependency; there is no
 shaded or embeddable engine artifact.
 
-Choose the guide that matches what you are doing:
+Start with the [developer guide](DEVELOPER_GUIDE.md) when integrating a mod,
+or the [player and server guide](PLAYER_GUIDE.md) when configuring a world.
+The API and provider guides give the exact Java and JSON contracts. Use the
+versioning guide when choosing a matching Minecraft and loader build.
 
 - [Player and server guide](PLAYER_GUIDE.md)
 - [Developer quick start and complete integration map](DEVELOPER_GUIDE.md)
@@ -18,7 +21,6 @@ Choose the guide that matches what you are doing:
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Versioning and release conventions](VERSIONS.md)
-- [Compact instructions for coding agents](AGENTS.md)
 
 Validated examples are in `examples/`; JSON Schemas are in `schemas/`.
 The provider and migration guides include OS3-compatible ranged quantities and

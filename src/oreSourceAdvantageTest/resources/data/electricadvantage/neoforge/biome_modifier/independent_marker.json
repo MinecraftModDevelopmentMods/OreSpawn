@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": "electricadvantage:independent_marker",
+  "step": "underground_ores"
+}
