@@ -17,6 +17,10 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
+This branch targets NeoForge 20.6.139 and Java 21. It keeps NeoForge's own
+registration, biome modifiers and development runs separate from the Forge
+build for the same Minecraft version.
+
 ## What Happens When It Is Installed?
 
 OreSpawn is deliberately passive on its own. It does not replace stone, remove
@@ -35,6 +39,10 @@ declarative provider contract.
 When a provider exposes world settings, use **OreSpawn...** on the Create World
 screen. **Recommended Defaults** restores the settings supplied by the
 installed mods and pack. The in-game **Help & Guide** explains the controls.
+
+Leave **Manage Vanilla Ores** off to keep normal Minecraft ore placement,
+including when an older configuration has been imported. Turning it on uses
+eligible imported settings instead of adding a second default placement pass.
 
 Important files:
 
@@ -94,10 +102,10 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-This branch builds target-qualified version `4.0.16.120062`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.120062`: the OreSpawn 4.1
 feature set for Minecraft 1.20.6 and NeoForge.
 
-OreSpawn 4.0.16.120062 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
+OreSpawn 4.1.0.120062 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
 Temurin 21.0.7+6 from the repository root:
 
 ```powershell
@@ -117,7 +125,7 @@ Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
 Eclipse model and run configurations through the `eclipse` task; this branch
 does not use ForgeGradle's `genEclipseRuns` task.
 
-The audited public outputs are `OreSpawn-4.0.16.120062.jar`, its sources jar,
+The audited public outputs are `OreSpawn-4.1.0.120062.jar`, its sources jar,
 and its Javadoc jar. CI additionally proves a cache-cold NeoGradle bootstrap
 and a same-cache offline rerun.
 
