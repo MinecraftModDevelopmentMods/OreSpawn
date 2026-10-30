@@ -1,6 +1,5 @@
 package zone.moddev.mc.orespawn.worldgen;
 
-import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,11 +12,13 @@ import zone.moddev.mc.orespawn.OreSpawn;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
+import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -52,7 +53,7 @@ public final class VanillaOreFeatureGate {
 		registry.register("suppressible_ore_gate", () -> SUPPRESSIBLE_FEATURE);
 	}
 
-	static boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
+	static synchronized boolean wrapFeatureList(List<Holder<PlacedFeature>> features) {
 		boolean changed = false;
 		for (int featureIndex = 0; featureIndex < features.size(); featureIndex++) {
 			Holder<PlacedFeature> feature = features.get(featureIndex);
@@ -73,6 +74,13 @@ public final class VanillaOreFeatureGate {
 			}
 		}
 		return changed;
+	}
+
+	static synchronized void clearGates() {
+		// These holders belong to the stopped server's dynamic registries.
+		VANILLA_GATES.clear();
+		SUPPRESSIBLE_GATES.clear();
+		for (GateFeature feature : FEATURES) feature.initialize(null, null);
 	}
 
 	private static Holder<PlacedFeature> vanillaGate(Holder<PlacedFeature> original,
@@ -110,6 +118,37 @@ public final class VanillaOreFeatureGate {
 	private static boolean isStandardOreFeature(PlacedFeature placed) {
 		return placed.getFeatures().anyMatch(configured -> configured.feature() == Feature.ORE
 				|| configured.feature() == Feature.SCATTERED_ORE);
+	}
+
+	static Block nativeOutput(ConfiguredFeature<?, ?> feature) {
+		Block output = null;
+		for (ConfiguredFeature<?, ?> child : (Iterable<ConfiguredFeature<?, ?>>) feature.getFeatures()::iterator) {
+			if ((child.feature() != Feature.ORE && child.feature() != Feature.SCATTERED_ORE)
+					|| !(child.config() instanceof OreConfiguration)) return null;
+			OreConfiguration config = (OreConfiguration) child.config();
+			if (config.targetStates.isEmpty()) return null;
+			for (OreConfiguration.TargetBlockState target : config.targetStates) {
+				Block candidate = vanillaOreFamily(target.state.getBlock());
+				if (candidate == null || (output != null && output != candidate)) return null;
+				output = candidate;
+			}
+		}
+		return output;
+	}
+
+	static Block vanillaOreFamily(Block block) {
+		// Stone and deepslate variants share one managed placement rule.
+		if (block == Blocks.COAL_ORE || block == Blocks.DEEPSLATE_COAL_ORE) return Blocks.COAL_ORE;
+		if (block == Blocks.IRON_ORE || block == Blocks.DEEPSLATE_IRON_ORE) return Blocks.IRON_ORE;
+		if (block == Blocks.COPPER_ORE || block == Blocks.DEEPSLATE_COPPER_ORE) return Blocks.COPPER_ORE;
+		if (block == Blocks.GOLD_ORE || block == Blocks.DEEPSLATE_GOLD_ORE) return Blocks.GOLD_ORE;
+		if (block == Blocks.REDSTONE_ORE || block == Blocks.DEEPSLATE_REDSTONE_ORE) return Blocks.REDSTONE_ORE;
+		if (block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE) return Blocks.DIAMOND_ORE;
+		if (block == Blocks.LAPIS_ORE || block == Blocks.DEEPSLATE_LAPIS_ORE) return Blocks.LAPIS_ORE;
+		if (block == Blocks.EMERALD_ORE || block == Blocks.DEEPSLATE_EMERALD_ORE) return Blocks.EMERALD_ORE;
+		if (block == Blocks.NETHER_GOLD_ORE || block == Blocks.NETHER_QUARTZ_ORE
+				|| block == Blocks.ANCIENT_DEBRIS) return block;
+		return null;
 	}
 
 	private static Definition[] definitions() {
@@ -169,6 +208,7 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 				return false;
 			}
@@ -187,9 +227,11 @@ public final class VanillaOreFeatureGate {
 				.xmap(SuppressibleConfig::new, value -> value.delegate)
 				.codec();
 		final Holder<ConfiguredFeature<?, ?>> delegate;
+		final Block nativeOutput;
 
 		SuppressibleConfig(Holder<ConfiguredFeature<?, ?>> delegate) {
 			this.delegate = delegate;
+			this.nativeOutput = VanillaOreFeatureGate.nativeOutput(delegate.value());
 		}
 	}
 
@@ -200,7 +242,11 @@ public final class VanillaOreFeatureGate {
 
 		@Override
 		public boolean place(FeaturePlaceContext<SuppressibleConfig> context) {
+			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
+			Block output = context.config().nativeOutput;
+			if (output != null && OreSpawnOreGeneration.takesOverVanillaOre(
+					context.level().getLevel().dimension(), output)) return false;
 			return context.config().delegate.value().place(context.level(), context.chunkGenerator(),
 					context.random(), context.origin());
 		}

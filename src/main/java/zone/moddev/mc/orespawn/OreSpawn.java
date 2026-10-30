@@ -66,6 +66,7 @@ public class OreSpawn {
 		NeoForge.EVENT_BUS.addListener(WorldMaterialWeather::onChunkLoad);
 		NeoForge.EVENT_BUS.addListener(WorldMaterialWeather::onWorldTick);
 		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerAboutToStart);
+		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStarting);
 		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
 		NeoForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
 		NeoForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);

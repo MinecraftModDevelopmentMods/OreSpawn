@@ -64,7 +64,7 @@ Examples:
 | 1.21.1 | Forge | `121011` | `4.0.16.121011` |
 | 1.21.1 | NeoForge | `121012` | `4.0.16.121012` |
 | 1.21.11 | Forge | `121111` | `4.0.16.121111` |
-| 1.21.11 | NeoForge | `121112` | `4.0.16.121112` |
+| 1.21.11 | NeoForge | `121112` | `4.1.0.121112` |
 | 26.1.2 | Forge | `2601021` | `4.0.16.2601021` |
 | 26.1.2 | NeoForge | `2601022` | `4.0.6.2601022` |
 | 26.2 | Forge | `2602001` | `4.0.16.2602001` |
@@ -129,7 +129,7 @@ For example:
 
 ```text
 Minecraft 1.21.11 / Forge    / OreSpawn 4.0.6.121111
-Minecraft 1.21.11 / NeoForge / OreSpawn 4.0.6.121112
+Minecraft 1.21.11 / NeoForge / OreSpawn 4.1.0.121112
 Minecraft 26.1.2 / Forge    / OreSpawn 4.0.6.2601021
 Minecraft 26.1.2 / NeoForge / OreSpawn 4.0.6.2601022
 Minecraft 26.2   / Forge    / OreSpawn 4.0.6.2602001
