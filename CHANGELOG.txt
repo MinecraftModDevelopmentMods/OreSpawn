@@ -1,3 +1,27 @@
+Version 4.1.0.2601022
+
+* Keep compact-list text, scrollbar arrows and editor labels visible on 26.1.2.
+* Declare support for both the native resource and data pack formats.
+* Keep imported vanilla ore settings inactive while Manage Vanilla Ores is off.
+  When it is on, use the imported settings without a second default ore pass.
+* Treat imported built-in patterns as ordinary veins while retaining saved
+  placement choices and independent custom channels.
+* Show inactive sources separately from missing mods, without rewriting saved
+  rules or choices just to display them.
+* Put Help & Guide beside Recommended Defaults and fit the world-creation tab
+  above the footer in smaller windows.
+* Reject invalid geome names instead of silently changing their spelling.
+* Recognise inline vanilla ore features and release their wrappers when a
+  server stops, while preserving shared feature identities across biomes.
+* Add an isolated shared-ore client profile and real Nether fresh/reload checks.
+* Use Minecraft Mod Development as the jar vendor.
+* Keep generated Javadoc artwork and license notices identical on Windows and Linux.
+
+* Add provider extensions, a mod directory, Ore Sources and built-in MMD conflict defaults.
+* Add the biome directory, exact new-terrain replacements and dimension material controls.
+* Keep existing worlds' ore rules while starting new shared-tag MMD groups Balanced.
+* Split the NeoGradle build into smaller scripts and keep tracked text in LF format.
+
 Version 4.0.16.2601022
 
 * Leave benchmark shutdown to the GameTest harness when a benchmark is run

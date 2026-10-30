@@ -1,10 +1,10 @@
 {
   "pack": {
     "description": "OreSpawn provider-surface integration fixtures",
-    "max_format": 101,
-    "min_format": [
+    "max_format": [
       101,
       1
-    ]
+    ],
+    "min_format": 84
   }
 }

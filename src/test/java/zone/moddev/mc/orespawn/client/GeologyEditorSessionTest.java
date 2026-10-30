@@ -2,17 +2,63 @@ package zone.moddev.mc.orespawn.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import net.minecraft.world.level.block.Blocks;
+import zone.moddev.mc.orespawn.util.FluidBlocks;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
+import zone.moddev.mc.orespawn.test.MinecraftTestBootstrap;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistrationInfo;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.registries.VanillaRegistries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.biome.Biome;
+import com.mojang.serialization.Lifecycle;
 
 class GeologyEditorSessionTest {
+	@BeforeAll static void registerVanilla() { MinecraftTestBootstrap.registerVanilla(); }
+
+	@Test
+	void worldCreationRegistrySuppliesTheBiomeDirectoryWhenForgeStaticRegistryIsEmpty() {
+		MappedRegistry<Biome> loaded = new MappedRegistry<>(Registries.BIOME, Lifecycle.stable());
+		var vanilla = VanillaRegistries.createLookup().lookupOrThrow(Registries.BIOME);
+		for (String id : Arrays.asList("minecraft:plains", "minecraft:desert")) {
+			ResourceKey<Biome> key = ResourceKey.create(Registries.BIOME, Identifier.parse(id));
+			loaded.register(key, vanilla.getOrThrow(key).value(), RegistrationInfo.BUILT_IN);
+		}
+		Registry<Biome> biomes = loaded.freeze();
+		GeologyEditorSession session = new GeologyEditorSession(
+				WorldGeologyProfile.recommended(false),
+				Arrays.asList("minecraft:overworld"), biomes);
+
+		assertEquals(Arrays.asList("minecraft:desert", "minecraft:plains"),
+				session.installedBiomeIds());
+		assertTrue(session.biomeDirectory().entries("minecraft:overworld", true).stream()
+				.anyMatch(entry -> "minecraft:plains".equals(entry.id)));
+		session.replaceBiome("minecraft:overworld", "minecraft:plains", "minecraft:desert");
+		assertEquals("minecraft:desert", session.biomeReplacements("minecraft:overworld")
+				.get("minecraft:plains"));
+		JsonObject missingPalette = new JsonObject();
+		missingPalette.addProperty("dimension", "minecraft:overworld");
+		missingPalette.addProperty("enabled", true);
+		JsonObject placements = new JsonObject();
+		placements.add("missing:biome", new JsonObject());
+		missingPalette.add("biomes", placements);
+		session.section("biome_palettes").add("missing:palette", missingPalette);
+		assertFalse(session.validate().stream().anyMatch(error -> error.contains("missing:biome")));
+	}
+
 	@Test
 	void emptyStandaloneProfileIsValidAndFirstRockActivatesOverworldTerrain() {
 		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
@@ -26,6 +72,18 @@ class GeologyEditorSessionTest {
 				.getAsJsonObject("minecraft:overworld");
 		assertTrue(overworld.getAsJsonArray("host_blocks").toString().contains("minecraft:stone"));
 		assertTrue(overworld.getAsJsonArray("host_blocks").toString().contains("minecraft:deepslate"));
+	}
+
+	@Test
+	void invalidGeomeNamesAreRejectedRatherThanSilentlyRenamed() {
+		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
+		String before = session.root().toString();
+		for (String name : new String[] { null, "", "BadName", "cakeworld:BadName", "bad name" }) {
+			session.addGeome(name);
+			assertEquals(before, session.root().toString());
+		}
+		session.addGeome(" cakeworld:cocoa_basin ");
+		assertTrue(session.section("geomes").has("cakeworld:cocoa_basin"));
 	}
 
 	@Test
@@ -140,6 +198,22 @@ class GeologyEditorSessionTest {
 	}
 
 	@Test
+	void fluidPickerExcludesWaterloggedBlocksAndBubbleColumns() {
+		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
+		assertTrue(FluidBlocks.isFluidBlock(Blocks.WATER));
+		assertTrue(FluidBlocks.isFluidBlock(Blocks.LAVA));
+		assertFalse(FluidBlocks.isFluidBlock(Blocks.BRAIN_CORAL_WALL_FAN));
+		assertFalse(FluidBlocks.isFluidBlock(Blocks.BUBBLE_COLUMN));
+		assertFalse(session.availableFluidBlockIds("").contains("minecraft:brain_coral_wall_fan"));
+		assertFalse(session.availableFluidBlockIds("").contains("minecraft:bubble_column"));
+		assertFalse(session.availableMaterialBlockIds("", true).contains("minecraft:brain_coral_wall_fan"));
+		assertNull(session.assignFluidDeposit("minecraft:brain_coral_wall_fan"));
+		session.setMaterialBlock("minecraft:overworld", "default_fluid",
+				"minecraft:brain_coral_wall_fan", true);
+		assertNull(session.dimensionMaterials("minecraft:overworld", false));
+	}
+
+	@Test
 	void standaloneFluidPickerCreatesAUsableCoveredOverworldRule() {
 		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
 		session.configureDefaultVanillaStrata();
@@ -159,5 +233,70 @@ class GeologyEditorSessionTest {
 		assertEquals(1, session.section("fluid_deposits").size());
 		java.util.List<String> errors = session.validate();
 		assertTrue(errors.isEmpty(), errors.toString());
+	}
+
+	@Test
+	void balancedModeRestoresEveryEligibleOutputAfterCustomSelection() {
+		JsonObject root = WorldGeologyProfile.recommended(false).rootCopy();
+		JsonObject policy = new JsonObject();
+		policy.addProperty("material", "orespawn:sulfur");
+		policy.addProperty("domain", "minecraft:overworld");
+		policy.addProperty("mode", "keep_separate");
+		policy.addProperty("output_mode", "custom");
+		JsonObject outputs = new JsonObject();
+		outputs.addProperty("mineralogy:sulfur", 1.0D);
+		policy.add("outputs", outputs);
+		JsonObject placements = new JsonObject();
+		placements.addProperty("orespawn:standard", "mineralogy:sulfur");
+		policy.add("placement_sources", placements);
+		JsonArray candidates = new JsonArray();
+		candidates.add(oreSourceCandidate("mineralogy:sulfur", "mineralogy:sulfur_ore", false));
+		candidates.add(oreSourceCandidate("baseminerals:sulfur", "baseminerals:sulfur_ore", false));
+		candidates.add(oreSourceCandidate("outside:sulfur", "outside:sulfur_ore", true));
+		policy.add("candidates", candidates);
+		JsonObject policies = new JsonObject();
+		String key = "orespawn:sulfur|minecraft:overworld";
+		policies.add(key, policy);
+		root.add("ore_source_policies", policies);
+		WorldGeologyProfile original = WorldGeologyProfile.fromJson(root,
+				WorldGeologyProfile.recommended(false));
+		JsonObject before = original.rootCopy();
+		GeologyEditorSession session = new GeologyEditorSession(original);
+
+		session.setOreSourceOutputMode(key, "balanced");
+		GeologyEditorSession.OreSourceGroup balanced = session.oreSourceGroups().get(0);
+		assertEquals("consolidated", balanced.mode);
+		assertEquals(2, balanced.outputs.size());
+		assertTrue(balanced.outputs.containsKey("mineralogy:sulfur"));
+		assertTrue(balanced.outputs.containsKey("baseminerals:sulfur"));
+		assertFalse(balanced.outputs.containsKey("outside:sulfur"));
+
+		session.setOreSourceOutputMode(key, "custom");
+		session.setOreSourceOutput(key, "baseminerals:sulfur", true, 2.5D);
+		session.setOreSourceOutput(key, "mineralogy:sulfur", false, 1.0D);
+		assertEquals(1, session.oreSourceGroups().get(0).outputs.size());
+		session.setOreSourceOutputMode(key, "balanced");
+		assertEquals(2, session.oreSourceGroups().get(0).outputs.size());
+		assertEquals(1.0D, session.oreSourceGroups().get(0).outputs
+				.get("mineralogy:sulfur").doubleValue());
+		assertEquals(before, original.rootCopy(), "the main editor still owns persistence");
+	}
+
+	private static JsonObject oreSourceCandidate(String source, String block, boolean external) {
+		JsonObject candidate = new JsonObject();
+		candidate.addProperty("source_id", source);
+		candidate.addProperty("owner", source.substring(0, source.indexOf(':')));
+		candidate.addProperty("registry_id", block);
+		candidate.addProperty("metadata", 0);
+		candidate.addProperty("material", "orespawn:sulfur");
+		candidate.addProperty("domain", "minecraft:overworld");
+		candidate.addProperty("placement_channel", "orespawn:standard");
+		JsonArray tags = new JsonArray();
+		tags.add("forge:ores/sulfur");
+		candidate.add("block_tags", tags);
+		candidate.addProperty("loaded", true);
+		candidate.addProperty("placement_active", !external);
+		candidate.addProperty("external", external);
+		return candidate;
 	}
 }

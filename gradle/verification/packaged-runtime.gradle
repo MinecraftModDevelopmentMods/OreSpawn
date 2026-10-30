@@ -1,0 +1,38 @@
+// Launch the installed NeoForge runtime, not the development classpath.
+def shared = project.ext.oreSpawnBuild
+
+shared.prepareTestNeoForgeConfig = { File runDirectory ->
+    String buildRoot = layout.buildDirectory.get().asFile.canonicalPath + File.separator
+    if (!runDirectory.canonicalPath.startsWith(buildRoot)) {
+        throw new GradleException('Automatic test settings must stay inside the build directory')
+    }
+}
+
+shared.neoForgeServerCommand = { File runtime, File runDirectory, List<String> extraJvmArguments ->
+    String argumentName = org.gradle.internal.os.OperatingSystem.current().isWindows()
+            ? 'win_args.txt' : 'unix_args.txt'
+    File installedArguments = new File(runtime,
+            "libraries/net/neoforged/neoforge/${neo_version}/${argumentName}")
+    if (!installedArguments.isFile()) {
+        throw new GradleException("Missing official NeoForge arguments: ${installedArguments}")
+    }
+    String libraryRoot = runtime.canonicalPath.replace('\\', '/') + '/libraries'
+    String arguments = installedArguments.getText('UTF-8')
+            .replace('libraries/', libraryRoot + '/')
+            .replace('-DlibraryDirectory=libraries', '-DlibraryDirectory=' + libraryRoot)
+    arguments = arguments.readLines().collect { line ->
+        def classpath = line =~ /^(-p|--module-path|--class-path|-cp)\s+(.+)$/
+        if (classpath.matches()) {
+            return classpath[0][1] + '\n"' + classpath[0][2].replace('"', '\\"') + '"'
+        }
+        line.startsWith('-D') && line.contains(libraryRoot) && line.contains(' ')
+                ? '"' + line.replace('"', '\\"') + '"' : line
+    }.join('\n') + '\n'
+    File argumentFile = new File(runDirectory, 'server.args')
+    argumentFile.setText(arguments, 'UTF-8')
+    File java = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+        vendor = JvmVendorSpec.ADOPTIUM
+    }.get().executablePath.asFile
+    [java.absolutePath, '-Xmx3G'] + extraJvmArguments + ['@' + argumentFile.absolutePath, 'nogui']
+}

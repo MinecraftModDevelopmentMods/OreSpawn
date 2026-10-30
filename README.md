@@ -17,6 +17,10 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
+This branch targets NeoForge 21.11.45 and Java 21. It keeps NeoForge's own
+registration, biome modifiers and development runs separate from the Forge
+build for the same Minecraft version.
+
 ## What Happens When It Is Installed?
 
 OreSpawn is deliberately passive on its own. It does not replace stone, remove
@@ -35,6 +39,10 @@ declarative provider contract.
 When a provider exposes world settings, use **OreSpawn...** on the Create World
 screen. **Recommended Defaults** restores the settings supplied by the
 installed mods and pack. The in-game **Help & Guide** explains the controls.
+
+Leave **Manage Vanilla Ores** off to keep normal Minecraft ore placement,
+including when an older configuration has been imported. Turning it on uses
+eligible imported settings instead of adding a second default placement pass.
 
 Important files:
 
@@ -94,14 +102,18 @@ exported to `config/orespawn-guide/` without overwriting existing files.
 
 ## Building
 
-This branch builds target-qualified version `4.0.16.2601022`: the OreSpawn 4.0.16
+This branch builds target-qualified version `4.1.0.2601022`: the OreSpawn 4.1
 feature set for Minecraft 26.1.2 and NeoForge.
 
-OreSpawn 4.0.16.2601022 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
+The mod includes both resources (format 84) and data (format 101.1), so its
+shared pack metadata covers both formats.
+
+OreSpawn 4.1.0.2601022 uses NeoGradle 7.1.38 and Gradle 9.2.1. Use exact
 Temurin 25.0.3+9 from the repository root:
 
 ```powershell
-.\gradlew.bat clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon --max-workers=2
+.\gradlew.bat clean --no-daemon --max-workers=2
+.\gradlew.bat check build javadoc verifyReleaseArtifacts writeReleaseChecksums --no-daemon --max-workers=2
 .\gradlew.bat eclipse verifyEclipseProductionClasspath --no-daemon --max-workers=2
 ```
 
@@ -113,11 +125,15 @@ survive, verifies identifier-weighted geology in a dynamic custom biome, then
 reopens and checks the exact saved world. The fixture is not included in
 OreSpawn's published jars.
 
-Import or refresh the project with Eclipse Buildship. NeoGradle supplies the
-Eclipse model and run configurations through the `eclipse` task; this branch
-does not use ForgeGradle's `genEclipseRuns` task.
+Run `clean` separately: NeoGradle prepares some inputs while configuring the
+build, and cleaning in the same invocation can remove them before they are used.
 
-The audited public outputs are `OreSpawn-4.0.16.2601022.jar`, its sources jar,
+Import or refresh the project with Eclipse Buildship after running `eclipse`.
+Use `runClient` or `runTestOreSourcesClient` from Eclipse's Gradle Tasks view.
+NeoGradle does not need ForgeGradle's `genEclipseRuns` task or standalone
+`.launch` files.
+
+The audited public outputs are `OreSpawn-4.1.0.2601022.jar`, its sources jar,
 and its Javadoc jar. CI additionally proves a cache-cold NeoGradle bootstrap
 and a same-cache offline rerun.
 

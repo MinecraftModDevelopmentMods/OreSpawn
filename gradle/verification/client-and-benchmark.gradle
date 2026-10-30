@@ -1,0 +1,138 @@
+// Fixture clients and generated worlds never enter the production source set.
+def shared = project.ext.oreSpawnBuild
+def runtimeCrashSnapshot = shared.runtimeCrashSnapshot
+def assertRuntimeLogsClean = shared.assertRuntimeLogsClean
+def surfaceIntegrationClasses = layout.buildDirectory.dir('surface-integration-fixture/classes')
+def compileSurfaceIntegrationTestMod = tasks.register('compileSurfaceIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(surfaceIntegrationClasses)
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    })
+    options.release = 25
+    options.encoding = 'UTF-8'
+}
+
+def surfaceIntegrationTestModJar = tasks.register('surfaceIntegrationTestModJar', Jar) {
+    dependsOn compileSurfaceIntegrationTestMod
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('surface-integration-fixture')
+    manifest {
+        attributes 'MixinConfigs': 'surfaceprobe.mixins.json'
+    }
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+def surfaceIntegrationRunDirectory = layout.buildDirectory.dir('surface-integration-run')
+def prepareSurfaceIntegrationTest = tasks.register('prepareSurfaceIntegrationTest') {
+    dependsOn surfaceIntegrationTestModJar
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        copy {
+            from surfaceIntegrationTestModJar.flatMap { it.archiveFile }
+            into surfaceIntegrationRunDirectory.map { it.dir('mods') }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runSurfaceIntegrationFresh') {
+        dependsOn prepareSurfaceIntegrationTest
+    } else if (name == 'runSurfaceIntegrationReload') {
+        dependsOn 'runSurfaceIntegrationFresh'
+    }
+    if (name == 'runSurfaceIntegrationFresh' || name == 'runSurfaceIntegrationReload') {
+        doFirst {
+            ext.oreSpawnCrashSnapshot = runtimeCrashSnapshot(workingDir)
+        }
+        doLast {
+            assertRuntimeLogsClean(workingDir, "NeoForge 26.1.2 ${name}",
+                    ext.oreSpawnCrashSnapshot as Set)
+        }
+    }
+}
+
+def surfaceIntegrationTest = tasks.register('surfaceIntegrationTest') {
+    group = 'verification'
+    description = 'Verifies provider surfaces and dynamic-biome geology across fresh and reloaded normal terrain.'
+    dependsOn 'runSurfaceIntegrationReload'
+    doLast {
+        File marker = surfaceIntegrationRunDirectory.get().file(
+                'gametestserver/gametestworld/surfaceprobe-integration.properties').asFile
+        if (!marker.isFile()) {
+            throw new GradleException("Surface integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
+        }
+        logger.lifecycle('Provider surfaces and dynamic-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+tasks.named('check') {
+    dependsOn surfaceIntegrationTest
+}
+
+def clientIntegrationClasses = layout.buildDirectory.dir('client-integration-fixture/classes')
+def compileClientIntegrationTestMod = tasks.register('compileClientIntegrationTestMod', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory.set(clientIntegrationClasses)
+    options.release = 25
+    options.encoding = 'UTF-8'
+}
+def clientIntegrationTestModJar = tasks.register('clientIntegrationTestModJar', Jar) {
+    dependsOn compileClientIntegrationTestMod
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('client-integration-fixture')
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+
+
+shared.clientIntegrationTestModJar = clientIntegrationTestModJar
+shared.surfaceIntegrationTestModJar = surfaceIntegrationTestModJar
+
+def clientIntegrationRunDirectory = layout.buildDirectory.dir('client-integration-run').get().asFile
+def prepareClientIntegration = tasks.register('prepareClientIntegration') {
+    dependsOn clientIntegrationTestModJar
+    doLast {
+        String buildRoot = layout.buildDirectory.get().asFile.canonicalPath + File.separator
+        if (!clientIntegrationRunDirectory.canonicalPath.startsWith(buildRoot)) {
+            throw new GradleException('Client probe directory is outside build output')
+        }
+        delete clientIntegrationRunDirectory
+        new File(clientIntegrationRunDirectory, 'mods').mkdirs()
+        copy {
+            from clientIntegrationTestModJar.flatMap { it.archiveFile }
+            into new File(clientIntegrationRunDirectory, 'mods')
+        }
+        new File(clientIntegrationRunDirectory, 'options.txt').setText('fullscreen:false\nguiScale:2\n', 'UTF-8')
+    }
+}
+tasks.matching { it.name == 'runClient41Integration' }.configureEach {
+    dependsOn prepareClientIntegration
+}
+tasks.register('clientIntegrationProcess') {
+    group = 'verification'
+    description = 'Opens the 4.1 editors and renders a fresh and reloaded world in an isolated client.'
+    dependsOn 'runClient41Integration'
+    doLast {
+        File marker = new File(clientIntegrationRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) throw new GradleException('The client UI probe did not finish')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        for (String key : ['ore_sources_opened', 'mods_opened', 'first_world_rendered', 'reload_rendered']) {
+            if (result.getProperty(key) != 'true') throw new GradleException("Client UI probe missed ${key}")
+        }
+        shared.assertRuntimeLogsClean(clientIntegrationRunDirectory,
+                'NeoForge 26.1.2 isolated client', [] as Set)
+    }
+}
