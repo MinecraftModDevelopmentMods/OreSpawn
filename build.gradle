@@ -348,6 +348,12 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+// Compile production sources together so anonymous constructor debug names
+// stay identical after a small edit and in a clean release build.
+tasks.named('compileJava', JavaCompile).configure {
+    options.incremental = false
+}
+
 tasks.named('javadoc', Javadoc).configure {
     failOnError = false
     options.encoding = 'UTF-8'

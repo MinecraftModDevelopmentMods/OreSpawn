@@ -15,6 +15,13 @@ import org.junit.jupiter.api.Test;
 
 class ReleaseWorkflowContractTest {
 	@Test
+	void productionCompilationKeepsAnonymousConstructorDebugNamesReproducible() throws Exception {
+		String build = Files.readString(Paths.get("build.gradle"), StandardCharsets.UTF_8);
+		assertTrue(build.contains("tasks.named('compileJava', JavaCompile).configure {\n"
+				+ "    options.incremental = false\n}"));
+	}
+
+	@Test
 	void usesOreSpawnSpecificMavenNamespace() throws Exception {
 		Properties properties = new Properties();
 		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {

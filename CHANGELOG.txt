@@ -16,6 +16,7 @@ Version 4.1.0.2601022
 * Add an isolated shared-ore client profile and real Nether fresh/reload checks.
 * Use Minecraft Mod Development as the jar vendor.
 * Keep generated Javadoc artwork and license notices identical on Windows and Linux.
+* Keep production jars identical after incremental edits and clean builds.
 
 * Add provider extensions, a mod directory, Ore Sources and built-in MMD conflict defaults.
 * Add the biome directory, exact new-terrain replacements and dimension material controls.
