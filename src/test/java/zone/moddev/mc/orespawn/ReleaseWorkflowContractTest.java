@@ -15,6 +15,13 @@ import org.junit.jupiter.api.Test;
 
 class ReleaseWorkflowContractTest {
 	@Test
+	void productionCompilationKeepsAnonymousConstructorDebugNamesReproducible() throws Exception {
+		String build = Files.readString(Paths.get("build.gradle"), StandardCharsets.UTF_8);
+		assertTrue(build.contains("tasks.named('compileJava', JavaCompile).configure {\n"
+				+ "    options.incremental = false\n}"));
+	}
+
+	@Test
 	void usesOreSpawnSpecificMavenNamespace() throws Exception {
 		Properties properties = new Properties();
 		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {
@@ -35,12 +42,14 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
-		assertTrue(build.contains("expectedMavenCoordinate"));
+		Path publishingFile = Paths.get("gradle", "release", "publishing.gradle");
+		String publishing = new String(Files.readAllBytes(publishingFile), StandardCharsets.UTF_8);
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String root = new String(Files.readAllBytes(Paths.get("build.gradle")),
+				StandardCharsets.UTF_8);
+		assertTrue(root.contains("expectedMavenCoordinate"));
 	}
 
 	@Test

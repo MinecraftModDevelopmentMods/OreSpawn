@@ -1,0 +1,10 @@
+{
+  "pack": {
+    "description": "Test-only Advantage OreSpawn fixture",
+    "max_format": [
+      101,
+      1
+    ],
+    "min_format": 84
+  }
+}

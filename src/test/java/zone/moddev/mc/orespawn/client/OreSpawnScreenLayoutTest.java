@@ -59,8 +59,33 @@ class OreSpawnScreenLayoutTest {
 	}
 
 	@Test
+	void everyBiomeStatusCaptionHasAnOpaqueColor() throws ReflectiveOperationException {
+		java.lang.reflect.Method color = BiomeWorldMaterialsScreen.class
+				.getDeclaredMethod("statusColor", BiomeDirectoryModel.Status.class);
+		color.setAccessible(true);
+		for (BiomeDirectoryModel.Status status : BiomeDirectoryModel.Status.values()) {
+			assertEquals(255, ((Integer) color.invoke(null, status)) >>> 24, status.name());
+		}
+	}
+
+	@Test
 	void compactMainRowsStayAboveFooter() {
 		assertRowsClearFooter(240);
+	}
+
+	@Test
+	void worldCreationGridFitsWithAndWithoutTheTemplateRow() {
+		for (int availableHeight : new int[] {170, 180, 183, 205, 208}) {
+			for (int rows : new int[] {7, 8}) {
+				int spacing = OreSpawnScreenLayout.worldCreationRowSpacing(availableHeight, rows);
+				assertTrue(rows * 20 + (rows - 1) * spacing <= availableHeight - 2,
+						"The grid must stop before Minecraft's footer separator");
+			}
+		}
+		assertEquals(4, OreSpawnScreenLayout.worldCreationRowSpacing(180, 7));
+		assertEquals(2, OreSpawnScreenLayout.worldCreationRowSpacing(180, 8));
+		assertEquals(300, OreSpawnScreenLayout.worldCreationContentWidth(320));
+		assertEquals(385, OreSpawnScreenLayout.worldCreationContentWidth(426));
 	}
 
 	@Test
@@ -76,6 +101,27 @@ class OreSpawnScreenLayoutTest {
 	@Test
 	void compactOrePlacementRowsStayAboveFooterAtMinimumTestHeight() {
 		assertCompactOrePlacementClearsFooter(240);
+	}
+
+	@Test
+	void oreSourcesKeepTwoCompactListsAtBothSupportedSizes() {
+		assertEquals(406, OreSourceListScreen.contentWidth(426));
+		assertEquals(174, OreSourceListScreen.leftPaneWidth(426));
+		assertEquals(209, OreSourceListScreen.listHeight(265));
+		assertEquals(300, OreSourceListScreen.contentWidth(320));
+		assertEquals(129, OreSourceListScreen.leftPaneWidth(320));
+		assertEquals(184, OreSourceListScreen.listHeight(240));
+		assertEquals(80, OreSourceGroupSettingsScreen.aliasListHeight(265));
+		assertEquals(64, OreSourceGroupSettingsScreen.aliasListHeight(240));
+		assertEquals(58, OreSourceListScreen.compactFilterWidth(110, 48));
+	}
+
+	@Test
+	void biomeDirectoryUsesPagesOnlyAtTheMinimumSize() {
+		assertTrue(426 >= BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(320 < BiomeWorldMaterialsScreen.TWO_PANE_MINIMUM);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(265) > 0);
+		assertTrue(BiomeWorldMaterialsScreen.listHeight(240) > 0);
 	}
 
 	private static void assertRowsClearFooter(int height) {

@@ -1,0 +1,133 @@
+// Future MMD providers are ordinary test-only mods, never production dependencies.
+def oreSourceFixtures = [:]
+['Minerals': 'oreSourceMineralsTest', 'Advantage': 'oreSourceAdvantageTest'].each { label, folder ->
+    def classesDir = layout.buildDirectory.dir("ore-source-fixture/${label.toLowerCase(Locale.ROOT)}-classes")
+    def compile = tasks.register("compileOreSource${label}Fixture", JavaCompile) {
+        dependsOn tasks.named('classes')
+        source fileTree("src/${folder}/java")
+        classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+        destinationDirectory.set(classesDir)
+        javaCompiler.set(javaToolchains.compilerFor {
+            languageVersion = JavaLanguageVersion.of(25)
+        })
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+    oreSourceFixtures[label] = tasks.register("oreSource${label}FixtureJar", Jar) {
+        dependsOn compile
+        archiveFileName = "oresource-${label.toLowerCase(Locale.ROOT)}.jar"
+        destinationDirectory = layout.buildDirectory.dir('ore-source-fixture')
+        from classesDir
+        from "src/${folder}/resources"
+    }
+}
+
+def oreSourceRuns = [:]
+
+// This manual profile keeps its own worlds and config between launches.
+runs {
+    testOreSourcesClient {
+        runType 'client'
+        workingDirectory layout.projectDirectory.dir('run-ore-sources')
+        modSource project.sourceSets.main
+    }
+}
+
+def prepareOreSourcesClient = tasks.register('prepareOreSourcesClient') {
+    group = 'verification'
+    description = 'Stages the two future-provider mods for the manual Ore Sources client.'
+    dependsOn oreSourceFixtures.values()
+    doLast {
+        copy {
+            oreSourceFixtures.values().each { from it.flatMap { jar -> jar.archiveFile } }
+            into file('run-ore-sources/mods')
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'runTestOreSourcesClient') dependsOn prepareOreSourcesClient
+}
+
+['One': ['Minerals'], 'Both': ['Minerals', 'Advantage']].each { scenario, labels ->
+    File runDir = layout.buildDirectory.dir(
+            "ore-source-${scenario.toLowerCase(Locale.ROOT)}-run").get().asFile
+    def prepare = tasks.register("prepareOreSource${scenario}") {
+        labels.each { dependsOn oreSourceFixtures[it] }
+        doLast {
+            delete runDir
+            runDir.mkdirs()
+            copy {
+                labels.each { from oreSourceFixtures[it].flatMap { jar -> jar.archiveFile } }
+                into new File(runDir, 'mods')
+            }
+            new File(runDir, 'server.properties').setText('''\
+level-name=ore-source-world
+level-seed=49110
+level-type=minecraft:normal
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            new File(runDir, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        }
+    }
+    String fresh = "runOreSource${scenario}Fresh"
+    String reload = "runOreSource${scenario}Reload"
+    tasks.configureEach {
+        if (name == fresh) dependsOn prepare
+        if (name == reload) dependsOn fresh
+    }
+    oreSourceRuns[scenario] = [runDir: runDir, reload: reload]
+    tasks.register("oreSource${scenario}IntegrationTest") {
+        group = 'verification'
+        description = "Checks ${scenario.toLowerCase(Locale.ROOT)} future ore-provider scenario on a fresh world and exact reload."
+        dependsOn reload
+        doLast {
+            File marker = new File(runDir, 'ore-source-world/oresourceprobe.properties')
+            if (!marker.isFile()) throw new GradleException("Ore-source marker is missing: ${marker}")
+            Properties results = new Properties()
+            marker.withInputStream { results.load(it) }
+            if (results.getProperty('reload_verified') != 'true') {
+                throw new GradleException("Ore-source reload was not verified: ${marker}")
+            }
+        }
+    }
+}
+
+File bothRun = oreSourceRuns.Both.runDir
+File advantageJar = new File(bothRun, 'mods/oresource-advantage.jar')
+File parkedJar = new File(bothRun, 'oresource-advantage.jar')
+tasks.configureEach {
+    if (name.startsWith('runOreSource')) {
+        doFirst { ext.oreSourcePriorCrashes = project.ext.oreSpawnBuild.runtimeCrashSnapshot(workingDir) }
+        doLast {
+            project.ext.oreSpawnBuild.assertRuntimeLogsClean(workingDir, name,
+                    ext.oreSourcePriorCrashes as Set)
+        }
+    }
+    if (name == 'runOreSourceBothMissing') {
+        dependsOn oreSourceRuns.Both.reload
+        doFirst { java.nio.file.Files.move(advantageJar.toPath(), parkedJar.toPath()) }
+    } else if (name == 'runOreSourceBothRestored') {
+        dependsOn 'runOreSourceBothMissing'
+        doFirst { java.nio.file.Files.move(parkedJar.toPath(), advantageJar.toPath()) }
+    }
+}
+tasks.register('oreSourceFixtureIntegrationTest') {
+    group = 'verification'
+    description = 'Checks one and two future providers, then removes and restores one on the same save.'
+    dependsOn tasks.named('oreSourceOneIntegrationTest'), 'runOreSourceBothRestored'
+    doLast {
+        Properties results = new Properties()
+        new File(bothRun, 'ore-source-world/oresourceprobe.properties').withInputStream {
+            results.load(it)
+        }
+        if (results.getProperty('restored_verified') != 'true') {
+            throw new GradleException('Restored provider was not verified')
+        }
+    }
+}
