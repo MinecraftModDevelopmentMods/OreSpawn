@@ -35,12 +35,14 @@ class ReleaseWorkflowContractTest {
 
 	@Test
 	void verifiesGeneratedMavenCoordinatesBeforeCheckAndPublication() throws Exception {
-		Path buildFile = Paths.get("build.gradle");
-		String build = new String(Files.readAllBytes(buildFile), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
-		assertTrue(build.contains("expectedMavenCoordinate"));
+		Path publishingFile = Paths.get("gradle", "release", "publishing.gradle");
+		String publishing = new String(Files.readAllBytes(publishingFile), StandardCharsets.UTF_8);
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String root = new String(Files.readAllBytes(Paths.get("build.gradle")),
+				StandardCharsets.UTF_8);
+		assertTrue(root.contains("expectedMavenCoordinate"));
 	}
 
 	@Test
@@ -59,12 +61,27 @@ class ReleaseWorkflowContractTest {
 			assertEquals(jobCount, occurrences(text,
 					"-Dorg.gradle.java.installations.auto-download=false"));
 			if (workflow.equals("ci.yml")) {
-				assertEquals(2, occurrences(text, "\"${gradle_jdk_args[@]}\""));
+				assertEquals(4, occurrences(text, "\"${gradle_jdk_args[@]}\""),
+						"Cold online/offline and separate clean/build calls use the same JDK");
 			}
 			assertFalse(text.contains("25.0.3"));
 			assertFalse(text.contains("8.0.502"));
 			assertFalse(text.contains("MinecraftMavenizer"));
 		}
+	}
+
+	@Test
+	void ciCompilesColdClassesAndCleansInASeparateInvocation() throws Exception {
+		String text = new String(Files.readAllBytes(
+				Paths.get(".github", "workflows", "ci.yml")), StandardCharsets.UTF_8);
+		assertEquals(2, occurrences(text, "./gradlew classes verifyLegacyFixtures"));
+		assertTrue(text.contains("./gradlew classes verifyLegacyFixtures --offline"));
+		assertFalse(text.contains("./gradlew help verifyLegacyFixtures"));
+		assertTrue(text.contains("test ! -e \"$GRADLE_USER_HOME\""));
+		assertFalse(text.contains("rm -rf"));
+		assertTrue(text.contains("./gradlew clean --no-daemon"));
+		assertTrue(text.contains("./gradlew check build javadoc"));
+		assertFalse(text.contains("./gradlew clean check"));
 	}
 
 	@Test
