@@ -36,7 +36,7 @@ jobs:
           chmod +x ./gradlew
           test ! -d .gradle
           export GRADLE_USER_HOME="$RUNNER_TEMP/orespawn-neoforge-cold-cache"
-          rm -rf "$GRADLE_USER_HOME"
+          test ! -e "$GRADLE_USER_HOME"
           gradle_jdk_args=(
             "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
             -Dorg.gradle.java.installations.auto-detect=false
@@ -80,9 +80,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            build/libs/OreSpawn-4.0.16.121112.jar
-            build/libs/OreSpawn-4.0.16.121112-sources.jar
-            build/libs/OreSpawn-4.0.16.121112-javadoc.jar
+            build/libs/OreSpawn-4.1.0.121112.jar
+            build/libs/OreSpawn-4.1.0.121112-sources.jar
+            build/libs/OreSpawn-4.1.0.121112-javadoc.jar
             build/release/SHA256SUMS
             CHANGELOG.txt
       - name: Upload diagnostics on failure
