@@ -6,7 +6,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-/** Build-only test that gives NeoForge 20.6's benchmark GameTest server a harness-owned result. */
+/** Gives the benchmark GameTest server a result owned by this test fixture. */
 @Mod(BenchmarkHarnessTestMod.MODID)
 @GameTestHolder(BenchmarkHarnessTestMod.MODID)
 public final class BenchmarkHarnessTestMod {
