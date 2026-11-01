@@ -137,7 +137,7 @@ tasks.register('clientIntegrationProcess') {
         if (!marker.isFile()) throw new GradleException('The client UI probe did not finish')
         Properties result = new Properties()
         marker.withInputStream { result.load(it) }
-        for (String key : ['ore_sources_opened', 'mods_opened', 'first_world_rendered', 'reload_rendered']) {
+        for (String key : ['ore_sources_opened', 'mods_opened', 'extended_rock_height_roundtrip', 'first_world_rendered', 'reload_rendered']) {
             if (result.getProperty(key) != 'true') throw new GradleException("Client UI probe missed ${key}")
         }
         shared.assertRuntimeLogsClean(clientIntegrationRunDirectory,

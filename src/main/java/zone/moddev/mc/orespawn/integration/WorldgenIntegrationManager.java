@@ -38,6 +38,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.neoforged.fml.InterModComms;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
@@ -580,8 +581,8 @@ public final class WorldgenIntegrationManager {
 			throw new JsonSyntaxException("unknown rock block: " + blockId);
 		}
 		RockFamily.fromConfigName(string(rock, "family", ""));
-		int minY = integer(rock, "min_y", -64);
-		int maxY = integer(rock, "max_y", 319);
+		int minY = integer(rock, "min_y", DimensionType.MIN_Y);
+		int maxY = integer(rock, "max_y", DimensionType.MAX_Y);
 		if (minY < -2048 || maxY > 2048 || minY > maxY
 				|| decimal(rock, "weight", 1.0D) < 0.0D) {
 			throw new JsonSyntaxException("invalid rock range or weight: " + idText);

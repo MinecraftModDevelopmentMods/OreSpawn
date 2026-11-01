@@ -163,6 +163,12 @@ Layers when a close geome transition is staggered by layer, even when later
 surface work changes the final heightmap slightly. Sampling is read-only and is
 intended for gameplay decisions, diagnostics, and compatible generation outside
 OreSpawn's block loops.
+The sampler uses the level's actual build limits, including extended-height
+dimensions. It samples configured strata, not blocks already in the world.
+Where no configured rock is eligible, generation leaves native terrain alone,
+`familyAt` is empty, and `rockAt` retains its Stone fallback. That fallback is
+not a prediction of the other generator's rock; inspect existing terrain if
+you need its actual block.
 Callbacks inside OreSpawn generation loops are intentionally unsupported.
 
 Custom pattern mods create a NeoForge `DeferredRegister<OrePatternType>` using

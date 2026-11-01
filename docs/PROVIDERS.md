@@ -27,6 +27,15 @@ including vanilla granite/diorite/andesite/tuff features, untouched. Formation
 controls remain inert until a profile contains eligible rocks and an enabled
 terrain-replacement dimension.
 
+Rock heights use absolute world Y, not distance from the bottom. Omitted rock
+limits and the Java rock builder's defaults cover the dimension's full build
+range. Explicit limits remain authoritative, including values such as
+`min_y: -128`; they are not rewritten when a terrain mod changes the world's
+height. The runtime clips generation to each dimension's actual bounds and
+leaves native rock wherever no declared rock is eligible. No Tectonic-specific
+configuration or integration hook is needed. Ore and fluid-deposit height
+ranges remain independent and are not extended automatically.
+
 Rule IDs in `rocks` and `ores` must use the provider namespace. They are stable
 ownership keys, not necessarily block IDs. Set `block` for one output or
 `outputs` for a weighted list:

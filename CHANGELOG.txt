@@ -1,3 +1,12 @@
+Version 4.1.1.121012
+
+* Use each dimension's actual height for rock strata, including deeper and
+  taller worlds supplied by other mods or datapacks.
+* Keep native rock where no configured rock is eligible, rather than replacing
+  it with stone. Preserve saved ranges and leave existing chunks untouched.
+* Allow rock height settings outside the vanilla range and explain how rock
+  weights differ from a geome's family weights.
+
 Version 4.1.0.121012
 
 * Keep imported vanilla ore settings inactive while Manage Vanilla Ores is off.

@@ -14,9 +14,12 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.resources.ResourceLocation;
 
 public final class BakedGeomeConfig {
+	// Keep vanilla lookup rows unchanged; loaded dimensions can extend the tables.
 	static final int MIN_Y = -64;
 	static final int MAX_Y = 319;
-	private static final int HEIGHT = MAX_Y - MIN_Y + 1;
+	private final int minY;
+	private final int maxY;
+	private final int height;
 	private static final int LEGACY_MAX_Y = 255;
 	private static final int FORMATION_BUCKETS = 256;
 	private static final int PICKER_SCALE = 1000;
@@ -40,6 +43,7 @@ public final class BakedGeomeConfig {
 	private final Set<Block> oreReplaceableBlocks;
 	private final Map<Block, RockFamily> rockFamilies;
 	private final int familyDiversitySlots;
+	private final boolean[][] replacementHeights;
 
 	private int[][][] legacyFamilyThresholds;
 	private WeightedBlockPicker[][][] legacyRockPickers;
@@ -52,6 +56,17 @@ public final class BakedGeomeConfig {
 	BakedGeomeConfig(GeomeDefinition[] geomes, double geomeScale, double biomeInfluence,
 			double regionalNoiseInfluence, double boundaryNoiseInfluence, Map<Biome, double[]> biomeWeights,
 			Map<ResourceLocation, double[]> biomeWeightsById, RockEntry[] rocks, FormationSettings formations) {
+		this(geomes, geomeScale, biomeInfluence, regionalNoiseInfluence, boundaryNoiseInfluence,
+				biomeWeights, biomeWeightsById, rocks, formations, MIN_Y, MAX_Y);
+	}
+
+	BakedGeomeConfig(GeomeDefinition[] geomes, double geomeScale, double biomeInfluence,
+			double regionalNoiseInfluence, double boundaryNoiseInfluence, Map<Biome, double[]> biomeWeights,
+			Map<ResourceLocation, double[]> biomeWeightsById, RockEntry[] rocks, FormationSettings formations,
+			int minY, int maxY) {
+		this.minY = Math.min(MIN_Y, minY);
+		this.maxY = Math.max(MAX_Y, maxY);
+		this.height = this.maxY - this.minY + 1;
 		this.geomes = geomes;
 		this.geomeScale = geomeScale;
 		this.biomeInfluence = biomeInfluence;
@@ -83,12 +98,35 @@ public final class BakedGeomeConfig {
 		sedimentaryBlocks = buildBlockSet(rocks, true, false);
 		oreReplaceableBlocks = buildBlockSet(rocks, false, true);
 		rockFamilies = buildFamilyMap(rocks);
+		replacementHeights = new boolean[geomes.length][height];
+		for (int geome = 0; geome < geomes.length; geome++) {
+			for (RockEntry rock : rocks) {
+				if (rock.weight <= 0.0D || rock.geomeWeights[geome] <= 0.0D
+						|| geomes[geome].familyWeights[rock.family.ordinal()] <= 0.0D) continue;
+				for (int y = Math.max(this.minY, rock.minY); y <= Math.min(this.maxY, rock.maxY); y++) {
+					replacementHeights[geome][y - this.minY] = true;
+				}
+			}
+		}
 
 		if (formations.usesStableLayers()) {
 			buildStablePickers(rocks);
 		} else {
 			buildLegacyPickers(rocks);
 		}
+	}
+
+	BakedGeomeConfig withWorldHeight(int minBuildY, int maxBuildY) {
+		int lookupMin = Math.min(MIN_Y, minBuildY);
+		int lookupMax = Math.max(MAX_Y, maxBuildY - 1);
+		if (lookupMin == minY && lookupMax == maxY) return this;
+		return new BakedGeomeConfig(geomes, geomeScale, biomeInfluence, regionalNoiseInfluence,
+				boundaryNoiseInfluence, biomeWeights, biomeWeightsById, rocks, formations,
+				lookupMin, lookupMax);
+	}
+
+	boolean hasReplacementAt(int geomeIndex, int worldY) {
+		return worldY >= minY && worldY <= maxY && replacementHeights[geomeIndex][worldY - minY];
 	}
 
 	public int pickGeome(Biome biome, double[] regionalNoise, double boundaryNoise) {
@@ -141,7 +179,7 @@ public final class BakedGeomeConfig {
 			return RockFamily.values()[stableFamilyChoices[index] & 0xFF];
 		}
 
-		int[] thresholds = legacyFamilyThresholds[geomeIndex][clampLegacyY(y)];
+		int[] thresholds = legacyFamilyThresholds[geomeIndex][legacyYIndex(y)];
 		int total = thresholds[thresholds.length - 1];
 		if (total <= 0) {
 			return RockFamily.SEDIMENTARY;
@@ -190,7 +228,41 @@ public final class BakedGeomeConfig {
 		if (formations.usesStableLayers()) {
 			return pickStableRockAtWorldY(geomeIndex, family, y, y, formationValue);
 		}
-		return legacyRockPickers[geomeIndex][family.ordinal()][clampLegacyY(y)].pick(formationValue);
+		return legacyRockPickers[geomeIndex][family.ordinal()][legacyYIndex(y)].pick(formationValue);
+	}
+
+	BlockState pickExtendedLegacyRock(int geomeIndex, RockFamily family, int worldY,
+			int formationY, int formationValue) {
+		int total = legacyFamilyWeight(geomeIndex, family, worldY, formationY);
+		if (total == 0) {
+			family = pickFamily(geomeIndex, worldY, formationValue);
+			total = legacyFamilyWeight(geomeIndex, family, worldY, formationY);
+		}
+		if (total == 0) return FALLBACK;
+		int remaining = positive(formationValue) % total;
+		for (int index : familyRockIndexes[family.ordinal()]) {
+			int weight = legacyRockWeight(geomeIndex, index, worldY, formationY);
+			if (remaining < weight) return rockStates[index];
+			remaining -= weight;
+		}
+		return FALLBACK;
+	}
+
+	private int legacyFamilyWeight(int geomeIndex, RockFamily family, int worldY, int formationY) {
+		if (geomes[geomeIndex].familyWeights[family.ordinal()] <= 0.0D) return 0;
+		int total = 0;
+		for (int index : familyRockIndexes[family.ordinal()]) {
+			total += legacyRockWeight(geomeIndex, index, worldY, formationY);
+		}
+		return total;
+	}
+
+	private int legacyRockWeight(int geomeIndex, int index, int worldY, int formationY) {
+		RockEntry rock = rocks[index];
+		if (worldY < rock.minY || worldY > rock.maxY) return 0;
+		double weight = rock.weight * rock.geomeWeights[geomeIndex]
+				* depthWeight(formationY, rock.depthPeak, rock.depthSpread);
+		return weight <= 0.0D ? 0 : Math.max(1, (int) Math.round(weight * PICKER_SCALE));
 	}
 
 	BlockState pickStableRockAtWorldY(int geomeIndex, RockFamily family, int worldY,
@@ -335,24 +407,24 @@ public final class BakedGeomeConfig {
 	}
 
 	private void buildStablePickers(RockEntry[] rocks) {
-		stableFamilyChoices = new byte[geomes.length * HEIGHT * FORMATION_BUCKETS * familyDiversitySlots];
-		stableRockChoices = new int[geomes.length * RockFamily.values().length * HEIGHT * FORMATION_BUCKETS];
+		stableFamilyChoices = new byte[geomes.length * height * FORMATION_BUCKETS * familyDiversitySlots];
+		stableRockChoices = new int[geomes.length * RockFamily.values().length * height * FORMATION_BUCKETS];
 		Arrays.fill(stableRockChoices, -1);
 		int familyCount = RockFamily.values().length;
 		familyRockIndexes = groupRockIndexes(rocks);
-		stableRockLogWeights = new double[geomes.length][rocks.length][HEIGHT];
+		stableRockLogWeights = new double[geomes.length][rocks.length][height];
 		stableRockPriorities = new double[geomes.length][rocks.length][FORMATION_BUCKETS];
-		double[][][] familyLogWeights = new double[geomes.length][familyCount][HEIGHT];
-		double[][][] familyWeights = new double[geomes.length][familyCount][HEIGHT];
+		double[][][] familyLogWeights = new double[geomes.length][familyCount][height];
+		double[][][] familyWeights = new double[geomes.length][familyCount][height];
 		double[][][] familyPriorities = new double[geomes.length][familyCount][FORMATION_BUCKETS];
 
 		for (int geome = 0; geome < geomes.length; geome++) {
 			for (int rockIndex = 0; rockIndex < rocks.length; rockIndex++) {
 				RockEntry rock = rocks[rockIndex];
-				for (int y = MIN_Y; y <= MAX_Y; y++) {
+				for (int y = minY; y <= maxY; y++) {
 					double rawWeight = rock.weight * rock.geomeWeights[geome]
 							* depthWeight(y, rock.depthPeak, rock.depthSpread);
-					stableRockLogWeights[geome][rockIndex][y - MIN_Y] = rawWeight > 0.0D
+					stableRockLogWeights[geome][rockIndex][y - minY] = rawWeight > 0.0D
 							? Math.log(rawWeight) : Double.NEGATIVE_INFINITY;
 				}
 				for (int bucket = 0; bucket < FORMATION_BUCKETS; bucket++) {
@@ -364,8 +436,8 @@ public final class BakedGeomeConfig {
 
 			for (RockFamily family : RockFamily.values()) {
 				int familyIndex = family.ordinal();
-				for (int y = MIN_Y; y <= MAX_Y; y++) {
-					int yIndex = y - MIN_Y;
+				for (int y = minY; y <= maxY; y++) {
+					int yIndex = y - minY;
 					boolean available = false;
 					for (int rockIndex : familyRockIndexes[familyIndex]) {
 						RockEntry rock = rocks[rockIndex];
@@ -394,8 +466,8 @@ public final class BakedGeomeConfig {
 		double[] remainders = new double[familyCount];
 		boolean[] bonusAwarded = new boolean[familyCount];
 		for (int geome = 0; geome < geomes.length; geome++) {
-			for (int y = MIN_Y; y <= MAX_Y; y++) {
-				int yIndex = y - MIN_Y;
+			for (int y = minY; y <= maxY; y++) {
+				int yIndex = y - minY;
 				for (int bucket = 0; bucket < FORMATION_BUCKETS; bucket++) {
 					if (familyDiversitySlots == 1) {
 						double bestFamilyScore = Double.NEGATIVE_INFINITY;
@@ -606,14 +678,16 @@ public final class BakedGeomeConfig {
 	}
 
 	private void buildLegacyPickers(RockEntry[] rocks) {
-		legacyFamilyThresholds = new int[geomes.length][LEGACY_MAX_Y + 1][RockFamily.values().length];
-		legacyRockPickers = new WeightedBlockPicker[geomes.length][RockFamily.values().length][LEGACY_MAX_Y + 1];
+		familyRockIndexes = groupRockIndexes(rocks);
+		legacyFamilyThresholds = new int[geomes.length][height][RockFamily.values().length];
+		legacyRockPickers = new WeightedBlockPicker[geomes.length][RockFamily.values().length][height];
 		for (int geome = 0; geome < geomes.length; geome++) {
-			for (int y = 0; y <= LEGACY_MAX_Y; y++) {
+			for (int y = minY; y <= maxY; y++) {
+				int yIndex = y - minY;
 				int familyTotal = 0;
 				for (RockFamily family : RockFamily.values()) {
 					WeightedBlockPicker picker = buildLegacyRockPicker(rocks, geome, family, y);
-					legacyRockPickers[geome][family.ordinal()][y] = picker;
+					legacyRockPickers[geome][family.ordinal()][yIndex] = picker;
 
 					double familyWeight = geomes[geome].familyWeights[family.ordinal()]
 							* familyDepthWeight(family, y);
@@ -623,7 +697,7 @@ public final class BakedGeomeConfig {
 					if (familyWeight > 0.0D) {
 						familyTotal += Math.max(1, (int) Math.round(familyWeight * PICKER_SCALE));
 					}
-					legacyFamilyThresholds[geome][y][family.ordinal()] = familyTotal;
+					legacyFamilyThresholds[geome][yIndex][family.ordinal()] = familyTotal;
 				}
 			}
 		}
@@ -672,12 +746,12 @@ public final class BakedGeomeConfig {
 	}
 
 	private int stableFamilyIndex(int geome, int yIndex, int bucket, int diversitySlot) {
-		return ((((geome * HEIGHT + yIndex) * FORMATION_BUCKETS) + bucket) * familyDiversitySlots)
+		return ((((geome * height + yIndex) * FORMATION_BUCKETS) + bucket) * familyDiversitySlots)
 				+ diversitySlot;
 	}
 
 	private int stableRockIndex(int geome, int family, int yIndex, int bucket) {
-		return ((((geome * RockFamily.values().length) + family) * HEIGHT + yIndex) * FORMATION_BUCKETS)
+		return ((((geome * RockFamily.values().length) + family) * height + yIndex) * FORMATION_BUCKETS)
 				+ bucket;
 	}
 
@@ -707,16 +781,19 @@ public final class BakedGeomeConfig {
 		}
 	}
 
-	private static int clampStableY(int y) {
-		return Math.max(MIN_Y, Math.min(MAX_Y, y)) - MIN_Y;
+	private int clampStableY(int y) {
+		return Math.max(minY, Math.min(maxY, y)) - minY;
 	}
 
-	private static int clampStableValue(int y) {
-		return Math.max(MIN_Y, Math.min(MAX_Y, y));
+	private int clampStableValue(int y) {
+		return Math.max(minY, Math.min(maxY, y));
 	}
 
-	private static int clampLegacyY(int y) {
-		return Math.max(0, Math.min(LEGACY_MAX_Y, y));
+	private int legacyYIndex(int y) {
+		// Keep the old smooth algorithm's ordinary-world depth curve unchanged.
+		int sampleY = y >= MIN_Y && y <= MAX_Y ? Math.max(0, Math.min(LEGACY_MAX_Y, y))
+				: Math.max(minY, Math.min(maxY, y));
+		return sampleY - minY;
 	}
 
 	private static int positive(int value) {

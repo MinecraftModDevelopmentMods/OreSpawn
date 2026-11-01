@@ -124,11 +124,31 @@ fresh pack needs to author.
 
 ## Rocks And Geomes
 
-A rock requires `enabled`, `family`, `depth_peak`, `depth_spread`, `min_y`,
+A rock uses `enabled`, `family`, `depth_peak`, `depth_spread`, `min_y`,
 `max_y`, `weight`, and `ore_replaceable`. Provider definitions should also set
 `block`; global/world entries may use the rule ID as the block ID when `block`
 is omitted. `dimensions` limits membership, and `geomes` multiplies selection
 weight by province. A weight of zero prevents selection in that context.
+
+Rock heights are absolute world Y coordinates. On this Minecraft target the
+editor accepts -2032 through 2031, and generation is limited to the actual
+dimension's build range. OreSpawn reads that range at runtime, so a modded
+floor such as -128 needs no matching OreSpawn height setting. Omitting a
+rock's `min_y` or `max_y` leaves that end unrestricted within the dimension.
+Explicit saved values stay unchanged: a rule with `min_y: -64` still stops at
+-64 until you edit it. The same applies to provider declarations and imported
+rules. Explicit ore and fluid-deposit ranges are not stretched automatically.
+
+`depth_peak` and `depth_spread` describe a preference, not hard cutoffs. The
+rock's `min_y` and `max_y` decide where it is eligible. Where no rock is
+eligible, the terrain generator's original rock is left in place, including
+deepslate. These changes affect new terrain only; strata have no retrogen pass.
+
+Rock weights are relative to other eligible rocks in the same family. A low
+andesite weight can still win every volcanic layer if it is the only eligible
+volcanic rock. To reduce the whole family's share, lower that family's weight
+in the relevant geomes. To exclude an individual rock, disable it or set its
+weight to zero. Geome-specific rock weights can narrow the choice further.
 
 Geomes contain a non-negative `base` weight and non-negative weights for each
 rock family. Keys may retain the legacy unnamespaced form or use a provider

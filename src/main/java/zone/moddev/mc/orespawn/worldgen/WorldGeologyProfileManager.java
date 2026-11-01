@@ -125,6 +125,7 @@ public final class WorldGeologyProfileManager {
 	}
 
 	public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+		GeomeConfig.clearWorldHeights();
 		activeServer = event.getServer();
 		deferredFreshPolicies.clear();
 		freshPolicyDiscoveryPending = false;
@@ -282,6 +283,7 @@ public final class WorldGeologyProfileManager {
 		freshPolicyDiscoveryPending = false;
 		activeServer = null;
 		activeProfile = null;
+		GeomeConfig.clearWorldHeights();
 		GeomeConfig.applyWorldProfile(globalProfile());
 		BiomeWorldgenManager.clear();
 		VanillaOreFeatureGate.clearGates();
@@ -295,6 +297,8 @@ public final class WorldGeologyProfileManager {
 
 	public static void onWorldLoad(LevelEvent.Load event) {
 		if (!(event.getLevel() instanceof ServerLevel)) return;
+		ServerLevel level = (ServerLevel) event.getLevel();
+		GeomeConfig.bindWorldHeight(level.dimension(), level.getMinBuildHeight(), level.getMaxBuildHeight());
 		WorldGeologyProfile profile = activeProfile;
 		if (profile != null) {
 			BiomeWorldgenManager.apply((ServerLevel) event.getLevel(), profile);

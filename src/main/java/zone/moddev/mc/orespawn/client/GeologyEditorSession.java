@@ -35,6 +35,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.EmptyBlockGetter;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
@@ -306,8 +307,8 @@ final class GeologyEditorSession {
 		rock.addProperty("family", family.configName);
 		rock.addProperty("depth_peak", defaultPeak(family));
 		rock.addProperty("depth_spread", 40);
-		rock.addProperty("min_y", -64);
-		rock.addProperty("max_y", 319);
+		rock.addProperty("min_y", DimensionType.MIN_Y);
+		rock.addProperty("max_y", DimensionType.MAX_Y);
 		rock.addProperty("weight", 1.0D);
 		rock.addProperty("ore_replaceable", true);
 		rock.add("geomes", new JsonObject());
@@ -323,9 +324,9 @@ final class GeologyEditorSession {
 		}
 		ensureDefaultGeologyRules();
 		addStarterRock("minecraft:stone", RockFamily.SEDIMENTARY,
-				64, 96, -64, 319, 5.0D);
+				64, 96, DimensionType.MIN_Y, DimensionType.MAX_Y, 5.0D);
 		addStarterRock("minecraft:deepslate", RockFamily.METAMORPHIC,
-				-32, 40, -64, 48, 3.0D);
+				-32, 40, DimensionType.MIN_Y, 48, 3.0D);
 		addStarterRock("minecraft:granite", RockFamily.IGNEOUS_INTRUSIVE,
 				0, 72, -64, 192, 1.5D);
 		addStarterRock("minecraft:diorite", RockFamily.IGNEOUS_INTRUSIVE,
@@ -1744,7 +1745,8 @@ final class GeologyEditorSession {
 				errors.add("Invalid family for " + entry.getKey());
 				continue;
 			}
-			if (integer(rock, "min_y", -64) > integer(rock, "max_y", 319)) {
+			if (integer(rock, "min_y", DimensionType.MIN_Y)
+					> integer(rock, "max_y", DimensionType.MAX_Y)) {
 				errors.add("Minimum Y is above maximum Y for " + entry.getKey());
 			}
 			if (rock.has("dimensions") && !validIdArray(rock.get("dimensions"))) {

@@ -116,6 +116,7 @@ public final class GeomeGeology {
 							formationRegion, x, z, surfaceY, terrain);
 				} else {
 					for (int y = surfaceY; y >= chunk.getMinBuildHeight(); y--) {
+						if (!config.hasReplacementAt(geomeIndex, y)) continue;
 						cursor.set(x, y, z);
 						if (terrain.isReplaceable(chunk.getBlockState(cursor))
 								&& chunk.getBlockEntity(cursor) == null) {
@@ -152,6 +153,8 @@ public final class GeomeGeology {
 						layerIndex, geomeTransitionPhase);
 			}
 			cursor.setY(y);
+			// An uncovered height keeps the terrain generator's rock, not a Stone fallback.
+			if (!config.hasReplacementAt(layerGeome, y)) continue;
 			if (terrain.isReplaceable(chunk.getBlockState(cursor))
 					&& chunk.getBlockEntity(cursor) == null) {
 				chunk.setBlockState(cursor,
@@ -220,16 +223,21 @@ public final class GeomeGeology {
 		}
 
 		public BlockState rockAt(int y) {
+			return pickReplacement(geomeAt(y), stratumOffset, formationRegion, x, y, z);
+		}
+
+		private int geomeAt(int y) {
 			int selectedGeome = geomeIndex;
 			if (stableLayers) {
 				int layerIndex = Math.floorDiv(stratumOffset + y, layerThickness);
 				selectedGeome = pickStableLayerGeome(geomeScores, geomeIndex, secondGeome,
 						layerIndex, geomeTransitionPhase);
 			}
-			return pickReplacement(selectedGeome, stratumOffset, formationRegion, x, y, z);
+			return selectedGeome;
 		}
 
 		public RockFamily familyAt(int y) {
+			if (!config.hasReplacementAt(geomeAt(y), y)) return null;
 			return config.familyOf(rockAt(y));
 		}
 	}
@@ -255,6 +263,9 @@ public final class GeomeGeology {
 		int familyHash = whiteNoiseArray[(layerIndex + (geomeIndex * 37)) & 0xFF];
 		RockFamily family = pickShapedFamily(geomeIndex, x, y, z, layerY, familyHash);
 		int rockHash = whiteNoiseArray[((layerIndex * 31) + (family.ordinal() * 53) + (geomeIndex * 79)) & 0xFF];
+		if (y < BakedGeomeConfig.MIN_Y || y > BakedGeomeConfig.MAX_Y) {
+			return config.pickExtendedLegacyRock(geomeIndex, family, y, layerY, rockHash);
+		}
 		return config.pickRock(geomeIndex, family, layerY, rockHash);
 	}
 

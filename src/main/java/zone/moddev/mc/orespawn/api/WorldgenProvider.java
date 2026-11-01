@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 import zone.moddev.mc.orespawn.util.JsonCopies;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.dimension.DimensionType;
 
 /**
  * Immutable declarative world-generation contribution submitted to OreSpawn.
@@ -311,8 +312,8 @@ public final class WorldgenProvider {
 			private boolean enabled = true;
 			private int depthPeak = 48;
 			private int depthSpread = 40;
-			private int minY = -64;
-			private int maxY = 319;
+			private int minY = DimensionType.MIN_Y;
+			private int maxY = DimensionType.MAX_Y;
 			private double weight = 1.0D;
 			private boolean oreReplaceable = true;
 			private final Map<ResourceLocation, Double> geomes = new LinkedHashMap<>();

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,6 +49,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.core.registries.BuiltInRegistries;
 
@@ -90,6 +93,7 @@ public final class GeomeConfig {
 	private static volatile BakedGeomeConfig bakedConfig = null;
 	private static volatile Map<ResourceKey<Level>, BakedGeomeConfig> bakedConfigs = Collections.emptyMap();
 	private static volatile Map<ResourceKey<Level>, BakedTerrainDimension> terrainDimensions = Collections.emptyMap();
+	private static final Map<ResourceKey<Level>, int[]> worldHeights = new ConcurrentHashMap<>();
 	private static JsonObject globalConfigRoot = null;
 	private static JsonObject globalBaseConfigRoot = null;
 	private static volatile WorldGeologyProfile globalProfile = null;
@@ -150,6 +154,42 @@ public final class GeomeConfig {
 			bake();
 		}
 		return bakedConfigs.get(dimension);
+	}
+
+	public static BakedGeomeConfig baked(ResourceKey<Level> dimension, LevelHeightAccessor level) {
+		// Height is runtime state, not another setting to copy into saved profiles.
+		int minY = level.getMinBuildHeight();
+		int maxY = level.getMaxBuildHeight();
+		int[] known = worldHeights.get(dimension);
+		if (known == null || known[0] != minY || known[1] != maxY) {
+			bindWorldHeight(dimension, minY, maxY);
+		}
+		return baked(dimension);
+	}
+
+	static synchronized void bindWorldHeight(ResourceKey<Level> dimension, int minY, int maxY) {
+		// Minecraft's upper build boundary is exclusive; rock max_y is inclusive.
+		if (minY < DimensionType.MIN_Y || maxY > DimensionType.MAX_Y + 1 || minY >= maxY) {
+			throw new IllegalArgumentException("Invalid dimension height: " + minY + ".." + maxY);
+		}
+		int[] previous = worldHeights.get(dimension);
+		if (previous != null && previous[0] == minY && previous[1] == maxY) return;
+		BakedGeomeConfig config = bakedConfigs.get(dimension);
+		if (config != null) {
+			BakedGeomeConfig adjusted = config.withWorldHeight(minY, maxY);
+			if (adjusted != config) {
+				Map<ResourceKey<Level>, BakedGeomeConfig> updated = new LinkedHashMap<>(bakedConfigs);
+				updated.put(dimension, adjusted);
+				bakedConfigs = Collections.unmodifiableMap(updated);
+				if (Level.OVERWORLD.equals(dimension)) bakedConfig = adjusted;
+			}
+		}
+		// A second generation worker must not see these bounds before the tables are ready.
+		worldHeights.put(dimension, new int[] { minY, maxY });
+	}
+
+	static synchronized void clearWorldHeights() {
+		worldHeights.clear();
 	}
 
 	static BakedTerrainDimension terrainDimension(ResourceKey<Level> dimension) {
@@ -320,8 +360,11 @@ public final class GeomeConfig {
 				+ "{} resolved biome profiles, {} identifier profiles, and {} formations",
 				dimension, geomes.length, rocks.length, biomeWeights.size(), biomeWeightsById.size(),
 				formations.algorithm.configName);
+		int[] height = worldHeights.get(ResourceKey.create(Registries.DIMENSION, dimension));
 		return new BakedGeomeConfig(geomes, geomeScale, biomeInfluence, regionalNoiseInfluence,
-				boundaryNoiseInfluence, biomeWeights, biomeWeightsById, rocks, formations);
+				boundaryNoiseInfluence, biomeWeights, biomeWeightsById, rocks, formations,
+				height == null ? BakedGeomeConfig.MIN_Y : height[0],
+				height == null ? BakedGeomeConfig.MAX_Y : height[1] - 1);
 	}
 
 	private static JsonObject applyFreshWorldTemplate(JsonObject root) {
@@ -614,10 +657,10 @@ public final class GeomeConfig {
 				continue;
 			}
 
-			int minY = getBoundedInt(json, "min_y", BakedGeomeConfig.MIN_Y,
-					BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y);
-			int maxY = getBoundedInt(json, "max_y", BakedGeomeConfig.MAX_Y,
-					BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y);
+			int minY = getBoundedInt(json, "min_y", DimensionType.MIN_Y,
+					DimensionType.MIN_Y, DimensionType.MAX_Y);
+			int maxY = getBoundedInt(json, "max_y", DimensionType.MAX_Y,
+					DimensionType.MIN_Y, DimensionType.MAX_Y);
 			if (minY > maxY) {
 				LOGGER.warn("Ignoring OreSpawn geome rock '{}' because min_y {} is above max_y {}", id, minY, maxY);
 				continue;
@@ -635,7 +678,7 @@ public final class GeomeConfig {
 
 			rocks.add(new RockEntry(state,
 					family,
-					getBoundedInt(json, "depth_peak", 48, BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y),
+					getBoundedInt(json, "depth_peak", 48, DimensionType.MIN_Y, DimensionType.MAX_Y),
 					getBoundedInt(json, "depth_spread", 48, 1, 512),
 					minY,
 					maxY,
@@ -650,14 +693,15 @@ public final class GeomeConfig {
 			if (passive) {
 				LOGGER.info("No OreSpawn terrain provider is active; using an internal vanilla-stone sampler fallback");
 			} else {
-				LOGGER.warn("OreSpawn geome config produced no valid rock entries; falling back to vanilla stone");
+				LOGGER.warn("OreSpawn geome config produced no valid rock entries; using an internal vanilla-stone sampler fallback");
 			}
 			double[] weights = new double[geomeIndexes.size()];
 			for (int i = 0; i < weights.length; i++) {
 				weights[i] = 1.0D;
 			}
+			// Keep the sampler's Stone fallback out of terrain selection.
 			rocks.add(new RockEntry(Blocks.STONE.defaultBlockState(), RockFamily.SEDIMENTARY, 64, 64,
-					BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y, 1.0D, true, weights));
+					BakedGeomeConfig.MIN_Y, BakedGeomeConfig.MAX_Y, 0.0D, true, weights));
 		}
 		return rocks.toArray(new RockEntry[rocks.size()]);
 	}
@@ -1930,8 +1974,8 @@ public final class GeomeConfig {
 		rock.addProperty("family", family.configName);
 		rock.addProperty("depth_peak", peak);
 		rock.addProperty("depth_spread", spread);
-		rock.addProperty("min_y", BakedGeomeConfig.MIN_Y);
-		rock.addProperty("max_y", BakedGeomeConfig.MAX_Y);
+		rock.addProperty("min_y", DimensionType.MIN_Y);
+		rock.addProperty("max_y", DimensionType.MAX_Y);
 		rock.addProperty("weight", weight);
 		rock.addProperty("ore_replaceable", true);
 		JsonObject geomes = new JsonObject();
