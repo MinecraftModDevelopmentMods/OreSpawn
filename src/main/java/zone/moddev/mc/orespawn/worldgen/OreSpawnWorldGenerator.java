@@ -66,18 +66,26 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	public void filterVanillaOre(OreGenEvent.GenerateMinable event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
 		ResourceLocation dimension = WorldIds.dimension(event.getWorld());
+		Block output = vanillaOutput(event.getType());
 		if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 			event.setResult(Event.Result.DENY);
-			return;
-		}
-		Block output = vanillaOutput(event.getType());
-		if (output != null) {
+		} else if (output != null) {
 			ChunkPos chunk = new ChunkPos(event.getPos());
 			if (!OreSpawnOreGeneration.allowsVanillaOre(dimension, output,
 					event.getWorld().getSeed(), chunk.chunkXPos, chunk.chunkZPos)) {
 				event.setResult(Event.Result.DENY);
 			}
 		}
+
+		if (output == Blocks.GOLD_ORE && event.getResult() == Event.Result.DENY) {
+			VanillaMesaGoldCompatibility.suppress(event.getGenerator(), event.getWorld(), event.getPos());
+		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void afterBiomeDecoration(DecorateBiomeEvent.Post event) {
+		if (WorldgenBenchmark.isVanillaBaseline()) return;
+		VanillaMesaGoldCompatibility.restore(event.getWorld(), event.getPos());
 	}
 
 	@Override
@@ -114,6 +122,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	public void clear() {
+		VanillaMesaGoldCompatibility.clear();
 		AquiferMaterialSubstitution.clear();
 		earlyComplete.clear();
 		oreComplete.clear();

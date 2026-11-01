@@ -323,6 +323,13 @@ Settings refuses to move a native vanilla ore's Ore Dictionary alias into
 another material group and explains that vanilla management must be enabled
 first.
 
+On Minecraft 1.10.2, Mesa's extra gold follows the same decision as ordinary
+gold. With vanilla management off, imported vanilla rules stay saved but
+inactive. A child's hybrid or replacement policy can still limit native gold,
+including Mesa gold. With management on, the selected ordinary rule supplies
+gold without a second native Mesa pass. Explicit custom channels remain
+independent, and none of these controls rewrites already generated chunks.
+
 Consolidation runs the chosen placement rule's pattern, hosts, filters, height
 and frequency once; selected candidates contribute output bundles only. An
 inactive managed provider may therefore supply an output block without adding

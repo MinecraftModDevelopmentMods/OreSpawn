@@ -25,12 +25,17 @@ class WorldgenBenchmarkTest {
 	}
 
 	@Test
-	void vanillaControlBypassesEveryForge112GenerationEntryPoint() throws Exception {
-		String source = new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
-				"moddev", "mc", "orespawn", "worldgen", "OreSpawnWorldGenerator.java")),
-				StandardCharsets.UTF_8);
-		assertEquals(5, occurrences(source, "if (WorldgenBenchmark.isVanillaBaseline()) return;"),
-				"terrain, springs, ores, ore filtering, and IWorldGenerator must all be bypassed");
+	void vanillaControlBypassesTheExistingGenerationEntryPoints() throws Exception {
+		String source = coordinatorSource();
+		for (String method : new String[] { "beforeBiomeDecoration", "replaceVanillaSprings",
+				"beforeVanillaOres", "filterVanillaOre", "generate" }) {
+			assertBaselineGuard(source, method);
+		}
+	}
+
+	@Test
+	void vanillaControlBypassesMesaRestorationBeforeReadingTheEvent() throws Exception {
+		assertBaselineGuard(coordinatorSource(), "afterBiomeDecoration");
 	}
 
 	@Test
@@ -47,11 +52,19 @@ class WorldgenBenchmarkTest {
 				"hashing must happen outside the measured generation interval");
 	}
 
-	private static int occurrences(String value, String needle) {
-		int result = 0;
-		for (int index = 0; (index = value.indexOf(needle, index)) >= 0; index += needle.length()) {
-			result++;
-		}
-		return result;
+	private static String coordinatorSource() throws Exception {
+		return new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
+				"moddev", "mc", "orespawn", "worldgen", "OreSpawnWorldGenerator.java")),
+				StandardCharsets.UTF_8);
+	}
+
+	private static void assertBaselineGuard(String source, String method) {
+		int declaration = source.indexOf("public void " + method + "(");
+		assertTrue(declaration >= 0, "Missing generation entry point: " + method);
+		int body = source.indexOf('{', declaration);
+		assertTrue(body >= 0, "Missing method body: " + method);
+		assertTrue(source.substring(body + 1).trim()
+				.startsWith("if (WorldgenBenchmark.isVanillaBaseline()) return;"),
+				method + " must bypass generation work before reading its arguments");
 	}
 }
