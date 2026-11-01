@@ -1,3 +1,8 @@
+Version 4.1.5.110021
+
+* Apply the normal gold-generation controls to Mesa's extra gold pass too.
+  Keep custom channels, imported settings and existing chunks unchanged.
+
 Version 4.1.4.110021
 
 * Let Java providers select an exact legacy host variant, such as plain stone
