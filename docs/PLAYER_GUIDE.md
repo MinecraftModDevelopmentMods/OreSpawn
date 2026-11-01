@@ -85,6 +85,18 @@ replace.
 Removing a rock from generation does not unregister its block or recipes. It
 only prevents that rock appearing in newly generated terrain.
 
+Rock weight is not an overall percentage. It compares that rock with the other
+eligible rocks in its family. For example, reducing andesite's weight has
+little effect if it is the only volcanic rock available. Lower the volcanic
+family weight in the relevant geomes to reduce volcanic layers, or disable
+andesite to exclude it completely.
+
+For deeper or taller worlds, OreSpawn detects the dimension's real height.
+You do not need to enter the world's floor a second time. Check the rocks'
+own Minimum Y and Maximum Y, though: saved limits are kept exactly as entered.
+For a floor of -128, an old rock rule starting at -64 will not extend down
+automatically. Where no rock rule applies, native stone or deepslate remains.
+
 ## Existing Worlds And Servers
 
 Each world stores its final choices in:

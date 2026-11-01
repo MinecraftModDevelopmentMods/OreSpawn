@@ -104,7 +104,7 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 		BlockPos pos = context.origin();
 		net.minecraft.resources.ResourceKey<Level> dimension = world.getLevel().dimension();
 		BakedTerrainDimension terrain = GeomeConfig.terrainDimension(dimension);
-		BakedGeomeConfig config = GeomeConfig.baked(dimension);
+		BakedGeomeConfig config = GeomeConfig.baked(dimension, world);
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		if (!OreSpawnConfig.placeOreSpawnRock() || terrain == null || config == null
 				|| (profile.hasLegacyMineralogySnapshot() && !profile.cyanoEnabled())) {
@@ -142,15 +142,15 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 			BakedGeomeConfig config) {
 		CachedGeology current = geologyByDimension.get(dimension);
 		GeologyMode mode = WorldGeologyProfileManager.geologyMode();
-		if (current == null || current.seed != seed || current.mode != mode) {
+		if (current == null || current.seed != seed || current.mode != mode || current.config != config) {
 			geologyLock.lock();
 			try {
 				current = geologyByDimension.get(dimension);
-				if (current == null || current.seed != seed || current.mode != mode) {
+				if (current == null || current.seed != seed || current.mode != mode || current.config != config) {
 					WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 					current = mode == GeologyMode.LEGACY
-							? new CachedGeology(seed, mode, new Geology(seed, profile, config), null)
-							: new CachedGeology(seed, mode, null, new GeomeGeology(seed, config));
+							? new CachedGeology(seed, mode, config, new Geology(seed, profile, config), null)
+							: new CachedGeology(seed, mode, config, null, new GeomeGeology(seed, config));
 					geologyByDimension.put(dimension, current);
 				}
 			} finally {
@@ -207,12 +207,14 @@ public class StoneReplacer extends Feature<NoneFeatureConfiguration> {
 	private static final class CachedGeology {
 		final long seed;
 		final GeologyMode mode;
+		final BakedGeomeConfig config;
 		final Geology legacy;
 		final GeomeGeology sky;
 
-		CachedGeology(long seed, GeologyMode mode, Geology legacy, GeomeGeology sky) {
+		CachedGeology(long seed, GeologyMode mode, BakedGeomeConfig config, Geology legacy, GeomeGeology sky) {
 			this.seed = seed;
 			this.mode = mode;
+			this.config = config;
 			this.legacy = legacy;
 			this.sky = sky;
 		}

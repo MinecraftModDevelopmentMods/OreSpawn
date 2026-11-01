@@ -30,6 +30,23 @@ class GeologyEditorSessionTest {
 	@BeforeAll static void registerVanilla() { MinecraftTestBootstrap.registerVanilla(); }
 
 	@Test
+	void rockEditorKeepsExtendedHeightsAndDoesNotRewriteSavedRanges() {
+		GeologyEditorSession session = new GeologyEditorSession(WorldGeologyProfile.recommended(false));
+		session.configureDefaultVanillaStrata();
+		assertEquals(net.minecraft.world.level.dimension.DimensionType.MIN_Y,
+				session.rock("minecraft:deepslate").get("min_y").getAsInt());
+		JsonObject rock = session.rock("minecraft:deepslate");
+		rock.addProperty("min_y", -128);
+		rock.addProperty("max_y", -65);
+		rock.addProperty("depth_peak", -96);
+		assertTrue(session.validate().isEmpty(), session.validate().toString());
+		GeologyEditorSession reopened = new GeologyEditorSession(session.profile());
+		assertEquals(rock, reopened.rock("minecraft:deepslate"));
+		assertEquals(-128, reopened.rock("minecraft:deepslate").get("min_y").getAsInt());
+		assertEquals(-65, reopened.rock("minecraft:deepslate").get("max_y").getAsInt());
+	}
+
+	@Test
 	void worldCreationRegistrySuppliesTheBiomeDirectoryWhenForgeStaticRegistryIsEmpty() {
 		MappedRegistry<Biome> loaded = new MappedRegistry<>(Registries.BIOME, Lifecycle.stable());
 		var vanilla = VanillaRegistries.createLookup().lookupOrThrow(Registries.BIOME);

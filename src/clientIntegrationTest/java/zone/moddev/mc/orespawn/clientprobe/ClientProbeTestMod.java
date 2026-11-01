@@ -57,6 +57,7 @@ public final class ClientProbeTestMod {
 	private int editorFrames;
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
+	private boolean extendedRockHeightRoundTrip;
 	private boolean oreSourcesOpened;
 	private boolean modsOpened;
 	private int creationBiomeCount;
@@ -135,6 +136,11 @@ public final class ClientProbeTestMod {
 						MainMenuLayoutProbe.verify(creation);
 						validateCaptions(minecraft.screen);
 						validateLongEditorRoundTrip(minecraft, minecraft.screen);
+						try {
+							validateExtendedRockHeights(minecraft, minecraft.screen);
+						} catch (ReflectiveOperationException failure) {
+							throw new IllegalStateException("Could not exercise the extended-height rock editor", failure);
+						}
 						nextState(3);
 					}
 					break;
@@ -399,6 +405,37 @@ public final class ClientProbeTestMod {
 		}
 	}
 
+	private void validateExtendedRockHeights(Minecraft minecraft, Screen parent) throws ReflectiveOperationException {
+		for (int[] size : new int[][] { { 426, 265 }, { 320, 240 } }) {
+			JsonObject root = WorldGeologyProfile.recommended(false).rootCopy();
+			JsonObject rocks = new JsonObject();
+			JsonObject rock = new JsonObject();
+			rock.addProperty("family", "metamorphic");
+			rocks.add("minecraft:basalt", rock);
+			root.add("rocks", rocks);
+			Object session = newEditorSession(root);
+			Class<?> type = Class.forName("zone.moddev.mc.orespawn.client.RockEntryScreen");
+			var constructor = type.getDeclaredConstructor(Screen.class, session.getClass(), String.class);
+			constructor.setAccessible(true);
+			Screen screen = (Screen) constructor.newInstance(parent, session, "minecraft:basalt");
+			initializeScreen(screen, minecraft, size[0], size[1]);
+			for (String field : new String[] { "minY", "maxY", "peak" }) {
+				var input = type.getDeclaredField(field);
+				input.setAccessible(true);
+				((net.minecraft.client.gui.components.EditBox) input.get(screen))
+						.setValue(field.equals("minY") ? "-128" : field.equals("maxY") ? "-65" : "-96");
+			}
+			pressDone(screen);
+			JsonObject saved = com.google.gson.JsonParser.parseString(editorSessionRoot(session))
+					.getAsJsonObject().getAsJsonObject("rocks").getAsJsonObject("minecraft:basalt");
+			if (saved.get("min_y").getAsInt() != -128 || saved.get("max_y").getAsInt() != -65
+					|| saved.get("depth_peak").getAsInt() != -96) {
+				throw new IllegalStateException("The rock editor rejected extended heights at " + size[0] + "x" + size[1]);
+			}
+		}
+		extendedRockHeightRoundTrip = true;
+	}
+
 	private static Screen newDimensionScreen(String simpleName, Screen parent, Object session,
 			String ruleId, String dimensionId) {
 		try {
@@ -431,6 +468,10 @@ public final class ClientProbeTestMod {
 	}
 
 	private static void initializeScreen(Screen screen, Minecraft minecraft) {
+		initializeScreen(screen, minecraft, 640, 480);
+	}
+
+	private static void initializeScreen(Screen screen, Minecraft minecraft, int width, int height) {
 		for (Method method : Screen.class.getDeclaredMethods()) {
 			Class<?>[] parameters = method.getParameterTypes();
 			if (parameters.length != 3 || parameters[0] != Minecraft.class
@@ -439,13 +480,13 @@ public final class ClientProbeTestMod {
 					|| !java.lang.reflect.Modifier.isFinal(method.getModifiers())) continue;
 			try {
 				method.setAccessible(true);
-				method.invoke(screen, minecraft, 640, 480);
+				method.invoke(screen, minecraft, width, height);
 				return;
 			} catch (ReflectiveOperationException failure) {
 				throw new IllegalStateException("Could not initialize target-native editor", failure);
 			}
 		}
-		throw new IllegalStateException("Could not locate NeoForge 20.6 Screen initialization method");
+		throw new IllegalStateException("Could not locate the Screen initialization method");
 	}
 
 	private static void pressDone(Screen screen) {
@@ -593,6 +634,7 @@ public final class ClientProbeTestMod {
 		values.setProperty("main_menu_layout", Boolean.toString(MainMenuLayoutProbe.completed()));
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
+		values.setProperty("extended_rock_height_roundtrip", Boolean.toString(extendedRockHeightRoundTrip));
 		values.setProperty("creation_biome_count", Integer.toString(creationBiomeCount));
 		values.setProperty("static_biome_count", Integer.toString(staticBiomeCount));
 		values.setProperty("loaded_biome_count", Integer.toString(loadedBiomeCount));

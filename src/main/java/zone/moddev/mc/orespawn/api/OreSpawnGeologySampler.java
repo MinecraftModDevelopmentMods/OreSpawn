@@ -34,7 +34,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	private OreSpawnGeologySampler(ServerLevel level) {
 		this.level = level;
 		dimension = level.dimension().location();
-		config = GeomeConfig.baked(level.dimension());
+		config = GeomeConfig.baked(level.dimension(), level);
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		mode = profile.geologyMode();
 		if (mode == GeologyMode.LEGACY) {

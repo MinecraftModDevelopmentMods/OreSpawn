@@ -19,6 +19,19 @@ Confirm the dimension is enabled in `terrain_dimensions`, its hosts resolve,
 at least one enabled rock includes that dimension, and biome restrictions
 match. OreSpawn does not replace Nether or End terrain by default.
 
+## Rocks stop at the old world floor
+
+OreSpawn reads each dimension's actual build range at runtime, including
+deeper and taller dimensions supplied by terrain mods or datapacks. There is
+no separate world-floor setting to duplicate. Check each rock's explicit
+`min_y` and `max_y`: an existing `min_y: -64` remains a deliberate limit even
+if the world now reaches -128. Edit that rule if you want it to extend lower.
+
+Where no rock is eligible, native stone or deepslate stays in place. Test in
+newly generated chunks. A fix cannot reconstruct deepslate that an earlier
+version already replaced, and rock strata are never retro-generated. Keep
+world backups before changing a terrain mod's height settings.
+
 ## A custom biome does not appear
 
 Confirm its registry ID resolves, its palette targets the intended dimension,

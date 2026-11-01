@@ -81,15 +81,15 @@
     },
     "rock": {
       "type": "object",
-      "required": ["enabled", "family", "depth_peak", "depth_spread", "min_y", "max_y", "weight", "ore_replaceable"],
+      "required": ["enabled", "family", "depth_peak", "depth_spread", "weight", "ore_replaceable"],
       "properties": {
         "block": { "$ref": "#/$defs/registryId" },
         "enabled": { "type": "boolean" },
         "family": { "$ref": "#/$defs/family" },
         "depth_peak": { "type": "integer", "minimum": -2048, "maximum": 2048 },
         "depth_spread": { "type": "integer", "minimum": 1 },
-        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
+        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048, "description": "Lowest absolute world Y. If omitted, the dimension's lower build limit applies." },
+        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048, "description": "Highest absolute world Y. If omitted, the dimension's upper build limit applies." },
         "weight": { "type": "number", "minimum": 0 },
         "ore_replaceable": { "type": "boolean" },
         "geomes": { "$ref": "#/$defs/weights" },

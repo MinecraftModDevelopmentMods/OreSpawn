@@ -14,6 +14,23 @@ import net.minecraft.resources.ResourceLocation;
 
 class WorldgenProviderTest {
 	@Test
+	void rockDefaultsCoverTheDimensionAndExplicitDepthRangesRemainExact() {
+		WorldgenProvider provider = WorldgenProvider.builder("examplemod", 1)
+				.rock(id("examplemod:full_height"), id("minecraft:stone"), GeologyFamily.METAMORPHIC, rock -> {})
+				.rock(id("examplemod:deep_only"), id("minecraft:basalt"), GeologyFamily.METAMORPHIC,
+						rock -> rock.yRange(-128, -65).depth(-96, 24))
+				.build();
+		JsonObject rocks = provider.toJson().getAsJsonObject("rocks");
+		assertEquals(net.minecraft.world.level.dimension.DimensionType.MIN_Y,
+				rocks.getAsJsonObject("examplemod:full_height").get("min_y").getAsInt());
+		assertEquals(net.minecraft.world.level.dimension.DimensionType.MAX_Y,
+				rocks.getAsJsonObject("examplemod:full_height").get("max_y").getAsInt());
+		assertEquals(-128, rocks.getAsJsonObject("examplemod:deep_only").get("min_y").getAsInt());
+		assertEquals(-65, rocks.getAsJsonObject("examplemod:deep_only").get("max_y").getAsInt());
+		assertEquals(-96, rocks.getAsJsonObject("examplemod:deep_only").get("depth_peak").getAsInt());
+	}
+
+	@Test
 	void terrainHostContractRetainsNaturalSourceOrder() {
 		ResourceLocation dimension = id("surfaceprobe:the_end");
 		WorldgenProvider provider = WorldgenProvider.builder("surfaceprobe", 1)
