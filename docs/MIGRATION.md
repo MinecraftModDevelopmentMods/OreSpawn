@@ -76,6 +76,10 @@ It summarizes consumed resources, translated providers, preserved global
 flags, and warnings; `config/orespawn-os3-migration-report.json` remains the
 deterministic machine-readable detail.
 
+If a provider already has a `config/<modid>-orespawn.json` override, OreSpawn
+keeps it as-is. The report lists it as retained. An unfinished or invalid
+override is still checked by the normal loader, not replaced by the old rules.
+
 ## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now

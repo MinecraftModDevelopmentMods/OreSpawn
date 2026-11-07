@@ -1,3 +1,11 @@
+Version 4.0.17.111021
+
+* Keep existing OreSpawn 4 provider settings when importing an older ore
+  configuration. If there is no override yet, OreSpawn still imports the old
+  rules as before.
+* Say which files were kept in the upgrade report without implying that their
+  contents were validated.
+
 Version 4.0.16.111021
 
 * Adopt the shared 4.0.16 release identity. Forge 1.11 has neither

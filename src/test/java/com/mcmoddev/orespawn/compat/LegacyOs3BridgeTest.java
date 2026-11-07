@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +42,77 @@ class LegacyOs3BridgeTest {
 	@BeforeAll
 	static void bootstrapMinecraft() {
 		Forge13TestBootstrap.registerVanilla();
+	}
+
+	@Test
+	void keepsAnExistingOverrideOnFirstImportAndReload() throws Exception {
+		prepareLegacyImport();
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String override = "{ \"schema_version\": 4, \"provider_modid\": \"orespawn\", \"provider_revision\": 9 }\n";
+		Files.write(destination, override.getBytes(StandardCharsets.UTF_8));
+
+		runLegacyImport();
+
+		assertEquals(override, read(destination));
+		assertFalse(Files.exists(temporary.resolve("orespawn-orespawn.json.os3-backup")));
+		Path report = temporary.resolve("orespawn-upgrade-report.txt");
+		String firstReport = read(report);
+		assertTrue(firstReport.contains("provider_preserved=orespawn-orespawn.json"));
+
+		runLegacyImport();
+
+		assertEquals(override, read(destination));
+		assertEquals(firstReport, read(report));
+	}
+
+	@Test
+	void leavesAnUnfinishedOverrideForTheProviderLoader() throws Exception {
+		prepareLegacyImport();
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String unfinished = "{ unfinished user edit";
+		Files.write(destination, unfinished.getBytes(StandardCharsets.UTF_8));
+
+		runLegacyImport();
+
+		assertEquals(unfinished, read(destination));
+		String report = read(temporary.resolve("orespawn-upgrade-report.txt"));
+		assertTrue(report.contains("OS4 provider files written or retained: 1"));
+		assertFalse(report.contains("written or verified"));
+	}
+
+	@Test
+	void importsRulesWhenThereIsNoOverride() throws Exception {
+		prepareLegacyImport();
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		assertFalse(Files.exists(destination));
+
+		runLegacyImport();
+
+		String imported = read(destination);
+		assertEquals("orespawn", new JsonParser().parse(imported).getAsJsonObject()
+				.get("provider_modid").getAsString());
+
+		runLegacyImport();
+
+		assertEquals(imported, read(destination));
+	}
+
+	private void prepareLegacyImport() throws Exception {
+		LegacyOs3Bridge.resetProgrammaticForTests("overridefixture");
+		Path legacy = temporary.resolve("orespawn3");
+		Files.createDirectories(legacy);
+		Files.write(legacy.resolve("overridefixture.json"),
+				"{\"spawns\":{}}".getBytes(StandardCharsets.UTF_8));
+	}
+
+	private void runLegacyImport() throws Exception {
+		Method migration = LegacyOs3Bridge.class.getDeclaredMethod("migrateConfigDirectory", Path.class);
+		migration.setAccessible(true);
+		migration.invoke(null, temporary);
+	}
+
+	private static String read(Path file) throws Exception {
+		return new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
 	}
 
 	@Test

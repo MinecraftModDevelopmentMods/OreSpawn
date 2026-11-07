@@ -1161,10 +1161,6 @@ tasks.named('processResources', ProcessResources) {
     filesMatching('mcmod.info') {
         expand version: project.version, mcversion: project.minecraft_version
     }
-    from('docs/AGENTS.md') {
-        into ''
-        rename { 'AGENTS.md' }
-    }
     from('docs') {
         into 'META-INF/orespawn/docs'
     }
@@ -1197,8 +1193,8 @@ tasks.register('verifyDocumentationParity') {
 	dependsOn tasks.named('processResources')
 	doLast {
 		List<File> tracked = trackedDocumentationFiles()
-		if (tracked.size() != 21) {
-			throw new GradleException("Expected 21 tracked documentation files, found ${tracked.size()}")
+		if (tracked.size() != 20) {
+			throw new GradleException("Expected 20 tracked documentation files, found ${tracked.size()}")
 		}
 		tracked.each { File source ->
 			String relative = documentationRelativePath(source)
@@ -1505,7 +1501,7 @@ tasks.register('verifyReleaseConfiguration') {
     description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
 
     doLast {
-        if (project.mod_version != '4.0.16.111021'
+        if (project.mod_version != '4.0.17.111021'
                 || project.mod_group != expectedMavenGroup) {
             throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
         }
@@ -1532,8 +1528,8 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyOs3ProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.0.16.111021')) {
-                throw new GradleException("Authoritative release location does not contain 4.0.16.111021: ${path}")
+            if (!file(path).getText('UTF-8').contains('4.0.17.111021')) {
+                throw new GradleException("Authoritative release location does not contain 4.0.17.111021: ${path}")
             }
         }
         if (!file('docs/API.md').getText('UTF-8').contains('orespawn@[4.0.6,5.0.0)')) {
@@ -1596,7 +1592,7 @@ tasks.register('verifyReleaseArtifacts') {
                 ['src/test/', 'src/biomeIntegrationTest/', 'src/migrationIntegrationTest/',
                  'src/clientIntegrationTest/', 'src/os1AbiFixture/', 'src/os3AbiFixture/',
                  'src/baseMetals111Fixture/',
-                 'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
+                 'AGENTS.md', 'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
                  'org/junit/', 'org/mockito/', 'net/bytebuddy/'].each { forbidden ->
                     if (candidateZip.entries().any { it.name.contains(forbidden) }) {
                         throw new GradleException(
@@ -1619,8 +1615,7 @@ tasks.register('verifyReleaseArtifacts') {
                     'META-INF/orespawn/docs/VERSIONS.md',
                     'META-INF/orespawn/docs/schemas/orespawn-provider.schema.json',
                     'META-INF/orespawn/docs/schemas/orespawn-global.schema.json',
-                    'META-INF/orespawn/docs/schemas/orespawn-world.schema.json',
-                    'AGENTS.md'
+                    'META-INF/orespawn/docs/schemas/orespawn-world.schema.json'
 			].each { required ->
 				if (!names.contains(required)) {
 					throw new GradleException("Release jar is missing ${required}")
@@ -1641,8 +1636,8 @@ tasks.register('verifyReleaseArtifacts') {
 				}
 			}
 			List<File> trackedDocs = trackedDocumentationFiles()
-			if (trackedDocs.size() != 21) {
-				throw new GradleException("Expected 21 tracked documentation files, found ${trackedDocs.size()}")
+			if (trackedDocs.size() != 20) {
+				throw new GradleException("Expected 20 tracked documentation files, found ${trackedDocs.size()}")
 			}
 			trackedDocs.each { File source ->
 				String relative = documentationRelativePath(source)
@@ -2010,8 +2005,8 @@ tasks.register('verifyEclipseProductionClasspath') {
         }
 		File eclipseResources = file('bin/main')
 		List<File> trackedDocs = trackedDocumentationFiles()
-		if (trackedDocs.size() != 21) {
-			throw new GradleException("Expected 21 tracked documentation files, found ${trackedDocs.size()}")
+		if (trackedDocs.size() != 20) {
+			throw new GradleException("Expected 20 tracked documentation files, found ${trackedDocs.size()}")
 		}
 		trackedDocs.each { File source ->
 			String relative = documentationRelativePath(source)

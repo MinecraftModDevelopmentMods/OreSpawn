@@ -18,7 +18,6 @@ Choose the guide that matches what you are doing:
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Versioning and release identities](VERSIONS.md)
-- [Compact instructions for coding agents](AGENTS.md)
 
 Validated examples are in `examples/`; JSON Schemas are in `schemas/`.
 The provider and migration guides include OS3-compatible ranged quantities and
