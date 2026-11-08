@@ -280,9 +280,15 @@ public final class WorldgenIntegrationManager {
 				String knownKey = "known_" + sectionName;
 				Set<String> known = stringSet(manifest.get(knownKey));
 				Set<String> current = JsonCopies.keys(providerSection);
+				LegacyOreReplacements.Result replacements = existingWorld && "ores".equals(sectionName)
+						? LegacyOreReplacements.reconcile(target, provider.modId, targetSection,
+								nativeOreDefaults(provider.modId, providerSection), providerSection, manifest, known)
+						: new LegacyOreReplacements.Result();
+				changed |= replacements.changed;
 
 				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
 					String id = entry.getKey();
+					if (replacements.suppressed.contains(id)) continue;
 					if (mergeNewEntries && !targetSection.has(id) && !known.contains(id)) {
 						JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
 						if (!"biome_rules".equals(sectionName)) {
@@ -301,7 +307,9 @@ public final class WorldgenIntegrationManager {
 
 				for (String knownId : known) {
 					if (!current.contains(knownId) && targetSection.has(knownId)
-							&& targetSection.get(knownId).isJsonObject()) {
+							&& !("ores".equals(sectionName) && LegacyOreReplacements.retains(manifest, knownId, current))
+							&& targetSection.get(knownId).isJsonObject()
+							&& !bool(targetSection.getAsJsonObject(knownId), "orphaned_provider", false)) {
 						targetSection.getAsJsonObject(knownId).addProperty("orphaned_provider", true);
 						changed = true;
 					}
@@ -520,9 +528,21 @@ public final class WorldgenIntegrationManager {
 		}
 	}
 
+	private static JsonObject nativeOreDefaults(String providerId, JsonObject activeOres) {
+		if (!FILE_PROVIDERS.containsKey(providerId)) return activeOres;
+		// A converted file can hide the native catalogue. Use the shipped rule to
+		// recognise an old duplicate; never treat an authored override as stock.
+		JsonObject shipped = installedProviderRoot(providerId);
+		return shipped == null ? new JsonObject() : optionalObject(shipped, "ores");
+	}
+
 	private static JsonObject selectedProviderRoot(String providerId) {
 		JsonObject root = FILE_PROVIDERS.get(providerId);
-		if (root == null) root = RESOURCE_PROVIDERS.get(providerId);
+		return root == null ? installedProviderRoot(providerId) : root;
+	}
+
+	private static JsonObject installedProviderRoot(String providerId) {
+		JsonObject root = RESOURCE_PROVIDERS.get(providerId);
 		if (root == null) {
 			WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
 			root = apiProvider == null ? null : apiProvider.toJson();

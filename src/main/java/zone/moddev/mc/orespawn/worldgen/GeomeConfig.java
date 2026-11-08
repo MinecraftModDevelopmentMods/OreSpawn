@@ -99,21 +99,31 @@ public final class GeomeConfig {
 	}
 
 	public static synchronized BakedGeomeConfig bake() {
+		return bakeGlobal(true);
+	}
+
+	public static synchronized BakedGeomeConfig bakeBeforeLoadComplete() {
+		// Features need their settings during startup, but other mods can still
+		// register ore providers. Wait for loadComplete before choosing defaults.
+		return bakeGlobal(false);
+	}
+
+	private static BakedGeomeConfig bakeGlobal(boolean chooseOreSourceDefaults) {
 		JsonObject root = loadConfig();
 		boolean changed = OreSpawnOreIntegration.mergeProviderOres(root);
 		changed |= FluidDepositMigration.normalize(root);
-		changed |= OreSourcePolicies.initialize(root, false);
+		if (chooseOreSourceDefaults) changed |= OreSourcePolicies.initialize(root, false);
 		if (changed) {
 			writeProviderMerge(root);
 		}
 		globalBaseConfigRoot = JsonCopies.copy(root);
 		globalBaseProfile = WorldGeologyProfile.fromGlobalConfig(root,
-				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
-		root = applyFreshWorldTemplate(root);
-		globalConfigRoot = JsonCopies.copy(root);
-		globalProfile = WorldGeologyProfile.fromGlobalConfig(root,
-				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil());
-		bakeDimensions(root);
+				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil(), false);
+		JsonObject effective = applyFreshWorldTemplate(root);
+		globalConfigRoot = JsonCopies.copy(effective);
+		globalProfile = effective == root ? globalBaseProfile : WorldGeologyProfile.fromGlobalConfig(effective,
+				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil(), chooseOreSourceDefaults);
+		bakeDimensions(effective);
 		return bakedConfig;
 	}
 

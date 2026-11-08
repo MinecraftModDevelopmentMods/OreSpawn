@@ -106,7 +106,7 @@ public final class WorldGeologyProfileManager {
 		JsonObject merged = profile.rootCopy();
 		boolean changed = WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(merged);
 		changed |= OreSourcePolicies.initialize(merged, true);
-		if (changed) {
+		if (changed && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 			profile = profile.withRoot(merged);
 			writeProfile(profilePath, profile);
 		}
@@ -130,7 +130,7 @@ public final class WorldGeologyProfileManager {
 			String beforeMerge = merged.toString();
 			WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(merged);
 			OreSourcePolicies.initialize(merged, true);
-			if (!beforeMerge.equals(merged.toString())) {
+			if (!beforeMerge.equals(merged.toString()) && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 				profile = profile.withRoot(merged);
 				writeProfile(profilePath, profile);
 				LOGGER.info("Merged new OreSpawn worldgen-provider definitions into '{}'", profilePath);
@@ -308,6 +308,24 @@ public final class WorldGeologyProfileManager {
 			LOGGER.warn("Could not read OreSpawn world geology profile '{}'; using instance settings", path, e);
 			return fallback;
 		}
+	}
+
+	private static boolean preserveBeforeLegacyOreRepair(Path path, WorldGeologyProfile before, JsonObject merged) {
+		JsonObject beforeRoot = before.rootCopy();
+		if (!beforeRoot.has("ores") || !beforeRoot.get("ores").isJsonObject()) return true;
+		JsonObject newOres = merged.getAsJsonObject("ores");
+		for (java.util.Map.Entry<String, JsonElement> rule : beforeRoot.getAsJsonObject("ores").entrySet()) {
+			if (newOres != null && newOres.has(rule.getKey())) continue;
+			Path backup = path.resolveSibling("orespawn-worldgen.pre-legacy-ore-repair.bak");
+			try {
+				if (!Files.exists(backup)) Files.copy(path, backup);
+				return true;
+			} catch (IOException e) {
+				LOGGER.warn("Could not back up '{}'; legacy ore repair was not applied", path, e);
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean preserveBeforeOreDefaultsRefresh(Path path) {

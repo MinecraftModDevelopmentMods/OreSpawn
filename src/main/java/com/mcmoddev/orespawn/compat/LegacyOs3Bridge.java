@@ -488,6 +488,7 @@ public final class LegacyOs3Bridge {
 					continue;
 				}
 				JsonObject spawn = new JsonObject(); spawn.addProperty("enabled", true);
+				spawn.addProperty("legacy_import", "os1");
 				spawn.addProperty("feature", "default"); spawn.addProperty("replaces", "default");
 				JsonArray blocks = new JsonArray(); JsonObject block = new JsonObject();
 				block.addProperty("name", output); block.addProperty("chance", 100);
@@ -620,6 +621,7 @@ public final class LegacyOs3Bridge {
 		ore.addProperty("block", output); ore.addProperty("source_mod", modId);
 		ore.addProperty("native_generation", false);
 		ore.addProperty("retrogen", bool(spawn, "retrogen", false));
+		if ("os1".equals(text(spawn, "legacy_import", ""))) ore.addProperty("legacy_import", "os1");
 		copyMetadata(first, ore);
 		if (flags.replaceVanilla && "minecraft".equals(new ResourceLocation(output).getResourceDomain())) {
 			ore.addProperty("suppress_vanilla", true);
@@ -1027,7 +1029,7 @@ public final class LegacyOs3Bridge {
 			}
 		}
 		List<String> lines = new ArrayList<>();
-		lines.add("OreSpawn 4.1.5.110021 Upgrade Report");
+		lines.add("OreSpawn 4.1.6.110021 Upgrade Report");
 		lines.add("================================");
 		lines.add("");
 		lines.add("RESULT: Legacy OreSpawn configuration was consumed and translated for OS4.");

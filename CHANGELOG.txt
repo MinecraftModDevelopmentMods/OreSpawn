@@ -1,3 +1,12 @@
+Version 4.1.6.110021
+
+* Fix duplicate ore generation when an OreSpawn 1 world is moved without its
+  converted provider file. Keep imported rules and saved choices, and back
+  up the profile before removing a duplicate. Leave edited rules for review.
+* Pick the default sulfur and lithium sources after all mods have loaded.
+  New setups can share those ores with Base Electric without adding extra
+  veins. Existing worlds keep their choices and existing chunks stay as they are.
+
 Version 4.1.5.110021
 
 * Apply the normal gold-generation controls to Mesa's extra gold pass too.
