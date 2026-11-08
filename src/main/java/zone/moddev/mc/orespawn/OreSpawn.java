@@ -52,7 +52,7 @@ public class OreSpawn {
 
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = "4.1.5.110021";
+	public static final String VERSION = "4.1.6.110021";
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -90,7 +90,7 @@ public class OreSpawn {
 	public void init(FMLInitializationEvent event) {
 		LegacyOs3Bridge.completeInitialization();
 		WorldgenIntegrationManager.initialize();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		logGeomeSampler();
 		DocumentationExporter.exportBundledGuide();
 		StoneReplacer.registerConfiguredFeature();
@@ -109,7 +109,7 @@ public class OreSpawn {
 	public void postInit(FMLPostInitializationEvent event) {
 		WorldgenIntegrationManager.processImcMessages();
 		WorldgenIntegrationManager.freeze();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		refreshGenerationConfig();
 		WorldgenIntegrationManager.markFeatureReady();
 	}

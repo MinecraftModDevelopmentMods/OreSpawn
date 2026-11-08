@@ -77,6 +77,15 @@ remain unchanged.
 
 ## Provider-Aware OS3 Imports
 
+An OreSpawn 1 import keeps its saved rule ID and settings even if you move
+the world without its converted provider file. If an older build added a
+second rule, OreSpawn removes it only when the saved rule still matches the
+provider default and no custom ore-source selection depends on it. The
+original profile is backed up before that repair. Edited or ambiguous
+overlaps are left in place and listed under `legacy_ore_review` in the
+provider's saved manifest and reported in the log. This does not change
+ore blocks in chunks already generated.
+
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now
 compares each converted primary output with that provider's ore declarations.
 A unique output match is written under the provider's stable rule ID, allowing
