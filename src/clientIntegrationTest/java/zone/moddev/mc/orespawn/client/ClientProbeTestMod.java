@@ -113,9 +113,20 @@ public final class ClientProbeTestMod {
 				case 2:
 					if (minecraft.currentScreen instanceof OreSpawnWorldSettingsScreen && editorFrames >= 2) {
 						worldSettingsOpened = true;
+						validateLanguage(minecraft);
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.currentScreen);
 						validateExpectedDirectory(minecraft.currentScreen);
 						validateLongEditorRoundTrip(minecraft, minecraft.currentScreen);
+						if (Boolean.getBoolean("clientprobe.localeOnly")) {
+							Properties values = new Properties();
+							values.setProperty("language", minecraft.getLanguageManager().getCurrentLanguage().getLanguageCode());
+							try (FileOutputStream output = new FileOutputStream("client-locale-pass.properties")) {
+								values.store(output, "OreSpawn localized editor check");
+							}
+							minecraft.shutdown();
+							nextState(10);
+							break;
+						}
 						nextState(3);
 					}
 					break;
@@ -317,7 +328,7 @@ public final class ClientProbeTestMod {
 			if (widget instanceof CompactScrollList && widget.x < right) groupList = true;
 			if (widget instanceof CompactScrollList && widget.x >= right) outputList = true;
 			if (widget instanceof TextFieldWidget && widget.x < right) inlineAdministration = true;
-			if ("Back".equals(caption)) back = true;
+			if (I18n.format("button.orespawn.back").equals(caption)) back = true;
 			if (I18n.format("button.orespawn.show_all").equals(caption)) {
 				showAll = true;
 				showAllWidth = widget.width;
@@ -633,11 +644,23 @@ public final class ClientProbeTestMod {
 			Button button = (Button) widget;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(button.getMessage());
 			if (!attemptedButtons.add(caption)) continue;
-			String lower = caption.toLowerCase(java.util.Locale.ROOT);
-			if (lower.equals("done") || lower.equals("cancel") || lower.contains("recommended")) continue;
+			if (I18n.format("gui.done").equals(caption) || I18n.format("gui.cancel").equals(caption)
+					|| I18n.format("button.orespawn.recommended").equals(caption)) continue;
 			return button;
 		}
 		return null;
+	}
+
+	private static void validateLanguage(Minecraft minecraft) {
+		String expected = System.getProperty("clientprobe.language", "");
+		if (expected.isEmpty()) return;
+		String active = minecraft.getLanguageManager().getCurrentLanguage().getLanguageCode();
+		String caption = I18n.format("button.orespawn.recommended");
+		if (!expected.equals(active) || !caption.equals(System.getProperty("clientprobe.recommendedCaption"))) {
+			throw new IllegalStateException("Unexpected locale or caption: " + active + " / " + caption);
+		}
+		org.apache.logging.log4j.LogManager.getLogger(MODID)
+				.info("Client locale {} loaded caption '{}'", active, caption);
 	}
 
 	private static void validateCaptions(OreSpawnScreen screen) {
@@ -757,7 +780,7 @@ public final class ClientProbeTestMod {
 		for (GuiButton widget : screen.buttons) {
 			if (!(widget instanceof Button)) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(((Button) widget).getMessage());
-			if ("done".equalsIgnoreCase(caption)) {
+			if (I18n.format("gui.done").equals(caption)) {
 				((Button) widget).press();
 				return;
 			}

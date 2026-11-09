@@ -7,17 +7,6 @@ def packagedSurfaceIntegrationTestModJar = tasks.named('renameSurfaceIntegration
 // Release qualification also exercises the reobfuscated jar through Forge's
 // packaged launcher. The official server jar and its library tree are
 // machine-local inputs and are never copied into source control or artifacts.
-def forge14UniversalRuntime = {
-    File runtime = new File(gradle.gradleUserHomeDir,
-            "caches/forge_gradle/maven_downloader/net/minecraftforge/forge/" +
-            "${minecraft_version}-${forge_version}/" +
-            "forge-${minecraft_version}-${forge_version}-universal.jar")
-    if (!runtime.isFile()) {
-        throw new GradleException("Forge 14 universal runtime is missing: ${runtime}")
-    }
-    runtime
-}
-
 def packagedForgeRunDirectory = file("${buildDir}/packaged-forge-runtime-run")
 def packagedMinecraftServer = {
     if (!project.hasProperty('packagedMinecraftServerJar')) {
@@ -28,6 +17,19 @@ def packagedMinecraftServer = {
         throw new GradleException("Minecraft 1.12.2 server jar is missing: ${server}")
     }
     server
+}
+def forge14UniversalRuntime = {
+    String name = "forge-${minecraft_version}-${forge_version}-universal.jar"
+    File installed = new File(packagedMinecraftServer().parentFile, name)
+    if (installed.isFile()) return installed
+    // Some older installations cached the universal jar here.
+    File cached = new File(gradle.gradleUserHomeDir,
+            "caches/forge_gradle/maven_downloader/net/minecraftforge/forge/" +
+            "${minecraft_version}-${forge_version}/${name}")
+    if (!cached.isFile()) {
+        throw new GradleException("Forge 14 universal runtime is missing: ${installed} or ${cached}")
+    }
+    cached
 }
 def packagedForgeLibraries = {
     if (!project.hasProperty('packagedForgeLibrariesRoot')) {

@@ -71,8 +71,13 @@ public final class WorldGeologyProfile {
 
 	public static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
 			GeologyMode geologyMode, boolean placeFluidDeposits) {
+		return fromGlobalConfig(globalRoot, geologyMode, placeFluidDeposits, true);
+	}
+
+	static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
+			GeologyMode geologyMode, boolean placeFluidDeposits, boolean chooseOreSourceDefaults) {
 		JsonObject root = JsonCopies.copy(globalRoot);
-		OreSourcePolicies.initialize(root, false);
+		if (chooseOreSourceDefaults) OreSourcePolicies.initialize(root, false);
 		if (!root.has("geology_mode")) {
 			root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
 		}

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
 	private static final Set<String> EXPECTED_LOCALES = ImmutableSet.of(
-			"de_au.lang", "de_de.lang", "en_ca.lang", "en_en.lang",
+			"de_at.lang", "de_de.lang", "en_ca.lang",
 			"en_gb.lang", "en_pt.lang", "en_us.lang", "es_es.lang",
 			"es_mx.lang", "fr_ca.lang", "fr_fr.lang", "ja_jp.lang",
 			"ko_kr.lang", "pt_br.lang", "ru_ru.lang", "zh_cn.lang");
@@ -37,20 +37,20 @@ class LocalizationParityTest {
 	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES =
 			ImmutableMap.<String, Set<String>>builder()
 			.put("button.orespawn.world_settings", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
+					"de_at.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
 			.put("button.orespawn.biome_available", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
+					"de_at.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
 			.put("button.orespawn.biomes_world_materials", ImmutableSet.of(
 					"fr_ca.lang", "fr_fr.lang"))
 			.put("screen.orespawn.biomes", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
 			.put("option.orespawn.mod_filter", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "fr_ca.lang", "fr_fr.lang"))
+					"de_at.lang", "de_de.lang", "fr_ca.lang", "fr_fr.lang"))
 			.put("tab.orespawn.biomes", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
-			.put("tab.orespawn.geomes", ImmutableSet.of("de_au.lang", "de_de.lang"))
+			.put("tab.orespawn.geomes", ImmutableSet.of("de_at.lang", "de_de.lang"))
 			.put("tab.orespawn.placement", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
 			.put("tab.orespawn.biome_placement", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
 			.put("tab.orespawn.biome_surface", ImmutableSet.of("fr_ca.lang", "fr_fr.lang"))
@@ -58,19 +58,19 @@ class LocalizationParityTest {
 			.put("value.orespawn.geology_mode.geome", ImmutableSet.of(
 					"es_es.lang", "es_mx.lang", "fr_ca.lang", "fr_fr.lang", "ja_jp.lang",
 					"ko_kr.lang", "pt_br.lang", "ru_ru.lang", "zh_cn.lang"))
-			.put("value.orespawn.geology_mode.legacy", ImmutableSet.of("de_au.lang", "de_de.lang"))
-			.put("value.orespawn.height_distribution.uniform", ImmutableSet.of("de_au.lang", "de_de.lang"))
+			.put("value.orespawn.geology_mode.legacy", ImmutableSet.of("de_at.lang", "de_de.lang"))
+			.put("value.orespawn.height_distribution.uniform", ImmutableSet.of("de_at.lang", "de_de.lang"))
 			.put("value.orespawn.height_distribution.triangle", ImmutableSet.of("pt_br.lang"))
 			.put("value.orespawn.ore_pattern.default", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
+					"de_at.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
 			.put("value.orespawn.ore_pattern.precision", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
+					"de_at.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
 			.put("value.orespawn.ore_pattern.underfluids", ImmutableSet.of(
-					"de_au.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
+					"de_at.lang", "de_de.lang", "es_es.lang", "es_mx.lang", "fr_ca.lang",
 					"fr_fr.lang", "ja_jp.lang", "ko_kr.lang", "pt_br.lang", "ru_ru.lang",
 					"zh_cn.lang"))
 			.build();
@@ -140,6 +140,18 @@ class LocalizationParityTest {
 		}
 		assertEquals(expectedIntentionalEnglishValues, observedIntentionalEnglishValues,
 				"The locale-specific English exception list is stale; review and narrow it");
+	}
+
+	@Test
+	void pirateSpeakUsesItsOwnCaptionsAndGuide() throws Exception {
+		JsonObject english = read(LANG_DIR.resolve("en_us.lang"));
+		JsonObject pirate = read(LANG_DIR.resolve("en_pt.lang"));
+		for (String key : new String[] {
+				"screen.orespawn.world_settings", "button.orespawn.recommended",
+				"button.orespawn.help", "guide.orespawn.welcome.1", "guide.orespawn.server.2"
+		}) {
+			assertFalse(english.get(key).equals(pirate.get(key)), key + " should be in Pirate Speak");
+		}
 	}
 
 	private static int formatArgumentCount(String value) {

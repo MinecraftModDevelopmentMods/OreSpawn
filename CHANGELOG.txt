@@ -1,3 +1,15 @@
+Version 4.1.6.112021
+
+* Let Java providers select an exact ore host, such as plain stone without
+  granite. Whole-block selectors still work as before.
+* Keep imported ore rules and saved choices when moving a world from 1.10.2
+  or 1.11.2. Back up the profile before removing an untouched duplicate and
+  leave edited rules for review.
+* Choose sulfur and lithium defaults after all mods have loaded so Base
+  Electric can share the same veins. Existing worlds keep their choices.
+* Use the correct Austrian German locale and give Pirate Speak its own menu
+  and guide text.
+
 Version 4.1.3.112021
 
 * Apply hybrid and replacement background limits to imported built-in ore

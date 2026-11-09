@@ -1,3 +1,4 @@
+# German for Minecraft's Austria locale.
 tooltip.orespawn.fluid.add_deposit=Wählen Sie einen installierten Flüssigkeitsblock aus und erstellen Sie dafür eine neue Regel für unterirdische Flüssigkeitsvorkommen.
 tooltip.orespawn.assignment.ore=Weisen Sie diesen installierten Block als Erz zu und bearbeiten Sie anschließend seine Dimensionen, Vorkommensform, Wirte und Geome-Regeln.
 tooltip.orespawn.assignment.rock_family=Weisen Sie diesen installierten Block als Gestein in der ausgewählten Familie zu und bearbeiten Sie dann seine Tiefen- und Geome-Regeln.
