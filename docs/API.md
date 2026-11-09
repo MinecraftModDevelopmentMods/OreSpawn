@@ -98,6 +98,12 @@ exclusions. These methods work on both explicit `.dimension(...)` rules and
 `.dimensionSelector(...)` fallbacks; built definitions and their returned
 filter sets are immutable.
 
+Use `.hostState(block, metadata)` to select one legacy ore host variant, or
+`.hostState(block, metadata, weight)` to give it a replacement weight.
+For example, `.hostState(new ResourceLocation("minecraft", "stone"), 0)`
+accepts plain stone without accepting granite or diorite. The existing
+`.hostBlock(...)` method still accepts every variant of a block.
+
 Create one `BiomeRegistrar` during normal mod construction. It attaches to the
 calling mod's event bus and defers biome factories until Forge's biome registry
 event. `OreSpawnBiomes.copyAndRegister` clones a known biome without adding a

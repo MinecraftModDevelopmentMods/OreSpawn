@@ -374,6 +374,26 @@ class OreSourcePoliciesTest {
 	}
 
 	@Test
+	void baseElectricIsARecognizedOutputWithoutAddingAPlacementBudget() {
+		JsonObject root = rootWithSulfurConflict();
+		addOre(root, "baseelectric:sulfur", "baseelectric", "minecraft:coal_ore",
+				"orespawn:sulfur", "minecraft:overworld", null);
+		root.getAsJsonObject("ores").getAsJsonObject("baseelectric:sulfur")
+				.addProperty("enabled", false);
+
+		OreSourcePolicies.initialize(root, false);
+
+		JsonObject policy = policy(root);
+		assertEquals("consolidated", policy.get("mode").getAsString());
+		assertEquals("balanced", policy.get("output_mode").getAsString());
+		assertEquals(3, policy.getAsJsonObject("outputs").entrySet().size());
+		assertTrue(policy.getAsJsonObject("outputs").has("baseelectric:sulfur"));
+		JsonObject sources = policy.getAsJsonObject("placement_sources");
+		assertEquals(1, sources.entrySet().size());
+		assertEquals("mineralogy:sulfur", sources.get("orespawn:standard").getAsString());
+	}
+
+	@Test
 	void inactiveManagedProviderRemainsAnOutputWithoutOwningPlacement() {
 		JsonObject root = root();
 		addOre(root, "mineralogy:sulfur", "mineralogy", "minecraft:iron_ore",

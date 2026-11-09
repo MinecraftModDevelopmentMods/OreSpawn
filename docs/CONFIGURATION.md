@@ -44,6 +44,10 @@ world. Restart after editing JSON by hand.
 | `flat_bedrock` | object | Opt-in flat bedrock controls |
 | `worldgen_aliases` | ID-to-ID object | Replacement output aliases resolved while baking |
 
+Forge 1.12.2 applies the same gold settings to the normal and extra Mesa
+gold passes. With vanilla ore management off and suppression disabled, both
+passes keep their normal generation.
+
 ## Enumerated Values
 
 | Setting | Accepted values |

@@ -487,9 +487,9 @@ final class OreSourcePolicies {
 	private static Map<String, List<String>> priorities() {
 		Map<String, List<String>> result = new HashMap<>();
 		result.put("sulfur", Collections.unmodifiableList(Arrays.asList(
-				"mineralogy", "baseminerals", "electricadvantage")));
+				"mineralogy", "baseminerals", "baseelectric", "electricadvantage")));
 		result.put("lithium", Collections.unmodifiableList(Arrays.asList(
-				"baseminerals", "electricadvantage")));
+				"baseminerals", "baseelectric", "electricadvantage")));
 		return Collections.unmodifiableMap(result);
 	}
 
