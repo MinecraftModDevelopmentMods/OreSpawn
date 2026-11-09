@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import net.minecraft.block.Block;
@@ -40,6 +44,17 @@ class NativeOreHostTest {
 	@AfterEach
 	void restoreTags() {
 		BlockTags.setCollection(previousTags);
+	}
+
+	@Test
+	void plainStoneHostDoesNotAcceptTheFlattenedIgneousBlocks() throws Exception {
+		Method add = OreSpawnOreGeneration.class.getDeclaredMethod("addBlocks", Map.class, JsonElement.class);
+		add.setAccessible(true);
+		Map<Block, Double> hosts = new IdentityHashMap<>();
+		JsonArray blocks = new JsonArray();
+		blocks.add("minecraft:stone");
+		add.invoke(null, hosts, blocks);
+		assertEquals(Collections.singletonMap(Blocks.STONE, 1.0D), hosts);
 	}
 
 	@Test

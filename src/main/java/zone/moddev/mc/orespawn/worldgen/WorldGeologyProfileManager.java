@@ -20,7 +20,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
-import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
@@ -110,9 +109,9 @@ public final class WorldGeologyProfileManager {
 				.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile profile = readProfile(profilePath, globalProfile());
 		JsonObject merged = profile.rootCopy();
-		boolean changed = OreSpawnOreIntegration.mergeProviderOres(merged);
+		boolean changed = WorldgenIntegrationManager.mergeSavedProviderDefinitions(merged);
 		changed |= OreSourcePolicies.initialize(merged, true);
-		if (changed) {
+		if (changed && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 			profile = profile.withRoot(merged);
 			writeProfile(profilePath, profile);
 		}
@@ -136,9 +135,9 @@ public final class WorldGeologyProfileManager {
 			profile = readProfile(profilePath, fallback);
 			JsonObject merged = profile.rootCopy();
 			String beforeMerge = merged.toString();
-			OreSpawnOreIntegration.mergeProviderOres(merged);
+			WorldgenIntegrationManager.mergeSavedProviderDefinitions(merged);
 			OreSourcePolicies.initialize(merged, true);
-			if (!beforeMerge.equals(merged.toString())) {
+			if (!beforeMerge.equals(merged.toString()) && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 				profile = profile.withRoot(merged);
 				writeProfile(profilePath, profile);
 				LOGGER.info("Merged new OreSpawn worldgen-provider definitions into '{}'", profilePath);
@@ -385,6 +384,25 @@ public final class WorldGeologyProfileManager {
 			LOGGER.warn("Could not read OreSpawn world geology profile '{}'; using instance settings", path, e);
 			return fallback;
 		}
+	}
+
+	private static boolean preserveBeforeLegacyOreRepair(Path path, WorldGeologyProfile before, JsonObject merged) {
+		JsonElement priorOres = before.rootCopy().get("ores");
+		if (priorOres == null || !priorOres.isJsonObject() || !Files.isRegularFile(path)) return true;
+		JsonObject original = priorOres.getAsJsonObject();
+		JsonObject current = merged.getAsJsonObject("ores");
+		for (java.util.Map.Entry<String, JsonElement> rule : original.entrySet()) {
+			if (current != null && current.has(rule.getKey())) continue;
+			Path backup = path.resolveSibling("orespawn-worldgen.pre-legacy-ore-repair.bak");
+			try {
+				if (!Files.exists(backup)) Files.copy(path, backup);
+				return true;
+			} catch (IOException e) {
+				LOGGER.warn("Could not back up '{}'; legacy ore repair was not applied", path, e);
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean preserveBeforeOreDefaultsRefresh(Path path) {

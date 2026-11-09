@@ -14,7 +14,7 @@ import java.util.Set;
 final class MmdOreConflictCatalog {
 	private static final Set<String> ORDINARY = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
 			"basemetals", "modernmetals", "basegems", "baseminerals", "fantasymetals",
-			"electricadvantage", "steamadvantage", "poweradvantage", "mineralogy")));
+			"baseelectric", "electricadvantage", "steamadvantage", "poweradvantage", "mineralogy")));
 	private static final Map<String, List<String>> PRIORITIES = priorities();
 
 	private MmdOreConflictCatalog() { }
@@ -56,9 +56,9 @@ final class MmdOreConflictCatalog {
 	private static Map<String, List<String>> priorities() {
 		Map<String, List<String>> result = new LinkedHashMap<>();
 		result.put("sulfur", Collections.unmodifiableList(Arrays.asList(
-				"mineralogy", "baseminerals", "electricadvantage")));
+				"mineralogy", "baseminerals", "baseelectric", "electricadvantage")));
 		result.put("lithium", Collections.unmodifiableList(Arrays.asList(
-				"baseminerals", "electricadvantage")));
+				"baseminerals", "baseelectric", "electricadvantage")));
 		return Collections.unmodifiableMap(result);
 	}
 }

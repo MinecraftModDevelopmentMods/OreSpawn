@@ -9,11 +9,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 
 import net.minecraft.block.Block;
+import net.minecraft.init.Biomes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.biome.provider.BiomeProvider;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.dimension.DimensionType;
+import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
@@ -30,6 +33,11 @@ public final class WorldHashProbeTestMod {
 	private void audit(FMLServerStartedEvent event) {
 		WorldServer world = event.getServer().getWorld(DimensionType.OVERWORLD);
 		if (world == null) throw new IllegalStateException("Overworld is unavailable");
+		if (Boolean.getBoolean("worldhashprobe.findBadlands")) {
+			locateBadlands(world);
+			event.getServer().initiateShutdown();
+			return;
+		}
 		// Adjacent veins can reach the outer row. Finish the surrounding chunks before hashing the 81-chunk area.
 		for (int x = 251; x <= 261; x++) {
 			world.getChunk(x, 251);
@@ -88,6 +96,33 @@ public final class WorldHashProbeTestMod {
 		} catch (IOException failure) {
 			throw new IllegalStateException("Could not save benchmark hashes", failure);
 		}
+	}
+
+	private static void locateBadlands(WorldServer world) {
+		BiomeProvider biomes = world.getChunkProvider().getChunkGenerator().getBiomeProvider();
+		BiomeDictionary.Type mesa = BiomeDictionary.Type.getType("MESA");
+		for (int radius = 0; radius <= 512; radius += 8) {
+			for (int z = -radius; z <= radius; z += 8) {
+				for (int x = -radius; x <= radius; x += 8) {
+					if (Math.abs(x) != radius && Math.abs(z) != radius) continue;
+					boolean covered = true;
+					for (int dz = -3; dz <= 3 && covered; dz++) {
+						for (int dx = -3; dx <= 3; dx++) {
+							BlockPos center = new BlockPos(((x + dx) << 4) + 8, 64, ((z + dz) << 4) + 8);
+							if (!BiomeDictionary.hasType(biomes.getBiome(center, Biomes.PLAINS), mesa)) {
+								covered = false;
+								break;
+							}
+						}
+					}
+					if (covered) {
+						System.out.println("BADLANDS_CENTER " + x + " " + z);
+						return;
+					}
+				}
+			}
+		}
+		throw new IllegalStateException("No 49-chunk Badlands sample near spawn");
 	}
 
 	private static MessageDigest digest() {

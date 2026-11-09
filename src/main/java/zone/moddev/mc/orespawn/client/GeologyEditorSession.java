@@ -404,7 +404,7 @@ final class GeologyEditorSession {
 		List<OreSourceGroup> result = new ArrayList<>();
 		for (Entry<String, JsonElement> entry : section("ore_source_policies").entrySet()) {
 			if (!entry.getValue().isJsonObject()) continue;
-			JsonObject policy = entry.getValue().getAsJsonObject();
+			JsonObject policy = OreSourceEditorView.policy(root, entry.getValue().getAsJsonObject());
 			String material = string(policy, "material", "");
 			String domain = string(policy, "domain", "");
 			if (!validResource(material) || !validResource(domain)) continue;
@@ -454,6 +454,7 @@ final class GeologyEditorSession {
 					candidates, decimalMap(policy, "outputs"), stringMap(policy, "placement_sources"));
 			if (!bool(policy, "dormant", false)) result.add(group);
 		}
+		OreSourceEditorView.addVanillaPreviews(root, result);
 		Collections.sort(result, (left, right) -> {
 			int name = left.displayName.compareToIgnoreCase(right.displayName);
 			if (name != 0) return name;
@@ -976,8 +977,8 @@ final class GeologyEditorSession {
 	}
 
 	private static void refreshOreSourceStatus(JsonObject policy) {
-		Set<String> missing = new HashSet<>();
-		Set<String> inactivePlacements = new HashSet<>();
+		Set<String> loaded = new HashSet<>();
+		Set<String> loadedPlacements = new HashSet<>();
 		boolean external = false;
 		boolean review = bool(policy, "review_required", false);
 		if (policy.has("candidates") && policy.get("candidates").isJsonArray()) {
@@ -985,8 +986,10 @@ final class GeologyEditorSession {
 				if (!element.isJsonObject()) continue;
 				JsonObject candidate = element.getAsJsonObject();
 				String sourceId = string(candidate, "source_id", "");
-				if (!bool(candidate, "loaded", false)) missing.add(sourceId);
-				if (!bool(candidate, "placement_active", false)) inactivePlacements.add(sourceId);
+				if (bool(candidate, "loaded", false)) {
+					loaded.add(sourceId);
+					loadedPlacements.add(sourceId + "|" + string(candidate, "placement_channel", "orespawn:standard"));
+				}
 				external |= bool(candidate, "external", false) && bool(candidate, "loaded", false);
 			}
 		}
@@ -998,10 +1001,10 @@ final class GeologyEditorSession {
 			return;
 		}
 		for (String id : outputs.keySet()) {
-			if (missing.contains(id)) { policy.addProperty("status", "missing_source"); return; }
+			if (!loaded.contains(id)) { policy.addProperty("status", "missing_source"); return; }
 		}
-		for (String id : placements.values()) {
-			if (missing.contains(id) || inactivePlacements.contains(id)) {
+		for (Entry<String, String> placement : placements.entrySet()) {
+			if (!loadedPlacements.contains(placement.getValue() + "|" + placement.getKey())) {
 				policy.addProperty("status", "missing_source"); return;
 			}
 		}
@@ -1045,11 +1048,20 @@ final class GeologyEditorSession {
 		final List<OreSourceCandidate> candidates;
 		final Map<String, Double> outputs;
 		final Map<String, String> placements;
+		final boolean preview;
 
 		OreSourceGroup(String key, String material, String domain, String displayName,
 				List<String> blockTagEntries, boolean curated, String mode, String outputMode, String status,
 				List<OreSourceCandidate> candidates, Map<String, Double> outputs,
 				Map<String, String> placements) {
+			this(key, material, domain, displayName, blockTagEntries, curated, mode, outputMode, status,
+					candidates, outputs, placements, false);
+		}
+
+		OreSourceGroup(String key, String material, String domain, String displayName,
+				List<String> blockTagEntries, boolean curated, String mode, String outputMode, String status,
+				List<OreSourceCandidate> candidates, Map<String, Double> outputs,
+				Map<String, String> placements, boolean preview) {
 			this.key = key;
 			this.material = material;
 			this.domain = domain;
@@ -1062,6 +1074,7 @@ final class GeologyEditorSession {
 			this.candidates = Collections.unmodifiableList(new ArrayList<>(candidates));
 			this.outputs = outputs;
 			this.placements = placements;
+			this.preview = preview;
 		}
 
 		List<String> channels() {

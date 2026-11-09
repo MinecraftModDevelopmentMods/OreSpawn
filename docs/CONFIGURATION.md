@@ -185,6 +185,9 @@ Each enabled ore dimension uses:
 | `placement_channel` | registry ID | Independent placement budget shared by equivalent ores in consolidated modes |
 
 At least one of `host_families`, `host_blocks`, or `host_tags` must be present.
+On 1.13.2, plain stone, granite, diorite, and andesite are separate block
+IDs. Use `host_blocks: ["minecraft:stone"]` for plain stone only; no
+pre-flattening metadata is needed.
 
 On Forge 1.13.2, the default Nether quartz rule uses
 `host_blocks: ["minecraft:netherrack"]`, because Forge does not ship a

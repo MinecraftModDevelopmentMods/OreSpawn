@@ -1,3 +1,17 @@
+Version 4.1.6.113021
+
+* Leave vanilla ores to Minecraft when Manage Vanilla Ores is off. When
+  it is on, an imported rule takes over without an extra copy of the ore.
+* Keep saved Ore Sources choices for imported patterns. Built-in patterns
+  share the standard channel for new choices; custom channels stay separate.
+* Show vanilla ores in Ore Sources before creating a world, even when Manage
+  Vanilla Ores is off.
+* Keep imported provider rules when opening a saved world. Back up the
+  profile before removing an untouched duplicate; keep edited rules for review.
+* Choose sulfur and lithium defaults after mods have loaded, including Base
+  Electric. Existing worlds keep their choices.
+* Fix the Austrian German language ID and add Pirate Speak menu and guide text.
+
 Version 4.1.0.113021
 
 * Fix managed Nether quartz hosts on Forge 1.13.2, including saved profiles

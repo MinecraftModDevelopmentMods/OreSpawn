@@ -17,7 +17,7 @@ End" policy used by mods such as Base Metals.
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.1.0.113021` for Minecraft 1.13.2
+This branch builds target-qualified version `4.1.6.113021` for Minecraft 1.13.2
 and Forge. It adds material-group ore arbitration, exact biome replacements,
 and a directory for installed provider mods to the OreSpawn 4.0.16 base. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
