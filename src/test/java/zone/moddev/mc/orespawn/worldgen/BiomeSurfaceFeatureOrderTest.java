@@ -26,8 +26,14 @@ class BiomeSurfaceFeatureOrderTest {
 		assertTrue(source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\r\n\tpublic void filterVanillaOre")
 				|| source.contains("@SubscribeEvent(priority = EventPriority.LOWEST)\n\tpublic void filterVanillaOre"),
 				"vanilla-ore suppression must make its decision at Forge's final standard event priority");
-		assertTrue(source.contains("OreSpawnOreGeneration.takesOverVanillaOre(dimension, output)"));
+		assertTrue(source.contains("OreSpawnOreGeneration.allowsVanillaOre(dimension, output"));
 		assertTrue(source.contains("event.setResult(Event.Result.DENY)"));
+		assertTrue(source.contains("output == Blocks.GOLD_ORE && event.getResult() == Event.Result.DENY"));
+		assertTrue(source.contains("VanillaMesaGoldCompatibility.suppress(event.getGenerator()"),
+				"Mesa's extra pass must use the same gold decision, not a second scaling roll");
+		assertTrue(source.contains("afterBiomeDecoration(DecorateBiomeEvent.Post event)"));
+		assertTrue(source.contains("VanillaMesaGoldCompatibility.restore(event.getWorld(), event.getPos())"));
+		assertTrue(source.contains("VanillaMesaGoldCompatibility.clear()"));
 		assertTrue(source.contains("earlyComplete.add(key)") && source.contains("oreComplete.add(key)"),
 				"terrain and ore callbacks must be independently deduplicated");
 		assertTrue(source("BiomeFeatureInstaller.java").contains("ordered terrain-event"),

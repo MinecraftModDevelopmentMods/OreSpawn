@@ -55,7 +55,7 @@ public final class BiomeSurfaceFeature {
 
 	private static int findOpenGround(Chunk chunk, BlockPos.MutableBlockPos cursor,
 			int x, int z, int localX, int localZ, int minY) {
-		// Chunk#getHeightValue is the first free Y in 1.12. Subtract exactly once.
+		// The height map points to the air above the surface.
 		int y = chunk.getHeightValue(localX, localZ) - 1;
 		while (y >= minY && open(chunk.getBlockState(cursor.setPos(x, y, z)))) y--;
 		return y;

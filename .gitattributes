@@ -3,7 +3,7 @@
 *            text=auto eol=lf
 
 *.bat        text eol=crlf
-#*.bat        text eol=lf
+*.cmd        text eol=crlf
 *.gradle     text diff=java
 mcmod.info   text
 *.java       text

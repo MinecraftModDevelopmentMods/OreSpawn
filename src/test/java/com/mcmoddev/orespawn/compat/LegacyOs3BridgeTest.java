@@ -116,6 +116,143 @@ class LegacyOs3BridgeTest {
 	}
 
 	@Test
+	void keepsAnExistingProviderOverrideDuringLegacyImport() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		String existing = "{ \"schema_version\": 5, \"provider_modid\": \"basemetals\", \"provider_revision\": 1 }\n";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, new JsonObject());
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertFalse(Files.exists(temporary.resolve("basemetals-orespawn.json.os3-backup")));
+		assertTrue(LegacyOs3Bridge.reportForTests().contains("provider_preserved=basemetals-orespawn.json"));
+	}
+
+	@Test
+	void leavesAMalformedOverrideForTheNormalProviderValidator() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		String existing = "{ unfinished user edit";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, new JsonObject());
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void writesAnImportedProviderOnlyWhenNoOverrideExists() throws Exception {
+		Path destination = temporary.resolve("basemetals-orespawn.json");
+		JsonObject imported = new JsonObject();
+		imported.addProperty("provider_modid", "basemetals");
+		imported.addProperty("provider_revision", 1);
+
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, imported);
+		String first = new String(Files.readAllBytes(destination), StandardCharsets.UTF_8);
+		assertEquals(imported, new JsonParser().parse(first));
+
+		imported.addProperty("provider_revision", 9);
+		LegacyOs3Bridge.writeProviderIfAbsent(destination, imported);
+		assertEquals(first, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void keepsAnExistingProviderDuringTheFirstImportAndReload() throws Exception {
+		LegacyOs3Bridge.resetProgrammaticForTests("overridefixture");
+		Path legacy = temporary.resolve("orespawn3");
+		Files.createDirectories(legacy);
+		Files.write(legacy.resolve("overridefixture.json"),
+				"{\"spawns\":{}}".getBytes(StandardCharsets.UTF_8));
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String existing = "{ \"schema_version\": 5, \"provider_modid\": \"orespawn\", \"provider_revision\": 9 }\n";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertFalse(Files.exists(temporary.resolve("orespawn-orespawn.json.os3-backup")));
+		Path report = temporary.resolve("orespawn-upgrade-report.txt");
+		String firstReport = new String(Files.readAllBytes(report), StandardCharsets.UTF_8);
+		assertTrue(firstReport.contains("provider_preserved=orespawn-orespawn.json"));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		assertEquals(firstReport, new String(Files.readAllBytes(report), StandardCharsets.UTF_8));
+	}
+
+	@Test
+	void describesAnUnvalidatedOverrideAsRetainedRatherThanVerified() throws Exception {
+		LegacyOs3Bridge.resetProgrammaticForTests("reportfixture");
+		Path legacy = temporary.resolve("orespawn3");
+		Files.createDirectories(legacy);
+		Files.write(legacy.resolve("reportfixture.json"),
+				"{\"spawns\":{}}".getBytes(StandardCharsets.UTF_8));
+		Path destination = temporary.resolve("orespawn-orespawn.json");
+		String existing = "{ unfinished user edit";
+		Files.write(destination, existing.getBytes(StandardCharsets.UTF_8));
+
+		migrateLegacyDirectory(temporary);
+
+		assertEquals(existing, new String(Files.readAllBytes(destination), StandardCharsets.UTF_8));
+		String report = new String(Files.readAllBytes(
+				temporary.resolve("orespawn-upgrade-report.txt")), StandardCharsets.UTF_8);
+		assertTrue(report.contains("OS4 provider files written or retained: 1"));
+		assertFalse(report.contains("written or verified"));
+		assertTrue(report.contains("provider_preserved=orespawn-orespawn.json"));
+	}
+
+	private static void migrateLegacyDirectory(Path directory) throws Exception {
+		Method migration = LegacyOs3Bridge.class.getDeclaredMethod("migrateConfigDirectory", Path.class);
+		migration.setAccessible(true);
+		migration.invoke(null, directory);
+	}
+
+
+	@Test
+	void translatesOs1MetadataFractionalFrequencyExclusiveHeightAndPlusDimensions() throws Exception {
+		JsonObject source = new JsonParser().parse("{\"dimensions\":["
+				+ "{\"dimension\":-1,\"ores\":[{\"blockID\":\"minecraft:quartz_ore\",\"size\":4,\"frequency\":2,\"minHeight\":8,\"maxHeight\":120}]},"
+				+ "{\"dimension\":\"+\",\"ores\":[{\"blockID\":\"minecraft:stone\",\"blockMeta\":3,\"size\":9,\"variation\":2,\"frequency\":0.25,\"minHeight\":7,\"maxHeight\":64,\"biomes\":[\"Plains\"]}]}]}"
+				).getAsJsonObject();
+		JsonObject intermediate = LegacyOs3Bridge.translateOs1ForTests("minecraft", source);
+		JsonObject plus = null;
+		for (Map.Entry<String, com.google.gson.JsonElement> entry : intermediate.getAsJsonObject("spawns").entrySet()) {
+			JsonObject candidate = entry.getValue().getAsJsonObject();
+			if (candidate.getAsJsonArray("blocks").get(0).getAsJsonObject().get("name").getAsString().equals("minecraft:stone")) plus = candidate;
+		}
+		assertNotNull(plus);
+		assertEquals(3, plus.getAsJsonArray("blocks").get(0).getAsJsonObject().get("metadata").getAsInt());
+		assertEquals(0.25D, plus.getAsJsonObject("parameters").get("frequency").getAsDouble());
+		assertFalse(plus.getAsJsonArray("dimensions").toString().contains("-1"));
+
+		Path config = temporary.resolve("orespawn.cfg");
+		Files.write(config, new byte[0]);
+		JsonObject provider = LegacyOs3Bridge.translateForTests("minecraft", intermediate,
+				temporary.resolve("orespawn3"), config);
+		JsonObject placement = null;
+		for (Map.Entry<String, com.google.gson.JsonElement> ore : provider.getAsJsonObject("ores").entrySet()) {
+			JsonObject value = ore.getValue().getAsJsonObject();
+			if (value.get("block").getAsString().equals("minecraft:stone")) {
+				placement = value.getAsJsonObject("dimensions").entrySet().iterator().next().getValue().getAsJsonObject();
+			}
+		}
+		assertNotNull(placement);
+		assertEquals(63, placement.get("max_y").getAsInt(), "OS1 maxHeight is exclusive");
+		assertEquals(0.25D, placement.get("frequency").getAsDouble());
+		assertEquals("minecraft:plains", placement.getAsJsonArray("biome_ids").get(0).getAsString());
+	}
+
+	@Test
+	void unresolvedOs1BiomeRestrictionNeverBroadensToAllBiomes() {
+		JsonObject source = new JsonParser().parse("{\"dimensions\":[{\"dimension\":0,\"ores\":["
+				+ "{\"blockID\":\"minecraft:iron_ore\",\"biomes\":[\"Definitely Missing\"]}]}]}").getAsJsonObject();
+		JsonObject converted = LegacyOs3Bridge.translateOs1ForTests("minecraft", source);
+		JsonObject spawn = converted.getAsJsonObject("spawns").entrySet().iterator().next().getValue().getAsJsonObject();
+		assertEquals("orespawn:unresolved_legacy_biome",
+				spawn.getAsJsonObject("biomes").getAsJsonArray("includes").get(0).getAsString());
+	}
+
+	@Test
 	void translatesAllOs3PatternsSelectorsWeightsMetadataAndFlags() throws Exception {
 		Path legacy = temporary.resolve("orespawn3");
 		Files.createDirectories(legacy.resolve("sysconf"));

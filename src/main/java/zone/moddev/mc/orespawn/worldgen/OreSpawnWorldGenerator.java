@@ -14,6 +14,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
+import net.minecraftforge.event.terraingen.ChunkGeneratorEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.eventhandler.Event;
@@ -34,6 +35,11 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	private final Set<ChunkKey> legacyComplete = concurrentSet();
 
 	private OreSpawnWorldGenerator() {
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void captureNativeAquifer(ChunkGeneratorEvent.ReplaceBiomeBlocks event) {
+		AquiferMaterialSubstitution.capture(event);
 	}
 
 	@SubscribeEvent
@@ -60,14 +66,26 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	public void filterVanillaOre(OreGenEvent.GenerateMinable event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
 		ResourceLocation dimension = WorldIds.dimension(event.getWorld());
+		Block output = vanillaOutput(event.getType());
 		if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 			event.setResult(Event.Result.DENY);
-			return;
+		} else if (output != null) {
+			ChunkPos chunk = new ChunkPos(event.getPos());
+			if (!OreSpawnOreGeneration.allowsVanillaOre(dimension, output,
+					event.getWorld().getSeed(), chunk.x, chunk.z)) {
+				event.setResult(Event.Result.DENY);
+			}
 		}
-		Block output = vanillaOutput(event.getType());
-		if (output != null && OreSpawnOreGeneration.takesOverVanillaOre(dimension, output)) {
-			event.setResult(Event.Result.DENY);
+
+		if (output == Blocks.GOLD_ORE && event.getResult() == Event.Result.DENY) {
+			VanillaMesaGoldCompatibility.suppress(event.getGenerator(), event.getWorld(), event.getPos());
 		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void afterBiomeDecoration(DecorateBiomeEvent.Post event) {
+		if (WorldgenBenchmark.isVanillaBaseline()) return;
+		VanillaMesaGoldCompatibility.restore(event.getWorld(), event.getPos());
 	}
 
 	@Override
@@ -86,7 +104,8 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 		ChunkKey key = new ChunkKey(WorldIds.dimension(world), chunkX, chunkZ);
 		if (!earlyComplete.add(key)) return;
 		Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
-		// Explicit order is the 1.12 equivalent of LOCAL_MODIFICATIONS.
+		// Explicit order is the legacy equivalent of LOCAL_MODIFICATIONS.
+		AquiferMaterialSubstitution.apply(world, chunk);
 		StoneReplacer.FEATURE.generate(world, chunk, random);
 		BiomeSurfaceFeature.FEATURE.generate(world, chunk, random);
 		FluidDepositFeature.FEATURE.generate(world, chunk, random);
@@ -103,6 +122,8 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	public void clear() {
+		VanillaMesaGoldCompatibility.clear();
+		AquiferMaterialSubstitution.clear();
 		earlyComplete.clear();
 		oreComplete.clear();
 		legacyComplete.clear();

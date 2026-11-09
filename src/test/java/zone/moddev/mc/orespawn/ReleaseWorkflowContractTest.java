@@ -14,6 +14,17 @@ import org.junit.jupiter.api.Test;
 
 class ReleaseWorkflowContractTest {
 	@Test
+	void verificationKeepsTheNativeMigrationAndCompatibilityGates() throws Exception {
+		String migration = readScript("gradle/verification/legacy-and-migration.gradle");
+		assertTrue(migration.contains("baseMetals111ProviderTest"));
+		assertTrue(migration.contains("legacyOreSpawn111Jar"));
+		assertTrue(migration.contains("legacyMineralogy111OracleJar"));
+		assertTrue(migration.contains("legacyAbiIntegrationTest"));
+		assertTrue(migration.contains("legacyMineralogyGates"));
+		assertTrue(migration.contains("dependsOn legacyMineralogyGates"));
+	}
+
+	@Test
 	void releaseAndHostedWorkflowContractsRemainTargetNative() throws Exception {
 		Properties properties = new Properties();
 		try (InputStream input = Files.newInputStream(Paths.get("gradle.properties"))) {
@@ -21,12 +32,20 @@ class ReleaseWorkflowContractTest {
 		}
 		assertEquals("zone.moddev.mc.orespawn", properties.getProperty("mod_group"));
 
-		String build = new String(Files.readAllBytes(Paths.get("build.gradle")), StandardCharsets.UTF_8);
-		assertTrue(build.contains("tasks.register('verifyMavenCoordinates')"));
-		assertTrue(build.contains("generatePomFileForMavenJavaPublication"));
-		assertTrue(build.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
+		String build = readScript("build.gradle");
+		String publishing = readScript("gradle/release/publishing.gradle");
+		String support = readScript("gradle/verification/support.gradle");
+		String artifacts = readScript("gradle/release/artifacts.gradle");
+		String packaged = readScript("gradle/verification/packaged-forge.gradle");
+		String benchmark = readScript("gradle/verification/client-and-benchmark.gradle");
+		assertTrue(build.contains("apply from: 'gradle/release/publishing.gradle'"));
+		assertTrue(publishing.contains("tasks.register('verifyMavenCoordinates')"));
+		assertTrue(publishing.contains("generatePomFileForMavenJavaPublication"));
+		assertTrue(publishing.contains("dependsOn tasks.named('verifyMavenCoordinates')"));
 		assertTrue(build.contains("expectedMavenCoordinate"));
 		assertFalse(build.contains("Mavenizer compatibility"));
+		assertTrue(build.contains("args 'nogui'"));
+		assertFalse(build.contains("args '--nogui'"));
 
 		String ci = readWorkflow("ci.yml");
 		String codeql = readWorkflow("codeql-analysis.yml");
@@ -49,15 +68,19 @@ class ReleaseWorkflowContractTest {
 		assertTrue(build.contains("if (gradle.startParameter.offline)"));
 		assertTrue(build.contains("mavenizerArguments.add('--offline')"));
 		assertTrue(build.contains("Minecraft 1.11's LegacyV2Adapter"));
-		assertTrue(build.contains("Packaged LegacyV2 locale alias differs"));
+		assertTrue(artifacts.contains("Packaged LegacyV2 locale alias differs"));
 		assertTrue(build.contains("args 'nogui'"));
 		assertFalse(build.contains("args '--nogui'"));
-		assertTrue(build.contains("List<String> effectiveArgs = new ArrayList<>(originalArgs)"));
-		assertTrue(build.contains("run.setArgs(effectiveArgs)"));
-		assertFalse(build.contains("run.args(process.args)"));
-		assertTrue(build.contains("'-jar', forge, 'nogui'"));
-		assertTrue(build.contains("logs/fml-server-latest.log"));
-		assertTrue(build.contains("benchmarkLogs.any"));
+		assertTrue(support.contains("List<String> effectiveArgs = new ArrayList<>(originalArgs)"));
+		assertTrue(support.contains("run.setArgs(effectiveArgs)"));
+		assertFalse(support.contains("run.args(process.args)"));
+		assertTrue(packaged.contains("'-jar', forge, 'nogui'"));
+		assertTrue(benchmark.contains("logs/fml-server-latest.log"));
+		assertTrue(benchmark.contains("benchmarkLogs.any"));
+	}
+
+	private static String readScript(String path) throws Exception {
+		return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
 	}
 
 	private static String readWorkflow(String name) throws Exception {

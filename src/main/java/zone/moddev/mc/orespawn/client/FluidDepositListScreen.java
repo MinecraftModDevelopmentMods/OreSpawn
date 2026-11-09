@@ -67,9 +67,9 @@ final class FluidDepositListScreen extends OreSpawnScreen {
 	private ITextComponent depositName(String id) {
 		JsonObject deposit = session.fluidDeposit(id);
 		try {
-			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(
-					GeologyEditorSession.string(deposit, "block", "")));
-			if (block != null) return DialogTexts.blockName(block);
+			String blockId = GeologyEditorSession.string(deposit, "block", "");
+			Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(blockId));
+			if (block != null) return DialogTexts.blockName(block, blockId);
 		} catch (RuntimeException ignored) { }
 		return new TextComponentString(id);
 	}

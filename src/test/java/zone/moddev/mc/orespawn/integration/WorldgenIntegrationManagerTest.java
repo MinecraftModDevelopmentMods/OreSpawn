@@ -7,10 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -112,6 +116,55 @@ class WorldgenIntegrationManagerTest {
 				() -> WorldgenIntegrationManager.validateProvider("examplemod", solidFluid));
 	}
 
+	@Test
+	void sourceArbitrationFieldsRequireProviderSchemaFive() {
+		assertDoesNotThrow(() -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", oreSourceProvider(5)));
+		assertThrows(JsonSyntaxException.class, () -> WorldgenIntegrationManager.validateProvider(
+				"examplemod", oreSourceProvider(4)));
+	}
+
+	@Test
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	void providerCanDeferNewEntriesForExistingWorldsWithoutChangingNewWorldDefaults()
+			throws Exception {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", 4);
+		root.addProperty("provider_modid", "realisticdeposits");
+		root.addProperty("provider_revision", 1);
+		root.addProperty("merge_new_entries_into_existing_worlds", false);
+		JsonObject ores = new JsonObject();
+		ores.add("realisticdeposits:deposit/minecraft/iron_ore", new JsonObject());
+		root.add("ores", ores);
+
+		Class<?> definitionType = Class.forName(
+				"zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager$ProviderDefinition");
+		Constructor<?> constructor = definitionType.getDeclaredConstructor(
+				String.class, int.class, JsonObject.class);
+		constructor.setAccessible(true);
+		Object provider = constructor.newInstance("realisticdeposits", 1, root);
+		Field activeField = WorldgenIntegrationManager.class.getDeclaredField("ACTIVE_PROVIDERS");
+		activeField.setAccessible(true);
+		Map active = (Map) activeField.get(null);
+		Map saved = new LinkedHashMap(active);
+		try {
+			active.clear();
+			active.put("realisticdeposits", provider);
+			JsonObject existingWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(existingWorld);
+			assertFalse(existingWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+
+			JsonObject newWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeProviderDefinitions(newWorld);
+			assertTrue(newWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+		} finally {
+			active.clear();
+			active.putAll(saved);
+		}
+	}
+
 	private static JsonObject provider(String block, boolean withHost, int schema) {
 		JsonObject root = new JsonObject();
 		root.addProperty("schema_version", schema);
@@ -180,6 +233,35 @@ class WorldgenIntegrationManagerTest {
 		JsonObject materials = new JsonObject();
 		materials.add("examplemod:materials/test", material);
 		root.add("dimension_materials", materials);
+		return root;
+	}
+
+	private static JsonObject oreSourceProvider(int schema) {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", schema);
+		root.addProperty("provider_modid", "examplemod");
+		root.addProperty("provider_revision", 1);
+		JsonObject rule = new JsonObject();
+		// This test exercises only the schema gate. Pattern decoding is covered by
+		// the provider validation tests that install the OreSpawn pattern registry.
+		rule.addProperty("enabled", false);
+		rule.addProperty("min_y", 0);
+		rule.addProperty("max_y", 64);
+		rule.addProperty("frequency", 1.0D);
+		rule.addProperty("quantity", 8);
+		rule.addProperty("placement_channel", "orespawn:standard");
+		JsonArray hosts = new JsonArray();
+		hosts.add(new JsonPrimitive("minecraft:stone"));
+		rule.add("host_blocks", hosts);
+		JsonObject ore = new JsonObject();
+		ore.addProperty("block", "minecraft:iron_ore");
+		ore.addProperty("material", "orespawn:iron");
+		JsonObject dimensions = new JsonObject();
+		dimensions.add("minecraft:overworld", rule);
+		ore.add("dimensions", dimensions);
+		JsonObject ores = new JsonObject();
+		ores.add("examplemod:iron", ore);
+		root.add("ores", ores);
 		return root;
 	}
 }

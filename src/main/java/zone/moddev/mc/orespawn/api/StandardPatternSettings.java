@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 
 /** Shared bounded settings understood by OreSpawn's six built-in patterns. */
 public final class StandardPatternSettings {
-	public static final Codec<StandardPatternSettings> CODEC = Codec.of(element -> {
+	public static final Codec<StandardPatternSettings> CODEC = LegacyCodecBridge.create(element -> {
 		JsonObject json = element == null || !element.isJsonObject()
 				? new JsonObject() : element.getAsJsonObject();
 		return new StandardPatternSettings(integer(json, "spread", 8),

@@ -1,3 +1,16 @@
+## 4.1.6.111021
+
+- Fix duplicate ore generation when an OreSpawn 1 world is moved without its converted provider file. Keep imported rules and saved choices, and back up the profile before removing a duplicate. Leave edited rules for review.
+- Pick the default sulfur and lithium sources after all mods have loaded. New setups can share those ores with Base Electric without adding extra veins. Existing worlds keep their choices and existing chunks stay as they are.
+
+## 4.1.5.111021
+
+- Bring the 4.1 provider, Ore Sources, biome and dimension-material features to Minecraft 1.11.2.
+- Keep existing provider settings and vanilla ore choices when importing old configs.
+- Bring the OreSpawn 1 compatibility bridge to 1.11.2 without running a second ore generator.
+- Support exact ore host variants and preserve native Mesa gold when vanilla ore management is off.
+- Make the Austrian German translation selectable and give Pirate Speak its own menu and guide text.
+
 Version 4.0.17.111021
 
 * Keep existing OreSpawn 4 provider settings when importing an older ore

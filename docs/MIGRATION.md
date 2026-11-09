@@ -82,6 +82,15 @@ override is still checked by the normal loader, not replaced by the old rules.
 
 ## Provider-Aware OS3 Imports
 
+An OreSpawn 1 import keeps its saved rule ID and settings even if you move
+the world without its converted provider file. If an older build added a
+second rule, OreSpawn removes it only when the saved rule still matches the
+provider default and no custom ore-source selection depends on it. The
+original profile is backed up before that repair. Edited or ambiguous
+overlaps are left in place and listed under `legacy_ore_review` in the
+provider's saved manifest and reported in the log. This does not change
+ore blocks in chunks already generated.
+
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now
 compares each converted primary output with that provider's ore declarations.
 A unique output match is written under the provider's stable rule ID, allowing
@@ -93,6 +102,12 @@ legacy-ID behaviour.
 
 Migration is non-destructive. OreSpawn writes `config/orespawn-worldgen.json`
 only when that target does not already exist and retains every source file.
+
+An existing `config/<modid>-orespawn.json` override is also kept unchanged,
+even when legacy files are imported for the first time. The upgrade report
+records that the existing provider settings were retained, not validated.
+An unfinished or invalid override is left for the normal provider validator;
+migration does not replace it with defaults or older settings.
 
 When `config/mineralogy-geomes.json` exists, OreSpawn imports the Mineralogy 6
 profile directly, updates its schema marker, and records `migrated_from`.
@@ -122,16 +137,56 @@ replacement, retrogen, forced retrogen, flat bedrock, and bedrock thickness.
 Unknown numeric dimensions and obsolete block states are reported instead of
 guessed. Review `config/orespawn-migration/migration-report.txt` after import.
 
-Global schemas 1-5 and world schemas 1-4 are upgraded in memory and persisted
+**Manage Vanilla Ores** controls imported vanilla-ore rules as well as the
+modern defaults. With it off, imported vanilla rules remain saved but inactive:
+they neither place ore nor suppress Minecraft's normal ore pass. Importing a
+rule does not turn the switch on. Migration copies the old **Replace Vanilla
+Oregen** setting when present; an existing saved world keeps its own setting.
+
+With management on, an enabled imported vanilla-ore rule replaces the matching
+Minecraft ore pass in the dimensions it covers. Its custom frequency, height,
+vein size, hosts, biome limits and retrogen setting are kept. If OreSpawn's newer
+vanilla default is also enabled, the imported rule takes precedence rather
+than adding a second pass. Saved Ore Sources selections are applied before
+removing duplicate defaults. Disabled rules and dimensions do not claim that ore.
+
+This also applies to previously imported `orespawn:legacy/...` rules and the
+bridge's provider-owned `<modid>:legacy/...` rules in saved world profiles.
+Rules mapped to a modern provider ID keep the importer's `source_mod: legacy`
+marker and follow the same switch.
+The saved switch, placement settings and retrogen options are kept,
+and ore already placed in existing chunks is left alone. Newly generated
+chunks follow the saved management switch; existing excess ore is not removed.
+Turning management off and back on does not discard the imported settings.
+
+Global schemas 1-7 and world schemas 1-6 are upgraded in memory and persisted
 where safe. A schema-1 world held only mode/oil/formation choices and is
 overlaid on the effective installed-pack profile. A schema-2 world is already
 a full snapshot and preserves its geology. Existing terrain is not rewritten.
 
-Provider schemas 1-3 remain readable. Schema 4 adds `biome_palettes`,
+Provider schemas 1-4 remain readable. Schema 4 adds `biome_palettes`,
 `dimension_materials`, and automatic fresh-world template metadata. Older
 profiles receive empty biome/material sections, so migration cannot change
 their terrain or biome output. Auto-selected templates are never applied to an
 existing world profile during migration.
+
+Provider schema 5 adds optional canonical ore `material` and per-rule
+`placement_channel` fields. Global schema 8 and world schema 7 persist
+`ore_material_groups`, each policy's `output_mode`, and the existing
+`ore_source_policies`. Existing consolidated policies infer Single, Balanced,
+or Custom from their selected outputs and weights. A new world may consolidate
+only reviewed MMD conflicts and begins those groups Balanced; every discovered
+conflict in an upgraded world is initialized as `keep_separate` (shown as Keep
+Original), preserving prior placement frequency, ordering and output behaviour.
+Missing selected sources and dormant policies remain recorded. Policy changes
+affect new chunks only and do not add retrogen.
+
+Legacy imports may spell built-in patterns as `orespawn:default` or another
+fully qualified built-in name. These are ordinary generation, so hybrid and
+replacement background limits apply to them. Saved Ore Sources choices under
+those older inferred channel names remain valid without changing the saved
+ore rule. Explicit channels, custom patterns, imported quantities and heights,
+and already generated chunks are left alone.
 
 The old `place_crude_oil` and singleton `oil` fields migrate to
 `place_fluid_deposits` and a provider-owned rule. A valid block becomes

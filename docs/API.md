@@ -52,8 +52,21 @@ coverage with `OreDefinition.Builder.dimensionSelector(...)` and
 `OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
 override that selector and prevent duplicate placement.
 
-The builder emits provider schema 4. Legacy provider schemas 1-3 remain
-readable. Schema 4 is required for biome palettes and dimension materials.
+The builder emits provider schema 5. Older provider schemas remain readable.
+Schema 4 added biome palettes and dimension materials. Schema 5 adds the
+optional ore material and placement channel used by Ore Sources.
+
+`hostBlock(id)` allows every variant of a block. Use
+`hostState(id, metadata)` to target one legacy variant, such as granite
+(`minecraft:stone`, metadata `1`), without allowing the other stone variants.
+The weighted overload accepts the same replacement weight as `hostBlock`.
+
+OreSpawn 4.1's biome directory and exact replacement layer add no public Java
+API methods or descriptors. Providers continue to declare
+biome palettes and dimension materials through the existing builders below.
+The editor's provider-default snapshot and terminal override palette are
+implementation details; add-ons must not depend on their client classes or
+reserved `orespawn:ui/biome_overrides/` IDs.
 
 Provider-owned fluid deposits are declarative and may target several dimensions:
 

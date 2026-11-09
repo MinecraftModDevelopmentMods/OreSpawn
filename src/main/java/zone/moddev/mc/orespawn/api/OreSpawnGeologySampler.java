@@ -6,7 +6,6 @@ import java.util.Optional;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
 import zone.moddev.mc.orespawn.worldgen.BakedGeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.Geology;
-import zone.moddev.mc.orespawn.worldgen.GeomeConfig;
 import zone.moddev.mc.orespawn.worldgen.GeomeGeology;
 import zone.moddev.mc.orespawn.worldgen.RockFamily;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
@@ -33,7 +32,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	private OreSpawnGeologySampler(WorldServer level) {
 		this.level = level;
 		dimension = WorldIds.dimension(level);
-		config = GeomeConfig.baked(dimension);
+		config = OreSpawnApi.samplerConfig(level);
 		WorldGeologyProfile profile = WorldGeologyProfileManager.activeProfile();
 		mode = profile.geologyMode();
 		if (mode == GeologyMode.LEGACY) {
@@ -47,7 +46,7 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	}
 
 	static GeologySampler create(WorldServer level) {
-		if (level == null || WorldGeologyProfileManager.activeServer() != level.getMinecraftServer()) {
+		if (!OreSpawnApi.isActiveLevel(level)) {
 			throw new IllegalStateException("The level is not part of OreSpawn's active server");
 		}
 		return new OreSpawnGeologySampler(level);
@@ -56,7 +55,10 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
 		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
-		Biome biome = level.getBiome(position);
+		// Query the dimension's biome provider directly. World#getBiome may obtain a
+		// chunk and therefore load or generate neighbouring chunks when a large
+		// extension pattern samples a body crossing chunk boundaries.
+		Biome biome = level.provider.getBiomeProvider().getBiome(position);
 		ResourceLocation biomeId = WorldIds.biome(biome);
 		if (biomeId == null) biomeId = new ResourceLocation("orespawn", "unregistered_biome");
 		if (mode == GeologyMode.LEGACY) {
