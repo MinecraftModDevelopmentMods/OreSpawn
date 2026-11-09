@@ -5,6 +5,7 @@ import zone.moddev.mc.orespawn.util.JsonCopies;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -21,6 +22,17 @@ import org.junit.jupiter.api.io.TempDir;
 
 class LegacyConfigMigratorTest {
 	@TempDir Path temporary;
+
+	@Test
+	void leavesAnExistingInstanceProfileAlone() throws IOException {
+		Path legacy = Files.createDirectories(temporary.resolve("orespawn3")).resolve("basemetals.json");
+		write(legacy, baseMetalsFixture().toString());
+		Path target = temporary.resolve("orespawn-worldgen.json");
+		String original = "{\"ores\":{},\"manage_vanilla_ores\":false}";
+		write(target, original);
+		assertNull(LegacyConfigMigrator.migrateIfNeeded(target, new JsonObject()));
+		assertEquals(original, read(target));
+	}
 
 	@Test
 	void migratesBaseMetalsOs3FixtureExactly() throws IOException {

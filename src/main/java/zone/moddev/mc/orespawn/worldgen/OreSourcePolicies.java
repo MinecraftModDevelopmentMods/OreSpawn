@@ -166,11 +166,48 @@ final class OreSourcePolicies {
 				? rule.getAsJsonObject("pattern") : null;
 		if (pattern != null) {
 			ResourceLocation type = resource(string(pattern, "type", ""));
-			if (type != null) return type;
+			if (type != null) return patternChannel(type);
 		}
 		String legacy = string(rule, "pattern", "");
 		ResourceLocation type = legacy.indexOf(':') >= 0 ? resource(legacy) : null;
-		return type != null ? type : STANDARD;
+		return type != null ? patternChannel(type) : STANDARD;
+	}
+
+	static ResourceLocation patternChannel(ResourceLocation pattern) {
+		if ("orespawn".equals(pattern.getNamespace())) {
+			switch (pattern.getPath()) {
+				case "default":
+				case "vein":
+				case "normal_cloud":
+				case "precision":
+				case "clusters":
+				case "underfluids":
+					return STANDARD;
+				default:
+					break;
+			}
+		}
+		return pattern;
+	}
+
+	static boolean legacyChannelSelection(JsonObject profile, ResourceLocation source,
+			ResourceLocation domain, ResourceLocation savedChannel, ResourceLocation currentChannel) {
+		if (!STANDARD.equals(currentChannel) || STANDARD.equals(savedChannel)
+				|| !STANDARD.equals(patternChannel(savedChannel))) return false;
+		JsonObject ore = readObject(readObject(profile, "ores"), source.toString());
+		JsonObject dimensions = readObject(ore, "dimensions");
+		JsonObject rule = dimensions.has(domain.toString()) ? readObject(dimensions, domain.toString())
+				: readObject(readObject(ore, "dimension_selectors"), domain.toString());
+		// A saved inferred name may still select its original rule. An explicit channel wins.
+		if (rule.has("placement_channel")) return false;
+		JsonElement pattern = rule.get("pattern");
+		String oldChannel = pattern != null && pattern.isJsonObject()
+				? string(pattern.getAsJsonObject(), "type", "") : string(rule, "pattern", "");
+		return savedChannel.toString().equals(oldChannel);
+	}
+
+	private static JsonObject readObject(JsonObject parent, String key) {
+		return parent.has(key) && parent.get(key).isJsonObject() ? parent.getAsJsonObject(key) : new JsonObject();
 	}
 
 	static Inference inferMaterial(Iterable<String> blockTags) {
@@ -195,11 +232,12 @@ final class OreSourcePolicies {
 		for (Entry<String, JsonElement> oreEntry : ores.entrySet()) {
 			if (!oreEntry.getValue().isJsonObject()) continue;
 			JsonObject ore = oreEntry.getValue().getAsJsonObject();
-			boolean oreActive = bool(ore, "enabled", true)
-					&& (!bool(ore, "native_generation", false) || manageVanillaOres);
 			ResourceLocation blockId = resource(string(ore, "block", oreEntry.getKey()));
 			Block block = blockId == null ? null : ForgeRegistries.BLOCKS.getValue(blockId);
 			if (block == null || block == Blocks.AIR) continue;
+			boolean nativeOrImportedVanilla = bool(ore, "native_generation", false)
+					|| OreSpawnOreGeneration.isImportedVanillaOre(resource(oreEntry.getKey()), block, ore);
+			boolean oreActive = bool(ore, "enabled", true) && (!nativeOrImportedVanilla || manageVanillaOres);
 			int metadata = integer(ore, "metadata", 0);
 			Inference inferred = inferMaterial(root, blockTags(block));
 			ResourceLocation material = resource(string(ore, "material", ""));

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class LocalizationParityTest {
 	private static final Path LANG_DIR = Paths.get("src", "main", "resources", "assets", "orespawn", "lang");
 	private static final Set<String> EXPECTED_LOCALES = ImmutableSet.of(
-			"de_au.json", "de_de.json", "en_ca.json", "en_en.json",
+			"de_at.json", "de_de.json", "en_ca.json",
 			"en_gb.json", "en_pt.json", "en_us.json", "es_es.json",
 			"es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
 			"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json");
@@ -37,18 +37,18 @@ class LocalizationParityTest {
 	private static final Map<String, Set<String>> INTENTIONAL_ENGLISH_VALUES =
 			ImmutableMap.<String, Set<String>>builder()
 			.put("button.orespawn.world_settings", ImmutableSet.of(
-					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"de_at.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
 					"zh_cn.json"))
 			.put("button.orespawn.biome_available", ImmutableSet.of(
-					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"de_at.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
 					"zh_cn.json"))
 			.put("option.orespawn.mod_filter", ImmutableSet.of(
-					"de_au.json", "de_de.json", "fr_ca.json", "fr_fr.json"))
+					"de_at.json", "de_de.json", "fr_ca.json", "fr_fr.json"))
 			.put("screen.orespawn.biomes", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
 			.put("tab.orespawn.biomes", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
-			.put("tab.orespawn.geomes", ImmutableSet.of("de_au.json", "de_de.json"))
+			.put("tab.orespawn.geomes", ImmutableSet.of("de_at.json", "de_de.json"))
 			.put("tab.orespawn.placement", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
 			.put("tab.orespawn.biome_placement", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
 			.put("tab.orespawn.biome_surface", ImmutableSet.of("fr_ca.json", "fr_fr.json"))
@@ -56,19 +56,19 @@ class LocalizationParityTest {
 			.put("value.orespawn.geology_mode.geome", ImmutableSet.of(
 					"es_es.json", "es_mx.json", "fr_ca.json", "fr_fr.json", "ja_jp.json",
 					"ko_kr.json", "pt_br.json", "ru_ru.json", "zh_cn.json"))
-			.put("value.orespawn.geology_mode.legacy", ImmutableSet.of("de_au.json", "de_de.json"))
-			.put("value.orespawn.height_distribution.uniform", ImmutableSet.of("de_au.json", "de_de.json"))
+			.put("value.orespawn.geology_mode.legacy", ImmutableSet.of("de_at.json", "de_de.json"))
+			.put("value.orespawn.height_distribution.uniform", ImmutableSet.of("de_at.json", "de_de.json"))
 			.put("value.orespawn.height_distribution.triangle", ImmutableSet.of("pt_br.json"))
 			.put("value.orespawn.ore_pattern.default", ImmutableSet.of(
-					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"de_at.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
 					"zh_cn.json"))
 			.put("value.orespawn.ore_pattern.precision", ImmutableSet.of(
-					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"de_at.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
 					"zh_cn.json"))
 			.put("value.orespawn.ore_pattern.underfluids", ImmutableSet.of(
-					"de_au.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
+					"de_at.json", "de_de.json", "es_es.json", "es_mx.json", "fr_ca.json",
 					"fr_fr.json", "ja_jp.json", "ko_kr.json", "pt_br.json", "ru_ru.json",
 					"zh_cn.json"))
 			.build();
@@ -80,6 +80,14 @@ class LocalizationParityTest {
 			"mineralog", "min\u00e9ralog", "\u043c\u0438\u043d\u0435\u0440\u0430\u043b\u043e\u0433",
 			"\uad11\ubb3c\ud559", "\u9271\u7269\u5b66", "\u77ff\u7269\u5b66", "\u7926\u7269\u5b78"
 	};
+
+	@Test
+	void shippedGameLocaleIdsHaveTheirOwnMenuText() throws Exception {
+		assertEquals("Empfohlene Standardeinstellungen", read(LANG_DIR.resolve("de_at.json"))
+				.get("button.orespawn.recommended").getAsString());
+		assertEquals("Captain's Defaults", read(LANG_DIR.resolve("en_pt.json"))
+				.get("button.orespawn.recommended").getAsString());
+	}
 
 	@Test
 	void everyLocaleMatchesEnglishKeysAndFormatting() throws Exception {

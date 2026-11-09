@@ -152,7 +152,7 @@ final class OreSourceListScreen extends OreSpawnScreen {
 				return groupTooltip(groups.get(index));
 			}
 
-			@Override protected int rowActionWidth(int index) { return 16; }
+			@Override protected int rowActionWidth(int index) { return groups.get(index).preview ? 0 : 16; }
 
 			@Override protected void drawRowAction(Minecraft minecraft, int index,
 					int x, int y, int actionWidth, int rowHeight, boolean hovered) {
@@ -198,6 +198,7 @@ final class OreSourceListScreen extends OreSpawnScreen {
 					outputScroll = 0;
 					rebuild();
 				}));
+		modeButton.enabled = !group.preview;
 		OreSpawnScreenLayout.explain(this, modeButton, "tooltip.orespawn.ore_source.output_mode");
 		if (acceptWidth > 0) {
 			Button accept = addButton(OreSpawnScreenLayout.button(this, font,

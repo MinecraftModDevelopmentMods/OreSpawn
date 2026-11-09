@@ -222,6 +222,15 @@ public final class WorldgenIntegrationManager {
 
 	/** Merge new provider-owned defaults without overwriting pack or world values. */
 	public static synchronized boolean mergeProviderDefinitions(JsonObject target) {
+		return mergeProviderDefinitions(target, false);
+	}
+
+	/** Only saved-world callers may remove a duplicate, after arranging a profile backup. */
+	public static synchronized boolean mergeSavedProviderDefinitions(JsonObject target) {
+		return mergeProviderDefinitions(target, true);
+	}
+
+	private static boolean mergeProviderDefinitions(JsonObject target, boolean savedWorld) {
 		JsonObject manifests = object(target, "providers");
 		JsonObject legacyOreManifests = object(target, "ore_providers");
 		boolean changed = false;
@@ -245,9 +254,15 @@ public final class WorldgenIntegrationManager {
 				String knownKey = "known_" + sectionName;
 				Set<String> known = stringSet(manifest.get(knownKey));
 				Set<String> current = JsonCopies.keys(providerSection);
+				LegacyOreReplacements.Result replacements = "ores".equals(sectionName)
+						? LegacyOreReplacements.reconcile(target, provider.modId, targetSection,
+								nativeOreDefaults(provider.modId, providerSection), providerSection, manifest, known, savedWorld)
+						: new LegacyOreReplacements.Result();
+				changed |= replacements.changed;
 
 				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
 					String id = entry.getKey();
+					if (replacements.suppressed.contains(id)) continue;
 					if (!targetSection.has(id) && !known.contains(id)) {
 						JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
 						if (!"biome_rules".equals(sectionName)) {
@@ -264,7 +279,9 @@ public final class WorldgenIntegrationManager {
 
 				for (String knownId : known) {
 					if (!current.contains(knownId) && targetSection.has(knownId)
-							&& targetSection.get(knownId).isJsonObject()) {
+							&& !("ores".equals(sectionName) && LegacyOreReplacements.retains(manifest, knownId, current))
+							&& targetSection.get(knownId).isJsonObject()
+							&& !bool(targetSection.getAsJsonObject(knownId), "orphaned_provider", false)) {
 						targetSection.getAsJsonObject(knownId).addProperty("orphaned_provider", true);
 						changed = true;
 					}
@@ -305,6 +322,19 @@ public final class WorldgenIntegrationManager {
 		target.add("providers", manifests);
 		target.add("ore_providers", legacyOreManifests);
 		return changed;
+	}
+
+	private static JsonObject nativeOreDefaults(String providerId, JsonObject activeOres) {
+		if (!FILE_PROVIDERS.containsKey(providerId)) return activeOres;
+		JsonObject shipped = installedProviderRoot(providerId);
+		JsonElement ores = shipped == null ? null : shipped.get("ores");
+		return ores != null && ores.isJsonObject() ? ores.getAsJsonObject() : new JsonObject();
+	}
+
+	private static JsonObject installedProviderRoot(String providerId) {
+		JsonObject root = RESOURCE_PROVIDERS.get(providerId);
+		WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
+		return root == null && apiProvider != null ? apiProvider.toJson() : root;
 	}
 
 	public static synchronized List<TemplateDefinition> templates() {
@@ -469,13 +499,7 @@ public final class WorldgenIntegrationManager {
 				continue;
 			}
 			JsonObject root = FILE_PROVIDERS.get(providerId);
-			if (root == null) {
-				root = RESOURCE_PROVIDERS.get(providerId);
-			}
-			if (root == null) {
-				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
-				root = apiProvider == null ? null : apiProvider.toJson();
-			}
+			if (root == null) root = installedProviderRoot(providerId);
 			if (root == null || !ModList.get().isLoaded(providerId)) {
 				continue;
 			}

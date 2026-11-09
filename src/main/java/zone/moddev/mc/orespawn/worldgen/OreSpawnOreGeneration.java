@@ -283,9 +283,11 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			if (ruleId == null) ruleId = oreId;
 			outputBundles.put(ruleId.toString(), new BakedOutputBundle(
 					output.getDefaultState(), deepOutput, deepOutputMaxY, outputs));
-			if (!oreEnabled || (nativeGeneration && !manageVanillaOres)) continue;
+			boolean importedVanilla = !nativeGeneration && isImportedVanillaOre(ruleId, output, oreJson);
+			if (!oreEnabled || (!manageVanillaOres && (nativeGeneration || importedVanilla))) continue;
 			ResourceLocation material = OreSourcePolicies.material(profile, oreJson, output);
-			BakedOreRule rule = new BakedOreRule(output, manageVanillaOres && suppressVanilla);
+			BakedOreRule rule = new BakedOreRule(ruleId, output, manageVanillaOres && suppressVanilla,
+					nativeGeneration, importedVanilla);
 
 			for (Entry<String, JsonElement> dimensionEntry : dimensions.entrySet()) {
 				ResourceLocation dimensionId = resource(dimensionEntry.getKey());
@@ -337,6 +339,8 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 
 		Map<ResourceLocation, BakedOre[]> result = new HashMap<>();
 		Map<ResourceLocation, Set<Block>> vanillaOutputs = new HashMap<>();
+		Map<ResourceLocation, BakedOreRule> definitions = new HashMap<>();
+		for (BakedOreRule rule : rules) definitions.put(rule.ruleId, rule);
 		for (ResourceLocation dimension : explicitDimensions) {
 			List<BakedOre> combined = new ArrayList<>();
 			Set<Block> suppressed = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
@@ -348,7 +352,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 					if (rule.suppressVanilla) suppressed.add(rule.output);
 				}
 			}
-			combined = arbitrate(profile, combined, outputBundles);
+			combined = preferImportedVanilla(definitions, arbitrate(profile, combined, outputBundles), suppressed);
 			result.put(dimension, combined.toArray(new BakedOre[combined.size()]));
 			vanillaOutputs.put(dimension, Collections.unmodifiableSet(suppressed));
 		}
@@ -359,7 +363,7 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			selectorList.add(rule.selector);
 			if (rule.suppressVanilla) selectorOutputs.add(rule.output);
 		}
-		selectorList = arbitrate(profile, selectorList, outputBundles);
+		selectorList = preferImportedVanilla(definitions, arbitrate(profile, selectorList, outputBundles), selectorOutputs);
 		BakedOre[] selectorResult = selectorList.toArray(new BakedOre[selectorList.size()]);
 		LOGGER.info("Baked {} OreSpawn-managed ore definitions across {} dimensions",
 				rules.size(), result.size());
@@ -370,6 +374,33 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 		return new BakedOres(Collections.unmodifiableMap(result),
 				Collections.unmodifiableMap(immutableVanillaOutputs), selectorResult,
 				Collections.unmodifiableSet(selectorOutputs));
+	}
+
+	static boolean isImportedVanillaOre(ResourceLocation ruleId, Block output, JsonObject ore) {
+		// Provider-aware imports can keep a modern ID, but still carry their legacy source.
+		if (ruleId == null || (!ruleId.getPath().startsWith("legacy/")
+				&& !"legacy".equals(string(ore, "source_mod", "")))) return false;
+		return output == Blocks.COAL_ORE || output == Blocks.IRON_ORE || output == Blocks.GOLD_ORE
+				|| output == Blocks.REDSTONE_ORE || output == Blocks.LAPIS_ORE
+				|| output == Blocks.DIAMOND_ORE || output == Blocks.EMERALD_ORE || output == Blocks.NETHER_QUARTZ_ORE;
+	}
+
+	private static List<BakedOre> preferImportedVanilla(Map<ResourceLocation, BakedOreRule> definitions,
+			List<BakedOre> ores, Set<Block> suppressed) {
+		Set<Block> importedOutputs = Collections.newSetFromMap(new IdentityHashMap<Block, Boolean>());
+		for (BakedOre ore : ores) {
+			BakedOreRule rule = definitions.get(ore.ruleId);
+			if (rule != null && rule.importedVanilla) importedOutputs.add(rule.output);
+		}
+		if (importedOutputs.isEmpty()) return ores;
+		suppressed.addAll(importedOutputs);
+		// A selected imported rule replaces the modern default, not another authored rule.
+		List<BakedOre> result = new ArrayList<>();
+		for (BakedOre ore : ores) {
+			BakedOreRule rule = definitions.get(ore.ruleId);
+			if (rule == null || !rule.nativeGeneration || !importedOutputs.contains(rule.output)) result.add(ore);
+		}
+		return result;
 	}
 
 	private static List<BakedOre> arbitrate(JsonObject profile, List<BakedOre> original,
@@ -397,13 +428,17 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 			Map<String, BakedOre> available = new HashMap<>();
 			for (BakedOre ore : entry.getValue()) available.put(ore.ruleId.toString(), ore);
 			List<BakedOre> selected = new ArrayList<>();
-			for (Entry<String, JsonElement> placement : objectOrEmpty(policy, "placement_sources").entrySet()) {
+			JsonObject placements = objectOrEmpty(policy, "placement_sources");
+			for (Entry<String, JsonElement> placement : placements.entrySet()) {
 				ResourceLocation channel = resource(placement.getKey());
 				String sourceId;
 				try { sourceId = placement.getValue().getAsString(); }
 				catch (RuntimeException invalid) { continue; }
 				BakedOre ore = available.get(sourceId);
-				if (ore != null && channel != null && channel.equals(ore.channel) && !sources.isEmpty()) {
+				if (ore == null || channel == null || sources.isEmpty()) continue;
+				boolean oldAlias = !placements.has(OreSourcePolicies.STANDARD.toString())
+						&& OreSourcePolicies.legacyChannelSelection(profile, ore.ruleId, ore.policyDomain, channel, ore.channel);
+				if (channel.equals(ore.channel) || oldAlias) {
 					selected.add(ore.withSources(sources));
 				}
 			}
@@ -863,15 +898,22 @@ public final class OreSpawnOreGeneration extends ContextFeature<NoFeatureConfig>
 	}
 
 	private static final class BakedOreRule {
+		final ResourceLocation ruleId;
 		final Block output;
 		final boolean suppressVanilla;
+		final boolean nativeGeneration;
+		final boolean importedVanilla;
 		final Map<ResourceLocation, BakedOre> explicit = new HashMap<>();
 		final Set<ResourceLocation> explicitDimensions = new HashSet<>();
 		BakedOre selector;
 
-		BakedOreRule(Block output, boolean suppressVanilla) {
+		BakedOreRule(ResourceLocation ruleId, Block output, boolean suppressVanilla,
+				boolean nativeGeneration, boolean importedVanilla) {
+			this.ruleId = ruleId;
 			this.output = output;
 			this.suppressVanilla = suppressVanilla;
+			this.nativeGeneration = nativeGeneration;
+			this.importedVanilla = importedVanilla;
 		}
 	}
 

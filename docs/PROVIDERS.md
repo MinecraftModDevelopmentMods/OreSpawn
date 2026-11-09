@@ -124,3 +124,8 @@ referenced biome; ordinary compatibility hints belong in `similar_biomes`.
 See `examples/examplemod-orespawn.json` for rocks, weighted ore output, a
 fluid deposit, a custom dimension, biome palette, world materials, and a
 selectable template.
+
+Ore Sources chooses defaults once mods finish loading. Both `baseelectric`
+and `electricadvantage` are recognised for sulfur and lithium, but
+automatic balancing still requires loaded providers with an exact shared
+ore tag. Existing worlds keep their saved choices.

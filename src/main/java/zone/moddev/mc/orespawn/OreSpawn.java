@@ -87,7 +87,7 @@ public class OreSpawn {
 		// Files are authoritative, so scan them before accepting API submissions.
 		WorldgenIntegrationManager.initialize();
 		WorldgenIntegrationManager.processImcMessages();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		OreSpawnOreGeneration.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.refreshWorldConfig();
@@ -96,7 +96,7 @@ public class OreSpawn {
 	private void setup(final FMLCommonSetupEvent event) {
 		OreSpawnConfig.bake();
 		WorldgenIntegrationManager.initialize();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		logGeomeSampler();
 		BiomeWorldgenBootstrap.registerCodecs();
 		DocumentationExporter.exportBundledGuide();

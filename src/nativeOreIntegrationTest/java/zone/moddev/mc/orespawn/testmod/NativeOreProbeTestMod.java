@@ -38,6 +38,7 @@ import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 public final class NativeOreProbeTestMod {
 	private static final String QUARTZ = "minecraft:nether_quartz_ore";
 	private static final String NETHER = "minecraft:the_nether";
+	private static final String IMPORTED_QUARTZ = "orespawn:legacy/minecraft/quartz";
 
 	public NativeOreProbeTestMod() {
 		MinecraftForge.EVENT_BUS.addListener(EventPriority.HIGHEST, this::prepare);
@@ -47,6 +48,7 @@ public final class NativeOreProbeTestMod {
 	private void prepare(FMLServerAboutToStartEvent event) {
 		Path profile = profilePath(event.getServer());
 		String phase = System.getProperty("nativeoreprobe.phase", "fresh");
+		String scenario = System.getProperty("nativeoreprobe.importMode", "");
 		if ("reload".equals(phase)) return;
 		try {
 			JsonObject root;
@@ -83,6 +85,19 @@ public final class NativeOreProbeTestMod {
 				tags.add("forge:netherrack");
 				rule.add("host_tags", tags);
 			}
+			if (scenario.startsWith("import-")) {
+				JsonObject ores = root.getAsJsonObject("ores");
+				JsonObject imported = new JsonParser().parse(ores.get(QUARTZ).toString()).getAsJsonObject();
+				imported.addProperty("block", QUARTZ);
+				imported.addProperty("source_mod", "legacy");
+				imported.addProperty("native_generation", false);
+				ores.add(IMPORTED_QUARTZ, imported);
+				// If the modern rule still runs, it will place quartz outside the imported band.
+				JsonObject nativeRule = ores.getAsJsonObject(QUARTZ).getAsJsonObject("dimensions").getAsJsonObject(NETHER);
+				nativeRule.addProperty("min_y", 85);
+				nativeRule.addProperty("max_y", 91);
+			}
+			if (scenario.endsWith("-off")) root.addProperty("manage_vanilla_ores", false);
 			Files.createDirectories(profile.getParent());
 			Files.write(profile, new GsonBuilder().setPrettyPrinting().create().toJson(root)
 					.getBytes(StandardCharsets.UTF_8));
@@ -94,8 +109,9 @@ public final class NativeOreProbeTestMod {
 	private void audit(FMLServerStartedEvent event) {
 		MinecraftServer server = event.getServer();
 		String phase = System.getProperty("nativeoreprobe.phase", "fresh");
-		if (!NativeOreProbeBridge.controlsQuartz()) {
-			throw new IllegalStateException("Quartz is not controlled by OreSpawn before generation");
+		boolean managementOff = System.getProperty("nativeoreprobe.importMode", "").endsWith("-off");
+		if (NativeOreProbeBridge.controlsQuartz() == managementOff) {
+			throw new IllegalStateException("Quartz control does not match Manage Vanilla Ores");
 		}
 		if (WorldGeologyProfileManager.activeProfile().oreRetrogenEnabled()) {
 			throw new IllegalStateException("The quartz test must not enable retrogen");
@@ -108,7 +124,7 @@ public final class NativeOreProbeTestMod {
 			if (!"fresh".equals(phase)) {
 				try (InputStream input = Files.newInputStream(marker)) { previous.load(input); }
 			}
-			Properties current = inspect(world, -8, 24, 28);
+			Properties current = inspect(world, -8, managementOff ? 0 : 24, managementOff ? 255 : 28);
 			current.setProperty("profile_sha256", hex(digest().digest(Files.readAllBytes(profilePath(server)))));
 			if (!"fresh".equals(phase)) {
 				for (String name : current.stringPropertyNames()) {
