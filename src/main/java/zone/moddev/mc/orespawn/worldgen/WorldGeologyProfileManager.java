@@ -18,7 +18,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import zone.moddev.mc.orespawn.OreSpawnConfig;
 import zone.moddev.mc.orespawn.OreSpawnConfig.GeologyMode;
-import zone.moddev.mc.orespawn.api.OreSpawnOreIntegration;
 import zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager;
 
 import net.minecraft.server.MinecraftServer;
@@ -105,7 +104,9 @@ public final class WorldGeologyProfileManager {
 				.resolve("serverconfig").resolve(PROFILE_FILE_NAME);
 		WorldGeologyProfile profile = readProfile(profilePath, globalProfile());
 		JsonObject merged = profile.rootCopy();
-		if (OreSpawnOreIntegration.mergeProviderOres(merged)) {
+		boolean changed = WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(merged);
+		changed |= OreSourcePolicies.initialize(merged, true);
+		if (changed && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 			profile = profile.withRoot(merged);
 			writeProfile(profilePath, profile);
 		}
@@ -127,8 +128,9 @@ public final class WorldGeologyProfileManager {
 			profile = readProfile(profilePath, fallback);
 			JsonObject merged = profile.rootCopy();
 			String beforeMerge = merged.toString();
-			OreSpawnOreIntegration.mergeProviderOres(merged);
-			if (!beforeMerge.equals(merged.toString())) {
+			WorldgenIntegrationManager.mergeProviderDefinitionsIntoExistingWorld(merged);
+			OreSourcePolicies.initialize(merged, true);
+			if (!beforeMerge.equals(merged.toString()) && preserveBeforeLegacyOreRepair(profilePath, profile, merged)) {
 				profile = profile.withRoot(merged);
 				writeProfile(profilePath, profile);
 				LOGGER.info("Merged new OreSpawn worldgen-provider definitions into '{}'", profilePath);
@@ -155,6 +157,7 @@ public final class WorldGeologyProfileManager {
 				profile = fallback.copy();
 				source = "installed-pack fresh-world";
 			}
+			profile = initializeNewWorldPolicies(profile, generatedWorld);
 			writeProfile(profilePath, profile);
 			LOGGER.info("Created OreSpawn world geology profile '{}' from {} settings",
 					profilePath, source);
@@ -167,6 +170,17 @@ public final class WorldGeologyProfileManager {
 				profile.verticalThickness().configName(), profile.waviness().configName(),
 				profile.edgeIrregularity().configName(), profile.formationContinuity().configName(),
 				profile.enabledFluidDepositCount(), profile.fluidDepositCount());
+	}
+
+	static WorldGeologyProfile initializeNewWorldPolicies(WorldGeologyProfile profile,
+			boolean generatedWorld) {
+		JsonObject initialized = profile.rootCopy();
+		// A generated world without an OS4 profile is an upgrade. Its installed-pack
+		// fallback may already contain fresh-world consolidation defaults, which must
+		// not alter the world's historical ore frequency implicitly.
+		if (generatedWorld) initialized.remove(OreSourcePolicies.SECTION);
+		OreSourcePolicies.initialize(initialized, generatedWorld);
+		return profile.withRoot(initialized);
 	}
 
 	public static void onServerStopped(FMLServerStoppedEvent event) {
@@ -262,8 +276,10 @@ public final class WorldGeologyProfileManager {
 			if (oreDefaultsRefreshed) {
 				root = GeomeConfig.refreshWorldOreDefaults(root);
 			}
+			boolean sourcePoliciesRefreshed = OreSourcePolicies.initialize(root, true);
 			WorldGeologyProfile profile = WorldGeologyProfile.fromJson(root, fallback);
-			if (schema < WorldGeologyProfile.SCHEMA_VERSION || oreDefaultsRefreshed) {
+			if (schema < WorldGeologyProfile.SCHEMA_VERSION || oreDefaultsRefreshed
+					|| sourcePoliciesRefreshed) {
 				boolean canWrite = schema >= WorldGeologyProfile.SCHEMA_VERSION
 						|| preserveBeforeSchemaMigration(path, schema);
 				canWrite &= !oreDefaultsRefreshed || preserveBeforeOreDefaultsRefresh(path);
@@ -276,6 +292,9 @@ public final class WorldGeologyProfileManager {
 						LOGGER.info("Updated untouched managed-ore rules in world geology profile '{}' to revision {}",
 								path, GeomeConfig.oreDefaultsRevision());
 					}
+					if (sourcePoliciesRefreshed) {
+						LOGGER.info("Refreshed OreSpawn ore-source policies in world geology profile '{}'", path);
+					}
 				} else if (oreDefaultsRefreshed) {
 					LOGGER.warn("Could not persist updated OreSpawn ore defaults for world profile '{}'; "
 							+ "using refreshed settings in memory", path);
@@ -286,6 +305,24 @@ public final class WorldGeologyProfileManager {
 			LOGGER.warn("Could not read OreSpawn world geology profile '{}'; using instance settings", path, e);
 			return fallback;
 		}
+	}
+
+	private static boolean preserveBeforeLegacyOreRepair(Path path, WorldGeologyProfile before, JsonObject merged) {
+		JsonObject beforeRoot = before.rootCopy();
+		if (!beforeRoot.has("ores") || !beforeRoot.get("ores").isJsonObject()) return true;
+		JsonObject newOres = merged.getAsJsonObject("ores");
+		for (java.util.Map.Entry<String, JsonElement> rule : beforeRoot.getAsJsonObject("ores").entrySet()) {
+			if (newOres != null && newOres.has(rule.getKey())) continue;
+			Path backup = path.resolveSibling("orespawn-worldgen.pre-legacy-ore-repair.bak");
+			try {
+				if (!Files.exists(backup)) Files.copy(path, backup);
+				return true;
+			} catch (IOException e) {
+				LOGGER.warn("Could not back up '{}'; legacy ore repair was not applied", path, e);
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean preserveBeforeOreDefaultsRefresh(Path path) {

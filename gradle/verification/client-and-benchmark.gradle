@@ -1,0 +1,215 @@
+// Client, surface and generation benchmark runs.
+import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.jar.Manifest
+import java.util.zip.ZipFile
+import org.apache.tools.ant.filters.FixCrLfFilter
+
+def shared = project.ext.oreSpawnBuild
+def configureFromForgeRun = shared.configureFromForgeRun
+def assertRuntimeLogsClean = shared.assertRuntimeLogsClean
+
+def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
+task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/biomeIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = surfaceIntegrationClasses
+    options.encoding = 'UTF-8'
+}
+
+task surfaceIntegrationTestModJar(type: Jar, dependsOn: compileSurfaceIntegrationTestMod) {
+    archiveFileName = 'surfaceprobe.jar'
+    destinationDirectory = file("${buildDir}/surface-integration-fixture")
+    from surfaceIntegrationClasses
+    from 'src/biomeIntegrationTest/resources'
+}
+
+// Keep the mapped development fixture separate from the copy transformed for
+// Forge's real packaged-mod discovery.
+def packagedSurfaceIntegrationTestModJar = renamer.classes(
+        tasks.named('surfaceIntegrationTestModJar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('surface-integration-fixture/surfaceprobe-reobf.jar')
+}
+
+def surfaceIntegrationRunDirectory = file("${buildDir}/surface-integration-run")
+task prepareSurfaceIntegrationTest(dependsOn: surfaceIntegrationTestModJar) {
+    doLast {
+        delete surfaceIntegrationRunDirectory
+        surfaceIntegrationRunDirectory.mkdirs()
+        copy {
+            from surfaceIntegrationTestModJar.archiveFile
+            into new File(surfaceIntegrationRunDirectory, 'mods')
+        }
+        new File(surfaceIntegrationRunDirectory, 'server.properties').setText('''\
+level-name=surface-integration-world
+level-seed=zsjpxah
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+        new File(surfaceIntegrationRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+    }
+}
+
+def createSurfaceProcess = { String phase, Object dependency ->
+    task("surfaceIntegration${phase}Process", type: JavaExec, dependsOn: dependency) {
+        group = 'verification'
+        workingDir surfaceIntegrationRunDirectory
+        systemProperty 'surfaceprobe.integrationPhase', phase.toLowerCase()
+        configureFromForgeRun(delegate, 'runServer')
+    }
+}
+
+def surfaceIntegrationFreshProcess = createSurfaceProcess('Fresh', prepareSurfaceIntegrationTest)
+surfaceIntegrationFreshProcess.doLast {
+    File marker = new File(surfaceIntegrationRunDirectory,
+            'surface-integration-world/surfaceprobe-integration.properties')
+    if (!marker.isFile()) {
+        throw new GradleException("Fresh surface integration completion marker is missing: ${marker}")
+    }
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration fresh phase')
+}
+def surfaceIntegrationReloadProcess = createSurfaceProcess('Reload', surfaceIntegrationFreshProcess)
+surfaceIntegrationReloadProcess.doLast {
+    assertRuntimeLogsClean(surfaceIntegrationRunDirectory, 'surface integration reload phase')
+}
+
+task surfaceIntegrationTest(dependsOn: surfaceIntegrationReloadProcess) {
+    group = 'verification'
+    doLast {
+        File marker = new File(surfaceIntegrationRunDirectory,
+                'surface-integration-world/surfaceprobe-integration.properties')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_verified') != 'true') {
+            throw new GradleException("Surface integration reload was not verified: ${marker}")
+        }
+        if (!(result.getProperty('dynamic_fluid_placements') ?: '0').isInteger()
+                || result.getProperty('dynamic_fluid_placements').toInteger() <= 0) {
+            throw new GradleException("Dynamic fluid-deposit probe did not place any blocks: ${marker}")
+        }
+        logger.lifecycle('Provider surfaces and exact-biome geology verified: {} dimensions, {} columns each, fresh + reload',
+                result.getProperty('dimensions'), result.getProperty('columns_per_dimension'))
+    }
+}
+
+check.dependsOn surfaceIntegrationTest
+
+def clientIntegrationClasses = file("${buildDir}/client-integration-fixture/classes")
+task compileClientIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
+    source fileTree('src/clientIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = clientIntegrationClasses
+    options.encoding = 'UTF-8'
+}
+
+task clientIntegrationTestModJar(type: Jar, dependsOn: compileClientIntegrationTestMod) {
+    archiveFileName = 'clientprobe.jar'
+    destinationDirectory = file("${buildDir}/client-integration-fixture")
+    from clientIntegrationClasses
+    from 'src/clientIntegrationTest/resources'
+}
+
+def packagedClientProbeJar = renamer.classes(tasks.named('clientIntegrationTestModJar', Jar)) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('client-integration-fixture/clientprobe-reobf.jar')
+}
+
+tasks.register('preparePackagedClientProbe') {
+    group = 'verification'
+    description = 'Builds the reobfuscated client probe used only with a disposable packaged Forge runtime.'
+    dependsOn packagedClientProbeJar
+}
+
+def clientIntegrationRunDirectory = file("${buildDir}/client-integration-run")
+task prepareClientIntegrationTest(dependsOn: clientIntegrationTestModJar) {
+    doLast {
+        delete clientIntegrationRunDirectory
+        clientIntegrationRunDirectory.mkdirs()
+        copy {
+            from clientIntegrationTestModJar.archiveFile
+            into new File(clientIntegrationRunDirectory, 'mods')
+        }
+        new File(clientIntegrationRunDirectory, 'options.txt').setText(
+                'fullscreen:false\nforceUnicodeFont:false\nguiScale:2\n' +
+                'renderDistance:4\nshowSubtitles:false\n', 'UTF-8')
+    }
+}
+
+task clientIntegrationProcess(type: JavaExec, dependsOn: prepareClientIntegrationTest) {
+    group = 'verification'
+    workingDir clientIntegrationRunDirectory
+    systemProperty 'clientprobe.enabled', 'true'
+    configureFromForgeRun(delegate, 'runClient')
+    doLast {
+        File marker = new File(clientIntegrationRunDirectory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) {
+            throw new GradleException("Client integration completion marker is missing: ${marker}")
+        }
+        Properties result = new Properties(); marker.withInputStream { result.load(it) }
+        if (result.getProperty('reload_rendered') != 'true'
+                || result.getProperty('world_settings_opened') != 'true'
+                || result.getProperty('long_editor_roundtrip') != 'true'
+                || Integer.parseInt(result.getProperty('editor_routes', '0')) < 5) {
+            throw new GradleException("Client integration result is incomplete: ${marker}")
+        }
+        assertRuntimeLogsClean(clientIntegrationRunDirectory, 'client integration fresh/reload phases')
+    }
+}
+
+if (project.hasProperty('benchmarkRunDir')) {
+    def benchmarkRunDirectory = file(project.property('benchmarkRunDir'))
+    task prepareWorldgenBenchmark {
+        doLast {
+            delete benchmarkRunDirectory
+            benchmarkRunDirectory.mkdirs()
+            new File(benchmarkRunDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(benchmarkRunDirectory, 'server.properties').setText(
+                    'online-mode=false\nlevel-name=world\nlevel-type=default\n' +
+                    "level-seed=${project.findProperty('benchmarkSeed') ?: '-4965128775892001975'}\n" +
+                    'generate-structures=false\nspawn-animals=false\nspawn-monsters=false\n' +
+                    'max-tick-time=-1\n', 'UTF-8')
+        }
+    }
+task benchmarkIntegrationProcess(type: JavaExec, dependsOn: prepareWorldgenBenchmark) {
+        group = 'verification'
+        workingDir benchmarkRunDirectory
+        systemProperty 'orespawn.worldgenBenchmarkMode', project.findProperty('benchmarkMode') ?: 'sky'
+        systemProperty 'orespawn.worldgenBenchmarkRadius', project.findProperty('benchmarkRadius') ?: '4'
+        systemProperty 'orespawn.worldgenBenchmarkRepetitions', project.findProperty('benchmarkRepetitions') ?: '3'
+        systemProperty 'orespawn.worldgenBenchmarkCenterX', project.findProperty('benchmarkCenterX') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterZ', project.findProperty('benchmarkCenterZ') ?: '256'
+        systemProperty 'orespawn.worldgenBenchmarkCenterStep', project.findProperty('benchmarkCenterStep') ?: '64'
+        systemProperty 'orespawn.worldgenBenchmarkStopServer', 'true'
+        systemProperty 'orespawn.worldgenBenchmarkVanillaOres',
+                project.findProperty('benchmarkVanillaOres') ?: 'false'
+        systemProperty 'orespawn.worldgenBenchmarkOreAudit',
+                project.findProperty('benchmarkOreAudit') ?: 'false'
+        if (project.hasProperty('benchmarkBlockAudit')) {
+            systemProperty 'orespawn.worldgenBenchmarkBlockAudit', project.property('benchmarkBlockAudit')
+        }
+        configureFromForgeRun(delegate, 'runServer')
+        doLast {
+            String mode = project.findProperty('benchmarkMode') ?: 'sky'
+            String summary = "ORESPAWN_BENCHMARK summary mode=${mode}"
+            List<File> benchmarkLogs = [
+                    new File(benchmarkRunDirectory, 'logs/fml-server-latest.log'),
+                    new File(benchmarkRunDirectory, 'logs/latest.log')
+            ]
+            if (!benchmarkLogs.any { it.isFile() && it.getText('UTF-8').contains(summary) }) {
+                throw new GradleException("Missing ${mode} worldgen benchmark summary in ${benchmarkLogs}")
+            }
+            assertRuntimeLogsClean(benchmarkRunDirectory, "${mode} worldgen benchmark")
+        }
+    }
+}
+project.ext.oreSpawnBuild.putAll([
+        packagedSurfaceIntegrationTestModJar: packagedSurfaceIntegrationTestModJar
+])

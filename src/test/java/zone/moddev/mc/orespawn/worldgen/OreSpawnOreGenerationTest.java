@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Random;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
 import net.minecraft.util.ResourceLocation;
@@ -54,6 +57,134 @@ class OreSpawnOreGenerationTest {
 		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, 64, maxZ + 1));
 		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, -1, minZ));
 		assertFalse(OreSpawnOreGeneration.insideChunk(chunk, minX, 256, minZ));
+	}
+
+	@Test
+	void normalGenerationAndRetrogenShareStableExtendedIdentityInputs() throws Exception {
+		String source = new String(Files.readAllBytes(Paths.get("src", "main", "java", "zone",
+				"moddev", "mc", "orespawn", "worldgen", "OreSpawnOreGeneration.java")),
+				StandardCharsets.UTF_8);
+		assertTrue(source.contains("generateChunk(level, world, chunk"));
+		assertTrue(source.contains("generateChunk(level, null, chunk"));
+		assertTrue(source.contains("dimension, worldSeed,\n\t\t\t\tattemptIndex, geologySampler"));
+		assertTrue(source.contains("this.chunkX = chunkPos.x"));
+		assertTrue(source.contains("this.chunkZ = chunkPos.z"));
+	}
+
+	@Test
+	void wholeBodyOutputSelectionIgnoresChunkOrder() {
+		ResourceLocation material = new ResourceLocation("orespawn:sulfur");
+		ResourceLocation channel = new ResourceLocation("realisticdeposits:district");
+		long body = 0x1234ABCD5678EF90L;
+		double first = OreSpawnOreGeneration.outputSelectionSample(42L, WorldIds.OVERWORLD,
+				material, channel, body);
+		double fromAnotherChunk = OreSpawnOreGeneration.outputSelectionSample(42L, WorldIds.OVERWORLD,
+				material, channel, body);
+		assertEquals(first, fromAnotherChunk);
+	}
+
+	@Test
+	void ordinaryAttemptsIncludeChunkRuleChannelAndAttemptIdentity() {
+		ResourceLocation rule = new ResourceLocation("examplemod:sulfur");
+		ResourceLocation channel = new ResourceLocation("orespawn:standard");
+		long first = OreSpawnOreGeneration.ordinaryOutputIdentity(new ChunkPos(1, 2), 0, rule, channel);
+		assertEquals(first, OreSpawnOreGeneration.ordinaryOutputIdentity(
+				new ChunkPos(1, 2), 0, rule, channel));
+		assertFalse(first == OreSpawnOreGeneration.ordinaryOutputIdentity(
+				new ChunkPos(2, 1), 0, rule, channel));
+		assertFalse(first == OreSpawnOreGeneration.ordinaryOutputIdentity(
+				new ChunkPos(1, 2), 1, rule, channel));
+	}
+
+	@Test
+	void placementChannelsAreArbitratedIndependentlyWithoutFallback() {
+		ResourceLocation material = new ResourceLocation("orespawn:iron");
+		ResourceLocation standard = new ResourceLocation("orespawn:standard");
+		ResourceLocation district = new ResourceLocation("realisticdeposits:district");
+		ResourceLocation ordinary = new ResourceLocation("basemetals:iron");
+		ResourceLocation large = new ResourceLocation("realisticdeposits:iron_district");
+		JsonObject root = new JsonObject();
+		JsonObject policies = new JsonObject();
+		JsonObject policy = new JsonObject();
+		policy.addProperty("mode", "consolidated");
+		JsonObject placements = new JsonObject();
+		placements.addProperty(standard.toString(), ordinary.toString());
+		placements.addProperty(district.toString(), large.toString());
+		placements.addProperty("missing:channel", "missing:rule");
+		policy.add("placement_sources", placements);
+		policies.add(OreSourcePolicies.key(material, WorldIds.OVERWORLD), policy);
+		root.add(OreSourcePolicies.SECTION, policies);
+		Map<ResourceLocation, ResourceLocation> available = new LinkedHashMap<>();
+		available.put(ordinary, standard);
+		available.put(large, district);
+
+		Map<ResourceLocation, ResourceLocation> selected = OreSpawnOreGeneration
+				.selectedPlacementRules(root, material, WorldIds.OVERWORLD, available);
+		assertEquals(2, selected.size());
+		assertEquals(ordinary, selected.get(standard));
+		assertEquals(large, selected.get(district));
+		assertFalse(selected.containsKey(new ResourceLocation("missing:channel")));
+	}
+
+	@Test
+	void selectorPoliciesRemainKeyedByTheirSelectorDomain() {
+		ResourceLocation material = new ResourceLocation("orespawn:copper");
+		ResourceLocation standard = new ResourceLocation("orespawn:standard");
+		ResourceLocation source = new ResourceLocation("basemetals:copper");
+		ResourceLocation selector = new ResourceLocation("orespawn:all_except_nether_end");
+		JsonObject root = new JsonObject();
+		JsonObject policies = new JsonObject();
+		JsonObject policy = new JsonObject();
+		policy.addProperty("mode", "consolidated");
+		JsonObject placements = new JsonObject();
+		placements.addProperty(standard.toString(), source.toString());
+		policy.add("placement_sources", placements);
+		policies.add(OreSourcePolicies.key(material, selector), policy);
+		root.add(OreSourcePolicies.SECTION, policies);
+		Map<ResourceLocation, ResourceLocation> available = new LinkedHashMap<>();
+		available.put(source, standard);
+
+		assertEquals(source, OreSpawnOreGeneration.selectedPlacementRules(
+				root, material, selector, available).get(standard));
+		assertEquals(null, OreSpawnOreGeneration.selectedPlacementRules(
+				root, material, WorldIds.OVERWORLD, available));
+	}
+
+	@Test
+	void keepSeparatePolicyLeavesEveryPlacementRuleUntouched() {
+		ResourceLocation material = new ResourceLocation("orespawn:sulfur");
+		JsonObject root = new JsonObject();
+		JsonObject policies = new JsonObject();
+		JsonObject policy = new JsonObject();
+		policy.addProperty("mode", "keep_separate");
+		policies.add(OreSourcePolicies.key(material, WorldIds.OVERWORLD), policy);
+		root.add(OreSourcePolicies.SECTION, policies);
+
+		assertEquals(null, OreSpawnOreGeneration.selectedPlacementRules(root, material,
+				WorldIds.OVERWORLD, Collections.emptyMap()));
+	}
+
+	@Test
+	void weightedOutputSelectionUsesPositiveRelativeWeights() {
+		assertEquals(0, OreSpawnOreGeneration.weightedIndex(0.0D, 1.0D, 3.0D));
+		assertEquals(0, OreSpawnOreGeneration.weightedIndex(0.249999D, 1.0D, 3.0D));
+		assertEquals(1, OreSpawnOreGeneration.weightedIndex(0.25D, 1.0D, 3.0D));
+		assertEquals(1, OreSpawnOreGeneration.weightedIndex(0.999999D, 1.0D, 3.0D));
+		assertEquals(-1, OreSpawnOreGeneration.weightedIndex(0.5D, 0.0D, -1.0D));
+	}
+
+	@Test
+	void stableOutputSelectionRespectsConfiguredWeightDistribution() {
+		ResourceLocation material = new ResourceLocation("orespawn:sulfur");
+		ResourceLocation channel = new ResourceLocation("orespawn:standard");
+		int first = 0;
+		for (long identity = 0; identity < 10000; identity++) {
+			double sample = OreSpawnOreGeneration.outputSelectionSample(
+					42L, WorldIds.OVERWORLD, material, channel, identity);
+			if (OreSpawnOreGeneration.weightedIndex(sample, 1.0D, 3.0D) == 0) first++;
+		}
+		assertTrue(first > 2200 && first < 2800,
+				"one-to-three weights should select the first source about one quarter of the time: " + first);
 	}
 
 	@Test

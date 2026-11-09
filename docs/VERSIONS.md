@@ -52,8 +52,8 @@ Examples:
 | Minecraft | Loader | Target | Example full OreSpawn version |
 | --- | --- | ---: | --- |
 | 1.10.2 | Forge | `110021` | `4.0.6.110021` |
-| 1.11.2 | Forge | `111021` | `4.0.16.111021` |
-| 1.12.2 | Forge | `112021` | `4.0.16.112021` |
+| 1.11.2 | Forge | `111021` | `4.1.6.111021` |
+| 1.12.2 | Forge | `112021` | `4.1.3.112021` |
 | 1.13.2 | Forge | `113021` | `4.0.6.113021` |
 | 1.20.6 | Forge | `120061` | `4.0.6.120061` |
 | 1.21.11 | Forge | `121111` | `4.0.6.121111` |
@@ -156,8 +156,13 @@ to 4.0.13 for provider biome-filter parity and namespaced geome support, then to
 conversion. Forge 1.11 and 1.12 have no Y-sensitive biome-cell attribution or
 server-side GameTest harness, so 4.0.15 and the GameTest lifecycle portion of 4.0.16 are not
 applicable; it adopts the shared 4.0.16 identity while retaining ordinary
-benchmark auto-stop. A branch may therefore legitimately skip functional version
-numbers.
+benchmark auto-stop. Forge 1.12 then advances to 4.0.17 to tolerate legacy
+modpacks that supply an interface-shaped Mojang serialization `Codec` before
+OreSpawn's class-shaped compatibility adapter. It then advances to 4.1.0 for
+the shared extension API, Ore Sources arbitration, biome directory, exact
+new-terrain replacements and dimension-material performance work while keeping
+the target's Cleanroom bridge and worldgen-region behavior. A branch may therefore
+legitimately skip functional version numbers.
 
 This provides three useful guarantees:
 

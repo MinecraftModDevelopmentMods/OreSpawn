@@ -1,0 +1,28 @@
+package probe;
+
+import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.gson.JsonParser;
+import com.mojang.serialization.Codec;
+
+import zone.moddev.mc.orespawn.api.CompiledOrePattern;
+import zone.moddev.mc.orespawn.api.OrePatternType;
+import zone.moddev.mc.orespawn.api.StandardPatternSettings;
+
+public final class LegacyApiConsumer {
+    public static void main(String[] arguments) {
+        Codec<StandardPatternSettings> codec = StandardPatternSettings.CODEC;
+        AtomicReference<StandardPatternSettings> decoded = new AtomicReference<StandardPatternSettings>();
+        OrePatternType type = OrePatternType.create(codec, settings -> {
+            decoded.set(settings);
+            return context -> false;
+        });
+        CompiledOrePattern pattern = type.decode(new JsonParser().parse(
+                "{\"spread\":19,\"vertical_spread\":7,\"node_size\":5,\"length\":23}"));
+        if (pattern == null || decoded.get() == null || decoded.get().spread() != 19
+                || decoded.get().length() != 23) {
+            throw new AssertionError("Legacy OrePatternType API did not decode the expected settings");
+        }
+        System.out.println("LEGACY_4_0_16_API_CONSUMER_OK");
+    }
+}

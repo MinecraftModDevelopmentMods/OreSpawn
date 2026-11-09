@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "provider_modid": "examplemod",
   "provider_revision": 1,
   "rocks": {
@@ -32,6 +32,7 @@
   "ores": {
     "examplemod:ore/tin": {
       "block": "examplemod:tin_ore",
+      "material": "orespawn:tin",
       "outputs": [
         { "block": "examplemod:tin_ore", "weight": 90 },
         { "block": "examplemod:rich_tin_ore", "weight": 10, "min_y": 0, "max_y": 24 }
@@ -44,6 +45,7 @@
           "min_y": 0,
           "max_y": 96,
           "frequency": 6.0,
+          "placement_channel": "orespawn:standard",
           "quantity": 8,
           "pattern": {
             "type": "orespawn:clusters",

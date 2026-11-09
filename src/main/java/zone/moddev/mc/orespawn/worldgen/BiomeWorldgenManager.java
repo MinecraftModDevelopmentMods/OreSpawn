@@ -35,11 +35,10 @@ import org.apache.logging.log4j.Logger;
 
 /** Bakes and installs optional biome and dimension-material integration. */
 final class BiomeWorldgenManager {
+	private static final String UI_OVERRIDE_PREFIX = "orespawn:ui/biome_overrides/";
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceLocation, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
-	private static final Map<ChunkProviderOverworld, IBlockState> ORIGINAL_DEFAULT_FLUIDS =
-			new IdentityHashMap<>();
 	private static final Set<ResourceLocation> WARNED_DEEP_FLUID_DIMENSIONS =
 			new LinkedHashSet<>();
 
@@ -91,10 +90,7 @@ final class BiomeWorldgenManager {
 
 	static synchronized void clear() {
 		BiomeFeatureInstaller.restoreAll();
-		for (Entry<ChunkProviderOverworld, IBlockState> entry : ORIGINAL_DEFAULT_FLUIDS.entrySet()) {
-			setDefaultFluid(entry.getKey(), entry.getValue());
-		}
-		ORIGINAL_DEFAULT_FLUIDS.clear();
+		AquiferMaterialSubstitution.clear();
 		WARNED_DEEP_FLUID_DIMENSIONS.clear();
 		baked = Collections.emptyMap();
 	}
@@ -114,11 +110,12 @@ final class BiomeWorldgenManager {
 		return new BakedBiomeWorldgen(palettes, surfaces, materials);
 	}
 
-	private static List<Palette> bakePalettes(JsonObject root,
+	static List<Palette> bakePalettes(JsonObject root,
 			ResourceLocation dimension, Map<Biome, Surface> surfaces) {
 		JsonObject section = object(root, "biome_palettes");
 		List<Palette> result = new ArrayList<>();
-		for (Entry<String, JsonElement> paletteEntry : section.entrySet()) {
+		List<Entry<String, JsonElement>> ordered = orderedPaletteEntries(section);
+		for (Entry<String, JsonElement> paletteEntry : ordered) {
 			if (!paletteEntry.getValue().isJsonObject()) continue;
 			JsonObject json = paletteEntry.getValue().getAsJsonObject();
 			if (!bool(json, "enabled", true)
@@ -176,6 +173,17 @@ final class BiomeWorldgenManager {
 					bakedEntries, bakeChoices(json, bakedEntries)));
 		}
 		return result;
+	}
+
+	static List<Entry<String, JsonElement>> orderedPaletteEntries(JsonObject section) {
+		List<Entry<String, JsonElement>> ordered = new ArrayList<>();
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (!entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		for (Entry<String, JsonElement> entry : section.entrySet()) {
+			if (entry.getKey().startsWith(UI_OVERRIDE_PREFIX)) ordered.add(entry);
+		}
+		return ordered;
 	}
 
 	private static Map<Biome, Choice> bakeChoices(
@@ -274,7 +282,8 @@ final class BiomeWorldgenManager {
 
 	private static void installAquiferMaterials(WorldServer level, DimensionMaterials materials) {
 		IChunkGenerator raw = level.getChunkProvider().chunkGenerator;
-		if (!(raw instanceof ChunkProviderOverworld)) {
+		if (!(raw instanceof net.minecraft.world.gen.ChunkProviderOverworld)) {
+			AquiferMaterialSubstitution.configure(level, null);
 			if (materials != null && materials.defaultFluid != null
 					&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
 				LOGGER.warn("Dimension '{}' requests a generator fluid override that Forge 1.11 does not expose; preserving the profile value",
@@ -282,23 +291,15 @@ final class BiomeWorldgenManager {
 			}
 			return;
 		}
-		ChunkProviderOverworld generator = (ChunkProviderOverworld) raw;
-		IBlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
-				ignored -> generator.oceanBlock);
-		IBlockState selected = materials != null && materials.defaultFluid != null
-				? materials.defaultFluid : original;
-		setDefaultFluid(generator, selected);
+		IBlockState selected = materials == null ? null : materials.defaultFluid;
+		AquiferMaterialSubstitution.configure(level, selected);
 		if (materials != null && materials.deepFluid != null
-				&& !materials.deepFluid.equals(selected)
+				&& (selected == null || !materials.deepFluid.equals(selected))
 				&& materials.deepFluidMaxY >= 0
 				&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
 			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.11.2 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
 					WorldIds.dimension(level), materials.deepFluidMaxY);
 		}
-	}
-
-	private static void setDefaultFluid(ChunkProviderOverworld generator, IBlockState fluid) {
-		generator.oceanBlock = fluid;
 	}
 
 	private static Surface surface(JsonObject json) {
