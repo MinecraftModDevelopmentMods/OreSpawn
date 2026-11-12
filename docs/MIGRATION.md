@@ -1,5 +1,38 @@
 # Migration
 
+## Retained Provider Rules
+
+An older profile can keep an ore rule after its provider renames that rule.
+OreSpawn must not add a second generation pass just because the ID changed.
+The merge recognises OreSpawn's imported `orespawn:legacy/<provider>/...`
+rules and the following exact Base Metals replacements:
+
+- `basemetals:legacy/<material>_ore` to `basemetals:ore/<material>` for
+  coldiron, adamantine, starsteel, tin, lead, zinc, silver, mercury, nickel
+  and platinum.
+
+A match needs one saved rule and one provider candidate with the same single
+output, default metadata, and dimension/selector and effective placement-channel
+footprint. Conflicting provider ownership, mixed outputs, different deep outputs
+and ambiguous matches are not treated as replacements. A generic mod's
+`legacy/` name is not enough evidence.
+
+For a recognised match, the missing modern rule is added as a complete,
+disabled alternative. The saved rule keeps its rates, hosts, heights, pattern,
+enablement and source choices, including disabled and zero-rate settings.
+Fresh worlds still use the provider's normal defaults.
+
+You can enable the alternative in the ore settings. Later merges retain that
+choice, existing modern rules and recorded deletions. A recorded deletion of
+one of the historical Base Metals IDs also leaves its mapped replacement
+disabled. Deleted imports without an exact mapping are not guessed from their
+names.
+
+This repair does not automatically remove an already-saved historical
+Base Metals/modern pair: both may have been selected deliberately. Review
+ambiguous or previously affected profiles before changing their choices.
+It does not alter generated chunks, public APIs or saved formats.
+
 ## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now
