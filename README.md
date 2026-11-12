@@ -14,10 +14,15 @@ Its OS3 compatibility layer preserves ranged legacy block budgets, exclusive
 legacy height ceilings, and the historical "all dimensions except Nether and
 End" policy used by mods such as Base Metals.
 
+The [provider-merge repair](docs/MIGRATION.md#retained-provider-rules) keeps
+recognised legacy ore settings when modern provider IDs are first added.
+Matching alternatives remain visible but disabled, so upgrading does not add
+a second generation pass for the same deposit.
+
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.1.0.2601021`: the OreSpawn 4.1
+This branch builds target-qualified version `4.1.1.2601021`: the OreSpawn 4.1
 feature set for Minecraft 26.1.2 and Forge. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 

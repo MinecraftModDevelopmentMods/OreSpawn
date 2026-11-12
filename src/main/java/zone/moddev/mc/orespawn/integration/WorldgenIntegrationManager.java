@@ -248,6 +248,14 @@ public final class WorldgenIntegrationManager {
 					String id = entry.getKey();
 					if (!targetSection.has(id) && !known.contains(id)) {
 						JsonObject value = entry.getValue().getAsJsonObject().deepCopy();
+						if ("ores".equals(sectionName)) {
+							String retained = RetainedProviderOreDefaults.predecessor(
+									provider.modId, id, value, providerSection, targetSection, known);
+							if (retained != null) {
+								value.addProperty("enabled", false);
+								LOGGER.info("Preserved legacy ore choice '{}'; added provider alternative '{}' disabled", retained, id);
+							}
+						}
 						if (!"biome_rules".equals(sectionName)) {
 							value.addProperty("source_provider", provider.modId);
 						}
