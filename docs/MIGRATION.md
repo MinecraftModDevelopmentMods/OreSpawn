@@ -17,6 +17,49 @@ When legacy OreSpawn rules are translated, a concise player-facing summary is
 also written atomically to `config/orespawn-upgrade-report.txt`; the existing
 detailed rule report remains at `config/orespawn-migration/migration-report.txt`.
 
+## Retained Provider Rules
+
+Some existing OreSpawn 4 profiles still use rule IDs declared by older
+providers. A changed rule ID must not silently add another generation pass
+for the same deposit. The provider-merge repair recognises two positive
+lineages:
+
+- OreSpawn's own imported `orespawn:legacy/<provider>/...` rules.
+- Base Metals' historical `basemetals:legacy/<material>_ore` to
+  `basemetals:ore/<material>` replacements for coldiron, adamantine, starsteel,
+  tin, lead, zinc, silver, mercury, nickel and platinum. Base Metals itself
+  declared the old IDs in its maintained 1.10/1.12 providers; this is an exact
+  compatibility list, not a guess based on the word `legacy`.
+
+The merge requires one saved rule and one current candidate with the same
+single output, default metadata, and exact dimension/selector and effective
+placement-channel footprint. It does not infer equivalence from overlapping
+dimensions, a shared material name, or an `orphaned_provider` flag. Mixed
+outputs, different deep outputs, and ambiguous matches retain the existing
+merge behaviour rather than being guessed away.
+Explicit conflicting `source_provider` or fallback `source_mod` ownership is
+not treated as a replacement. The importer's neutral `legacy` owner marker is
+accepted only with OreSpawn's own imported IDs.
+
+When that relationship is unambiguous, OreSpawn adds the missing modern rule
+as a complete **disabled** alternative. The saved rule's rates, hosts, heights,
+pattern, enablement and policy choices remain authoritative. Disabled and
+zero-frequency settings count as saved choices too. Fresh installations keep
+the provider's ordinary defaults.
+
+Players can enable the alternative in the normal ore settings. Later merges
+preserve that explicit choice; they also preserve existing modern rules and
+intentional deletions recorded in `known_ores`. Already-present old/new rule
+combinations are not automatically cleaned up, since the player may have
+chosen both. A deleted historical Base Metals rule recorded in `known_ores`
+also keeps its mapped modern replacement disabled; that exact ID relationship
+is known even though the old placement payload has been removed. Other custom
+deposits do not cancel that recorded deletion and are not changed. Deleted
+imports without an explicit historical mapping are not matched by guessing an
+output from their filename.
+Review ambiguous profiles explicitly. This repair does not change API
+versions, schemas, or already-generated chunks.
+
 ## Existing Mineralogy Worlds
 
 An already-generated world without an OreSpawn per-world profile is inspected
