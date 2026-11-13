@@ -1,4 +1,4 @@
-Version 4.1.1.2603001 (local candidate)
+Version 4.1.1.2603001
 
 * Keep saved ore settings when a provider renames a recognised rule. Add the
   matching modern rule as a disabled alternative rather than another ore pass.
