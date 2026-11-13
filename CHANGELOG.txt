@@ -1,3 +1,8 @@
+Version 4.1.1.2603001
+
+* Keep saved ore settings when a provider renames a recognised rule. Add the
+  matching modern rule as a disabled alternative rather than another ore pass.
+
 Version 4.1.0.2603001
 
 * Leave imported vanilla ores inactive while Manage Vanilla Ores is off.
