@@ -14,8 +14,8 @@ def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId = expectedMavenGroup
-            artifactId = expectedMavenArtifact
+            groupId = project.mod_group
+            artifactId = project.mod_artifact
             version = project.version.toString()
             if (preparedReleaseDir.isPresent()) {
                 File prepared = file(preparedReleaseDir.get())
@@ -28,14 +28,19 @@ publishing {
                 artifact(tasks.named('javadocJar'))
             }
             pom {
-                name = 'MMD OreSpawn'
+                name = project.mod_name
                 description = project.mod_description
-                url = 'https://github.com/MinecraftModDevelopmentMods/OreSpawn'
+                url = project.mod_url
                 licenses {
                     license {
-                        name = 'GNU Lesser General Public License, Version 2.1'
-                        url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
+                        name = project.mod_license_name
+                        url = project.mod_license_url
                     }
+                }
+                scm {
+                    connection = project.mod_scm_connection
+                    developerConnection = project.mod_scm_developer_connection
+                    url = project.mod_url
                 }
             }
         }

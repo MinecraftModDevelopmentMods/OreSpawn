@@ -69,6 +69,7 @@ public class StoneReplacer extends ContextFeature<NoFeatureConfig> {
 			geology.legacy.replaceStoneInChunk(world, chunk, terrain);
 		} else {
 			geology.sky.replaceStoneInChunk(world, chunk, terrain);
+			NaturalFormations.apply(world, chunk, terrain);
 		}
 		return true;
 	}

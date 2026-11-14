@@ -65,6 +65,8 @@ final class ConfiguredFeatureInspector {
 	private static Block firstOreOutput(Feature<?> feature, IFeatureConfig config,
 			Set<Object> visited) {
 		if (feature == null || config == null || !visited.add(config)) return null;
+		Block wrapped = VanillaOreFeatureGate.wrappedOutput(feature, config);
+		if (wrapped != null) return wrapped;
 		if (config instanceof MinableConfig) return ((MinableConfig) config).state.getBlock();
 		if (feature instanceof CompositeFeature) {
 			CompositeFeature<?, ?> nested = (CompositeFeature<?, ?>) feature;
@@ -106,6 +108,11 @@ final class ConfiguredFeatureInspector {
 	private static boolean outputsAny(Feature<?> feature, IFeatureConfig config,
 			Set<Object> visited, Block[] blocks) {
 		if (feature == null || config == null || !visited.add(config)) return false;
+		Block wrapped = VanillaOreFeatureGate.wrappedOutput(feature, config);
+		if (wrapped != null) {
+			for (Block block : blocks) if (wrapped == block) return true;
+			return false;
+		}
 		if (config instanceof MinableConfig) {
 			Block output = ((MinableConfig) config).state.getBlock();
 			for (Block block : blocks) if (output == block) return true;

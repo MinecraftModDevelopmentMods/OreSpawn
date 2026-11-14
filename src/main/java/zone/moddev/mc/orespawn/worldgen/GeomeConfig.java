@@ -120,12 +120,14 @@ public final class GeomeConfig {
 		globalConfigRoot = JsonCopies.copy(effective);
 		globalProfile = effective == root ? globalBaseProfile : WorldGeologyProfile.fromGlobalConfig(effective,
 				OreSpawnConfig.geologyMode(), OreSpawnConfig.placeCrudeOil(), chooseOreSourceDefaults);
+		NaturalFormations.install(effective);
 		bakeDimensions(effective);
 		return bakedConfig;
 	}
 
 	public static synchronized BakedGeomeConfig applyWorldProfile(WorldGeologyProfile profile) {
 		JsonObject effective = profile.toGeomeConfigJson();
+		NaturalFormations.install(effective);
 		bakeDimensions(effective);
 		return bakedConfig;
 	}

@@ -39,6 +39,8 @@ public final class OreSpawnCommands {
 										IntegerArgumentType.getInteger(context, "radius")))))
 				.then(Commands.literal("dump-biomes").requires(source -> source.hasPermissionLevel(2))
 						.executes(context -> dumpBiomes(context.getSource()))));
+		zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration.register(
+				event.getServer().getCommandManager().getDispatcher());
 	}
 
 	private static int status(net.minecraft.command.CommandSource source) {

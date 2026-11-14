@@ -18,11 +18,11 @@ tasks.named('jar', Jar) {
     manifest {
         attributes([
                 'Specification-Title'      : 'OreSpawn',
-                'Specification-Vendor'     : 'SkyBlade1978',
+                'Specification-Vendor'     : project.mod_vendor,
                 'Specification-Version'    : '1',
                 'Implementation-Title'     : base.archivesName.get(),
                 'Implementation-Version'   : project.version,
-                'Implementation-Vendor'    : 'SkyBlade1978',
+                'Implementation-Vendor'    : project.mod_vendor,
                 'OreSpawn-API-Version'     : '1',
                 'FMLAT'                    : 'accesstransformer.cfg',
                 'Maven-Artifact'           : expectedMavenCoordinate,
@@ -81,7 +81,8 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.1.6.113021'
+        if (project.mod_version != '4.1.7.113021'
+                || project.mod_artifact != expectedMavenArtifact
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.13.2'
                 || project.forge_version != '25.0.223'
@@ -95,9 +96,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.1.6.113021.jar',
-                'OreSpawn-4.1.6.113021-sources.jar',
-                'OreSpawn-4.1.6.113021-javadoc.jar'
+                'OreSpawn-4.1.7.113021.jar',
+                'OreSpawn-4.1.7.113021-sources.jar',
+                'OreSpawn-4.1.7.113021-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -114,7 +115,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.1.6.113021')) {
+            if (!file(path).getText('UTF-8').contains('4.1.7.113021')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
@@ -170,6 +171,8 @@ tasks.register('verifyReleaseArtifacts') {
                         'src/test/', 'src/biomeIntegrationTest/', 'src/clientIntegrationTest/',
                         'src/oreSourceMineralsTest/', 'src/oreSourceAdvantageTest/',
                         'src/nativeOreIntegrationTest/', 'nativeoreprobe',
+                        'src/adminIntegrationTest/', 'local/adminprobe/', 'admintoolsprobe',
+                        'src/parityIntegrationTest/', 'ParityProbe', 'BenchmarkProbe', 'GenerationProbe', 'ProbeTags',
                         'NativeOreProbeTestMod', 'NativeOreProbeBridge',
                         'src/worldHashTest/', 'agent-notes/', 'surfaceprobe', 'clientprobe',
                         'worldhashprobe', 'oresource-minerals',
@@ -207,8 +210,8 @@ tasks.register('verifyReleaseArtifacts') {
             }
             List<File> publicDocs = fileTree('docs') { include '**/*' }.files
                     .findAll { it.isFile() }.sort { project.relativePath(it) }
-            if (publicDocs.size() != 20) {
-                throw new GradleException("Expected 20 public documentation files, found ${publicDocs.size()}")
+            if (publicDocs.size() != 22) {
+                throw new GradleException("Expected 22 public documentation files, found ${publicDocs.size()}")
             }
             publicDocs.each { File source ->
                 String relative = file('docs').toPath().relativize(source.toPath())
@@ -248,6 +251,8 @@ tasks.register('verifyReleaseArtifacts') {
             if (manifest == null
                     || manifest.getValue('Implementation-Version') != project.mod_version
                     || manifest.getValue('OreSpawn-API-Version') != '1'
+                    || manifest.getValue('Specification-Vendor') != project.mod_vendor
+                    || manifest.getValue('Implementation-Vendor') != project.mod_vendor
                     || manifest.getValue('FMLAT') != 'accesstransformer.cfg'
                     || manifest.getValue('Maven-Artifact') != expectedMavenCoordinate
                     || manifest.getValue('Implementation-Timestamp') != null) {
@@ -280,6 +285,10 @@ tasks.register('verifyReleaseArtifacts') {
 tasks.register('writeReleaseChecksums') {
     group = 'verification'
     dependsOn tasks.named('verifyReleaseArtifacts')
+    // Changing any release jar must invalidate the checksum file, including incremental builds.
+    inputs.files(expectedReleaseFiles.map { names ->
+        names.collect { name -> layout.buildDirectory.file("libs/${name}") }
+    })
     def outputFile = layout.buildDirectory.file('release/SHA256SUMS')
     outputs.file(outputFile)
     doLast {

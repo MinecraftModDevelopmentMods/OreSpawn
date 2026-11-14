@@ -52,4 +52,9 @@ public final class OreSpawnApi {
 		}
 		return Optional.of(OreSpawnGeologySampler.create(level));
 	}
+
+	/** True only while a wrapped native granite, diorite or andesite pass is running. */
+	public static boolean isNativeStonePatchPass() {
+		return zone.moddev.mc.orespawn.worldgen.NativeStonePatchContext.active();
+	}
 }

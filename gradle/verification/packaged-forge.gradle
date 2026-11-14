@@ -14,12 +14,19 @@ def siblingJars = {
     if (packagedBaseMetalsJar.isPresent() != packagedMineralogyJar.isPresent()) {
         throw new GradleException('Supply both packagedBaseMetalsJar and packagedMineralogyJar')
     }
-    if (!packagedBaseMetalsJar.isPresent()) return []
-    [packagedBaseMetalsJar, packagedMineralogyJar].collect { Provider<String> path ->
+    List<File> jars = !packagedBaseMetalsJar.isPresent() ? [] : [packagedBaseMetalsJar, packagedMineralogyJar].collect { Provider<String> path ->
         File jar = file(path.get())
         if (!jar.isFile()) throw new GradleException("Missing sibling mod jar: ${jar}")
         jar
     }
+    if (providers.gradleProperty('packagedAdditionalModJars').isPresent()) {
+        providers.gradleProperty('packagedAdditionalModJars').get().split(';').each { path ->
+            File jar = file(path)
+            if (!jar.isFile()) throw new GradleException("Missing additional test mod: ${jar}")
+            jars.add(jar)
+        }
+    }
+    jars
 }
 
 def requireRuntimeDirectory = { Provider<String> configuredPath, String propertyName ->

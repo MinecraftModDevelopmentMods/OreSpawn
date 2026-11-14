@@ -13,7 +13,7 @@ plugins {
 
 group = project.mod_group
 version = project.mod_version
-base.archivesName = 'OreSpawn'
+base.archivesName = project.mod_artifact
 
 def versionParts = project.mod_version.toString().tokenize('.')
 if (versionParts.size() != 4 || !versionParts.every { it ==~ /\d+/ }) {
@@ -53,6 +53,9 @@ tasks.withType(JavaCompile).configureEach {
     targetCompatibility = JavaVersion.VERSION_1_8
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll(['-Xmaxerrs', '1000'])
+    // javac 8 can change anonymous-class constant pools after a partial compile.
+    // Compile the whole source set so incremental and clean jars match.
+    options.incremental = false
 }
 tasks.named('compileTestJava', JavaCompile) { options.compilerArgs.add('-proc:none') }
 tasks.withType(Test).configureEach {
@@ -263,8 +266,11 @@ tasks.named('processResources', ProcessResources) {
     inputs.property('forge_version_range', project.forge_version_range)
     inputs.property('loader_version_range', project.loader_version_range)
     inputs.property('minecraft_version_range', project.minecraft_version_range)
+    def modMetadata = ['mod_id', 'mod_name', 'mod_authors', 'mod_description', 'mod_license',
+                       'mod_url', 'mod_issue_url'].collectEntries { name -> [(name): project.property(name)] }
+    inputs.properties(modMetadata)
     filesMatching('META-INF/mods.toml') {
-        expand([
+        expand(modMetadata + [
                 version: project.version,
                 minecraft_version: project.minecraft_version,
                 forge_version_range: project.forge_version_range,
@@ -306,4 +312,6 @@ apply from: 'gradle/release/publishing.gradle'
 apply from: 'gradle/verification/packaged-forge.gradle'
 apply from: 'gradle/verification/ore-sources.gradle'
 apply from: 'gradle/verification/native-ores.gradle'
+apply from: 'gradle/verification/admin-tools.gradle'
+apply from: 'gradle/verification/parity.gradle'
 apply from: 'gradle/verification/performance.gradle'

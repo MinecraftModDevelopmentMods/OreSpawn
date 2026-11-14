@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[25,)"
+license="LGPL-2.1"
+[[mods]]
+modId="admintoolsprobe"
+version="1"
+displayName="OreSpawn admin integration checks"
+description="Disposable-world checks; never installed with the player mod."
+[[dependencies.admintoolsprobe]]
+modId="orespawn"
+mandatory=true
+versionRange="[4.1.7,5)"
+ordering="AFTER"
+side="BOTH"
