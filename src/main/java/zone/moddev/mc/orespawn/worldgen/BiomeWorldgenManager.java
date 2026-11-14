@@ -46,6 +46,8 @@ final class BiomeWorldgenManager {
 			new IdentityHashMap<>();
 	private static final Set<ResourceLocation> WARNED_DEEP_FLUID_DIMENSIONS =
 			new LinkedHashSet<>();
+	private static final Set<IChunkGenerator<?>> WARNED_CUSTOM_FLUID_GENERATORS =
+			Collections.newSetFromMap(new IdentityHashMap<>());
 
 	private BiomeWorldgenManager() {
 	}
@@ -69,9 +71,9 @@ final class BiomeWorldgenManager {
 			BakedBiomeWorldgen dimension = bake(level, profile.rootCopy());
 			ResourceLocation dimensionId = WorldIds.dimension(level);
 			if (dimension != null) next.put(dimensionId, dimension);
-			BiomeFeatureInstaller.install(dimension, dimensionId);
 			installBiomeSource(level, dimension);
 			installAquiferMaterials(level, dimension == null ? null : dimension.materials);
+			BiomeFeatureInstaller.install(dimension, dimensionId);
 		}
 		baked = Collections.unmodifiableMap(next);
 	}
@@ -87,19 +89,22 @@ final class BiomeWorldgenManager {
 		ResourceLocation dimensionId = WorldIds.dimension(level);
 		if (dimension == null) next.remove(dimensionId);
 		else next.put(dimensionId, dimension);
-		BiomeFeatureInstaller.install(dimension, dimensionId);
 		installBiomeSource(level, dimension);
 		installAquiferMaterials(level, dimension == null ? null : dimension.materials);
+		BiomeFeatureInstaller.install(dimension, dimensionId);
 		baked = Collections.unmodifiableMap(next);
 	}
 
 	static synchronized void clear() {
+		NativeStonePatchContext.clear();
+		AquiferMaterialSubstitution.clear();
 		BiomeFeatureInstaller.restoreAll();
 		for (Entry<AbstractChunkGenerator<?>, IBlockState> entry : ORIGINAL_DEFAULT_FLUIDS.entrySet()) {
 			setDefaultFluid(entry.getKey(), entry.getValue());
 		}
 		ORIGINAL_DEFAULT_FLUIDS.clear();
 		WARNED_DEEP_FLUID_DIMENSIONS.clear();
+		WARNED_CUSTOM_FLUID_GENERATORS.clear();
 		baked = Collections.emptyMap();
 	}
 
@@ -292,15 +297,27 @@ final class BiomeWorldgenManager {
 
 	private static void installAquiferMaterials(WorldServer level, DimensionMaterials materials) {
 		IChunkGenerator<?> raw = level.getChunkProvider().getChunkGenerator();
-		if (!(raw instanceof ChunkGeneratorOverworld)
+		if ((raw instanceof ChunkGeneratorOverworld && raw.getClass() != ChunkGeneratorOverworld.class)
+				|| (!(raw instanceof ChunkGeneratorOverworld)
 				&& !(raw instanceof ChunkGeneratorNether)
-				&& !(raw instanceof ChunkGeneratorEnd)) return;
+				&& !(raw instanceof ChunkGeneratorEnd))) {
+			if (materials != null && materials.defaultFluid != null && WARNED_CUSTOM_FLUID_GENERATORS.add(raw))
+				LOGGER.warn("Dimension '{}' uses independent generator '{}'; OreSpawn cannot safely change its aquifer fluid and has kept the saved choice without applying it",
+						WorldIds.dimension(level), raw == null ? "unknown" : raw.getClass().getName());
+			return;
+		}
 		AbstractChunkGenerator<?> generator = (AbstractChunkGenerator<?>) raw;
 		IBlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
-				ignored -> generator.getSettings().getDefaultFluid());
+				ignored -> generator instanceof ChunkGeneratorOverworld ? ((ChunkGeneratorOverworld) generator).defaultFluid
+						: generator instanceof ChunkGeneratorNether ? ((ChunkGeneratorNether) generator).defaultFluid
+						: ((ChunkGeneratorEnd) generator).defaultFluid);
 		IBlockState selected = materials != null && materials.defaultFluid != null
 				? materials.defaultFluid : original;
-		setDefaultFluid(generator, selected);
+		if (generator.getClass() == ChunkGeneratorOverworld.class) {
+			AquiferMaterialSubstitution.configure(level, selected);
+		} else {
+			setDefaultFluid(generator, selected);
+		}
 		if (materials != null && materials.deepFluid != null
 				&& !materials.deepFluid.equals(selected)
 				&& materials.deepFluidMaxY >= 0

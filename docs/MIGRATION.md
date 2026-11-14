@@ -1,5 +1,41 @@
 # Migration
 
+## Retained Provider Rules
+
+An older profile can keep an ore rule after its provider renames that rule.
+OreSpawn must not add a second generation pass just because the ID changed.
+The merge recognises OreSpawn's imported `orespawn:legacy/<provider>/...`
+rules and the following exact Base Metals replacements:
+
+- `basemetals:legacy/<material>_ore` to `basemetals:ore/<material>` for
+  coldiron, adamantine, starsteel, tin, lead, zinc, silver, mercury, nickel
+  and platinum.
+
+A match needs one saved rule and one provider candidate with the same single
+output, default metadata, and dimension/selector and effective placement-channel
+footprint. Conflicting provider ownership, mixed outputs, different deep outputs
+and ambiguous matches are not treated as replacements. A generic mod's
+`legacy/` name is not enough evidence.
+
+For a recognised match, the missing modern rule is added as a complete,
+disabled alternative. The saved rule keeps its rates, hosts, heights, pattern,
+enablement and source choices, including disabled and zero-rate settings.
+Fresh worlds still use the provider's normal defaults.
+
+You can enable the alternative in the ore settings. Later merges retain that
+choice, existing modern rules and recorded deletions. A recorded deletion of
+one of the historical Base Metals IDs also leaves its mapped replacement
+disabled. Deleted imports without an exact mapping are not guessed from their
+names.
+
+This repair does not automatically remove an already-saved historical
+Base Metals/modern pair: both may have been selected deliberately. Review
+ambiguous or previously affected profiles before changing their choices.
+It does not alter generated chunks, public APIs or saved formats.
+
+The existing OS1 import repair still applies when its own provenance and
+backup checks are met; this rule-rename check does not replace it.
+
 ## Provider-Aware OS3 Imports
 
 When an OreSpawn 2/3 file is named for an installed provider, the migrator now
@@ -120,3 +156,15 @@ On Minecraft 1.13.2, revision 10 converts only untouched managed-ore signatures
 to the target's native height range, frequency, quantity, pattern, and exposure
 behavior. It also restores the separate Badlands gold rule. Hand-edited rules
 and explicitly stored Custom values are preserved.
+## Retrogen and geology in 4.1.7
+
+Completed retrogen revisions now survive ordinary saves, reloads and periods
+with retrogen disabled. Changing the configured revision does not mark an
+unprocessed chunk complete. Force and the explicit retrogen command still
+request another pass; this fix cannot recover completion markers already
+lost before the update.
+
+Profiles without `rock_formations` stay without them. New provider formations
+are not merged into existing worlds. No formation or material retrogen is
+introduced. Saved ore rates, hosts, source choices and deliberate deletions
+remain intact.

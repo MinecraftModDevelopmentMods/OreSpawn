@@ -11,6 +11,8 @@ verification and release work out of the main build file.
 | `verification/packaged-forge.gradle` | Checks using the finished jar in an official Forge installation. |
 | `verification/ore-sources.gradle` | Two small future-provider mods and their fresh, reload, missing-mod and restored-mod checks. |
 | `verification/native-ores.gradle` | Managed Nether quartz, saved host compatibility, reload hashes and new-terrain-only changes. |
+| `verification/admin-tools.gradle` | Real surveys, guarded clear/undo and interruption recovery in disposable worlds. |
+| `verification/parity.gradle` | Repeated retrogen saves/restarts, native formations, sampler agreement and aquifer provenance. |
 | `verification/performance.gradle` | Matched packaged-server worldgen timings on disposable worlds. |
 | `release/artifacts.gradle` | Reobfuscated jars, artifact checks and checksums. |
 | `release/publishing.gradle` | Maven publication and its credential checks. |
@@ -33,6 +35,11 @@ Keep the final server argument as the literal `nogui` required by the runtime
 gate. The cold-cache Forge bootstrap remains a separate CI check; an offline
 build with a warm Gradle cache does not replace it.
 
+`adminIntegrationTest`, `retrogenParityTest` and `generationParityTest` use the
+same `packagedForgeServerRuntime` property. The admin gate accepts an optional
+`adminIntegrationLabel` and semicolon-separated `adminIntegrationModJars` list
+for an isolated sibling-mod run. None of these fixtures enter production launches.
+
 Run `nativeOreIntegrationTest` with `packagedForgeServerRuntime` to check managed
 quartz in a real Nether. It uses separate build-owned worlds for current defaults
 and the legacy netherrack tag, checks exact-save reloads, then changes the depth
@@ -41,6 +48,8 @@ range and verifies that only new terrain uses it.
 For a local sibling-mod check, pass both `packagedBaseMetalsJar` and
 `packagedMineralogyJar` to the packaged client or surface test. These jars are
 copied only into that disposable run; they are not build dependencies.
+`packagedAdditionalModJars` adds a semicolon-separated list of other exact
+test jars, such as Modern Metals, Base Minerals and Base Gems.
 `packagedWorldgenPerformanceTest` uses the same optional sibling jars and
 reports the three-pass Sky median against its vanilla and Cyano controls.
 For a version-to-version terrain comparison, run `worldgenBenchmarkSky` once
@@ -49,6 +58,10 @@ property. Pass `benchmarkWorldHash=true` to both runs. The separate test-only
 probe finishes the surrounding chunks before hashing the 81 measured chunks;
 `verifyWorldgenParity` then compares complete block and biome hashes for all
 three modes. Both runs need the same sibling jars and benchmark settings.
+
+Project identity belongs in `gradle.properties`. The manifest, Maven POM and
+processed Forge metadata read the same vendor, project links, licence and
+author values. Keep loader and Minecraft ranges target-specific.
 
 ## Trying shared ores in the editor
 

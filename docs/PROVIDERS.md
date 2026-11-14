@@ -129,3 +129,20 @@ Ore Sources chooses defaults once mods finish loading. Both `baseelectric`
 and `electricadvantage` are recognised for sulfur and lithium, but
 automatic balancing still requires loaded providers with an exact shared
 ore tag. Existing worlds keep their saved choices.
+
+## New-world and background controls
+
+Schema 6 additionally supports `rock_formations`; see [natural formations](ROCK_FORMATIONS.md).
+Ordinary providers still use schema 5. API major 1, global schema 8 and world
+schema 7 are unchanged.
+
+`merge_new_entries_into_existing_worlds: false` keeps later provider entries
+out of already-created profiles. It does not remove entries, enable disabled
+rules or overwrite saved settings. Formations are never added implicitly to an
+existing world, regardless of this flag.
+
+An ore dimension can declare `background_generation_scale` from 0 to 1.
+Its own rule remains unscaled; matching ordinary managed sources and native
+ore generation are reduced. Explicit material IDs restrict this to the
+standard placement channel, leaving separate deposit channels alone.
+OreSpawn cannot suppress an independent generator outside its hooks.

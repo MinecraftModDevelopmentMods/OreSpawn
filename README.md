@@ -14,10 +14,14 @@ Its OS3 compatibility layer preserves ranged legacy block budgets, exclusive
 legacy height ceilings, and the historical "all dimensions except Nether and
 End" policy used by mods such as Base Metals.
 
+Recognised provider rule renames keep the saved ore settings and add the modern
+rule as a disabled, editable alternative, avoiding an extra generation pass.
+See [retained provider rules](docs/MIGRATION.md#retained-provider-rules).
+
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.1.6.113021` for Minecraft 1.13.2
+This branch builds target-qualified version `4.1.7.113021` for Minecraft 1.13.2
 and Forge. It adds material-group ore arbitration, exact biome replacements,
 and a directory for installed provider mods to the OreSpawn 4.0.16 base. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
@@ -36,6 +40,11 @@ biomes and replace surfaces, aquifer fluids, snow, and ice without depending on
 TerraBlender.
 
 ## Players And Server Owners
+
+Modpack authors can measure loaded terrain with [admin and survey tools](docs/ADMIN_TOOLS.md).
+Clearing requires a preview, confirmation and verified backup.
+Add-ons can declare [natural rock formations](docs/ROCK_FORMATIONS.md) without
+changing existing worlds that do not have those settings.
 
 When a provider exposes world settings, use **OreSpawn...** on the Create World
 screen. **Recommended Defaults** restores the settings supplied by the
@@ -132,7 +141,7 @@ launches exclude tests and fixtures. Published jars are deterministic,
 SRG-reobfuscated for the Forge 25 runtime, audited for their access transformer
 and contents, and accompanied by SHA-256 checksums.
 
-Public developer and AI integration guidance lives in `docs/` and is included
+Developer guidance lives in `docs/` and is included
 in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.

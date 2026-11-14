@@ -1,5 +1,8 @@
 package zone.moddev.mc.orespawn.integration;
 
+import java.util.LinkedHashMap;
+import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -189,5 +192,54 @@ class WorldgenIntegrationManagerTest {
 		materials.add("examplemod:materials/test", material);
 		root.add("dimension_materials", materials);
 		return root;
+	}
+	@Test
+	void providerCanDeferNewEntriesForExistingWorldsWithoutChangingNewWorldDefaults()
+			throws Exception {
+		JsonObject root = new JsonObject();
+		root.addProperty("schema_version", 4);
+		root.addProperty("provider_modid", "realisticdeposits");
+		root.addProperty("provider_revision", 1);
+		root.addProperty("merge_new_entries_into_existing_worlds", false);
+		JsonObject ores = new JsonObject();
+		ores.add("realisticdeposits:deposit/minecraft/iron_ore", new JsonObject());
+		root.add("ores", ores);
+
+		Class<?> definitionType = Class.forName(
+				"zone.moddev.mc.orespawn.integration.WorldgenIntegrationManager$ProviderDefinition");
+		Constructor<?> constructor = definitionType.getDeclaredConstructor(
+				String.class, int.class, JsonObject.class);
+		constructor.setAccessible(true);
+		Object provider = constructor.newInstance("realisticdeposits", 1, root);
+		Field activeField = WorldgenIntegrationManager.class.getDeclaredField("ACTIVE_PROVIDERS");
+		activeField.setAccessible(true);
+		Map active = (Map) activeField.get(null);
+		Map saved = new LinkedHashMap(active);
+		try {
+			active.clear();
+			active.put("realisticdeposits", provider);
+			JsonObject existingWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeSavedProviderDefinitions(existingWorld);
+			assertFalse(existingWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+
+			JsonObject newWorld = new JsonObject();
+			WorldgenIntegrationManager.mergeProviderDefinitions(newWorld);
+			assertTrue(newWorld.getAsJsonObject("ores")
+					.has("realisticdeposits:deposit/minecraft/iron_ore"));
+		} finally {
+			active.clear();
+			active.putAll(saved);
+		}
+	}
+
+	@Test
+	void absentProvidersDoNotIntroduceAFormationSectionIntoAnOldSave() {
+		JsonObject root = new JsonObject();
+		JsonObject providers = new JsonObject();
+		providers.add("not_installed", new JsonObject());
+		root.add("providers", providers);
+		WorldgenIntegrationManager.mergeSavedProviderDefinitions(root);
+		assertFalse(root.has("rock_formations"));
 	}
 }

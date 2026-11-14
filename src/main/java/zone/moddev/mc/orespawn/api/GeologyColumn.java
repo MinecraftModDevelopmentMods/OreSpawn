@@ -15,4 +15,6 @@ public interface GeologyColumn {
 	int surfaceY();
 	IBlockState rockAt(int y);
 	Optional<GeologyFamily> familyAt(int y);
+	/** Predicted natural formation here, excluding later ore and player changes. */
+	default Optional<FormationSample> formationAt(int y) { return Optional.empty(); }
 }
