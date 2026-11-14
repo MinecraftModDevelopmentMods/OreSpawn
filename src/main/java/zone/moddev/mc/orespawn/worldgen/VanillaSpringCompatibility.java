@@ -45,11 +45,15 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 	}
 
 	static boolean rewriteFeatureList(List<CompositeFeature<?, ?>> features) {
+		return rewriteFeatureList(features, true, false);
+	}
+
+	static boolean rewriteFeatureList(List<CompositeFeature<?, ?>> features, boolean springs, boolean aquifers) {
 		boolean changed = false;
 		for (int index = 0; index < features.size(); index++) {
 			CompositeFeature<?, ?> original = features.get(index);
 			FeatureConfig rewritten = rewrite(original.getFeature(),
-					ConfiguredFeatureInspector.featureConfig(original));
+					ConfiguredFeatureInspector.featureConfig(original), springs, aquifers);
 			if (rewritten.changed) {
 				features.set(index, ConfiguredFeatureInspector.replaceRoot(
 						original, rewritten.feature, rewritten.config));
@@ -59,8 +63,14 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 		return changed;
 	}
 
-	private static FeatureConfig rewrite(Feature<?> feature, IFeatureConfig config) {
-		if (feature == Feature.LIQUIDS && config instanceof LiquidsConfig) {
+	private static FeatureConfig rewrite(Feature<?> feature, IFeatureConfig config, boolean springs, boolean aquifers) {
+		if (springs && NaturalFormations.hasConfiguredFormations() && feature == Feature.LAKES
+				&& config instanceof net.minecraft.world.gen.feature.LakesConfig) {
+			return new FeatureConfig(VanillaLakeCompatibility.FEATURE, config, true);
+		}
+		if (aquifers && NativeAquaticCompatibility.accepts(feature))
+			return new FeatureConfig(NativeAquaticCompatibility.FEATURE, new NativeAquaticCompatibility.Config(feature, config), true);
+		if (springs && feature == Feature.LIQUIDS && config instanceof LiquidsConfig) {
 			return new FeatureConfig(FEATURE, config, true);
 		}
 		if (config instanceof RandomDefaultFeatureListConfig) {
@@ -69,12 +79,12 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 			IFeatureConfig[] configs = original.field_202450_b.clone();
 			boolean changed = false;
 			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
+				FeatureConfig child = rewrite(features[index], configs[index], springs, aquifers);
 				features[index] = child.feature;
 				configs[index] = child.config;
 				changed |= child.changed;
 			}
-			FeatureConfig fallback = rewrite(original.field_202452_d, original.field_202453_f);
+			FeatureConfig fallback = rewrite(original.field_202452_d, original.field_202453_f, springs, aquifers);
 			changed |= fallback.changed;
 			return changed ? new FeatureConfig(feature,
 					randomDefault(features, configs, original.field_202451_c.clone(), fallback), true)
@@ -86,7 +96,7 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 			IFeatureConfig[] configs = original.field_202455_b.clone();
 			boolean changed = false;
 			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
+				FeatureConfig child = rewrite(features[index], configs[index], springs, aquifers);
 				features[index] = child.feature;
 				configs[index] = child.config;
 				changed |= child.changed;
@@ -101,7 +111,7 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 			IFeatureConfig[] configs = original.configs.clone();
 			boolean changed = false;
 			for (int index = 0; index < features.length; index++) {
-				FeatureConfig child = rewrite(features[index], configs[index]);
+				FeatureConfig child = rewrite(features[index], configs[index], springs, aquifers);
 				features[index] = child.feature;
 				configs[index] = child.config;
 				changed |= child.changed;
@@ -112,8 +122,8 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 		}
 		if (config instanceof TwoFeatureChoiceConfig) {
 			TwoFeatureChoiceConfig original = (TwoFeatureChoiceConfig) config;
-			FeatureConfig first = rewrite(original.field_202445_a, original.field_202446_b);
-			FeatureConfig second = rewrite(original.field_202447_c, original.field_202448_d);
+			FeatureConfig first = rewrite(original.field_202445_a, original.field_202446_b, springs, aquifers);
+			FeatureConfig second = rewrite(original.field_202447_c, original.field_202448_d, springs, aquifers);
 			return first.changed || second.changed ? new FeatureConfig(feature,
 					new TwoFeatureChoiceConfig(first.feature, first.config,
 							second.feature, second.config), true)

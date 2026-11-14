@@ -115,3 +115,10 @@ The report explains what was detected and retained, including any missing rock
 IDs or fallback values. OreSpawn leaves the old configuration and generated
 chunks untouched. A fresh world does not inherit this behavior merely because
 an old Mineralogy config is still present in the instance.
+## Checking a modpack's distribution
+
+Operators can use `/orespawn survey 1` to count blocks in loaded chunks,
+`/orespawn chunk` for a local report and `/orespawn explain <rule-id>`
+to inspect eligibility. These do not load new terrain or turn on vanilla-ore
+management. See [Admin tools](ADMIN_TOOLS.md) before using clearing or undo;
+those commands change blocks and are intended for disposable test worlds.

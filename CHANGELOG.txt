@@ -1,3 +1,32 @@
+Version 4.1.7.113021
+
+* Add surveys, chunk reports and rule explanations for checking a modpack's
+  generated terrain. Restore clearchunk with clickable previews, verified
+  backups and checked undo.
+* Keep retrogen completion markers through normal saves and server restarts,
+  including when retrogen is switched off.
+  Recover chunk bookkeeping through Forge 1.13's capability persistence, where
+  the usual chunk-data load event is missing.
+* Add optional natural rock formations, shared placement/sampling APIs and
+  provider controls for background ore generation. Existing worlds keep their
+  saved geology and generation choices.
+* Let providers keep new structural defaults out of existing worlds, and let
+  templates preserve edited formation settings.
+* Replace ordinary Overworld fluid overrides after native terrain generation,
+  preserving caves, later lakes and springs. Keep the compatibility path for
+  fluids with different lighting properties.
+  Keep native water-dependent decoration, including swamp trees, ice and
+  aquatic plants, working with the substituted fluid.
+* Rebuild release checksums when a release jar changes.
+* Keep test fixtures compatible with Eclipse's Java 8 access restrictions.
+* Keep native stone-patch suppression working when vanilla ore management
+  wraps the same feature list.
+* Avoid repeated chunk lookups and temporary arrays in ore and rock selection.
+* Keep ore exposure checks inside the available generation region, fixing a
+  chunk-boundary crash when generating ores with air-exposure rules.
+* Keep saved ore settings when a provider renames a recognised rule. Add the
+  matching modern rule as a disabled alternative rather than another ore pass.
+
 Version 4.1.6.113021
 
 * Leave vanilla ores to Minecraft when Manage Vanilla Ores is off. When

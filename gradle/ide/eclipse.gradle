@@ -2,8 +2,8 @@ def surfaceIntegrationClasses = project.ext.oreSpawnBuild.surfaceIntegrationClas
 def prepareEclipseResources = project.ext.oreSpawnBuild.prepareEclipseResources
 
 // Use Eclipse's generated arguments so the Gradle launch finds Forge 25's assets and native libraries.
-project.ext.oreSpawnBuild.oreSourcesClientLaunch = {
-    def xml = new groovy.xml.XmlParser(false, false).parse(file('runOreSourcesClient.launch'))
+project.ext.oreSpawnBuild.oreSourcesClientLaunch = { String launchFile = 'runOreSourcesClient.launch' ->
+    def xml = new groovy.xml.XmlParser(false, false).parse(file(launchFile))
     def attribute = { String key -> xml.stringAttribute.find { it.@key == key }.@value }
     Map<String, String> environment = [:]
     xml.mapAttribute.find {
@@ -274,6 +274,8 @@ tasks.register('verifyEclipseProductionClasspath') {
                 'biomeIntegrationTest', 'clientIntegrationTest',
                 'oreSourceMineralsTest', 'oreSourceAdvantageTest', 'worldHashTest',
                 'nativeOreIntegrationTest', 'nativeoreprobe', 'native-ore-fixture',
+                'adminIntegrationTest', 'admintoolsprobe', 'admin-fixture',
+                'parityIntegrationTest', 'parityprobe', 'parity-fixture',
                 'surfaceprobe', 'clientprobe', 'worldhashprobe', 'oresource-minerals',
                 'oresource-advantage', 'junit-', 'opentest4j-',
                 'Mineralogy-1.13.2-5.0.1.jar', 'C:\\Users\\John'

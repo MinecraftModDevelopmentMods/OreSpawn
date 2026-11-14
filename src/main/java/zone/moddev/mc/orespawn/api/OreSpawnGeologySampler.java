@@ -56,14 +56,17 @@ final class OreSpawnGeologySampler implements GeologySampler {
 	@Override
 	public GeologyColumn sampleColumn(int blockX, int blockZ, int surfaceY) {
 		BlockPos position = new BlockPos(blockX, surfaceY, blockZ);
-		Biome biome = level.getBiome(position);
+		// Sample the generator's biome source without loading a world chunk.
+		Biome biome = level.getChunkProvider().getChunkGenerator().getBiomeProvider()
+				.getBiome(position, net.minecraft.init.Biomes.PLAINS);
 		ResourceLocation biomeId = WorldIds.biome(biome);
 		if (biomeId == null) biomeId = new ResourceLocation("orespawn", "unregistered_biome");
 		if (mode == GeologyMode.LEGACY) {
 			return new CyanoColumn(biomeId, blockX, blockZ, surfaceY);
 		}
 		GeomeGeology.ColumnSample sample = sky.sampleColumn(biome, biomeId, blockX, blockZ);
-		return new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample);
+		return zone.moddev.mc.orespawn.worldgen.NaturalFormations.wrap(level,
+				new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample), biome);
 	}
 
 	private abstract class BaseColumn implements GeologyColumn {

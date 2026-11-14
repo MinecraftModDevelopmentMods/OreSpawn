@@ -48,13 +48,15 @@ class NativeOreHostTest {
 
 	@Test
 	void plainStoneHostDoesNotAcceptTheFlattenedIgneousBlocks() throws Exception {
-		Method add = OreSpawnOreGeneration.class.getDeclaredMethod("addBlocks", Map.class, JsonElement.class);
+		Method add = OreSpawnOreGeneration.class.getDeclaredMethod("addBlocks", Map.class, Map.class, JsonElement.class);
 		add.setAccessible(true);
 		Map<Block, Double> hosts = new IdentityHashMap<>();
 		JsonArray blocks = new JsonArray();
 		blocks.add("minecraft:stone");
-		add.invoke(null, hosts, blocks);
+		Map<net.minecraft.block.state.IBlockState, Double> exact = new IdentityHashMap<>();
+		add.invoke(null, hosts, exact, blocks);
 		assertEquals(Collections.singletonMap(Blocks.STONE, 1.0D), hosts);
+		assertTrue(exact.isEmpty(), "A bare stone ID must not broaden into other flattened rocks");
 	}
 
 	@Test

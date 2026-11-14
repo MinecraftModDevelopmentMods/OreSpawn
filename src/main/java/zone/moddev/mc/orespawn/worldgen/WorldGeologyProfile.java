@@ -107,6 +107,7 @@ public final class WorldGeologyProfile {
 		// Schema 1 stored only mode, oil and formations.
 		// Fill the missing fields from the active pack profile.
 		JsonObject migrated = fallback.rootCopy();
+		migrated.remove(NaturalFormations.SECTION);
 		copyIfPresent(json, migrated, "geology_mode");
 		copyIfPresent(json, migrated, "place_crude_oil");
 		copyIfPresent(json, migrated, "formations");

@@ -51,7 +51,7 @@ coverage with `OreDefinition.Builder.dimensionSelector(...)` and
 `OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END`. Explicit dimensions
 override that selector and prevent duplicate placement.
 
-The builder emits provider schema 5. Legacy provider schemas 1-4 remain
+The builder emits provider schema 5, or schema 6 when it declares rock formations. Legacy provider schemas 1-4 remain
 readable. Schema 4 is required for biome palettes and dimension materials;
 schema 5 adds explicit material and placement-channel IDs. API major remains 1.
 
@@ -178,3 +178,11 @@ generation.
 
 `OreSpawnOreIntegration` remains as a deprecated facade for early ore-provider
 integrations. New code should use `OreSpawnApi`.
+
+## Formation and background controls
+
+New integrations can use `mergeNewEntriesIntoExistingWorlds(false)` on the
+provider builder and `backgroundGenerationScale(value)` on an ore dimension.
+Both preserve existing behavior when omitted. Formation declarations and the
+read-only `GeologyColumn.formationAt(y)` query are described in
+[Natural formations](ROCK_FORMATIONS.md).

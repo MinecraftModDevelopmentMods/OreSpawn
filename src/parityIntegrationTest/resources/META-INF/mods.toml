@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[25,)"
+license="Test fixture"
+[[mods]]
+modId="parityprobe"
+version="1"
+displayName="OreSpawn parity test fixture"
+[[dependencies.parityprobe]]
+modId="orespawn"
+mandatory=true
+versionRange="[4.1,)"
+ordering="AFTER"
+side="BOTH"

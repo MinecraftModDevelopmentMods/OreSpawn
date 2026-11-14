@@ -63,11 +63,16 @@ public class OreSpawn {
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStarting);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onWorldLoad);
 		MinecraftForge.EVENT_BUS.addListener(WorldGeologyProfileManager::onServerStopped);
-		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkLoad);
+		zone.moddev.mc.orespawn.worldgen.ChunkBookkeeping.register();
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
 		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::tick);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::unload);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::stopped);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminLighting::onSave);
 		WorldgenBenchmark.register();
+		zone.moddev.mc.orespawn.worldgen.AquiferMaterialSubstitution.register();
 	}
 
 	private void loadComplete(final FMLLoadCompleteEvent event) {

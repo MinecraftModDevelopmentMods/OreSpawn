@@ -255,7 +255,10 @@ public final class WorldGeologyProfileManager {
 			boolean generatedWorld) {
 		JsonObject initialized = profile.rootCopy();
 		// A world with generated chunks keeps its original ore budgets on upgrade.
-		if (generatedWorld) initialized.remove(OreSourcePolicies.SECTION);
+		if (generatedWorld) {
+			initialized.remove(OreSourcePolicies.SECTION);
+			initialized.remove(NaturalFormations.SECTION);
+		}
 		OreSourcePolicies.initialize(initialized, generatedWorld);
 		return profile.withRoot(initialized);
 	}

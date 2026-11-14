@@ -9,6 +9,9 @@ OreSpawn uses three JSON contracts:
 | `config/<modid>-orespawn.json` | 5 | Optional authoritative provider override |
 
 A provider may package schema 5 at `data/<modid>/orespawn/provider.json`.
+Providers that declare `rock_formations` use schema 6; all existing schemas
+remain supported. Formation materials use flattened block IDs and optional
+exact `properties`, not numeric metadata.
 Legacy provider schemas 1-4 remain accepted. Fluid deposits require schema 3;
 biome palettes and dimension materials require schema 4. Explicit ore material
 and placement-channel IDs require schema 5.
@@ -276,3 +279,6 @@ ordinary solid blocks, and hostless rules are rejected before generation.
 Copying a world's `serverconfig/orespawn-worldgen.json` to the same location in
 a dedicated server world reproduces its choices when the same referenced mods,
 blocks, biomes, dimensions, and tags are installed.
+See [Natural formations](ROCK_FORMATIONS.md) for substrate bodies and
+[Admin tools](ADMIN_TOOLS.md) for measured distribution reports. Neither
+changes existing terrain merely by installing this update.

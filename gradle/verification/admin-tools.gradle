@@ -1,0 +1,85 @@
+// Compile this separately: destructive test fixtures must never join normal game launches.
+def shared = project.ext.oreSpawnBuild
+def classesDirectory = layout.buildDirectory.dir('admin-fixture/classes')
+def compile = tasks.register('compileAdminProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/adminIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = classesDirectory
+}
+def fixture = tasks.register('adminProbeJar', Jar) {
+    dependsOn compile
+    archiveFileName = 'adminprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('admin-fixture')
+    from classesDirectory
+    from 'src/adminIntegrationTest/resources'
+}
+def packaged = renamer.classes(fixture) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('admin-fixture/adminprobe-reobf.jar')
+}
+shared.adminProbeJar = packaged
+
+def runtime = providers.gradleProperty('packagedForgeServerRuntime')
+def label = providers.gradleProperty('adminIntegrationLabel').orElse('standalone').get()
+if (!(label ==~ /[a-z0-9-]+/)) throw new GradleException('Use a simple admin integration label')
+def runDirectory = layout.buildDirectory.dir("admin-integration-${label}").get().asFile
+def prepare = tasks.register('prepareAdminIntegration') {
+    dependsOn shared.releaseJar, packaged
+    doLast {
+        // This is a dedicated build fixture, never the IDE's run directory or a player save.
+        delete runDirectory
+        runDirectory.mkdirs()
+        copy { from shared.releaseJar; from packaged; into new File(runDirectory, 'mods') }
+        if (providers.gradleProperty('adminIntegrationModJars').isPresent()) {
+            providers.gradleProperty('adminIntegrationModJars').get().split(';').each { path ->
+                File mod = file(path)
+                if (!mod.isFile()) throw new GradleException("Missing test mod: ${mod}")
+                copy { from mod; into new File(runDirectory, 'mods') }
+            }
+        }
+        new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(runDirectory, 'server.properties').setText('''\
+level-name=admin-tools-test
+level-seed=4192643144957839458
+level-type=default
+online-mode=false
+server-port=0
+allow-nether=true
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+    }
+}
+def previous = prepare
+['Fresh', 'Reload', 'ReloadAgain'].each { phase ->
+    def dependency = previous
+    previous = tasks.register("adminIntegration${phase}", Exec) {
+        group = 'verification'
+        dependsOn dependency
+        doFirst {
+            if (!runtime.isPresent()) throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 25 runtime>')
+            File launcher = new File(file(runtime.get()), 'forge-1.13.2-25.0.223.jar')
+            if (!launcher.isFile()) throw new GradleException("Missing official Forge launcher: ${launcher}")
+            workingDir runDirectory
+            commandLine shared.java8Launcher.get().executablePath.asFile.absolutePath,
+                    '-Xms512m', '-Xmx2g', '-Dadmin.probe.collision=true', "-Dadmin.probe.phase=${phase}",
+                    '-jar', launcher.absolutePath, 'nogui'
+        }
+        doLast {
+            File marker = new File(runDirectory, "admin-probe-${phase}.json")
+            if (new File(runDirectory, 'admin-probe-failed.json').exists()
+                    || !marker.isFile() || !new groovy.json.JsonSlurper().parse(marker).passed)
+                throw new GradleException("Admin ${phase} did not pass; retain this run for investigation")
+            shared.assertRuntimeLogsClean(runDirectory, "Admin ${phase}", [] as Set)
+            copy { from new File(runDirectory, 'logs/latest.log'); into new File(runDirectory, 'audit-logs'); rename { "${phase}.log" } }
+            copy { from marker; into new File(runDirectory, 'audit-logs'); rename { "${phase}.json" } }
+        }
+    }
+}
+tasks.register('adminIntegrationTest') {
+    group = 'verification'
+    description = 'Checks real surveys, guarded clear/undo, interruptions and repeated process recovery.'
+    dependsOn previous
+}

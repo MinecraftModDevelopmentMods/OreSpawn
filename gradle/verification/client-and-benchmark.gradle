@@ -23,6 +23,45 @@ def packagedClientProbeJar = renamer.classes(tasks.named('clientIntegrationTestM
     output = layout.buildDirectory.file('client-integration-fixture/clientprobe-reobf.jar')
 }
 
+tasks.register('clientIntegrationProcess', Exec) {
+    group = 'verification'
+    description = 'Checks editors and a fresh/reloaded rendered world using the ordinary development client.'
+    dependsOn tasks.named('genEclipseRuns'), tasks.named('clientIntegrationTestModJar')
+    dependsOn {
+        JavaExec ordinaryClient = tasks.named('runClient', JavaExec).get()
+        ordinaryClient.taskDependencies.getDependencies(ordinaryClient)
+    }
+    File directory = layout.buildDirectory.dir('client-integration-run').get().asFile
+    doFirst {
+        delete directory
+        directory.mkdirs()
+        copy { from tasks.named('clientIntegrationTestModJar', Jar).flatMap { it.archiveFile }; into new File(directory, 'mods') }
+        def launch = project.ext.oreSpawnBuild.oreSourcesClientLaunch('runClient.launch')
+        // Eclipse adds the project's runtime dependencies through its project entry.
+        // Slime Launcher reads java.class.path, so a manifest-only indirection loses those dependencies.
+        List<File> classpath = (tasks.named('runClient', JavaExec).get().classpath.files.toList()
+                + launch.archives + file('bin/main')).unique()
+        List<String> arguments = new ArrayList<>(launch.arguments)
+        int gameDirectory = arguments.indexOf('--gameDir')
+        if (gameDirectory >= 0) arguments[gameDirectory + 1] = directory.absolutePath
+        workingDir directory
+        environment launch.environment
+        commandLine java8Launcher.get().executablePath.asFile.absolutePath,
+                '-Xms512m', '-Xmx2g', '-Dclientprobe.enabled=true', '-cp', classpath.collect { it.absolutePath }.join(File.pathSeparator), launch.mainClass
+        args arguments
+    }
+    doLast {
+        File marker = new File(directory, 'client-smoke-pass.properties')
+        if (!marker.isFile()) throw new GradleException('Development client did not finish its editor/world checks')
+        Properties result = new Properties()
+        marker.withInputStream { result.load(it) }
+        ['world_settings_opened', 'long_editor_roundtrip', 'first_world_rendered', 'reload_rendered'].each { key ->
+            if (result.getProperty(key) != 'true') throw new GradleException("Development client failed ${key}")
+        }
+        assertRuntimeLogsClean(directory, 'development client', [] as Set)
+    }
+}
+
 def surfaceIntegrationClasses = file("${buildDir}/surface-integration-fixture/classes")
 task compileSurfaceIntegrationTestMod(type: JavaCompile, dependsOn: classes) {
     source fileTree('src/biomeIntegrationTest/java')

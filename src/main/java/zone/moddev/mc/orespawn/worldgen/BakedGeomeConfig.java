@@ -21,6 +21,7 @@ public final class BakedGeomeConfig {
 	private static final int LEGACY_MAX_Y = 255;
 	private static final int FORMATION_BUCKETS = 256;
 	private static final int PICKER_SCALE = 1000;
+	private static final RockFamily[] FAMILIES = RockFamily.values();
 	private static final IBlockState FALLBACK = Blocks.STONE.getDefaultState();
 
 	final GeomeDefinition[] geomes;
@@ -84,6 +85,13 @@ public final class BakedGeomeConfig {
 		sedimentaryBlocks = buildBlockSet(rocks, true, false);
 		oreReplaceableBlocks = buildBlockSet(rocks, false, true);
 		rockFamilies = buildFamilyMap(rocks);
+		for (zone.moddev.mc.orespawn.api.FormationMaterial material : NaturalFormations.materials()) {
+			if (!material.family().isPresent()) continue;
+			RockFamily family = RockFamily.valueOf(material.family().get().name());
+			oreReplaceableBlocks.add(material.state().getBlock());
+			rockFamilies.put(material.state().getBlock(), family);
+			if (family == RockFamily.SEDIMENTARY) sedimentaryBlocks.add(material.state().getBlock());
+		}
 
 		if (formations.usesStableLayers()) {
 			buildStablePickers(rocks);
@@ -139,7 +147,7 @@ public final class BakedGeomeConfig {
 		if (formations.usesStableLayers()) {
 			int index = stableFamilyIndex(geomeIndex, clampStableY(y), formationValue & 0xFF,
 					diversitySlot & (familyDiversitySlots - 1));
-			return RockFamily.values()[stableFamilyChoices[index] & 0xFF];
+			return FAMILIES[stableFamilyChoices[index] & 0xFF];
 		}
 
 		int[] thresholds = legacyFamilyThresholds[geomeIndex][clampLegacyY(y)];
@@ -151,7 +159,7 @@ public final class BakedGeomeConfig {
 		int value = positive(formationValue) % total;
 		for (int i = 0; i < thresholds.length; i++) {
 			if (value < thresholds[i]) {
-				return RockFamily.values()[i];
+				return FAMILIES[i];
 			}
 		}
 		return RockFamily.SEDIMENTARY;
@@ -173,7 +181,7 @@ public final class BakedGeomeConfig {
 		int boundedFormationY = clampStableValue(formationY);
 		double bestScore = Double.NEGATIVE_INFINITY;
 		RockFamily bestFamily = preferred;
-		for (RockFamily family : RockFamily.values()) {
+		for (RockFamily family : FAMILIES) {
 			if (!hasEligibleStableRock(geomeIndex, family, worldY, formationY)) continue;
 			double weight = Math.pow(geomes[geomeIndex].familyWeights[family.ordinal()], 2.5D)
 					* familyDepthWeight(family, boundedFormationY);
@@ -229,12 +237,15 @@ public final class BakedGeomeConfig {
 	}
 
 	public IBlockState[] statesForFamily(RockFamily... families) {
+		java.util.Set<IBlockState> available = new java.util.LinkedHashSet<>(Arrays.asList(rockStates));
+		for (zone.moddev.mc.orespawn.api.FormationMaterial m : NaturalFormations.materials())
+			if (m.family().isPresent()) available.add(m.state());
 		int mask = 0;
 		for (RockFamily family : families) {
 			mask |= 1 << family.ordinal();
 		}
 		int count = 0;
-		for (IBlockState state : rockStates) {
+		for (IBlockState state : available) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				count++;
@@ -242,7 +253,7 @@ public final class BakedGeomeConfig {
 		}
 		IBlockState[] result = new IBlockState[count];
 		int index = 0;
-		for (IBlockState state : rockStates) {
+		for (IBlockState state : available) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				result[index++] = state;
@@ -255,6 +266,8 @@ public final class BakedGeomeConfig {
 		for (IBlockState state : rockStates) {
 			target.add(state.getBlock());
 		}
+		for (zone.moddev.mc.orespawn.api.FormationMaterial material : NaturalFormations.materials())
+			if (material.family().isPresent()) target.add(material.state().getBlock());
 	}
 
 	int geomeCount() {
@@ -331,9 +344,9 @@ public final class BakedGeomeConfig {
 
 	private void buildStablePickers(RockEntry[] rocks) {
 		stableFamilyChoices = new byte[geomes.length * HEIGHT * FORMATION_BUCKETS * familyDiversitySlots];
-		stableRockChoices = new int[geomes.length * RockFamily.values().length * HEIGHT * FORMATION_BUCKETS];
+		stableRockChoices = new int[geomes.length * FAMILIES.length * HEIGHT * FORMATION_BUCKETS];
 		Arrays.fill(stableRockChoices, -1);
-		int familyCount = RockFamily.values().length;
+		int familyCount = FAMILIES.length;
 		familyRockIndexes = groupRockIndexes(rocks);
 		stableRockLogWeights = new double[geomes.length][rocks.length][HEIGHT];
 		stableRockPriorities = new double[geomes.length][rocks.length][FORMATION_BUCKETS];
@@ -357,7 +370,7 @@ public final class BakedGeomeConfig {
 				}
 			}
 
-			for (RockFamily family : RockFamily.values()) {
+			for (RockFamily family : FAMILIES) {
 				int familyIndex = family.ordinal();
 				for (int y = MIN_Y; y <= MAX_Y; y++) {
 					int yIndex = y - MIN_Y;
@@ -395,7 +408,7 @@ public final class BakedGeomeConfig {
 					if (familyDiversitySlots == 1) {
 						double bestFamilyScore = Double.NEGATIVE_INFINITY;
 						int bestFamily = RockFamily.SEDIMENTARY.ordinal();
-						for (RockFamily family : RockFamily.values()) {
+						for (RockFamily family : FAMILIES) {
 							int familyIndex = family.ordinal();
 							double familyScore = familyLogWeights[geome][familyIndex][yIndex]
 									+ familyPriorities[geome][familyIndex][bucket];
@@ -410,7 +423,7 @@ public final class BakedGeomeConfig {
 								quotas, remaining, remainders, bonusAwarded);
 					}
 
-					for (RockFamily family : RockFamily.values()) {
+					for (RockFamily family : FAMILIES) {
 						int familyIndex = family.ordinal();
 						double bestRockScore = Double.NEGATIVE_INFINITY;
 						int bestRock = -1;
@@ -454,7 +467,7 @@ public final class BakedGeomeConfig {
 		Arrays.fill(bonusAwarded, false);
 
 		double totalWeight = 0.0D;
-		for (RockFamily family : RockFamily.values()) {
+		for (RockFamily family : FAMILIES) {
 			totalWeight += familyWeights[geome][family.ordinal()][yIndex];
 		}
 		if (totalWeight <= 0.0D) {
@@ -467,7 +480,7 @@ public final class BakedGeomeConfig {
 
 		int allocated = 0;
 		// Largest-remainder apportionment turns the continuous weights into an exact cycle quota.
-		for (RockFamily family : RockFamily.values()) {
+		for (RockFamily family : FAMILIES) {
 			int familyIndex = family.ordinal();
 			double exactSlots = familyWeights[geome][familyIndex][yIndex]
 					* familyDiversitySlots / totalWeight;
@@ -481,7 +494,7 @@ public final class BakedGeomeConfig {
 			int bestFamily = -1;
 			double bestRemainder = Double.NEGATIVE_INFINITY;
 			double bestPriority = Double.NEGATIVE_INFINITY;
-			for (RockFamily family : RockFamily.values()) {
+			for (RockFamily family : FAMILIES) {
 				int familyIndex = family.ordinal();
 				if (familyWeights[geome][familyIndex][yIndex] <= 0.0D || bonusAwarded[familyIndex]) {
 					continue;
@@ -508,7 +521,7 @@ public final class BakedGeomeConfig {
 		// Interleave quota copies so a favored family is spread through the cycle.
 		for (int slot = 0; slot < familyDiversitySlots; slot++) {
 			boolean hasAlternative = false;
-			for (RockFamily family : RockFamily.values()) {
+			for (RockFamily family : FAMILIES) {
 				int familyIndex = family.ordinal();
 				if (familyIndex != previousFamily && remaining[familyIndex] > 0) {
 					hasAlternative = true;
@@ -519,7 +532,7 @@ public final class BakedGeomeConfig {
 			int bestFamily = -1;
 			int bestScore = Integer.MIN_VALUE;
 			double bestPriority = Double.NEGATIVE_INFINITY;
-			for (RockFamily family : RockFamily.values()) {
+			for (RockFamily family : FAMILIES) {
 				int familyIndex = family.ordinal();
 				if (remaining[familyIndex] <= 0
 						|| (hasAlternative && familyIndex == previousFamily)) {
@@ -543,8 +556,8 @@ public final class BakedGeomeConfig {
 	}
 
 	private static int[][] groupRockIndexes(RockEntry[] rocks) {
-		int[][] indexes = new int[RockFamily.values().length][];
-		for (RockFamily family : RockFamily.values()) {
+		int[][] indexes = new int[FAMILIES.length][];
+		for (RockFamily family : FAMILIES) {
 			int count = 0;
 			for (RockEntry rock : rocks) {
 				if (rock.family == family) {
@@ -595,12 +608,12 @@ public final class BakedGeomeConfig {
 	}
 
 	private void buildLegacyPickers(RockEntry[] rocks) {
-		legacyFamilyThresholds = new int[geomes.length][LEGACY_MAX_Y + 1][RockFamily.values().length];
-		legacyRockPickers = new WeightedBlockPicker[geomes.length][RockFamily.values().length][LEGACY_MAX_Y + 1];
+		legacyFamilyThresholds = new int[geomes.length][LEGACY_MAX_Y + 1][FAMILIES.length];
+		legacyRockPickers = new WeightedBlockPicker[geomes.length][FAMILIES.length][LEGACY_MAX_Y + 1];
 		for (int geome = 0; geome < geomes.length; geome++) {
 			for (int y = 0; y <= LEGACY_MAX_Y; y++) {
 				int familyTotal = 0;
-				for (RockFamily family : RockFamily.values()) {
+				for (RockFamily family : FAMILIES) {
 					WeightedBlockPicker picker = buildLegacyRockPicker(rocks, geome, family, y);
 					legacyRockPickers[geome][family.ordinal()][y] = picker;
 
@@ -666,7 +679,7 @@ public final class BakedGeomeConfig {
 	}
 
 	private int stableRockIndex(int geome, int family, int yIndex, int bucket) {
-		return ((((geome * RockFamily.values().length) + family) * HEIGHT + yIndex) * FORMATION_BUCKETS)
+		return ((((geome * FAMILIES.length) + family) * HEIGHT + yIndex) * FORMATION_BUCKETS)
 				+ bucket;
 	}
 

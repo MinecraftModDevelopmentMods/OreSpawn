@@ -1,0 +1,114 @@
+// Use a separate test mod so production launches and jars contain no probe code.
+def shared = project.ext.oreSpawnBuild
+def classesDirectory = layout.buildDirectory.dir('parity-fixture/classes')
+def compile = tasks.register('compileParityProbe', JavaCompile) {
+    dependsOn tasks.named('classes')
+    source fileTree('src/parityIntegrationTest/java')
+    classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+    destinationDirectory = classesDirectory
+}
+def fixture = tasks.register('parityProbeJar', Jar) {
+    dependsOn compile
+    archiveFileName = 'parityprobe.jar'
+    destinationDirectory = layout.buildDirectory.dir('parity-fixture')
+    from classesDirectory
+    from 'src/parityIntegrationTest/resources'
+}
+def packaged = renamer.classes(fixture) {
+    map.from minecraft.dependency.toSrgFile
+    output = layout.buildDirectory.file('parity-fixture/parityprobe-reobf.jar')
+}
+shared.parityProbeJar = packaged
+def runtime = providers.gradleProperty('packagedForgeServerRuntime')
+def directory = layout.buildDirectory.dir('retrogen-parity').get().asFile
+def previous = tasks.register('prepareRetrogenParity') {
+    dependsOn shared.releaseJar, packaged
+    doLast {
+        delete directory
+        directory.mkdirs()
+        copy { from shared.releaseJar; from packaged; into new File(directory, 'mods') }
+        new File(directory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+        new File(directory, 'server.properties').setText('level-name=retrogen-parity-world\nlevel-seed=1756013778856393773\nlevel-type=default\nonline-mode=false\nserver-port=0\ngenerate-structures=false\nmax-tick-time=-1\n', 'UTF-8')
+    }
+}
+['Fresh', 'Reload', 'StripCapability', 'LegacyReload', 'Off', 'On', 'Revision', 'RevisionReload', 'Force', 'ForceOff'].each { phase ->
+    def dependency = previous
+    previous = tasks.register("retrogenParity${phase}", Exec) {
+        group = 'verification'
+        dependsOn dependency
+        doFirst {
+            if (!runtime.isPresent()) throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 25 runtime>')
+            workingDir directory
+            commandLine shared.java8Launcher.get().executablePath.asFile.absolutePath, '-Xms512m', '-Xmx2g',
+                    "-Dparity.phase=${phase}", '-jar', new File(file(runtime.get()), 'forge-1.13.2-25.0.223.jar').absolutePath, 'nogui'
+        }
+        doLast {
+            File marker = new File(directory, "retrogen-${phase}.json")
+            if (!marker.isFile() || new File(directory, 'retrogen-failed.json').exists()
+                    || !new groovy.json.JsonSlurper().parse(marker).passed) throw new GradleException("Retrogen ${phase} did not pass")
+            shared.assertRuntimeLogsClean(directory, "Retrogen ${phase}", [] as Set)
+            copy { from new File(directory, 'logs/latest.log'); into new File(directory, 'audit-logs'); rename { "${phase}.log" } }
+        }
+    }
+}
+tasks.register('retrogenParityTest') {
+    group = 'verification'
+    description = 'Checks mined ores and completed revisions through repeated saves, OFF/ON, revisions, force and process restarts.'
+    dependsOn previous
+}
+
+def generationRuns = []
+[
+    Formations: ['formations', 'native', 'default'],
+    FormationsAmplified: ['formations', 'native', 'amplified'],
+    FormationsLargeBiomes: ['formations', 'native', 'largeBiomes'],
+    FluidsNative: ['fluids', 'native', 'default'],
+    FluidsWater: ['fluids', 'water', 'default'],
+    FluidsLuminous: ['fluids', 'luminous_water', 'default']
+].each { label, options ->
+    File runDirectory = layout.buildDirectory.dir("generation-parity-${label}").get().asFile
+    def prior = tasks.register("prepareGeneration${label}") {
+        dependsOn shared.releaseJar, packaged
+        doLast {
+            delete runDirectory
+            runDirectory.mkdirs()
+            copy { from shared.releaseJar; from packaged; into new File(runDirectory, 'mods') }
+            new File(runDirectory, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(runDirectory, 'server.properties').setText("level-name=generation-parity-world\nlevel-seed=1756013778856393773\nlevel-type=${options[2]}\nonline-mode=false\nserver-port=0\ngenerate-structures=false\nmax-tick-time=-1\n", 'UTF-8')
+        }
+    }
+    ['Fresh', 'Reload'].each { phase ->
+        def dependency = prior
+        prior = tasks.register("generation${label}${phase}", Exec) {
+            group = 'verification'
+            dependsOn dependency
+            doFirst {
+                if (!runtime.isPresent()) throw new GradleException('Pass -PpackagedForgeServerRuntime=<official Forge 25 runtime>')
+                workingDir runDirectory
+                commandLine shared.java8Launcher.get().executablePath.asFile.absolutePath, '-Xms512m', '-Xmx2g',
+                        "-Dparity.mode=${options[0]}", "-Dparity.fluid=${options[1]}", "-Dparity.phase=${phase}",
+                        '-jar', new File(file(runtime.get()), 'forge-1.13.2-25.0.223.jar').absolutePath, 'nogui'
+            }
+            doLast {
+                File marker = new File(runDirectory, "generation-${phase}.json")
+                if (!marker.isFile() || !new groovy.json.JsonSlurper().parse(marker).passed)
+                    throw new GradleException("Generation ${label} ${phase} did not pass")
+                shared.assertRuntimeLogsClean(runDirectory, "Generation ${label} ${phase}", [] as Set)
+                copy { from new File(runDirectory, 'logs/latest.log'); into new File(runDirectory, 'audit-logs'); rename { "${phase}.log" } }
+            }
+        }
+    }
+    generationRuns.add(prior)
+}
+tasks.register('generationParityTest') {
+    group = 'verification'
+    description = 'Checks generated formations, native sampler agreement, fluid provenance and exact reloads.'
+    dependsOn generationRuns
+    doLast {
+        def parse = { label -> new groovy.json.JsonSlurper().parse(file("${buildDir}/generation-parity-${label}/generation-Fresh.json")) }
+        def nativeResult = parse('FluidsNative'), optimized = parse('FluidsWater')
+        if (nativeResult.normalized_blocks_sha256 != optimized.normalized_blocks_sha256
+                || nativeResult.pending_fluid_ticks != optimized.pending_fluid_ticks)
+            throw new GradleException('Optimized fluid changed normalized terrain or scheduled extra fluid updates')
+    }
+}

@@ -4,9 +4,11 @@
   "type": "object",
   "required": ["schema_version", "provider_modid", "provider_revision"],
   "properties": {
-    "schema_version": { "enum": [1, 2, 3, 4, 5] },
+    "schema_version": { "enum": [1, 2, 3, 4, 5, 6] },
     "provider_modid": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "provider_revision": { "type": "integer", "minimum": 1 },
+    "merge_new_entries_into_existing_worlds": { "type": "boolean" },
+    "rock_formations": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rockFormation" } },
     "rocks": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/rock" } },
     "ores": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/ore" } },
     "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "profile-common.schema.json#/$defs/fluidDeposit" } },
@@ -27,12 +29,17 @@
           "required_mods": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
           "auto_select": { "type": "boolean" },
           "auto_select_priority": { "type": "integer" },
+          "preserve_formation_overrides": { "type": "boolean" },
           "profile": { "type": "object" }
         }
       }
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "schema_version": { "maximum": 5 } } },
+      "then": { "properties": { "rock_formations": false } }
+    },
     {
       "if": { "properties": { "schema_version": { "const": 1 } } },
       "then": {
@@ -66,6 +73,7 @@
 	}
   ],
   "anyOf": [
+    { "required": ["rock_formations"], "properties": { "rock_formations": { "minProperties": 1 } } },
     { "required": ["rocks"], "properties": { "rocks": { "minProperties": 1 } } },
     { "required": ["ores"], "properties": { "ores": { "minProperties": 1 } } },
     { "required": ["geomes"], "properties": { "geomes": { "minProperties": 1 } } },
