@@ -328,7 +328,5 @@ class OreRetrogenManagerTest {
         field.setAccessible(true);
         field.set(target, value);
     }
-
 }
-
 
