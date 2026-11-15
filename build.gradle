@@ -59,6 +59,9 @@ tasks.withType(JavaCompile).configureEach {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
     options.encoding = 'UTF-8'
+    // javac 8 can emit different anonymous-class constant pools after a partial
+    // incremental compile. Compile the complete source set for stable jar bytes.
+    options.incremental = false
     options.compilerArgs.addAll(['-Xmaxerrs', '1000'])
 }
 
@@ -189,8 +192,8 @@ tasks.register('verifyDocumentationParity') {
     dependsOn tasks.named('processResources')
     doLast {
         List<File> tracked = trackedDocumentationFiles()
-        if (tracked.size() != 20) {
-            throw new GradleException("Expected 20 tracked documentation files, found ${tracked.size()}")
+        if (tracked.size() != 22) {
+            throw new GradleException("Expected 22 tracked documentation files, found ${tracked.size()}")
         }
         tracked.each { File source ->
             String relative = documentationRelativePath(source)

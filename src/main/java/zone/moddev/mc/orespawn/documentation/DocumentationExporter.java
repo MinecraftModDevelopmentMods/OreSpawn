@@ -28,6 +28,8 @@ public final class DocumentationExporter {
 			"TEMPLATES.md",
 			"DIMENSIONS.md",
 			"BIOMES.md",
+			"ROCK_FORMATIONS.md",
+			"ADMIN_TOOLS.md",
 			"MIGRATION.md",
 			"TROUBLESHOOTING.md",
 			"examples/examplemod-orespawn.json",

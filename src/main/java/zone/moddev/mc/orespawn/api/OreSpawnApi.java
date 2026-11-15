@@ -22,6 +22,15 @@ public final class OreSpawnApi {
 	}
 
 	/**
+	 * True only during a vanilla granite/diorite/andesite patch pass in a world
+	 * with active natural formations. Natural formation blocks may decline that
+	 * decorative replacement while remaining normal hosts for metal ores.
+	 */
+	public static boolean isNativeStonePatchPass() {
+		return zone.moddev.mc.orespawn.worldgen.NativeStonePatchContext.active();
+	}
+
+	/**
 	 * Enqueues a provider before OreSpawn freezes discovery. Call this during
 	 * the provider mod's Forge initialization phase.
 	 */

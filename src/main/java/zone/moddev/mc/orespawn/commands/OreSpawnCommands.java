@@ -32,18 +32,35 @@ public final class OreSpawnCommands {
 
 	public static void register(FMLServerStartingEvent event) {
 		event.registerServerCommand(new RootCommand());
+		for (String alias : new String[]{"clearchunk", "clearchunks"}) {
+			if (!event.getServer().getCommandManager().getCommands().containsKey(alias)) event.registerServerCommand(new ClearAlias(alias));
+		}
+	}
+
+	private static final class ClearAlias extends CommandBase {
+		private final String name;
+		ClearAlias(String name) { this.name = name; }
+		@Override public String getName() { return name; }
+		@Override public String getUsage(ICommandSender sender) { return "/orespawn clearchunk [confirm token]"; }
+		@Override public int getRequiredPermissionLevel() { return 4; }
+		@Override public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
+			String[] delegated = new String[args.length + 1]; delegated[0] = "clearchunk";
+			System.arraycopy(args, 0, delegated, 1, args.length);
+			zone.moddev.mc.orespawn.commands.admin.AdminCommands.handle(server, sender, delegated);
+		}
 	}
 
 	private static final class RootCommand extends CommandBase {
 		@Override public String getName() { return "orespawn"; }
 		@Override public String getUsage(ICommandSender sender) {
-			return "/orespawn <status|reload|retrogen [radius]|dump-biomes>";
+			return "/orespawn help";
 		}
 		@Override public int getRequiredPermissionLevel() { return 0; }
 
 		@Override
 		public void execute(MinecraftServer server, ICommandSender sender, String[] args)
 				throws CommandException {
+			if (zone.moddev.mc.orespawn.commands.admin.AdminCommands.handle(server, sender, args)) return;
 			String action = args.length == 0 ? "status" : args[0];
 			if ("status".equals(action)) {
 				status(sender);
@@ -60,6 +77,24 @@ public final class OreSpawnCommands {
 			} else {
 				throw new CommandException(getUsage(sender));
 			}
+		}
+
+		@Override public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender,
+				String[] args, net.minecraft.util.math.BlockPos target) {
+			if (args.length == 1) {
+				List<String> names = new ArrayList<>();
+				for (String name : zone.moddev.mc.orespawn.commands.admin.AdminCommands.ACTIONS)
+					if ("status".equals(name) || sender.canUseCommand("clearchunk".equals(name) || "undo".equals(name) ? 4 : 2, "orespawn")) names.add(name);
+				return getListOfStringsMatchingLastWord(args, names);
+			}
+			if (!sender.canUseCommand(2, "orespawn")) return Collections.emptyList();
+			if (args.length == 2 && "explain".equals(args[0])) {
+				List<String> rules = new ArrayList<>();
+				com.google.gson.JsonObject root = WorldGeologyProfileManager.activeProfile().toJson();
+				if (root.has("ores")) root.getAsJsonObject("ores").entrySet().forEach(e -> rules.add(e.getKey()));
+				return getListOfStringsMatchingLastWord(args, rules);
+			}
+            return getListOfStringsMatchingLastWord(args, "--dimension", "--center", "--y", "--block", "preview", "confirm", "cancel", "status", "verbose", "backups");
 		}
 
 		private static void requireAdmin(ICommandSender sender) throws CommandException {

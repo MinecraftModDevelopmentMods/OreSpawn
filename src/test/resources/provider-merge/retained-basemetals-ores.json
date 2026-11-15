@@ -1,0 +1,551 @@
+{
+  "schema_version": 7,
+  "ores": {
+    "basemetals:legacy/coldiron_ore": {
+      "block": "basemetals:coldiron_ore",
+      "dimension_selectors": {},
+      "dimensions": {
+        "minecraft:the_nether": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 5,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 127,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "enabled": true,
+      "material": "orespawn:coldiron",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:coldiron_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/adamantine_ore": {
+      "block": "basemetals:adamantine_ore",
+      "dimension_selectors": {},
+      "dimensions": {
+        "minecraft:the_nether": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 2,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 127,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "enabled": true,
+      "material": "orespawn:adamantine",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:adamantine_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/starsteel_ore": {
+      "block": "basemetals:starsteel_ore",
+      "dimension_selectors": {},
+      "dimensions": {
+        "minecraft:the_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 5,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 254,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "enabled": true,
+      "material": "orespawn:starsteel",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:starsteel_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/tin_ore": {
+      "block": "basemetals:tin_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 10,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 127,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:tin",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:tin_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/lead_ore": {
+      "block": "basemetals:lead_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 5,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 63,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:lead",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:lead_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/zinc_ore": {
+      "block": "basemetals:zinc_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 5,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 95,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:zinc",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:zinc_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/silver_ore": {
+      "block": "basemetals:silver_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 4,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 31,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:silver",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:silver_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/mercury_ore": {
+      "block": "basemetals:mercury_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 3,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 31,
+          "min_quantity": 4,
+          "min_y": 0,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:mercury",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:mercury_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/nickel_ore": {
+      "block": "basemetals:nickel_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 1,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 95,
+          "min_quantity": 4,
+          "min_y": 32,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:nickel",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:nickel_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    },
+    "basemetals:legacy/platinum_ore": {
+      "block": "basemetals:platinum_ore",
+      "dimension_selectors": {
+        "orespawn:all_except_nether_end": {
+          "biome_dictionary": [],
+          "biome_ids": [],
+          "discard_chance_on_air_exposure": 0,
+          "enabled": true,
+          "excluded_biome_dictionary": [],
+          "excluded_biome_ids": [],
+          "frequency": 0.125,
+          "geomes": {},
+          "height_distribution": "uniform",
+          "host_blocks": [
+            "minecraft:stone",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+          ],
+          "host_families": [
+            "sedimentary",
+            "metamorphic",
+            "igneous_intrusive",
+            "igneous_volcanic"
+          ],
+          "host_tags": [],
+          "max_quantity": 11,
+          "max_y": 31,
+          "min_quantity": 4,
+          "min_y": 1,
+          "node_size": 4,
+          "pattern": "default",
+          "placement_channel": "orespawn:standard",
+          "spread": 8,
+          "vertical_spread": 4
+        }
+      },
+      "dimensions": {},
+      "enabled": true,
+      "material": "orespawn:platinum",
+      "native_generation": false,
+      "outputs": [
+        {
+          "block": "basemetals:platinum_ore",
+          "max_y": 2048,
+          "min_y": -2048,
+          "weight": 100
+        }
+      ],
+      "retrogen": false,
+      "source_provider": "basemetals",
+      "suppress_vanilla": false
+    }
+  },
+  "providers": {
+    "basemetals": {
+      "known_biome_palettes": [],
+      "known_biome_rules": [],
+      "known_dimension_materials": [],
+      "known_fluid_deposits": [],
+      "known_geomes": [],
+      "known_ores": [
+        "basemetals:legacy/adamantine_ore",
+        "basemetals:legacy/coldiron_ore",
+        "basemetals:legacy/copper_ore",
+        "basemetals:legacy/lead_ore",
+        "basemetals:legacy/mercury_ore",
+        "basemetals:legacy/nickel_ore",
+        "basemetals:legacy/platinum_ore",
+        "basemetals:legacy/silver_ore",
+        "basemetals:legacy/starsteel_ore",
+        "basemetals:legacy/tin_ore",
+        "basemetals:legacy/zinc_ore"
+      ],
+      "known_rocks": [],
+      "known_templates": [],
+      "known_terrain_dimensions": [],
+      "provider_revision": 1
+    }
+  }
+}

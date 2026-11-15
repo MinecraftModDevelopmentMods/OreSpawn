@@ -181,7 +181,10 @@ public final class WorldGeologyProfileManager {
 		// A generated world without an OS4 profile is an upgrade. Its installed-pack
 		// fallback may already contain fresh-world consolidation defaults, which must
 		// not alter the world's historical ore frequency implicitly.
-		if (generatedWorld) initialized.remove(OreSourcePolicies.SECTION);
+		if (generatedWorld) {
+			initialized.remove(OreSourcePolicies.SECTION);
+			initialized.remove(NaturalFormations.SECTION);
+		}
 		OreSourcePolicies.initialize(initialized, generatedWorld);
 		return profile.withRoot(initialized);
 	}
@@ -200,6 +203,7 @@ public final class WorldGeologyProfileManager {
 
 	public static void onWorldLoad(WorldEvent.Load event) {
 		if (!(event.getWorld() instanceof WorldServer)) return;
+		VanillaLakeCompatibility.configure((WorldServer) event.getWorld());
 		WorldGeologyProfile profile = activeProfile;
 		if (profile != null) {
 			BiomeWorldgenManager.apply((WorldServer) event.getWorld(), profile);

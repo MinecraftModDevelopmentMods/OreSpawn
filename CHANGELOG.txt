@@ -1,3 +1,32 @@
+Version 4.1.7.110021
+
+* Keep completed retrogen marked through later saves and restarts, even while
+  retrogen is off. Do not mark chunks with a revision they have not processed.
+
+* Add loaded-chunk ore surveys, JSON/CSV reports, chunk details and rule
+  explanations. Keep read-only diagnostics independent of generation settings.
+* Restore terrain clearing with permission checks, a preview, a verified
+  backup and checked undo. Keep ores, fluid deposits and unknown blocks safe.
+  Show short previews with clickable confirmation, cancellation and undo links.
+
+* Keep saved ore settings when a provider renames a recognised rule. Add the
+  matching modern rule as a disabled alternative rather than another ore pass.
+
+* Add provider/profile declarations and compiled natural rock formations.
+  Use the same deterministic, chunk-local geometry for early terrain placement
+  and geology prediction, with read-only formation and parent-material queries.
+* Preserve caves, fluids, structures, other ores and existing chunks. Existing
+  worlds without formation definitions keep that absence in later terrain too.
+* Let realism templates tune untouched packaged formations while preserving
+  authored, disabled, removed and authoritative external definitions.
+* Keep native granite/diorite/andesite patches from cutting the expanded
+  formation rocks differently according to chunk population order, without
+  changing normal metal-ore hosts or older profiles.
+* Preserve natural formation rock in vanilla lava-lake rims regardless of
+  neighbouring chunk order. Keep native lake shapes, fluid cavities and random
+  draws unchanged in normal, Amplified, Large Biomes and Customized worlds;
+  leave older profiles and custom generators alone.
+
 Version 4.1.6.110021
 
 * Fix duplicate ore generation when an OreSpawn 1 world is moved without its
