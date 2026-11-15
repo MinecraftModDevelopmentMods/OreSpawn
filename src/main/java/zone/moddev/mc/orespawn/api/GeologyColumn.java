@@ -15,4 +15,6 @@ public interface GeologyColumn {
 	int surfaceY();
 	IBlockState rockAt(int y);
 	Optional<GeologyFamily> familyAt(int y);
+	/** Natural formation provenance, excluding later ore, mine and marker writes. */
+	default Optional<FormationSample> formationAt(int y) { return Optional.empty(); }
 }

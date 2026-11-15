@@ -10,13 +10,17 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.1.6.110021`: the OreSpawn 4.1.6
+This branch builds local candidate `4.1.7.110021`: the OreSpawn 4.1.7
 feature set for Minecraft 1.10.2 and Forge. It adds stable generation identity,
 non-loading geology sampling, per-resource background control, existing-world
 provider merge policy, an Ore Sources arbiter for equivalent provider ores and
 a biome directory with exact new-terrain replacement overrides, plus a client
-world-settings extension point for add-ons such as Realistic Deposits
-while retaining API major 1. See the
+world-settings extension point for add-ons such as Realistic Deposits.
+Natural rock formations now share their compiled geometry between early
+terrain placement and read-only geology prediction, including formation and
+parent-material provenance. Missing formation sections in saved worlds remain
+empty; this is not retrogen or a wholesale 4.2 backport. API major 1 is retained.
+See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
 
 Its deprecated compatibility layer imports OreSpawn 1 and OreSpawn 3
@@ -26,6 +30,10 @@ metadata block states, exclusive legacy height ceilings, and the historical
 "all dimensions except Nether and End" policy used by mods such as Base
 Metals. OreSpawn never schedules both an original legacy generator and its OS4
 translation.
+
+Recognised provider rule renames keep the saved ore settings and add the modern
+rule as a disabled, editable alternative, avoiding an extra generation pass.
+See [retained provider rules](docs/MIGRATION.md#retained-provider-rules).
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
@@ -208,3 +216,10 @@ Public developer and AI integration guidance lives in `docs/` and is included
 in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.
+
+## Admin and distribution tools
+
+Use `/orespawn help` for loaded-chunk surveys, rule explanations and chunk
+diagnostics. Guarded `/orespawn clearchunk` previews one chunk before changing
+it and keeps a verified backup for checked undo. Open chat to review the preview
+and choose Confirm clearing or Cancel. See [the admin guide](docs/ADMIN_TOOLS.md).

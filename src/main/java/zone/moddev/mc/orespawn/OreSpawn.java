@@ -52,7 +52,7 @@ public class OreSpawn {
 
 	public static final String MODID = "orespawn";
 	public static final String NAME = "OreSpawn";
-	public static final String VERSION = "4.1.6.110021";
+	public static final String VERSION = "4.1.7.110021";
 
 	private static final Logger LOGGER = LogManager.getLogger();
 
@@ -136,6 +136,7 @@ public class OreSpawn {
 
 	@EventHandler
 	public void serverStopped(FMLServerStoppedEvent event) {
+		zone.moddev.mc.orespawn.commands.admin.AdminJobs.shutdown();
 		WorldGeologyProfileManager.onServerStopped(event);
 		OreSpawnWorldGenerator.INSTANCE.clear();
 	}
@@ -220,6 +221,9 @@ public class OreSpawn {
 		@SubscribeEvent public void worldLoad(WorldEvent.Load event) {
 			WorldGeologyProfileManager.onWorldLoad(event);
 		}
+		@SubscribeEvent public void diagnosticWorldUnload(WorldEvent.Unload event) {
+			zone.moddev.mc.orespawn.commands.admin.AdminJobs.unload(event.getWorld());
+		}
 		@SubscribeEvent public void chunkLoad(ChunkEvent.Load event) {
 			WorldMaterialWeather.onChunkLoad(event);
 		}
@@ -234,6 +238,10 @@ public class OreSpawn {
 		}
 		@SubscribeEvent public void serverTick(TickEvent.ServerTickEvent event) {
 			OreRetrogenManager.onServerTick(event);
+			if (event.phase == TickEvent.Phase.END) {
+				zone.moddev.mc.orespawn.commands.admin.AdminJobs.pollExports();
+				zone.moddev.mc.orespawn.commands.admin.AdminJobs.tick();
+			}
 		}
 	}
 

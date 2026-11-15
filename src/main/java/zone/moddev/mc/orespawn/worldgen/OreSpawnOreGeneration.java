@@ -76,6 +76,93 @@ public final class OreSpawnOreGeneration {
 	private OreSpawnOreGeneration() {
 	}
 
+	/** Reads the same baked placement budget used by generation without rolling an attempt. */
+	public static JsonObject diagnosticRule(WorldServer level, BlockPos position, ResourceLocation ruleId) {
+		Chunk chunk = level.getChunkProvider().getLoadedChunk(position.getX() >> 4, position.getZ() >> 4);
+		if (chunk == null) throw new IllegalArgumentException("The target chunk is not loaded");
+		ResourceLocation dimension = WorldIds.dimension(level);
+		JsonObject result = new JsonObject();
+		result.addProperty("rule", ruleId.toString());
+		result.addProperty("dimension", dimension.toString());
+		result.addProperty("at", position.getX() + "," + position.getY() + "," + position.getZ());
+		JsonObject root = WorldGeologyProfileManager.activeProfile().rootCopy();
+		JsonObject definition = objectOrEmpty(objectOrEmpty(root, "ores"), ruleId.toString());
+		if (definition.entrySet().isEmpty()) throw new IllegalArgumentException("Unknown managed ore rule " + ruleId);
+		result.addProperty("manage_vanilla_ores", bool(root, "manage_vanilla_ores", false));
+		result.addProperty("configured_enabled", bool(definition, "enabled", true));
+		result.add("configured_rule", zone.moddev.mc.orespawn.util.JsonCopies.copy(definition));
+		JsonObject explicit = objectOrEmpty(definition, "dimensions");
+		JsonObject dimensionRule = explicit.has(dimension.toString()) ? objectOrEmpty(explicit, dimension.toString())
+				: selectorAllows(dimension)
+						? objectOrEmpty(objectOrEmpty(definition, "dimension_selectors"), OreDimensionSelector.ALL_EXCEPT_NETHER_AND_END.id().toString()) : new JsonObject();
+		result.addProperty("configured_dimension_present", !dimensionRule.entrySet().isEmpty());
+		result.addProperty("configured_dimension_enabled", !dimensionRule.entrySet().isEmpty() && bool(dimensionRule, "enabled", true));
+		JsonObject sourcePolicies = new JsonObject();
+		for (Entry<String, JsonElement> policy : objectOrEmpty(root, OreSourcePolicies.SECTION).entrySet()) {
+			if (!policy.getValue().isJsonObject()) continue;
+			JsonObject value = policy.getValue().getAsJsonObject();
+			if (!value.has("candidates") || !value.get("candidates").isJsonArray()) continue;
+			for (JsonElement candidate : value.getAsJsonArray("candidates")) {
+				if (candidate.isJsonObject() && ruleId.toString().equals(string(candidate.getAsJsonObject(), "source_id", ""))) {
+					JsonObject selection = new JsonObject();
+					for (String key : new String[]{"mode", "output_mode", "outputs", "placement_sources", "dormant"})
+						if (value.has(key)) selection.add(key, zone.moddev.mc.orespawn.util.JsonCopies.copy(value.get(key)));
+					sourcePolicies.add(policy.getKey(), selection);
+					break;
+				}
+			}
+		}
+		result.add("source_policies", sourcePolicies);
+		BakedOre selected = null;
+		for (BakedOre candidate : oresForDimension(dimension)) {
+			if (candidate.ruleId.equals(ruleId)) { selected = candidate; break; }
+			for (BakedSource source : candidate.arbitrationSources) if (source.sourceId.equals(ruleId.toString())) selected = candidate;
+		}
+		result.addProperty("in_effective_placement_budget", selected != null);
+		if (selected == null) {
+			ResourceLocation outputId = resource(string(definition, "block", ruleId.toString()));
+			Block output = outputId == null ? null : ForgeRegistries.BLOCKS.getValue(outputId);
+			boolean vanillaOff = !bool(root, "manage_vanilla_ores", false) && output != null
+					&& (bool(definition, "native_generation", false) || isImportedVanillaOre(ruleId, output, definition));
+			result.addProperty("reason", !bool(definition, "enabled", true) ? "disabled"
+					: vanillaOff ? "vanilla_management_off" : "dimension_disabled_invalid_or_not_selected_by_source_policy");
+		} else {
+			Biome biome = Biome.getBiome(chunk.getBiomeArray()[8 * 16 + 8] & 255);
+			ResourceLocation biomeId = biome == null ? null : WorldIds.biome(biome);
+			IBlockState host = chunk.getBlockState(position);
+			Double chance = selected.hostStates.get(host);
+			if (chance == null) chance = selected.hostBlocks.get(host.getBlock());
+			RockFamily family = geomeConfig.familyOf(host);
+			boolean familyMatches = family != null && geomeConfig.isOreReplaceable(host)
+					&& (selected.familyMask & (1 << family.ordinal())) != 0;
+			double hostChance = chance == null ? (familyMatches ? 1.0D : 0.0D) : chance;
+			double frequency = scaledManagedFrequency(selected.frequency, selected.backgroundController,
+					channelBackgroundScale(selected.materialDeclared ? selected.material : null, selected.channel,
+							materialBackgroundScale(dimension, selected.materialDeclared ? selected.material : null),
+							backgroundScale(dimension, selected.output.getBlock())));
+			if (WorldIds.OVERWORLD.equals(dimension) && biome != null) {
+				int geome = new GeomeGeology(level.getSeed(), geomeConfig).classifyColumn(biome, biomeId,
+						(chunk.xPosition << 4) + 8, (chunk.zPosition << 4) + 8, new double[geomeConfig.geomeCount()]);
+				frequency *= selected.geomeWeights[geome];
+			}
+			result.addProperty("placement_source", selected.ruleId.toString());
+			result.addProperty("placement_channel", selected.channel.toString());
+			result.addProperty("biome_test_uses_chunk_centre", true);
+			result.addProperty("biome", String.valueOf(biomeId));
+			result.addProperty("biome_matches", biome != null && selected.acceptsBiome(biome, biomeId));
+			result.addProperty("height_matches", position.getY() >= selected.minY && position.getY() <= selected.maxY);
+			result.addProperty("min_y", selected.minY); result.addProperty("max_y", selected.maxY);
+			result.addProperty("min_quantity", selected.minQuantity); result.addProperty("max_quantity", selected.maxQuantity);
+			result.addProperty("current_host_state", zone.moddev.mc.orespawn.commands.admin.DiagnosticStates.key(host));
+			result.addProperty("current_host_family", family == null ? "unclassified" : family.name());
+			result.addProperty("current_host_chance", hostChance);
+			result.addProperty("expected_attempts_per_chunk", frequency);
+			result.addProperty("retrogen_rule_enabled", selected.retrogen);
+		}
+		result.addProperty("limitation", "Eligibility is not a placement prediction. Random geometry, exposure rolls and private extension checks are not evaluated; current blocks do not identify their historical generator.");
+		return result;
+	}
+
 	public static void registerConfiguredFeatures() {
 		refreshWorldConfig();
 	}
@@ -152,7 +239,7 @@ public final class OreSpawnOreGeneration {
 		WorldServer level = world instanceof WorldServer ? (WorldServer) world : null;
 		boolean changed = generateChunk(level, world, chunk, biome, biomeId, dimension,
 				world.getSeed(), random, ores, false, scratch);
-		OreRetrogenManager.markGenerated(dimension, ChunkAccessCompat.position(chunk));
+		if (level != null) OreRetrogenManager.markGenerated(level, ChunkAccessCompat.position(chunk));
 		return changed;
 	}
 

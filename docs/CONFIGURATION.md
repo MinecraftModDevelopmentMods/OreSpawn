@@ -384,6 +384,14 @@ or `host_tags` entry. Optional `biome_ids`, `excluded_biome_ids`,
 Only ore rules with `retrogen:true` participate. Terrain strata are never
 retro-generated.
 
+Completed revisions survive chunk saves and server restarts, including time
+spent with retrogen disabled. Changing settings alone does not mark a new
+revision as complete. A different revision, `force:true`, or the manual
+retrogen command can deliberately run another pass. Keep force off for normal
+use. This repair cannot identify or remove extra ores placed by older builds,
+or reconstruct completion markers those builds already lost; back up your save
+before enabling retrogen.
+
 `flat_bedrock.enabled` and `flat_bedrock.retrogen` are off by default.
 `layers` is 1-5 and `dimensions` is an array of full dimension IDs.
 

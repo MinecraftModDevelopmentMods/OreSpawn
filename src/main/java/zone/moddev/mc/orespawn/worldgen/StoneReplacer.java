@@ -45,6 +45,8 @@ public final class StoneReplacer {
 			geology.legacy.replaceStoneInChunk(world, chunk, terrain);
 		} else {
 			geology.sky.replaceStoneInChunk(world, chunk, terrain);
+			if (world instanceof net.minecraft.world.WorldServer)
+				NaturalFormations.apply((net.minecraft.world.WorldServer) world, chunk, terrain);
 		}
 		return true;
 	}

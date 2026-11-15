@@ -65,7 +65,8 @@ final class OreSpawnGeologySampler implements GeologySampler {
 			return new CyanoColumn(biomeId, blockX, blockZ, surfaceY);
 		}
 		GeomeGeology.ColumnSample sample = sky.sampleColumn(biome, biomeId, blockX, blockZ);
-		return new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample);
+		return zone.moddev.mc.orespawn.worldgen.NaturalFormations.wrap(level,
+				new SkyColumn(biomeId, blockX, blockZ, surfaceY, sample), biome);
 	}
 
 	private abstract class BaseColumn implements GeologyColumn {
