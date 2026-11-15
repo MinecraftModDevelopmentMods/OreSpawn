@@ -11,6 +11,7 @@
     "default_template": { "$ref": "#/$defs/optionalRegistryId" },
     "selected_template": { "$ref": "#/$defs/registryId" },
     "formations": { "$ref": "#/$defs/formations" },
+    "rock_formations": { "type": "object", "additionalProperties": { "$ref": "#/$defs/rockFormation" } },
     "rocks": { "type": "object", "additionalProperties": { "$ref": "#/$defs/rock" } },
     "geomes": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/geome" } },
     "biomes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
@@ -121,6 +122,7 @@
       "type": "object",
       "required": ["enabled", "min_y", "max_y", "frequency"],
       "properties": {
+        "background_generation_scale": { "type": "number", "minimum": 0, "maximum": 1 },
         "enabled": { "type": "boolean" },
         "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
         "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
@@ -388,6 +390,103 @@
         "retrogen": { "type": "boolean" },
         "layers": { "type": "integer", "minimum": 1, "maximum": 5 },
         "dimensions": { "$ref": "#/$defs/registryIds" }
+      }
+    },
+    "rockFormation": {
+      "type": "object",
+      "required": [
+        "type",
+        "algorithm_revision",
+        "materials"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/registryId"
+        },
+        "algorithm_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "salt": {
+          "type": "integer"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "geomes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "spacing_chunks": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 65536
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_y": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 240
+        },
+        "max_y": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 240
+        },
+        "radius_min": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "radius_max": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 128
+        },
+        "cover": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 240
+        },
+        "materials": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "block"
+            ],
+            "properties": {
+              "block": {
+                "$ref": "#/$defs/registryId"
+              },
+              "family": {
+                "$ref": "#/$defs/family"
+              },
+              "properties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

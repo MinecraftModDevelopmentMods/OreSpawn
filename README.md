@@ -14,13 +14,22 @@ Its OS3 compatibility layer preserves ranged legacy block budgets, exclusive
 legacy height ceilings, and the historical "all dimensions except Nether and
 End" policy used by mods such as Base Metals.
 
+Recognised provider rule renames keep the saved ore settings and add the modern
+rule as a disabled, editable alternative, avoiding an extra generation pass.
+See [retained provider rules](docs/MIGRATION.md#retained-provider-rules).
+
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
 
-This branch builds target-qualified version `4.1.1.114041` for Minecraft 1.14.4
+This branch builds target-qualified version `4.1.7.114041` for Minecraft 1.14.4
 and Forge. It adds material-group ore arbitration, exact biome replacements,
 and a directory for installed provider mods to the OreSpawn 4.0.16 base. See the
 [versioning policy](docs/VERSIONS.md) for the encoding and release convention.
+
+The 4.1.7 update adds [admin and distribution tools](docs/ADMIN_TOOLS.md),
+optional provider-defined [natural rock formations](docs/ROCK_FORMATIONS.md),
+and fixes for saved ore rules and completed retrogen work. Existing worlds keep
+their saved choices; new formations do not appear just because the mod is updated.
 
 I've fixed a crash when opening or editing OreSpawn's settings in development
 runs. The fix has also been checked in a normal Forge installation.
@@ -144,3 +153,7 @@ Public developer and AI integration guidance lives in `docs/` and is included
 in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.
+
+## Distribution tools and formations
+
+The [admin guide](docs/ADMIN_TOOLS.md) covers loaded-chunk surveys and guarded clear/undo. The [formation guide](docs/ROCK_FORMATIONS.md) explains optional natural rock formations. Existing worlds keep their saved choices.

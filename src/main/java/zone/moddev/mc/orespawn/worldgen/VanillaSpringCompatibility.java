@@ -48,11 +48,15 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 		return Block.isRock(block) || providerRocks.contains(block);
 	}
 
-	static boolean rewriteFeatureList(List<ConfiguredFeature<?>> features) {
+    static boolean rewriteFeatureList(List<ConfiguredFeature<?>> features) {
+        return rewriteFeatureList(features, true, false);
+    }
+
+    static boolean rewriteFeatureList(List<ConfiguredFeature<?>> features, boolean springs, boolean aquifers) {
 		boolean changed = false;
 		for (int index = 0; index < features.size(); index++) {
 			ConfiguredFeature<?> original = features.get(index);
-			ConfiguredFeature<?> rewritten = rewrite(original);
+			ConfiguredFeature<?> rewritten = rewrite(original, springs, aquifers);
 			if (rewritten != original) {
 				features.set(index, rewritten);
 				changed = true;
@@ -61,16 +65,22 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 		return changed;
 	}
 
-	private static ConfiguredFeature<?> rewrite(ConfiguredFeature<?> root) {
+	private static ConfiguredFeature<?> rewrite(ConfiguredFeature<?> root, boolean springs, boolean aquifers) {
 		if (root == null) return null;
-		if (root.feature == Feature.SPRING_FEATURE && root.config instanceof LiquidsConfig) {
+        if (springs && NaturalFormations.hasConfiguredFormations() && root.feature == Feature.LAKE
+                && root.config instanceof net.minecraft.world.gen.feature.LakesConfig)
+            return configured(VanillaLakeCompatibility.FEATURE, root.config);
+        if (aquifers && NativeAquaticCompatibility.accepts(root.feature))
+            return configured(NativeAquaticCompatibility.FEATURE,
+                    new NativeAquaticCompatibility.Config(root.feature, (IFeatureConfig) root.config));
+        if (springs && root.feature == Feature.SPRING_FEATURE && root.config instanceof LiquidsConfig) {
 			return new ConfiguredFeature<>(FEATURE, (LiquidsConfig) root.config);
 		}
 
 		Object config = root.config;
 		if (config instanceof DecoratedFeatureConfig) {
 			DecoratedFeatureConfig decorated = (DecoratedFeatureConfig) config;
-			ConfiguredFeature<?> child = rewrite(decorated.feature);
+			ConfiguredFeature<?> child = rewrite(decorated.feature, springs, aquifers);
 			return child == decorated.feature ? root
 					: configured(root.feature, new DecoratedFeatureConfig(child, decorated.decorator));
 		}
@@ -79,11 +89,11 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 			boolean changed = false;
 			List<ConfiguredRandomFeatureList<?>> choices = new ArrayList<>(random.features.size());
 			for (ConfiguredRandomFeatureList<?> choice : random.features) {
-				ConfiguredFeature<?> child = rewrite(configured(choice.feature, choice.config));
+				ConfiguredFeature<?> child = rewrite(configured(choice.feature, choice.config), springs, aquifers);
 				changed |= child.feature != choice.feature || child.config != choice.config;
 				choices.add(randomChoice(child, choice.chance));
 			}
-			ConfiguredFeature<?> fallback = rewrite(random.defaultFeature);
+			ConfiguredFeature<?> fallback = rewrite(random.defaultFeature, springs, aquifers);
 			changed |= fallback != random.defaultFeature;
 			return changed ? configured(root.feature,
 					new MultipleRandomFeatureConfig(choices, fallback)) : root;
@@ -91,31 +101,31 @@ public final class VanillaSpringCompatibility extends ContextFeature<LiquidsConf
 		if (config instanceof MultipleWithChanceRandomFeatureConfig) {
 			MultipleWithChanceRandomFeatureConfig random =
 					(MultipleWithChanceRandomFeatureConfig) config;
-			List<ConfiguredFeature<?>> choices = rewrite(random.features);
+			List<ConfiguredFeature<?>> choices = rewrite(random.features, springs, aquifers);
 			return choices == random.features ? root : configured(root.feature,
 					new MultipleWithChanceRandomFeatureConfig(choices, random.count));
 		}
 		if (config instanceof SingleRandomFeature) {
 			SingleRandomFeature random = (SingleRandomFeature) config;
-			List<ConfiguredFeature<?>> choices = rewrite(random.features);
+			List<ConfiguredFeature<?>> choices = rewrite(random.features, springs, aquifers);
 			return choices == random.features ? root
 					: configured(root.feature, new SingleRandomFeature(choices));
 		}
 		if (config instanceof TwoFeatureChoiceConfig) {
 			TwoFeatureChoiceConfig choice = (TwoFeatureChoiceConfig) config;
-			ConfiguredFeature<?> whenTrue = rewrite(choice.trueFeature);
-			ConfiguredFeature<?> whenFalse = rewrite(choice.falseFeature);
+			ConfiguredFeature<?> whenTrue = rewrite(choice.trueFeature, springs, aquifers);
+			ConfiguredFeature<?> whenFalse = rewrite(choice.falseFeature, springs, aquifers);
 			return whenTrue == choice.trueFeature && whenFalse == choice.falseFeature ? root
 					: configured(root.feature, new TwoFeatureChoiceConfig(whenTrue, whenFalse));
 		}
 		return root;
 	}
 
-	private static List<ConfiguredFeature<?>> rewrite(List<ConfiguredFeature<?>> originals) {
+	private static List<ConfiguredFeature<?>> rewrite(List<ConfiguredFeature<?>> originals, boolean springs, boolean aquifers) {
 		List<ConfiguredFeature<?>> rewritten = null;
 		for (int index = 0; index < originals.size(); index++) {
 			ConfiguredFeature<?> original = originals.get(index);
-			ConfiguredFeature<?> value = rewrite(original);
+			ConfiguredFeature<?> value = rewrite(original, springs, aquifers);
 			if (value != original && rewritten == null) rewritten = new ArrayList<>(originals);
 			if (rewritten != null) rewritten.set(index, value);
 		}

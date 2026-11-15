@@ -13,6 +13,8 @@ the small `oreSpawnBuild` helper map declared by the root build.
 | `verification/native-ores.gradle` | Managed Nether quartz with tag and block hosts, reloads and new-terrain-only edits. |
 | `verification/packaged-forge.gradle` | Finished-jar tests in disposable official Forge installations. |
 | `verification/performance.gradle` | Matched vanilla, Cyano and Sky benchmarks and completed-world hash comparisons. |
+| `verification/admin-tools.gradle` | Guarded clear/undo, survey, interruption and restart checks in disposable saves. |
+| `verification/parity.gradle` | Completed retrogen markers, formations, native density and background-fluid checks. |
 | `release/artifacts.gradle` | Reobfuscated jars, artifact audits, documentation parity and checksums. |
 | `release/publishing.gradle` | Maven publication, coordinates and credential checks. |
 | `ide/eclipse.gradle` | Buildship setup, generated launches and production-classpath verification. |
@@ -59,3 +61,8 @@ using the group's placement rule.
 These dummy providers appear only in this named client and the automated
 ore-source checks. They do not enter ordinary Eclipse launches or release jars.
 The manual profile has no automatic world creation or shutdown probe.
+
+Run `adminIntegrationTest`, `retrogenParityTest` and `generationParityTest` with
+`packagedForgeServerRuntime` to exercise those opt-in checks. They use their own
+build directories, not the ordinary client's saves. The retrogen fixture includes
+the root-only chunk markers written by older Forge 1.14 builds.

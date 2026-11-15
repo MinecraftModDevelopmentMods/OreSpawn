@@ -67,7 +67,14 @@ public class OreSpawn {
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onChunkSave);
 		MinecraftForge.EVENT_BUS.addListener(OreRetrogenManager::onServerTick);
 		MinecraftForge.EVENT_BUS.addListener(OreSpawnCommands::register);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::tick);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::unload);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminCommandRegistration::stopped);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminLighting::onSave);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminLighting::onLoad);
+		MinecraftForge.EVENT_BUS.addListener(zone.moddev.mc.orespawn.commands.admin.AdminLighting::onChunkAvailable);
 		WorldgenBenchmark.register();
+		zone.moddev.mc.orespawn.worldgen.AquiferMaterialSubstitution.register();
 	}
 
 	private void loadComplete(final FMLLoadCompleteEvent event) {
@@ -87,7 +94,7 @@ public class OreSpawn {
 		// Files are authoritative, so scan them before accepting API submissions.
 		WorldgenIntegrationManager.initialize();
 		WorldgenIntegrationManager.processImcMessages();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		OreSpawnOreGeneration.refreshWorldConfig();
 		FlatBedrockFeature.refreshWorldConfig();
 		OreRetrogenManager.refreshWorldConfig();
@@ -96,7 +103,7 @@ public class OreSpawn {
 	private void setup(final FMLCommonSetupEvent event) {
 		OreSpawnConfig.bake();
 		WorldgenIntegrationManager.initialize();
-		GeomeConfig.bake();
+		GeomeConfig.bakeBeforeLoadComplete();
 		logGeomeSampler();
 		BiomeWorldgenBootstrap.registerCodecs();
 		DocumentationExporter.exportBundledGuide();

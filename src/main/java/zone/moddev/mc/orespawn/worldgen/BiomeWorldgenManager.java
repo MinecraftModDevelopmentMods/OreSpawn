@@ -39,6 +39,8 @@ final class BiomeWorldgenManager {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static volatile Map<ResourceLocation, BakedBiomeWorldgen> baked =
 			Collections.emptyMap();
+	private static final Set<ChunkGenerator<?>> WARNED_CUSTOM_FLUID_GENERATORS =
+            Collections.newSetFromMap(new IdentityHashMap<ChunkGenerator<?>, Boolean>());
 	private static final Map<NoiseChunkGenerator, BlockState> ORIGINAL_DEFAULT_FLUIDS =
 			new IdentityHashMap<>();
 	private static final Set<ResourceLocation> WARNED_DEEP_FLUID_DIMENSIONS =
@@ -66,9 +68,9 @@ final class BiomeWorldgenManager {
 			BakedBiomeWorldgen dimension = bake(level, profile.rootCopy());
 			ResourceLocation dimensionId = WorldIds.dimension(level);
 			if (dimension != null) next.put(dimensionId, dimension);
-			BiomeFeatureInstaller.install(dimension, dimensionId);
 			installBiomeSource(level, dimension);
 			installAquiferMaterials(level, dimension == null ? null : dimension.materials);
+			BiomeFeatureInstaller.install(dimension, dimensionId);
 		}
 		baked = Collections.unmodifiableMap(next);
 	}
@@ -84,9 +86,9 @@ final class BiomeWorldgenManager {
 		ResourceLocation dimensionId = WorldIds.dimension(level);
 		if (dimension == null) next.remove(dimensionId);
 		else next.put(dimensionId, dimension);
-		BiomeFeatureInstaller.install(dimension, dimensionId);
 		installBiomeSource(level, dimension);
 		installAquiferMaterials(level, dimension == null ? null : dimension.materials);
+		BiomeFeatureInstaller.install(dimension, dimensionId);
 		baked = Collections.unmodifiableMap(next);
 	}
 
@@ -96,6 +98,8 @@ final class BiomeWorldgenManager {
 			entry.getKey().defaultFluid = entry.getValue();
 		}
 		ORIGINAL_DEFAULT_FLUIDS.clear();
+        WARNED_CUSTOM_FLUID_GENERATORS.clear();
+        AquiferMaterialSubstitution.clear();
 		WARNED_DEEP_FLUID_DIMENSIONS.clear();
 		baked = Collections.emptyMap();
 	}
@@ -285,22 +289,23 @@ final class BiomeWorldgenManager {
 		generator.biomeProvider = overlay;
 	}
 
-	private static void installAquiferMaterials(ServerWorld level, DimensionMaterials materials) {
-		ChunkGenerator raw = level.getChunkProvider().getChunkGenerator();
-		if (!(raw instanceof NoiseChunkGenerator)) return;
-		NoiseChunkGenerator generator = (NoiseChunkGenerator) raw;
-		BlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator,
-				ignored -> generator.defaultFluid);
-		generator.defaultFluid = materials != null && materials.defaultFluid != null
-				? materials.defaultFluid : original;
-		if (materials != null && materials.deepFluid != null
-				&& !materials.deepFluid.equals(generator.defaultFluid)
-				&& materials.deepFluidMaxY >= 0
-				&& WARNED_DEEP_FLUID_DIMENSIONS.add(WorldIds.dimension(level))) {
-			LOGGER.warn("Dimension '{}' requests a distinct deep aquifer fluid below Y {}, but Minecraft 1.14.4 only exposes one generator fluid; preserving the profile value and using default_fluid for generation",
-					WorldIds.dimension(level), materials.deepFluidMaxY);
-		}
-	}
+    private static void installAquiferMaterials(ServerWorld level, DimensionMaterials materials) {
+        ChunkGenerator<?> raw = level.getChunkProvider().getChunkGenerator();
+        if (!(raw instanceof NoiseChunkGenerator)
+                || (raw instanceof net.minecraft.world.gen.OverworldChunkGenerator
+                    && raw.getClass() != net.minecraft.world.gen.OverworldChunkGenerator.class)) {
+            if (materials != null && materials.defaultFluid != null && WARNED_CUSTOM_FLUID_GENERATORS.add(raw))
+                LOGGER.warn("Dimension '{}' uses independent generator '{}'; keeping its fluid setting without changing native terrain",
+                        WorldIds.dimension(level), raw == null ? "unknown" : raw.getClass().getName());
+            return;
+        }
+        NoiseChunkGenerator generator = (NoiseChunkGenerator) raw;
+        BlockState original = ORIGINAL_DEFAULT_FLUIDS.computeIfAbsent(generator, ignored -> generator.defaultFluid);
+        BlockState selected = materials != null && materials.defaultFluid != null ? materials.defaultFluid : original;
+        if (raw.getClass() == net.minecraft.world.gen.OverworldChunkGenerator.class)
+            AquiferMaterialSubstitution.configure(level, selected);
+        else generator.defaultFluid = selected;
+    }
 
 	private static Surface surface(JsonObject json) {
 		BlockState top = state(json, "top_block", false);

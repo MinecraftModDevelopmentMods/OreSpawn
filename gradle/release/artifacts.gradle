@@ -28,11 +28,11 @@ tasks.named('jar', Jar) {
     manifest {
         attributes([
                 'Specification-Title'      : 'OreSpawn',
-                'Specification-Vendor'     : 'SkyBlade1978',
+                'Specification-Vendor'     : project.mod_vendor,
                 'Specification-Version'    : '1',
                 'Implementation-Title'     : base.archivesName.get(),
                 'Implementation-Version'   : project.version,
-                'Implementation-Vendor'    : 'SkyBlade1978',
+                'Implementation-Vendor'    : project.mod_vendor,
                 'OreSpawn-API-Version'     : '1',
                 'FMLAT'                    : 'accesstransformer.cfg',
                 'Maven-Artifact'           : expectedMavenCoordinate,
@@ -91,7 +91,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.1.1.114041'
+        if (project.mod_version != '4.1.7.114041'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.14.4'
                 || project.forge_version != '28.2.26'
@@ -105,9 +105,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.1.1.114041.jar',
-                'OreSpawn-4.1.1.114041-sources.jar',
-                'OreSpawn-4.1.1.114041-javadoc.jar'
+                'OreSpawn-4.1.7.114041.jar',
+                'OreSpawn-4.1.7.114041-sources.jar',
+                'OreSpawn-4.1.7.114041-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -124,7 +124,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.1.1.114041')) {
+            if (!file(path).getText('UTF-8').contains('4.1.7.114041')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
@@ -179,8 +179,8 @@ def verifyDocumentationParity = tasks.register('verifyDocumentationParity') {
     dependsOn releaseJar
     doLast {
         List<String> expected = documentationFiles()
-        if (expected.size() != 20 || !expected.contains('VERSIONS.md')) {
-            throw new GradleException("Expected exactly 20 tracked guide files including VERSIONS.md, found ${expected}")
+        if (expected.size() != 22 || !expected.contains('VERSIONS.md')) {
+            throw new GradleException("Expected exactly 22 tracked guide files including VERSIONS.md, found ${expected}")
         }
         assertDocumentationTree(bundledDocumentationDirectory.asFile,
                 expected, 'generated resources')
@@ -233,7 +233,7 @@ tasks.register('verifyReleaseArtifacts') {
                 [
                         'src/test/', 'src/biomeIntegrationTest/', 'src/clientIntegrationTest/',
                         'src/oreSourceMineralsTest/', 'src/oreSourceAdvantageTest/', 'src/worldHashTest/',
-                        'agent-notes/', 'surfaceprobe', 'clientprobe', 'worldhashprobe',
+                        'agent-notes/', 'surfaceprobe', 'clientprobe', 'admintoolsprobe', 'adminIntegrationTest', 'admin-fixture', 'parityprobe', 'parityIntegrationTest', 'parity-fixture', 'worldhashprobe',
                         'nativeoreprobe', 'native-ore-fixture', 'nativeOreIntegrationTest',
                         'oresource-minerals', 'oresource-advantage', 'ci-fixtures/',
                         'org/junit/', 'org/mockito/', 'net/bytebuddy/',
@@ -322,6 +322,7 @@ tasks.register('writeReleaseChecksums') {
     group = 'verification'
     dependsOn tasks.named('verifyReleaseArtifacts')
     def outputFile = layout.buildDirectory.file('release/SHA256SUMS')
+    inputs.files(releaseJar, tasks.named('sourcesJar'), tasks.named('javadocJar'))
     outputs.file(outputFile)
     doLast {
         File output = outputFile.get().asFile
