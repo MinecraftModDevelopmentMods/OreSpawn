@@ -1,3 +1,29 @@
+Version 4.1.7.114041
+
+* Add chunk surveys, rule explanations and guarded clear/undo tools with clickable previews.
+* Keep completed retrogen revisions through repeated saves, OFF/ON changes and server restarts.
+* Add optional natural rock formations and preserve edited provider templates.
+* Keep native aquatic decoration working with custom background fluids; preserve later lakes and springs.
+* Keep saved ore settings without enabling duplicate provider defaults.
+* Refresh release checksums when their jars change and keep Eclipse launches production-only.
+
+Version 4.1.6.114041
+
+* Keep saved ore settings when a provider renames a recognised rule. Add the
+  matching modern rule as a disabled alternative rather than another ore pass.
+
+* Show vanilla ores in Ore Sources before world creation, even when Manage
+  Vanilla Ores is off.
+* Keep vanilla ore placement unchanged with management off. With it on,
+  imported rules replace their matching defaults without a second pass.
+* Keep saved Ore Sources choices and use a shared placement channel for new
+  built-in patterns. Explicit channels still stay separate.
+* Keep imported provider rules and back up affected profiles before removing
+  untouched duplicates. Keep edited rules and flag them for review.
+* Choose sulfur and lithium defaults after mods finish loading, including
+  Base Electric. Existing worlds keep their choices.
+* Fix the Austrian German language ID and add Pirate Speak menu and guide text.
+
 Version 4.1.1.114041
 
 * Fixed a crash when opening or editing OreSpawn's settings in development runs.

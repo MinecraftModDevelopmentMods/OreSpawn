@@ -29,6 +29,10 @@ public final class VanillaOreFeatureGate {
 		// Minecraft 1.14 stores configured features inline. Wrap them when installing the biome lists.
 	}
 
+    static Block wrappedOutput(Feature<?> feature, IFeatureConfig config) {
+        return feature == GATE && config instanceof GateConfig ? ((GateConfig) config).output : null;
+    }
+
 	static boolean wrapFeatureList(List<ConfiguredFeature<?>> features) {
 		boolean changed = false;
 		for (int index = 0; index < features.size(); index++) {
@@ -52,10 +56,17 @@ public final class VanillaOreFeatureGate {
 		boolean place(FeaturePlaceContext<GateConfig> context) {
 			WorldGeologyProfileManager.resolveFreshPoliciesBeforeGeneration();
 			if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) return false;
-			if (OreSpawnOreGeneration.takesOverVanillaOre(
-					WorldIds.dimension(context.level()), context.config().output)) return false;
-			return context.config().delegate.place(context.level(), context.chunkGenerator(),
-					context.random(), context.origin());
+            net.minecraft.util.math.ChunkPos chunk = context.decorationChunk().getPos();
+            if (!OreSpawnOreGeneration.allowsVanillaOre(WorldIds.dimension(context.level()),
+                    context.config().output, context.level().getSeed(), chunk.x, chunk.z)) return false;
+            boolean previous = NativeStonePatchContext.enter(
+                    NaturalFormations.enabledForPlacement(context.level().getWorld()), context.config().output);
+            try {
+                return context.config().delegate.place(context.level(), context.chunkGenerator(),
+                        context.random(), context.origin());
+            } finally {
+                NativeStonePatchContext.restore(previous);
+            }
 		}
 	}
 

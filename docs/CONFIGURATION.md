@@ -9,6 +9,9 @@ OreSpawn uses three JSON contracts:
 | `config/<modid>-orespawn.json` | 5 | Optional authoritative provider override |
 
 A provider may package schema 5 at `data/<modid>/orespawn/provider.json`.
+Providers that declare `rock_formations` use schema 6; all existing schemas
+remain supported. Formation materials use flattened block IDs and optional
+exact `properties`, not numeric metadata.
 Legacy provider schemas 1-4 remain accepted. Fluid deposits require schema 3;
 biome palettes and dimension materials require schema 4. Explicit ore material
 and placement-channel IDs require schema 5.
@@ -185,6 +188,9 @@ Each enabled ore dimension uses:
 | `placement_channel` | registry ID | Independent placement budget shared by equivalent ores in consolidated modes |
 
 At least one of `host_families`, `host_blocks`, or `host_tags` must be present.
+On 1.14.4, plain stone, granite, diorite, and andesite are separate block
+IDs. Use `host_blocks: ["minecraft:stone"]` for plain stone only; no
+pre-flattening metadata is needed.
 Hosts may be plain registry IDs or weighted objects such as
 `{"tag":"forge:stone","weight":0.75}`. Optional
 `geomes`, biome include/exclude IDs, and biome-dictionary include/exclude arrays
@@ -264,3 +270,6 @@ ordinary solid blocks, and hostless rules are rejected before generation.
 Copying a world's `serverconfig/orespawn-worldgen.json` to the same location in
 a dedicated server world reproduces its choices when the same referenced mods,
 blocks, biomes, dimensions, and tags are installed.
+See [Natural formations](ROCK_FORMATIONS.md) for substrate bodies and
+[Admin tools](ADMIN_TOOLS.md) for measured distribution reports. Neither
+changes existing terrain merely by installing this update.

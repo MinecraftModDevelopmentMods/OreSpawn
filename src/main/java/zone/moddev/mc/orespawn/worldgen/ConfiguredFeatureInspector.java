@@ -16,6 +16,13 @@ import net.minecraft.world.gen.feature.TwoFeatureChoiceConfig;
 
 /** Traverses the inline configured-feature graphs used by Minecraft 1.14. */
 final class ConfiguredFeatureInspector {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    static boolean placeRoot(net.minecraft.world.gen.feature.Feature<?> feature,
+            net.minecraft.world.gen.feature.IFeatureConfig config, FeaturePlaceContext<?> context) {
+        return ((net.minecraft.world.gen.feature.Feature) feature).place(context.level(),
+                context.chunkGenerator(), context.random(), context.origin(), config);
+    }
+
 	private ConfiguredFeatureInspector() {
 	}
 
@@ -33,6 +40,8 @@ final class ConfiguredFeatureInspector {
 			Set<ConfiguredFeature<?>> visited) {
 		if (feature == null || !visited.add(feature)) return null;
 		Object config = feature.config;
+		Block wrapped = VanillaOreFeatureGate.wrappedOutput(feature.feature, feature.config);
+		if (wrapped != null) return wrapped;
 		if (config instanceof OreFeatureConfig) return ((OreFeatureConfig) config).state.getBlock();
 		if (config instanceof DecoratedFeatureConfig) {
 			return firstOreOutput(((DecoratedFeatureConfig) config).feature, visited);
@@ -71,6 +80,11 @@ final class ConfiguredFeatureInspector {
 			Set<ConfiguredFeature<?>> visited, Block[] blocks) {
 		if (feature == null || !visited.add(feature)) return false;
 		Object config = feature.config;
+        Block wrapped = VanillaOreFeatureGate.wrappedOutput(feature.feature, feature.config);
+        if (wrapped != null) {
+            for (Block block : blocks) if (wrapped == block) return true;
+            return false;
+        }
 		if (config instanceof OreFeatureConfig) {
 			Block output = ((OreFeatureConfig) config).state.getBlock();
 			for (Block block : blocks) if (output == block) return true;

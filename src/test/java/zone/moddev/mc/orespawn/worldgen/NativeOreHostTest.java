@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 
@@ -55,6 +57,19 @@ class NativeOreHostTest {
 	@AfterEach
 	void restoreTags() {
 		BlockTags.setCollection(previousTags);
+	}
+
+	@Test
+	void plainStoneHostDoesNotAcceptTheFlattenedIgneousBlocks() throws Exception {
+		Method add = OreSpawnOreGeneration.class.getDeclaredMethod("addBlocks", Map.class, Map.class, JsonElement.class);
+		add.setAccessible(true);
+		Map<Block, Double> hosts = new IdentityHashMap<>();
+		JsonArray blocks = new JsonArray();
+		blocks.add("minecraft:stone");
+		Map<net.minecraft.block.BlockState, Double> exact = new IdentityHashMap<>();
+		add.invoke(null, hosts, exact, blocks);
+		assertEquals(Collections.singletonMap(Blocks.STONE, 1.0D), hosts);
+		assertTrue(exact.isEmpty(), "A bare stone ID must not broaden into other flattened rocks");
 	}
 
 	@Test

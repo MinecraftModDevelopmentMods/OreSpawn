@@ -59,7 +59,7 @@ public final class WorldgenIntegrationManager {
 	static {
 		Collections.addAll(MERGED_SECTIONS, "rocks", "ores", "geomes", "biome_rules",
 				"terrain_dimensions", "fluid_deposits", "biome_palettes",
-				"dimension_materials");
+				"dimension_materials", "rock_formations");
 	}
 
 	private static final Map<String, WorldgenProvider> API_PROVIDERS = new LinkedHashMap<>();
@@ -220,13 +220,24 @@ public final class WorldgenIntegrationManager {
 
 	/** Merge new provider-owned defaults without overwriting pack or world values. */
 	public static synchronized boolean mergeProviderDefinitions(JsonObject target) {
+		return mergeProviderDefinitions(target, false);
+	}
+
+	/** Only saved-world callers may remove a duplicate, after arranging a profile backup. */
+	public static synchronized boolean mergeSavedProviderDefinitions(JsonObject target) {
+		return mergeProviderDefinitions(target, true);
+	}
+
+	private static boolean mergeProviderDefinitions(JsonObject target, boolean savedWorld) {
 		JsonObject manifests = object(target, "providers");
 		JsonObject legacyOreManifests = object(target, "ore_providers");
 		boolean changed = false;
 
 		for (ProviderDefinition provider : ACTIVE_PROVIDERS.values()) {
 			JsonObject manifest = object(manifests, provider.modId);
-			if (!bool(manifest, "profile_defaults_applied", false)
+			boolean mergeNewEntries = !savedWorld
+					|| bool(provider.root, "merge_new_entries_into_existing_worlds", true);
+			if (mergeNewEntries && !bool(manifest, "profile_defaults_applied", false)
 					&& provider.root.has("profile_defaults")
 					&& provider.root.get("profile_defaults").isJsonObject()) {
 				mergeOverlay(target, provider.root.getAsJsonObject("profile_defaults"));
@@ -237,24 +248,40 @@ public final class WorldgenIntegrationManager {
 				changed = true;
 			}
 			for (String sectionName : MERGED_SECTIONS) {
+				// New substrate definitions must not silently change an existing world's geology.
+				if (savedWorld && "rock_formations".equals(sectionName)) continue;
 				String targetName = "biome_rules".equals(sectionName) ? "biomes" : sectionName;
 				JsonObject targetSection = object(target, targetName);
 				JsonObject providerSection = provider.section(sectionName);
 				String knownKey = "known_" + sectionName;
 				Set<String> known = stringSet(manifest.get(knownKey));
 				Set<String> current = JsonCopies.keys(providerSection);
+				LegacyOreReplacements.Result replacements = "ores".equals(sectionName)
+						? LegacyOreReplacements.reconcile(target, provider.modId, targetSection,
+								nativeOreDefaults(provider.modId, providerSection), providerSection, manifest, known, savedWorld)
+						: new LegacyOreReplacements.Result();
+				changed |= replacements.changed;
 
 				for (Entry<String, JsonElement> entry : providerSection.entrySet()) {
 					String id = entry.getKey();
-					if (!targetSection.has(id) && !known.contains(id)) {
+					if (replacements.suppressed.contains(id)) continue;
+					if (mergeNewEntries && !targetSection.has(id) && !known.contains(id)) {
 						JsonObject value = JsonCopies.copy(entry.getValue().getAsJsonObject());
+						if ("ores".equals(sectionName)) {
+							String retained = RetainedProviderOreDefaults.predecessor(
+									provider.modId, id, value, providerSection, targetSection, known);
+							if (retained != null) {
+								value.addProperty("enabled", false);
+								LOGGER.info("Preserved saved ore choice '{}'; added provider alternative '{}' disabled", retained, id);
+							}
+						}
 						if (!"biome_rules".equals(sectionName)) {
 							value.addProperty("source_provider", provider.modId);
 						}
 						targetSection.add(id, value);
 						changed = true;
 					}
-					known.add(id);
+					if (targetSection.has(id)) known.add(id);
 					if (targetSection.has(id) && targetSection.get(id).isJsonObject()) {
 						targetSection.getAsJsonObject(id).remove("orphaned_provider");
 					}
@@ -262,7 +289,9 @@ public final class WorldgenIntegrationManager {
 
 				for (String knownId : known) {
 					if (!current.contains(knownId) && targetSection.has(knownId)
-							&& targetSection.get(knownId).isJsonObject()) {
+							&& !("ores".equals(sectionName) && LegacyOreReplacements.retains(manifest, knownId, current))
+							&& targetSection.get(knownId).isJsonObject()
+							&& !bool(targetSection.getAsJsonObject(knownId), "orphaned_provider", false)) {
 						targetSection.getAsJsonObject(knownId).addProperty("orphaned_provider", true);
 						changed = true;
 					}
@@ -286,6 +315,7 @@ public final class WorldgenIntegrationManager {
 			}
 			JsonObject manifest = manifestEntry.getValue().getAsJsonObject();
 			for (String sectionName : MERGED_SECTIONS) {
+				if ("rock_formations".equals(sectionName) && !target.has(sectionName)) continue;
 				String targetName = "biome_rules".equals(sectionName) ? "biomes" : sectionName;
 				JsonObject targetSection = object(target, targetName);
 				for (String knownId : stringSet(manifest.get("known_" + sectionName))) {
@@ -303,6 +333,19 @@ public final class WorldgenIntegrationManager {
 		target.add("providers", manifests);
 		target.add("ore_providers", legacyOreManifests);
 		return changed;
+	}
+
+	private static JsonObject nativeOreDefaults(String providerId, JsonObject activeOres) {
+		if (!FILE_PROVIDERS.containsKey(providerId)) return activeOres;
+		JsonObject shipped = installedProviderRoot(providerId);
+		JsonElement ores = shipped == null ? null : shipped.get("ores");
+		return ores != null && ores.isJsonObject() ? ores.getAsJsonObject() : new JsonObject();
+	}
+
+	private static JsonObject installedProviderRoot(String providerId) {
+		JsonObject root = RESOURCE_PROVIDERS.get(providerId);
+		WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
+		return root == null && apiProvider != null ? apiProvider.toJson() : root;
 	}
 
 	public static synchronized List<TemplateDefinition> templates() {
@@ -332,11 +375,33 @@ public final class WorldgenIntegrationManager {
 			throw new IllegalArgumentException("Unknown or unavailable OreSpawn template: " + templateId);
 		}
 		JsonObject result = JsonCopies.copy(base);
-		mergeOverlay(result, template.profile);
+		JsonObject overlay = JsonCopies.copy(template.profile);
+		if (template.preserveFormationOverrides && overlay.has("rock_formations")) {
+			JsonObject tuning = overlay.getAsJsonObject("rock_formations");
+			overlay.remove("rock_formations");
+			applyStockFormationTuning(result, tuning);
+		}
+		mergeOverlay(result, overlay);
 		applyLegacyTemplateOil(result, template.profile);
 		result.addProperty("selected_template", templateId.toString());
 		return result;
 	}
+
+	static void applyStockFormationTuning(JsonObject target, JsonObject tuning) {
+        JsonObject current = optionalObject(target, "rock_formations");
+        for (Entry<String, JsonElement> edit : tuning.entrySet()) {
+            String owner = new ResourceLocation(edit.getKey()).getNamespace();
+            if (FILE_PROVIDERS.containsKey(owner) || !current.has(edit.getKey())) continue;
+            JsonObject packaged = RESOURCE_PROVIDERS.get(owner);
+            if (packaged == null) continue;
+            JsonObject stock = optionalObject(packaged, "rock_formations");
+            if (!stock.has(edit.getKey()) || !current.get(edit.getKey()).isJsonObject()) continue;
+            JsonObject authored = JsonCopies.copy(current.getAsJsonObject(edit.getKey()));
+            authored.remove("source_provider");
+            if (!authored.equals(stock.get(edit.getKey()))) continue;
+            mergeOverlay(current.getAsJsonObject(edit.getKey()), edit.getValue().getAsJsonObject());
+        }
+    }
 
 	/** Internal migration lookup. Null means the owner is not an active installed provider. */
 	public static synchronized List<String> findProviderOreRulesByOutput(String providerModId, String outputBlock) {
@@ -467,13 +532,7 @@ public final class WorldgenIntegrationManager {
 				continue;
 			}
 			JsonObject root = FILE_PROVIDERS.get(providerId);
-			if (root == null) {
-				root = RESOURCE_PROVIDERS.get(providerId);
-			}
-			if (root == null) {
-				WorldgenProvider apiProvider = API_PROVIDERS.get(providerId);
-				root = apiProvider == null ? null : apiProvider.toJson();
-			}
+			if (root == null) root = installedProviderRoot(providerId);
 			if (root == null || !ModList.get().isLoaded(providerId)) {
 				continue;
 			}
@@ -493,7 +552,7 @@ public final class WorldgenIntegrationManager {
 
 	static void validateProvider(String providerId, JsonObject root) {
 		int schema = integer(root, "schema_version", -1);
-		if (schema != 1 && schema != 2 && schema != 3 && schema != 4 && schema != 5) {
+		if (schema < 1 || schema > 6) {
 			throw new JsonSyntaxException("unsupported schema_version");
 		}
 		if (!providerId.equals(string(root, "provider_modid", ""))) {
@@ -517,6 +576,9 @@ public final class WorldgenIntegrationManager {
 		if (schema < 3 && root.has("fluid_deposits")) {
 			throw new JsonSyntaxException("fluid_deposits requires provider schema 3");
 		}
+		if (schema < 6 && root.has("rock_formations")) {
+			throw new JsonSyntaxException("rock_formations requires provider schema 6");
+		}
 		if (schema < 4 && (root.has("biome_palettes") || root.has("dimension_materials"))) {
 			throw new JsonSyntaxException("biome palettes and dimension materials require provider schema 4");
 		}
@@ -529,7 +591,7 @@ public final class WorldgenIntegrationManager {
 				if (!entry.getValue().isJsonObject()) {
 					throw new JsonSyntaxException(section + " entry is not an object: " + entry.getKey());
 				}
-				if (!"biome_rules".equals(section)) {
+				if (!"biome_rules".equals(section) && !"terrain_dimensions".equals(section)) {
 					validateOwnedId(providerId, entry.getKey(), section);
 				} else {
 					new ResourceLocation(entry.getKey());
@@ -550,6 +612,18 @@ public final class WorldgenIntegrationManager {
 					validateBiomePalette(entry.getKey(), entry.getValue().getAsJsonObject());
 				} else if ("dimension_materials".equals(section)) {
 					validateDimensionMaterials(entry.getKey(), entry.getValue().getAsJsonObject());
+				} else if ("rock_formations".equals(section)) {
+					JsonObject formation = entry.getValue().getAsJsonObject();
+					new ResourceLocation(string(formation, "type", ""));
+					if (integer(formation, "algorithm_revision", 0) < 1)
+						throw new JsonSyntaxException("Formation requires algorithm_revision: " + entry.getKey());
+					for (Entry<String, JsonElement> material : requiredObject(formation, "materials").entrySet()) {
+						JsonObject value = material.getValue().getAsJsonObject();
+						Block output = zone.moddev.mc.orespawn.util.ConfiguredBlockState.read(value).getBlock();
+						if (output == Blocks.AIR || output == Blocks.BEDROCK)
+							throw new JsonSyntaxException("Invalid formation output: " + material.getKey());
+						if (value.has("family")) RockFamily.fromConfigName(value.get("family").getAsString());
+					}
 				}
 			}
 		}
@@ -631,12 +705,14 @@ public final class WorldgenIntegrationManager {
 			int maxY = integer(rule, "max_y", Integer.MIN_VALUE);
 			double frequency = decimal(rule, "frequency", -1.0D);
 			double discardChance = decimal(rule, "discard_chance_on_air_exposure", 0.0D);
+            double backgroundScale = decimal(rule, "background_generation_scale", 1.0D);
 			int[] quantities = validateQuantityRange(rule);
 			int minQuantity = quantities[0];
 			int maxQuantity = quantities[1];
 			if (minY < -2048 || maxY > 2048 || minY > maxY || frequency < 0.0D
 					|| frequency > 64.0D || !Double.isFinite(discardChance)
 					|| discardChance < 0.0D || discardChance > 1.0D
+                    || !Double.isFinite(backgroundScale) || backgroundScale < 0.0D || backgroundScale > 1.0D
 					|| minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64) {
 				throw new JsonSyntaxException("invalid ore placement for " + idText + " in " + entry.getKey());
 			}
@@ -958,7 +1034,8 @@ public final class WorldgenIntegrationManager {
 							+ id.getPath() + ".description"),
 					JsonCopies.copy(json.getAsJsonObject("profile")), available,
 					bool(json, "auto_select", false),
-					integer(json, "auto_select_priority", 0)));
+					integer(json, "auto_select_priority", 0),
+                    bool(json, "preserve_formation_overrides", false)));
 		}
 	}
 
@@ -1151,9 +1228,11 @@ public final class WorldgenIntegrationManager {
 		private final boolean available;
 		private final boolean autoSelect;
 		private final int autoSelectPriority;
+        private final boolean preserveFormationOverrides;
 
 		TemplateDefinition(ResourceLocation id, String nameKey, String descriptionKey,
-				JsonObject profile, boolean available, boolean autoSelect, int autoSelectPriority) {
+				JsonObject profile, boolean available, boolean autoSelect, int autoSelectPriority,
+                boolean preserveFormationOverrides) {
 			this.id = id;
 			this.nameKey = nameKey;
 			this.descriptionKey = descriptionKey;
@@ -1161,6 +1240,7 @@ public final class WorldgenIntegrationManager {
 			this.available = available;
 			this.autoSelect = autoSelect;
 			this.autoSelectPriority = autoSelectPriority;
+            this.preserveFormationOverrides = preserveFormationOverrides;
 		}
 
 		public ResourceLocation id() { return id; }

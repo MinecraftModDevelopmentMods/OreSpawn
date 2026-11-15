@@ -44,4 +44,13 @@ final class FeaturePlaceContext<FC extends IFeatureConfig> {
 	FC config() {
 		return config;
 	}
+
+    net.minecraft.world.chunk.IChunk decorationChunk() {
+        if (level instanceof net.minecraft.world.gen.WorldGenRegion) {
+            net.minecraft.world.gen.WorldGenRegion region = (net.minecraft.world.gen.WorldGenRegion) level;
+            return region.getChunk(region.getMainChunkX(), region.getMainChunkZ());
+        }
+        return level.getChunk(origin.getX() >> 4, origin.getZ() >> 4,
+                net.minecraft.world.chunk.ChunkStatus.EMPTY, false);
+    }
 }

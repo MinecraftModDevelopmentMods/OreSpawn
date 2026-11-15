@@ -61,8 +61,10 @@ max-tick-time=-1
                 File launcher = new File(file(serverRuntime.get()), 'forge-1.14.4-28.2.26.jar')
                 if (!launcher.isFile()) throw new GradleException("Missing official Forge launcher: ${launcher}")
                 workingDir runDirectory
+                // Keep the chunk worker budget the same on every host for this exact-count comparison.
                 commandLine shared.java8Launcher.get().executablePath.asFile.absolutePath,
-                        '-Xms512m', '-Xmx2g', "-Dnativeoreprobe.phase=${phase.toLowerCase()}",
+                        '-XX:ActiveProcessorCount=2', '-Xms512m', '-Xmx2g',
+                        "-Dnativeoreprobe.phase=${phase.toLowerCase()}",
                         "-Dnativeoreprobe.host=${scenario.toLowerCase()}", '-jar', launcher.absolutePath, 'nogui'
             }
             doLast {
