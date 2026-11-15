@@ -1,3 +1,11 @@
+OreSpawn 4.1.7.111021
+- Add chunk surveys, rule explanations and guarded clear/undo tools for test worlds.
+- Keep clear and undo previews valid when protected leaves finish a normal decay check.
+- Add optional geological formations and preserve provider template overrides.
+- Keep formations out of native structure areas, including woodland mansions.
+- Keep completed retrogen revisions through repeated saves and server restarts.
+- Retain saved ore rules without enabling duplicate provider defaults.
+
 ## 4.1.6.111021
 
 - Fix duplicate ore generation when an OreSpawn 1 world is moved without its converted provider file. Keep imported rules and saved choices, and back up the profile before removing a duplicate. Leave edited rules for review.

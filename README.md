@@ -10,7 +10,7 @@ It gives mods and modpacks one place to configure ores, deposit shapes, optional
 rock strata and geomes, provider-owned underground fluid deposits, biome
 palettes and world materials, flat bedrock, and bounded ore retrogen.
 
-This branch builds target-qualified version `4.1.6.111021`: the OreSpawn 4.1.6
+This branch builds target-qualified version `4.1.7.111021`: the OreSpawn 4.1.6
 feature set for Minecraft 1.11.2 and Forge. It adds stable generation identity,
 non-loading geology sampling, per-resource background control, existing-world
 provider merge policy, an Ore Sources arbiter for equivalent provider ores, a
@@ -30,6 +30,10 @@ translation.
 
 If you already have an OreSpawn 4 provider override, importing an older config
 leaves it in place. The upgrade report tells you which files were kept.
+
+Recognised provider rule renames keep the saved ore settings and add the modern
+rule as a disabled, editable alternative, avoiding an extra generation pass.
+See [retained provider rules](docs/MIGRATION.md#retained-provider-rules).
 
 This is not the unrelated mod that adds mobs and dimensions under the same
 name.
@@ -186,3 +190,7 @@ Public developer and AI integration guidance lives in `docs/` and is included
 in the built jar.
 
 OreSpawn is licensed under LGPL-2.1.
+
+## Distribution tools and formations
+
+Use the [admin tools guide](docs/ADMIN_TOOLS.md) for loaded-chunk surveys and guarded clear/undo. The [formation guide](docs/ROCK_FORMATIONS.md) explains optional provider-defined rock formations. Existing worlds do not adopt formations automatically.

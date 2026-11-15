@@ -237,8 +237,8 @@ tasks.register('verifyEclipseProductionClasspath') {
             }
         }
 		List<File> trackedDocs = trackedDocumentationFiles()
-		if (trackedDocs.size() != 20) {
-			throw new GradleException("Expected 20 tracked documentation files, found ${trackedDocs.size()}")
+		if (trackedDocs.size() != 22) {
+			throw new GradleException("Expected 22 tracked documentation files, found ${trackedDocs.size()}")
 		}
 		trackedDocs.each { File source ->
 			String relative = documentationRelativePath(source)

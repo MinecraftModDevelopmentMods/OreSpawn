@@ -16,6 +16,7 @@ import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.event.terraingen.ChunkGeneratorEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -50,6 +51,12 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void preserveNaturalLakeLining(PopulateChunkEvent.Populate event) {
+		if (WorldgenBenchmark.isVanillaBaseline()) return;
+		VanillaLakeCompatibility.replaceLavaLake(event);
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void replaceVanillaSprings(DecorateBiomeEvent.Decorate event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
 		VanillaSpringCompatibility.replaceVanillaSpringPass(event);
@@ -58,6 +65,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	@SubscribeEvent
 	public void beforeVanillaOres(OreGenEvent.Pre event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
+		NativeStonePatchContext.begin();
 		ChunkPos pos = new ChunkPos(event.getPos());
 		generateOres(event.getWorld(), pos.x, pos.z, event.getRand());
 	}
@@ -66,6 +74,8 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	public void filterVanillaOre(OreGenEvent.GenerateMinable event) {
 		if (WorldgenBenchmark.isVanillaBaseline()) return;
 		ResourceLocation dimension = WorldIds.dimension(event.getWorld());
+        NativeStonePatchContext.select(NaturalFormations.enabledForPlacement(event.getWorld())
+				&& GeomeConfig.terrainDimension(dimension) != null, event.getType());
 		Block output = vanillaOutput(event.getType());
 		if (WorldGeologyProfileManager.activeProfile().suppressAllOreFeatures()) {
 			event.setResult(Event.Result.DENY);
@@ -80,6 +90,11 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 		if (output == Blocks.GOLD_ORE && event.getResult() == Event.Result.DENY) {
 			VanillaMesaGoldCompatibility.suppress(event.getGenerator(), event.getWorld(), event.getPos());
 		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void afterVanillaOres(OreGenEvent.Post event) {
+		NativeStonePatchContext.end();
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -115,6 +130,7 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	private void generateOres(World world, int chunkX, int chunkZ, Random random) {
+		generateEarly(world, chunkX, chunkZ, random);
 		ChunkKey key = new ChunkKey(WorldIds.dimension(world), chunkX, chunkZ);
 		if (!oreComplete.add(key)) return;
 		Chunk chunk = world.getChunkProvider().provideChunk(chunkX, chunkZ);
@@ -122,6 +138,8 @@ public final class OreSpawnWorldGenerator implements IWorldGenerator {
 	}
 
 	public void clear() {
+		VanillaLakeCompatibility.clear();
+		NativeStonePatchContext.clear();
 		VanillaMesaGoldCompatibility.clear();
 		AquiferMaterialSubstitution.clear();
 		earlyComplete.clear();

@@ -1,0 +1,36 @@
+// Keep destructive and restart fixtures out of main, test and ordinary Eclipse runs.
+// Their packaged jars are local verification inputs, never release artifacts.
+['adminIntegrationTest': 'admin-probe', 'retrogenIntegrationTest': 'marker-probe',
+ 'formationIntegrationTest': 'formation-probe', 'generationComparisonTest': 'benchmark-probe'].each { sourceName, jarName ->
+    def classesDirectory = layout.buildDirectory.dir("${jarName}/classes")
+    def compile = tasks.register("compile${sourceName.capitalize()}", JavaCompile) {
+        dependsOn tasks.named('classes')
+        source fileTree("src/${sourceName}/java")
+        classpath = files(sourceSets.main.output, sourceSets.main.compileClasspath)
+        destinationDirectory = classesDirectory
+        javaCompiler = javaToolchains.compilerFor {
+            languageVersion = JavaLanguageVersion.of(8)
+            vendor = JvmVendorSpec.ADOPTIUM
+        }
+        options.encoding = 'UTF-8'
+    }
+    def fixture = tasks.register("${sourceName}Jar", Jar) {
+        dependsOn compile
+        from classesDirectory
+        archiveFileName = "${jarName}-deobf.jar"
+        destinationDirectory = layout.buildDirectory.dir(jarName)
+        if (sourceName == 'formationIntegrationTest') {
+            manifest.attributes('FMLCorePlugin': 'zone.moddev.mc.orespawn.worldgen.FormationTracePlugin',
+                    'FMLCorePluginContainsFMLMod': 'true')
+        }
+    }
+    def packaged = renamer.classes(fixture) {
+        map.from minecraft.dependency.toSrgFile
+        output = layout.buildDirectory.file("${jarName}/${jarName}.jar")
+    }
+    tasks.register("prepare${sourceName.capitalize()}") {
+        group = 'verification'
+        description = "Builds the isolated ${jarName} for disposable packaged Forge tests."
+        dependsOn packaged
+    }
+}

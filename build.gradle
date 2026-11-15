@@ -211,8 +211,8 @@ tasks.register('verifyDocumentationParity') {
 	dependsOn tasks.named('processResources')
 	doLast {
 		List<File> tracked = trackedDocumentationFiles()
-		if (tracked.size() != 20) {
-			throw new GradleException("Expected 20 tracked documentation files, found ${tracked.size()}")
+		if (tracked.size() != 22) {
+			throw new GradleException("Expected 22 tracked documentation files, found ${tracked.size()}")
 		}
 		tracked.each { File source ->
 			String relative = documentationRelativePath(source)
@@ -286,6 +286,7 @@ apply from: 'gradle/verification/support.gradle'
 apply from: 'gradle/verification/legacy-and-migration.gradle'
 apply from: 'gradle/verification/client-and-benchmark.gradle'
 apply from: 'gradle/verification/packaged-forge.gradle'
+apply from: 'gradle/verification/admin-tools.gradle'
 apply from: 'gradle/release/artifacts.gradle'
 apply from: 'gradle/release/publishing.gradle'
 apply from: 'gradle/ide/eclipse.gradle'

@@ -27,7 +27,7 @@ class WorldgenBenchmarkTest {
 	@Test
 	void vanillaControlBypassesTheExistingGenerationEntryPoints() throws Exception {
 		String source = coordinatorSource();
-		for (String method : new String[] { "beforeBiomeDecoration", "replaceVanillaSprings",
+		for (String method : new String[] { "beforeBiomeDecoration", "preserveNaturalLakeLining", "replaceVanillaSprings",
 				"beforeVanillaOres", "filterVanillaOre", "generate" }) {
 			assertBaselineGuard(source, method);
 		}
