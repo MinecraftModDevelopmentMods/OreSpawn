@@ -2,407 +2,1360 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mcmoddev.com/orespawn/schemas/profile-common.schema.json",
   "type": "object",
-  "required": ["formations", "rocks", "geomes", "biomes", "terrain_dimensions", "biome_palettes", "dimension_materials", "ores", "ore_material_groups", "ore_source_policies", "fluid_deposits"],
+  "required": [
+    "formations",
+    "rocks",
+    "geomes",
+    "biomes",
+    "terrain_dimensions",
+    "biome_palettes",
+    "dimension_materials",
+    "ores",
+    "ore_material_groups",
+    "ore_source_policies",
+    "fluid_deposits"
+  ],
   "properties": {
-    "geology_mode": { "enum": ["geome", "legacy"] },
-    "place_fluid_deposits": { "type": "boolean" },
-    "manage_vanilla_ores": { "type": "boolean" },
-    "suppress_all_ore_features": { "type": "boolean" },
-    "default_template": { "$ref": "#/$defs/optionalRegistryId" },
-    "selected_template": { "$ref": "#/$defs/registryId" },
-    "formations": { "$ref": "#/$defs/formations" },
-    "rocks": { "type": "object", "additionalProperties": { "$ref": "#/$defs/rock" } },
-    "geomes": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/geome" } },
-    "biomes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
-    "biome_dictionary": { "type": "object", "additionalProperties": { "$ref": "#/$defs/weights" } },
-    "terrain_dimensions": { "type": "object", "additionalProperties": { "$ref": "#/$defs/terrainDimension" } },
-    "biome_palettes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/biomePalette" } },
-    "dimension_materials": { "type": "object", "additionalProperties": { "$ref": "#/$defs/dimensionMaterials" } },
-    "ores": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ore" } },
-    "ore_material_groups": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" }, "additionalProperties": { "$ref": "#/$defs/oreMaterialGroup" } },
-    "ore_source_policies": { "type": "object", "additionalProperties": { "$ref": "#/$defs/oreSourcePolicy" } },
-    "fluid_deposits": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fluidDeposit" } },
-    "worldgen_aliases": { "type": "object", "additionalProperties": { "$ref": "#/$defs/registryId" } },
-    "providers": { "type": "object" },
-    "ore_providers": { "type": "object" }
-    ,"retrogen": { "$ref": "#/$defs/retrogen" }
-    ,"flat_bedrock": { "$ref": "#/$defs/flatBedrock" }
+    "geology_mode": {
+      "enum": [
+        "geome",
+        "legacy"
+      ]
+    },
+    "place_fluid_deposits": {
+      "type": "boolean"
+    },
+    "manage_vanilla_ores": {
+      "type": "boolean"
+    },
+    "suppress_all_ore_features": {
+      "type": "boolean"
+    },
+    "default_template": {
+      "$ref": "#/$defs/optionalRegistryId"
+    },
+    "selected_template": {
+      "$ref": "#/$defs/registryId"
+    },
+    "formations": {
+      "$ref": "#/$defs/formations"
+    },
+    "rocks": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/rock"
+      }
+    },
+    "geomes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/geome"
+      }
+    },
+    "biomes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/weights"
+      }
+    },
+    "biome_dictionary": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/weights"
+      }
+    },
+    "terrain_dimensions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/terrainDimension"
+      }
+    },
+    "biome_palettes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/biomePalette"
+      }
+    },
+    "dimension_materials": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/dimensionMaterials"
+      }
+    },
+    "ores": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/ore"
+      }
+    },
+    "ore_material_groups": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/oreMaterialGroup"
+      }
+    },
+    "ore_source_policies": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/oreSourcePolicy"
+      }
+    },
+    "fluid_deposits": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/fluidDeposit"
+      }
+    },
+    "worldgen_aliases": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/registryId"
+      }
+    },
+    "providers": {
+      "type": "object"
+    },
+    "ore_providers": {
+      "type": "object"
+    },
+    "retrogen": {
+      "$ref": "#/$defs/retrogen"
+    },
+    "flat_bedrock": {
+      "$ref": "#/$defs/flatBedrock"
+    },
+    "rock_formations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/rockFormation"
+      }
+    }
   },
   "additionalProperties": true,
   "$defs": {
-    "registryId": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" },
-    "optionalRegistryId": { "type": "string", "pattern": "^(|[a-z0-9_.-]+:[a-z0-9_./-]+)$" },
-    "registryIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/registryId" } },
-    "family": { "enum": ["sedimentary", "metamorphic", "igneous_intrusive", "igneous_volcanic"] },
-    "preset": { "enum": ["tiny", "small", "average", "large", "huge", "custom"] },
-    "weights": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
-	"metadata": { "type": "integer", "minimum": 0, "maximum": 15 },
+    "registryId": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+    },
+    "optionalRegistryId": {
+      "type": "string",
+      "pattern": "^(|[a-z0-9_.-]+:[a-z0-9_./-]+)$"
+    },
+    "registryIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/registryId"
+      }
+    },
+    "family": {
+      "enum": [
+        "sedimentary",
+        "metamorphic",
+        "igneous_intrusive",
+        "igneous_volcanic"
+      ]
+    },
+    "preset": {
+      "enum": [
+        "tiny",
+        "small",
+        "average",
+        "large",
+        "huge",
+        "custom"
+      ]
+    },
+    "weights": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "metadata": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 15
+    },
     "weightedBlock": {
       "type": "object",
-      "required": ["block"],
+      "required": [
+        "block"
+      ],
       "properties": {
-        "block": { "$ref": "#/$defs/registryId" },
-		"metadata": { "$ref": "#/$defs/metadata" },
-        "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+        "block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "weightedTag": {
       "type": "object",
-      "required": ["tag"],
+      "required": [
+        "tag"
+      ],
       "properties": {
-        "tag": { "$ref": "#/$defs/registryId" },
-        "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+        "tag": {
+          "$ref": "#/$defs/registryId"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "hostBlocks": {
       "type": "array",
-      "items": { "anyOf": [
-        { "$ref": "#/$defs/registryId" },
-        { "$ref": "#/$defs/weightedBlock" }
-      ] }
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/registryId"
+          },
+          {
+            "$ref": "#/$defs/weightedBlock"
+          }
+        ]
+      }
     },
     "hostTags": {
       "type": "array",
-      "items": { "anyOf": [
-        { "$ref": "#/$defs/registryId" },
-        { "$ref": "#/$defs/weightedTag" }
-      ] }
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/registryId"
+          },
+          {
+            "$ref": "#/$defs/weightedTag"
+          }
+        ]
+      }
     },
     "formations": {
       "type": "object",
-      "required": ["algorithm", "horizontal_size", "vertical_thickness", "waviness", "edge_irregularity", "formation_continuity", "custom"],
+      "required": [
+        "algorithm",
+        "horizontal_size",
+        "vertical_thickness",
+        "waviness",
+        "edge_irregularity",
+        "formation_continuity",
+        "custom"
+      ],
       "properties": {
-        "algorithm": { "enum": ["stable_layers", "sky_v1"] },
-        "horizontal_size": { "$ref": "#/$defs/preset" },
-        "vertical_thickness": { "$ref": "#/$defs/preset" },
-        "waviness": { "$ref": "#/$defs/preset" },
-        "edge_irregularity": { "$ref": "#/$defs/preset" },
-        "formation_continuity": { "$ref": "#/$defs/preset" },
-        "custom": { "type": "object", "additionalProperties": { "type": "number" } }
+        "algorithm": {
+          "enum": [
+            "stable_layers",
+            "sky_v1"
+          ]
+        },
+        "horizontal_size": {
+          "$ref": "#/$defs/preset"
+        },
+        "vertical_thickness": {
+          "$ref": "#/$defs/preset"
+        },
+        "waviness": {
+          "$ref": "#/$defs/preset"
+        },
+        "edge_irregularity": {
+          "$ref": "#/$defs/preset"
+        },
+        "formation_continuity": {
+          "$ref": "#/$defs/preset"
+        },
+        "custom": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
       }
     },
     "rock": {
       "type": "object",
-      "required": ["enabled", "family", "depth_peak", "depth_spread", "min_y", "max_y", "weight", "ore_replaceable"],
+      "required": [
+        "enabled",
+        "family",
+        "depth_peak",
+        "depth_spread",
+        "min_y",
+        "max_y",
+        "weight",
+        "ore_replaceable"
+      ],
       "properties": {
-        "block": { "$ref": "#/$defs/registryId" },
-		"metadata": { "$ref": "#/$defs/metadata" },
-        "enabled": { "type": "boolean" },
-        "family": { "$ref": "#/$defs/family" },
-        "depth_peak": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "depth_spread": { "type": "integer", "minimum": 1 },
-        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "weight": { "type": "number", "minimum": 0 },
-        "ore_replaceable": { "type": "boolean" },
-        "geomes": { "$ref": "#/$defs/weights" },
-        "dimensions": { "$ref": "#/$defs/registryIds" }
+        "block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "family": {
+          "$ref": "#/$defs/family"
+        },
+        "depth_peak": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "depth_spread": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_y": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "max_y": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ore_replaceable": {
+          "type": "boolean"
+        },
+        "geomes": {
+          "$ref": "#/$defs/weights"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/registryIds"
+        }
       },
       "additionalProperties": true
     },
     "geome": {
       "type": "object",
-      "required": ["base", "families"],
+      "required": [
+        "base",
+        "families"
+      ],
       "properties": {
-        "base": { "type": "number", "minimum": 0 },
-        "families": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } }
+        "base": {
+          "type": "number",
+          "minimum": 0
+        },
+        "families": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
       },
       "additionalProperties": true
     },
     "terrainDimension": {
       "type": "object",
-      "required": ["enabled", "host_blocks", "host_tags"],
+      "required": [
+        "enabled",
+        "host_blocks",
+        "host_tags"
+      ],
       "properties": {
-        "enabled": { "type": "boolean" },
-        "biome_ids": { "$ref": "#/$defs/registryIds" },
-        "biome_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
-        "host_blocks": { "$ref": "#/$defs/hostBlocks" },
-        "host_tags": { "$ref": "#/$defs/hostTags" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "biome_ids": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "biome_namespaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]+$"
+          }
+        },
+        "host_blocks": {
+          "$ref": "#/$defs/hostBlocks"
+        },
+        "host_tags": {
+          "$ref": "#/$defs/hostTags"
+        }
       }
     },
     "oreDimension": {
       "type": "object",
-      "required": ["enabled", "min_y", "max_y", "frequency"],
+      "required": [
+        "enabled",
+        "min_y",
+        "max_y",
+        "frequency"
+      ],
       "properties": {
-        "enabled": { "type": "boolean" },
-        "min_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "frequency": { "type": "number", "minimum": 0, "maximum": 64 },
-        "quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "min_quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "max_quantity": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "pattern": { "anyOf": [
-          { "enum": ["default", "vein", "normal_cloud", "precision", "clusters", "underfluids", "cluster", "cloud"] },
-          {
-            "type": "object",
-            "required": ["type", "settings"],
-            "properties": {
-              "type": { "$ref": "#/$defs/registryId" },
-              "settings": { "type": "object" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "min_y": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "max_y": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "frequency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "min_quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "vein",
+                "normal_cloud",
+                "precision",
+                "clusters",
+                "underfluids",
+                "cluster",
+                "cloud"
+              ]
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "settings"
+              ],
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/registryId"
+                },
+                "settings": {
+                  "type": "object"
+                }
+              }
             }
-          }
-        ] },
+          ]
+        },
         "height_distribution": {
-          "enum": ["uniform", "triangle", "bottom_triangle", "uniform_bottom_triangle"]
+          "enum": [
+            "uniform",
+            "triangle",
+            "bottom_triangle",
+            "uniform_bottom_triangle"
+          ]
         },
         "discard_chance_on_air_exposure": {
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0
+          "minimum": 0,
+          "maximum": 1
         },
         "background_generation_scale": {
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0
+          "minimum": 0,
+          "maximum": 1
         },
-        "placement_channel": { "$ref": "#/$defs/registryId" },
-        "spread": { "type": "integer", "minimum": 0, "maximum": 64 },
-        "vertical_spread": { "type": "integer", "minimum": 0, "maximum": 64 },
-        "node_size": { "type": "integer", "minimum": 1, "maximum": 32 },
-        "length": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "fluid": { "$ref": "#/$defs/registryId" },
-        "host_families": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/family" } },
-        "host_blocks": { "$ref": "#/$defs/hostBlocks" },
-        "host_tags": { "$ref": "#/$defs/hostTags" },
-        "geomes": { "$ref": "#/$defs/weights" },
-        "biome_ids": { "$ref": "#/$defs/registryIds" },
-        "excluded_biome_ids": { "$ref": "#/$defs/registryIds" },
-        "biome_dictionary": { "type": "array", "items": { "type": "string" } },
-        "excluded_biome_dictionary": { "type": "array", "items": { "type": "string" } }
+        "placement_channel": {
+          "$ref": "#/$defs/registryId"
+        },
+        "spread": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "vertical_spread": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "node_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "fluid": {
+          "$ref": "#/$defs/registryId"
+        },
+        "host_families": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/family"
+          }
+        },
+        "host_blocks": {
+          "$ref": "#/$defs/hostBlocks"
+        },
+        "host_tags": {
+          "$ref": "#/$defs/hostTags"
+        },
+        "geomes": {
+          "$ref": "#/$defs/weights"
+        },
+        "biome_ids": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "excluded_biome_ids": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "biome_dictionary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_biome_dictionary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
       "allOf": [
-        { "anyOf": [
-          { "required": ["quantity"] },
-          { "required": ["min_quantity", "max_quantity"] }
-        ] },
-        { "anyOf": [
-          { "required": ["host_families"] },
-          { "required": ["host_blocks"] },
-          { "required": ["host_tags"] }
-        ] }
+        {
+          "anyOf": [
+            {
+              "required": [
+                "quantity"
+              ]
+            },
+            {
+              "required": [
+                "min_quantity",
+                "max_quantity"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "host_families"
+              ]
+            },
+            {
+              "required": [
+                "host_blocks"
+              ]
+            },
+            {
+              "required": [
+                "host_tags"
+              ]
+            }
+          ]
+        }
       ],
       "dependentRequired": {
-        "min_quantity": ["max_quantity"],
-        "max_quantity": ["min_quantity"]
+        "min_quantity": [
+          "max_quantity"
+        ],
+        "max_quantity": [
+          "min_quantity"
+        ]
       },
       "additionalProperties": true
     },
     "ore": {
       "type": "object",
-      "required": ["enabled"],
+      "required": [
+        "enabled"
+      ],
       "properties": {
-        "block": { "$ref": "#/$defs/registryId" },
-		"material": { "$ref": "#/$defs/registryId" },
-		"metadata": { "$ref": "#/$defs/metadata" },
-        "enabled": { "type": "boolean" },
-        "source_mod": { "type": "string" },
-        "native_generation": { "type": "boolean" },
-        "suppress_vanilla": { "type": "boolean" },
-        "retrogen": { "type": "boolean" },
+        "block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "material": {
+          "$ref": "#/$defs/registryId"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "source_mod": {
+          "type": "string"
+        },
+        "native_generation": {
+          "type": "boolean"
+        },
+        "suppress_vanilla": {
+          "type": "boolean"
+        },
+        "retrogen": {
+          "type": "boolean"
+        },
         "outputs": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["block", "weight"],
+            "required": [
+              "block",
+              "weight"
+            ],
             "properties": {
-              "block": { "$ref": "#/$defs/registryId" },
-			  "metadata": { "$ref": "#/$defs/metadata" },
-              "weight": { "type": "number", "minimum": 0 },
-              "min_y": { "type": "integer" },
-              "max_y": { "type": "integer" }
+              "block": {
+                "$ref": "#/$defs/registryId"
+              },
+              "metadata": {
+                "$ref": "#/$defs/metadata"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0
+              },
+              "min_y": {
+                "type": "integer"
+              },
+              "max_y": {
+                "type": "integer"
+              }
             }
           }
         },
-        "deep_output": { "$ref": "#/$defs/registryId" },
-		"deep_output_metadata": { "$ref": "#/$defs/metadata" },
-        "deep_output_max_y": { "type": "integer" },
-        "dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/oreDimension" } },
+        "deep_output": {
+          "$ref": "#/$defs/registryId"
+        },
+        "deep_output_metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "deep_output_max_y": {
+          "type": "integer"
+        },
+        "dimensions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/oreDimension"
+          }
+        },
         "dimension_selectors": {
           "type": "object",
           "minProperties": 1,
           "properties": {
-            "orespawn:all_except_nether_end": { "$ref": "#/$defs/oreDimension" }
+            "orespawn:all_except_nether_end": {
+              "$ref": "#/$defs/oreDimension"
+            }
           },
           "additionalProperties": false
         }
       },
       "anyOf": [
-        { "required": ["dimensions"] },
-        { "required": ["dimension_selectors"] }
+        {
+          "required": [
+            "dimensions"
+          ]
+        },
+        {
+          "required": [
+            "dimension_selectors"
+          ]
+        }
       ],
       "additionalProperties": true
     },
     "oreSourceCandidate": {
       "type": "object",
-      "required": ["source_id", "owner", "registry_id", "material", "domain", "placement_channel", "loaded", "external"],
+      "required": [
+        "source_id",
+        "owner",
+        "registry_id",
+        "material",
+        "domain",
+        "placement_channel",
+        "loaded",
+        "external"
+      ],
       "properties": {
-        "source_id": { "type": "string", "minLength": 1 },
-        "owner": { "type": "string", "minLength": 1 },
-        "owner_name": { "type": "string" },
-        "owner_version": { "type": "string" },
-        "registry_id": { "$ref": "#/$defs/registryId" },
-        "metadata": { "$ref": "#/$defs/metadata" },
-        "material": { "$ref": "#/$defs/registryId" },
-        "domain": { "$ref": "#/$defs/registryId" },
-        "placement_channel": { "$ref": "#/$defs/registryId" },
-        "ore_dictionary": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-        "loaded": { "type": "boolean" },
-        "placement_active": { "type": "boolean" },
-        "external": { "type": "boolean" },
-        "enrichment": { "type": "boolean" },
-        "review_required": { "type": "boolean" },
-        "material_declared": { "type": "boolean" }
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_name": {
+          "type": "string"
+        },
+        "owner_version": {
+          "type": "string"
+        },
+        "registry_id": {
+          "$ref": "#/$defs/registryId"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "material": {
+          "$ref": "#/$defs/registryId"
+        },
+        "domain": {
+          "$ref": "#/$defs/registryId"
+        },
+        "placement_channel": {
+          "$ref": "#/$defs/registryId"
+        },
+        "ore_dictionary": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "loaded": {
+          "type": "boolean"
+        },
+        "placement_active": {
+          "type": "boolean"
+        },
+        "external": {
+          "type": "boolean"
+        },
+        "enrichment": {
+          "type": "boolean"
+        },
+        "review_required": {
+          "type": "boolean"
+        },
+        "material_declared": {
+          "type": "boolean"
+        }
       },
       "additionalProperties": false
     },
     "oreSourcePolicy": {
       "type": "object",
-      "required": ["material", "domain", "mode", "output_mode", "outputs", "placement_sources", "candidates"],
+      "required": [
+        "material",
+        "domain",
+        "mode",
+        "output_mode",
+        "outputs",
+        "placement_sources",
+        "candidates"
+      ],
       "properties": {
-        "material": { "$ref": "#/$defs/registryId" },
-        "domain": { "$ref": "#/$defs/registryId" },
-        "mode": { "enum": ["consolidated", "keep_separate"] },
-        "output_mode": { "enum": ["balanced", "single", "custom"] },
-        "outputs": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 } },
-        "placement_sources": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" }, "additionalProperties": { "type": "string", "minLength": 1 } },
-        "candidates": { "type": "array", "items": { "$ref": "#/$defs/oreSourceCandidate" } },
-        "review_required": { "type": "boolean" },
-        "status": { "enum": ["consolidated", "separate", "review_required", "missing_source", "external_generation"] },
-        "dormant": { "type": "boolean" }
+        "material": {
+          "$ref": "#/$defs/registryId"
+        },
+        "domain": {
+          "$ref": "#/$defs/registryId"
+        },
+        "mode": {
+          "enum": [
+            "consolidated",
+            "keep_separate"
+          ]
+        },
+        "output_mode": {
+          "enum": [
+            "balanced",
+            "single",
+            "custom"
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "placement_sources": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/oreSourceCandidate"
+          }
+        },
+        "review_required": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "consolidated",
+            "separate",
+            "review_required",
+            "missing_source",
+            "external_generation"
+          ]
+        },
+        "dormant": {
+          "type": "boolean"
+        }
       },
       "additionalProperties": false
     },
     "oreMaterialGroup": {
       "type": "object",
-      "required": ["display_name", "ore_dictionary_entries"],
+      "required": [
+        "display_name",
+        "ore_dictionary_entries"
+      ],
       "properties": {
-        "display_name": { "type": "string", "minLength": 1, "maxLength": 64 },
-        "ore_dictionary_entries": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^ore[A-Z][A-Za-z0-9_]*$", "maxLength": 128 } }
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "ore_dictionary_entries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ore[A-Z][A-Za-z0-9_]*$",
+            "maxLength": 128
+          }
+        }
       },
       "additionalProperties": false
     },
     "fluidDepositDimension": {
-	  "type": "object",
-	  "required": ["enabled", "min_y", "max_y", "frequency", "min_radius", "max_radius", "min_vertical_radius", "max_vertical_radius", "max_lobes", "min_solid_cover"],
-	  "properties": {
-		"enabled": { "type": "boolean" },
-		"min_y": { "type": "integer" }, "max_y": { "type": "integer" },
-		"frequency": { "type": "number", "minimum": 0, "maximum": 64 },
-		"min_radius": { "type": "integer", "minimum": 1, "maximum": 64 }, "max_radius": { "type": "integer", "minimum": 1, "maximum": 64 },
-		"min_vertical_radius": { "type": "integer", "minimum": 1, "maximum": 64 }, "max_vertical_radius": { "type": "integer", "minimum": 1, "maximum": 64 },
-		"max_lobes": { "type": "integer", "minimum": 1, "maximum": 16 }, "min_solid_cover": { "type": "integer", "minimum": 0, "maximum": 64 },
-		"min_solid_shell": { "type": "integer", "minimum": 0, "maximum": 64, "default": 1 },
-		"host_families": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/family" } },
-		"host_blocks": { "$ref": "#/$defs/hostBlocks" },
-		"host_tags": { "$ref": "#/$defs/hostTags" },
-		"geomes": { "$ref": "#/$defs/weights" },
-		"biome_ids": { "$ref": "#/$defs/registryIds" },
-		"excluded_biome_ids": { "$ref": "#/$defs/registryIds" },
-		"biome_dictionary": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-		"excluded_biome_dictionary": { "type": "array", "items": { "type": "string", "minLength": 1 } }
-	  },
-	  "anyOf": [
-		{ "required": ["host_families"] },
-		{ "required": ["host_blocks"] },
-		{ "required": ["host_tags"] }
-	  ],
-	  "additionalProperties": true
-	},
-	"fluidDeposit": {
-	  "type": "object",
-	  "required": ["enabled", "block", "dimensions"],
-	  "properties": {
-		"enabled": { "type": "boolean" },
-		"block": { "$ref": "#/$defs/registryId" },
-		"metadata": { "$ref": "#/$defs/metadata" },
-		"dimensions": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/fluidDepositDimension" } }
-	  },
-	  "additionalProperties": true
-	},
+      "type": "object",
+      "required": [
+        "enabled",
+        "min_y",
+        "max_y",
+        "frequency",
+        "min_radius",
+        "max_radius",
+        "min_vertical_radius",
+        "max_vertical_radius",
+        "max_lobes",
+        "min_solid_cover"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "min_y": {
+          "type": "integer"
+        },
+        "max_y": {
+          "type": "integer"
+        },
+        "frequency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "min_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "min_vertical_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_vertical_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_lobes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "min_solid_cover": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "min_solid_shell": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64,
+          "default": 1
+        },
+        "host_families": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/family"
+          }
+        },
+        "host_blocks": {
+          "$ref": "#/$defs/hostBlocks"
+        },
+        "host_tags": {
+          "$ref": "#/$defs/hostTags"
+        },
+        "geomes": {
+          "$ref": "#/$defs/weights"
+        },
+        "biome_ids": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "excluded_biome_ids": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "biome_dictionary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_biome_dictionary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "host_families"
+          ]
+        },
+        {
+          "required": [
+            "host_blocks"
+          ]
+        },
+        {
+          "required": [
+            "host_tags"
+          ]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "fluidDeposit": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "block",
+        "dimensions"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "dimensions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/fluidDepositDimension"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
     "retrogen": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "force": { "type": "boolean" },
-        "revision": { "type": "integer", "minimum": 0 },
-        "chunks_per_tick": { "type": "integer", "minimum": 1, "maximum": 16 }
+        "enabled": {
+          "type": "boolean"
+        },
+        "force": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunks_per_tick": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        }
       }
     },
     "biomeSurface": {
       "type": "object",
       "properties": {
-        "top_block": { "$ref": "#/$defs/registryId" },
-		"top_block_metadata": { "$ref": "#/$defs/metadata" },
-        "filler_block": { "$ref": "#/$defs/registryId" },
-		"filler_block_metadata": { "$ref": "#/$defs/metadata" },
-        "underwater_block": { "$ref": "#/$defs/registryId" },
-		"underwater_block_metadata": { "$ref": "#/$defs/metadata" },
-        "ceiling_block": { "$ref": "#/$defs/registryId" },
-		"ceiling_block_metadata": { "$ref": "#/$defs/metadata" },
-        "filler_depth": { "type": "integer", "minimum": 0, "maximum": 16 }
+        "top_block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "top_block_metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "filler_block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "filler_block_metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "underwater_block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "underwater_block_metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "ceiling_block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "ceiling_block_metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "filler_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        }
       },
       "additionalProperties": true
     },
     "biomePlacement": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "weight": { "type": "number", "minimum": 0 },
-        "similar_biomes": { "$ref": "#/$defs/registryIds" },
-        "required_similar_biomes": { "$ref": "#/$defs/registryIds" },
-        "min_temperature": { "type": "number", "minimum": -2, "maximum": 2 },
-        "max_temperature": { "type": "number", "minimum": -2, "maximum": 2 },
-        "min_downfall": { "type": "number", "minimum": 0, "maximum": 1 },
-        "max_downfall": { "type": "number", "minimum": 0, "maximum": 1 },
-        "surface": { "$ref": "#/$defs/biomeSurface" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "similar_biomes": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "required_similar_biomes": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "min_temperature": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2
+        },
+        "max_temperature": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2
+        },
+        "min_downfall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_downfall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "surface": {
+          "$ref": "#/$defs/biomeSurface"
+        }
       },
       "additionalProperties": true
     },
     "biomePalette": {
       "type": "object",
-      "required": ["dimension", "enabled", "mode", "scope", "region_size", "coverage", "fallback_weight", "biomes"],
+      "required": [
+        "dimension",
+        "enabled",
+        "mode",
+        "scope",
+        "region_size",
+        "coverage",
+        "fallback_weight",
+        "biomes"
+      ],
       "properties": {
-        "dimension": { "$ref": "#/$defs/registryId" },
-        "enabled": { "type": "boolean" },
-        "mode": { "enum": ["augment", "replace"] },
-        "scope": { "enum": ["all", "minecraft_only", "selected_namespaces"] },
-        "region_size": { "enum": ["tiny", "small", "average", "large", "huge"] },
-        "coverage": { "type": "number", "minimum": 0, "maximum": 1 },
-        "fallback_weight": { "type": "number", "minimum": 0 },
-        "include_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
-        "exclude_namespaces": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" } },
-        "biomes": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/biomePlacement" } }
+        "dimension": {
+          "$ref": "#/$defs/registryId"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "enum": [
+            "augment",
+            "replace"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "all",
+            "minecraft_only",
+            "selected_namespaces"
+          ]
+        },
+        "region_size": {
+          "enum": [
+            "tiny",
+            "small",
+            "average",
+            "large",
+            "huge"
+          ]
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fallback_weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "include_namespaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]+$"
+          }
+        },
+        "exclude_namespaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]+$"
+          }
+        },
+        "biomes": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/biomePlacement"
+          }
+        }
       },
       "additionalProperties": true
     },
     "dimensionMaterials": {
       "type": "object",
-      "required": ["dimension", "enabled"],
+      "required": [
+        "dimension",
+        "enabled"
+      ],
       "properties": {
-        "dimension": { "$ref": "#/$defs/registryId" },
-        "enabled": { "type": "boolean" },
-        "default_fluid": { "$ref": "#/$defs/registryId" },
-        "deep_aquifer_fluid": { "$ref": "#/$defs/registryId" },
-        "deep_aquifer_max_y": { "type": "integer", "minimum": -2048, "maximum": 2048 },
-        "snow_block": { "$ref": "#/$defs/registryId" },
-        "ice_block": { "$ref": "#/$defs/registryId" }
+        "dimension": {
+          "$ref": "#/$defs/registryId"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "default_fluid": {
+          "$ref": "#/$defs/registryId"
+        },
+        "deep_aquifer_fluid": {
+          "$ref": "#/$defs/registryId"
+        },
+        "deep_aquifer_max_y": {
+          "type": "integer",
+          "minimum": -2048,
+          "maximum": 2048
+        },
+        "snow_block": {
+          "$ref": "#/$defs/registryId"
+        },
+        "ice_block": {
+          "$ref": "#/$defs/registryId"
+        }
       },
       "anyOf": [
-        { "properties": { "enabled": { "const": false } }, "required": ["enabled"] },
-        { "required": ["default_fluid"] },
-        { "required": ["deep_aquifer_fluid"] },
-        { "required": ["snow_block"] },
-        { "required": ["ice_block"] }
+        {
+          "properties": {
+            "enabled": {
+              "const": false
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        {
+          "required": [
+            "default_fluid"
+          ]
+        },
+        {
+          "required": [
+            "deep_aquifer_fluid"
+          ]
+        },
+        {
+          "required": [
+            "snow_block"
+          ]
+        },
+        {
+          "required": [
+            "ice_block"
+          ]
+        }
       ],
       "additionalProperties": true
     },
     "flatBedrock": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "retrogen": { "type": "boolean" },
-        "layers": { "type": "integer", "minimum": 1, "maximum": 5 },
-        "dimensions": { "$ref": "#/$defs/registryIds" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "retrogen": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "dimensions": {
+          "$ref": "#/$defs/registryIds"
+        }
+      }
+    },
+    "rockFormation": {
+      "type": "object",
+      "required": [
+        "type",
+        "algorithm_revision",
+        "materials"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/registryId"
+        },
+        "algorithm_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "salt": {
+          "type": "integer"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/registryIds"
+        },
+        "geomes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "spacing_chunks": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 65536
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_y": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 240
+        },
+        "max_y": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 240
+        },
+        "radius_min": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "radius_max": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 128
+        },
+        "cover": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 240
+        },
+        "materials": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "block"
+            ],
+            "properties": {
+              "block": {
+                "$ref": "#/$defs/registryId"
+              },
+              "metadata": {
+                "$ref": "#/$defs/metadata"
+              },
+              "family": {
+                "$ref": "#/$defs/family"
+              }
+            }
+          }
+        }
       }
     }
   }

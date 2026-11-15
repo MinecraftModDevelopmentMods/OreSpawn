@@ -61,7 +61,7 @@ public final class WorldgenProvider {
 		return mergeNewEntriesIntoExistingWorlds;
 	}
 
-	/** Returns a defensive JSON representation matching provider schema 5. */
+	/** Returns defensive provider JSON; formation contributors use schema 6. */
 	public JsonObject toJson() {
 		return JsonCopies.copy(definition);
 	}
@@ -83,6 +83,16 @@ public final class WorldgenProvider {
 		private final LinkedHashMap<ResourceLocation, DimensionMaterialsDefinition> dimensionMaterials =
 				new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, GeologyTemplate> templates = new LinkedHashMap<>();
+		private final LinkedHashMap<ResourceLocation, JsonObject> rockFormations = new LinkedHashMap<>();
+
+		/** Declares a natural substrate formation. Settings and materials are baked before generation. */
+		public Builder rockFormation(ResourceLocation id, ResourceLocation type, JsonObject definition) {
+			JsonObject value = JsonCopies.copy(Objects.requireNonNull(definition));
+			value.addProperty("type", Objects.requireNonNull(type).toString());
+			if (rockFormations.putIfAbsent(Objects.requireNonNull(id), value) != null)
+				throw new IllegalArgumentException("Duplicate rock formation " + id);
+			return this;
+		}
 
 		private Builder(String modId, int revision) {
 			this.modId = requireModId(modId);
@@ -222,7 +232,7 @@ public final class WorldgenProvider {
 			if (rocks.isEmpty() && ores.isEmpty() && fluidDeposits.isEmpty()
 					&& geomes.isEmpty() && biomeRules.isEmpty()
 					&& terrainDimensions.isEmpty() && biomePalettes.isEmpty()
-					&& dimensionMaterials.isEmpty() && templates.isEmpty()) {
+					&& dimensionMaterials.isEmpty() && templates.isEmpty() && rockFormations.isEmpty()) {
 				throw new IllegalStateException("A provider must declare at least one contribution");
 			}
 			requireOwned(rocks.keySet(), "rock");
@@ -235,8 +245,9 @@ public final class WorldgenProvider {
 			requireOwned(biomePalettes.keySet(), "biome palette");
 			requireOwned(dimensionMaterials.keySet(), "dimension materials");
 			requireOwned(templates.keySet(), "template");
+			requireOwned(rockFormations.keySet(), "rock formation");
 			JsonObject root = new JsonObject();
-			root.addProperty("schema_version", 5);
+			root.addProperty("schema_version", rockFormations.isEmpty() ? 5 : 6);
 			root.addProperty("provider_modid", modId);
 			root.addProperty("provider_revision", revision);
 			root.addProperty("merge_new_entries_into_existing_worlds",
@@ -250,6 +261,11 @@ public final class WorldgenProvider {
 			root.add("biome_palettes", object(biomePalettes));
 			root.add("dimension_materials", object(dimensionMaterials));
 			root.add("templates", object(templates));
+			if (!rockFormations.isEmpty()) {
+				JsonObject formations = new JsonObject();
+				rockFormations.forEach((id, value) -> formations.add(id.toString(), JsonCopies.copy(value)));
+				root.add("rock_formations", formations);
+			}
 			return new WorldgenProvider(modId, revision, mergeNewEntriesIntoExistingWorlds, root);
 		}
 
@@ -1350,6 +1366,7 @@ public final class WorldgenProvider {
 		private final Set<String> requiredMods;
 		private final boolean autoSelect;
 		private final int autoSelectPriority;
+		private final boolean preserveFormationOverrides;
 		private final JsonObject profile;
 
 		private GeologyTemplate(Builder builder) {
@@ -1359,6 +1376,7 @@ public final class WorldgenProvider {
 			requiredMods = Collections.unmodifiableSet(new LinkedHashSet<>(builder.requiredMods));
 			autoSelect = builder.autoSelect;
 			autoSelectPriority = builder.autoSelectPriority;
+			preserveFormationOverrides = builder.preserveFormationOverrides;
 			profile = JsonCopies.copy(builder.profile);
 		}
 
@@ -1380,6 +1398,7 @@ public final class WorldgenProvider {
 			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "required_mods", mods);
 			json.addProperty("auto_select", autoSelect);
 			json.addProperty("auto_select_priority", autoSelectPriority);
+			if (preserveFormationOverrides) json.addProperty("preserve_formation_overrides", true);
 			zone.moddev.mc.orespawn.util.JsonCopies.add(json, "profile", JsonCopies.copy(profile));
 			return json;
 		}
@@ -1391,6 +1410,7 @@ public final class WorldgenProvider {
 			private final Set<String> requiredMods = new LinkedHashSet<>();
 			private boolean autoSelect;
 			private int autoSelectPriority;
+			private boolean preserveFormationOverrides;
 			private final JsonObject profile = new JsonObject();
 			private Builder(ResourceLocation id) {
 				this.id = Objects.requireNonNull(id, "id");
@@ -1398,6 +1418,8 @@ public final class WorldgenProvider {
 				descriptionKey = nameKey + ".description";
 			}
 			public Builder translationKeys(String name, String description) { nameKey = name; descriptionKey = description; return this; }
+			/** Tune stock formations only; keep authored overrides, removals and external providers. */
+			public Builder preserveFormationOverrides(boolean value) { preserveFormationOverrides = value; return this; }
 			public Builder requiresMod(String value) { requiredMods.add(requireModId(value)); return this; }
 			public Builder autoSelect(boolean value) { autoSelect = value; return this; }
 			public Builder autoSelectPriority(int value) { autoSelectPriority = value; return this; }

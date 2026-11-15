@@ -100,7 +100,7 @@ tasks.register('verifyReleaseConfiguration') {
     description = 'Validates the target-qualified release, API, schemas, reports, and publishing identity.'
 
     doLast {
-        if (project.mod_version != '4.1.6.111021'
+        if (project.mod_version != '4.1.7.111021'
                 || project.mod_group != expectedMavenGroup) {
             throw new GradleException("Unexpected OreSpawn release version: ${project.mod_version}")
         }
@@ -127,8 +127,8 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyOs3ProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.1.6.111021')) {
-                throw new GradleException("Authoritative release location does not contain 4.1.6.111021: ${path}")
+            if (!file(path).getText('UTF-8').contains('4.1.7.111021')) {
+                throw new GradleException("Authoritative release location does not contain 4.1.7.111021: ${path}")
             }
         }
         if (!file('docs/API.md').getText('UTF-8').contains('orespawn@[4.0.6,5.0.0)')) {
@@ -190,6 +190,9 @@ tasks.register('verifyReleaseArtifacts') {
                 }
                 ['src/test/', 'src/biomeIntegrationTest/', 'src/migrationIntegrationTest/',
                  'src/clientIntegrationTest/', 'src/os1AbiFixture/', 'src/os3AbiFixture/',
+                 'src/adminIntegrationTest/', 'src/retrogenIntegrationTest/',
+                 'src/formationIntegrationTest/', 'src/generationComparisonTest/',
+                 'local/adminprobe/', 'diagnostic/marker/', 'local/paritybench/', 'FormationProbe',
                  'src/baseMetals111Fixture/',
                  'AGENTS.md', 'agent-notes/', 'surfaceprobe', 'migrationprobe', 'clientprobe',
                  'org/junit/', 'org/mockito/', 'net/bytebuddy/'].each { forbidden ->
@@ -244,8 +247,8 @@ tasks.register('verifyReleaseArtifacts') {
 				throw new GradleException('Packaged language files do not match the source locale set')
 			}
 			List<File> trackedDocs = trackedDocumentationFiles()
-			if (trackedDocs.size() != 20) {
-				throw new GradleException("Expected 20 tracked documentation files, found ${trackedDocs.size()}")
+			if (trackedDocs.size() != 22) {
+				throw new GradleException("Expected 22 tracked documentation files, found ${trackedDocs.size()}")
 			}
 			trackedDocs.each { File source ->
 				String relative = documentationRelativePath(source)

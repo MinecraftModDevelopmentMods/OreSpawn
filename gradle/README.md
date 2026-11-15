@@ -14,6 +14,7 @@ to the tasks they configure:
 | `verification/legacy-and-migration.gradle` | Surface and migration worlds, including both Mineralogy lineages. |
 | `verification/client-and-benchmark.gradle` | Client integration and opt-in worldgen benchmark. |
 | `verification/packaged-forge.gradle` | Fresh/reload test of the reobfuscated jar under installed Forge 13. |
+| `verification/admin-tools.gradle` | Separately compiled admin and retrogen restart fixtures; never used by ordinary launches. |
 | `release/artifacts.gradle` | API and release jars, release configuration and artifact audits, checksums. |
 | `release/publishing.gradle` | Maven publication, coordinates and credential checks. |
 | `ide/eclipse.gradle` | Eclipse resources, integration launches, Buildship and production classpath verification. |

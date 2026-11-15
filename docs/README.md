@@ -11,6 +11,8 @@ Choose the guide that matches what you are doing:
 - [Configuration field reference](CONFIGURATION.md)
 - [Provider JSON files](PROVIDERS.md)
 - [Java API and custom patterns](API.md)
+- [Natural rock formations](ROCK_FORMATIONS.md)
+- [Admin commands, ore surveys and guarded clearing](ADMIN_TOOLS.md)
 - [Ore patterns and runtime tools](FEATURES.md)
 - [Templates](TEMPLATES.md)
 - [Biomes and world materials](BIOMES.md)

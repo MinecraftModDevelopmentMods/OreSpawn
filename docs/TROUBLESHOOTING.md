@@ -63,3 +63,10 @@ Provider mods suppress native generation only after
 - `/orespawn reload` reloads providers and the active world profile.
 - `/orespawn retrogen [radius]` queues currently loaded chunks only.
 - `/orespawn dump-biomes` writes `config/orespawn-biomes.txt`.
+## Checking ore distribution
+
+Use `/orespawn survey 1` in a loaded test area, then `/orespawn jobs <job-id>`
+to find the JSON/CSV reports. Compare coverage and height ranges before
+comparing ore counts. `/orespawn explain <rule-id> [x y z]` explains current
+eligibility without changing settings or rolling a generation attempt.
+See [Admin tools](ADMIN_TOOLS.md) for permissions, limitations and safe clearing.

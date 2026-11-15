@@ -182,5 +182,9 @@ For a dedicated server, copy the whole world including that file and install
 the same mods. Alternatively, place a prepared global profile at
 `config/orespawn-worldgen.json` before creating a new server world.
 
+For measured ore counts, chunk details and guarded terrain clearing, see
+[Admin tools](ADMIN_TOOLS.md). Surveys read loaded chunks only; clearing and
+undo need explicit permission, a preview and a verified backup.
+
 The server console commands `/orespawn status`, `/orespawn reload`, and
 `/orespawn dump-biomes` help pack authors diagnose active providers and IDs.

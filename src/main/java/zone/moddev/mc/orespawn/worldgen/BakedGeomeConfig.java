@@ -84,6 +84,13 @@ public final class BakedGeomeConfig {
 		sedimentaryBlocks = buildBlockSet(rocks, true, false);
 		oreReplaceableBlocks = buildBlockSet(rocks, false, true);
 		rockFamilies = buildFamilyMap(rocks);
+		for (zone.moddev.mc.orespawn.api.FormationMaterial material : NaturalFormations.materials()) {
+			if (!material.family().isPresent()) continue;
+			RockFamily family = RockFamily.valueOf(material.family().get().name());
+			oreReplaceableBlocks.add(material.state().getBlock());
+			rockFamilies.put(material.state().getBlock(), family);
+			if (family == RockFamily.SEDIMENTARY) sedimentaryBlocks.add(material.state().getBlock());
+		}
 
 		if (formations.usesStableLayers()) {
 			buildStablePickers(rocks);
@@ -229,12 +236,15 @@ public final class BakedGeomeConfig {
 	}
 
 	public IBlockState[] statesForFamily(RockFamily... families) {
+		java.util.Set<IBlockState> available = new java.util.LinkedHashSet<>(Arrays.asList(rockStates));
+		for (zone.moddev.mc.orespawn.api.FormationMaterial m : NaturalFormations.materials())
+			if (m.family().isPresent()) available.add(m.state());
 		int mask = 0;
 		for (RockFamily family : families) {
 			mask |= 1 << family.ordinal();
 		}
 		int count = 0;
-		for (IBlockState state : rockStates) {
+		for (IBlockState state : available) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				count++;
@@ -242,7 +252,7 @@ public final class BakedGeomeConfig {
 		}
 		IBlockState[] result = new IBlockState[count];
 		int index = 0;
-		for (IBlockState state : rockStates) {
+		for (IBlockState state : available) {
 			RockFamily family = rockFamilies.get(state.getBlock());
 			if (family != null && (mask & (1 << family.ordinal())) != 0) {
 				result[index++] = state;
@@ -255,6 +265,8 @@ public final class BakedGeomeConfig {
 		for (IBlockState state : rockStates) {
 			target.add(state.getBlock());
 		}
+		for (zone.moddev.mc.orespawn.api.FormationMaterial material : NaturalFormations.materials())
+			if (material.family().isPresent()) target.add(material.state().getBlock());
 	}
 
 	int geomeCount() {
