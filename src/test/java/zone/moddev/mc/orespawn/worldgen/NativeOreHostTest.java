@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 
@@ -64,6 +66,19 @@ class NativeOreHostTest {
 	@AfterEach
 	void restoreTags() {
 		BlockTags.setCollection(previousTags);
+	}
+
+	@Test
+	void plainStoneHostDoesNotAcceptTheFlattenedIgneousBlocks() throws Exception {
+		Method add = OreSpawnOreGeneration.class.getDeclaredMethod("addBlocks", Map.class, Map.class, JsonElement.class);
+		add.setAccessible(true);
+		Map<Block, Double> hosts = new IdentityHashMap<>();
+		JsonArray blocks = new JsonArray();
+		blocks.add("minecraft:stone");
+		Map<net.minecraft.block.BlockState, Double> exact = new IdentityHashMap<>();
+		add.invoke(null, hosts, exact, blocks);
+		assertEquals(Collections.singletonMap(Blocks.STONE, 1.0D), hosts);
+		assertTrue(exact.isEmpty(), "A bare stone ID must not broaden into other flattened rocks");
 	}
 
 	@Test
@@ -127,6 +142,21 @@ class NativeOreHostTest {
 		families.add("sedimentary");
 		rule.add("host_families", families);
 		assertOreHostsRemainStable(rule);
+	}
+
+	@Test
+	void explanationsAndPlacementUseTheRulesOwnFamilyConfig() throws Exception {
+		JsonObject rule = rule();
+		rule.remove("host_tags");
+		JsonArray families = new JsonArray(); families.add("sedimentary"); rule.add("host_families", families);
+		Object ore = bakeOres(rule, Collections.emptyMap()).values().iterator().next();
+		Method accepts = ore.getClass().getDeclaredMethod("acceptsFamily", net.minecraft.block.BlockState.class);
+		accepts.setAccessible(true);
+		assertEquals(true, accepts.invoke(ore, Blocks.STONE.getDefaultState()));
+		assertEquals(false, accepts.invoke(ore, Blocks.DIORITE.getDefaultState()));
+		Method explicit = ore.getClass().getDeclaredMethod("explicitHostChance", net.minecraft.block.BlockState.class);
+		explicit.setAccessible(true);
+		assertEquals(null, explicit.invoke(ore, Blocks.STONE.getDefaultState()));
 	}
 
 	@Test

@@ -2,9 +2,11 @@ import groovy.json.JsonSlurper
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.jar.Manifest
+
+// Build the jars we publish, then inspect their contents and checksums. The
+// test mods and their worlds must never make it into these files.
 import java.util.zip.ZipFile
 
-// Assemble and inspect the jars users will receive; test mods stay out.
 def shared = project.ext.oreSpawnBuild
 def expectedMavenGroup = shared.mavenGroup
 def expectedMavenArtifact = shared.mavenArtifact
@@ -15,7 +17,6 @@ def normalizeArchiveLineEndings = shared.normalizeArchiveLineEndings
 def bundledDocumentationDirectory = shared.bundledDocumentationDirectory
 def prepareBundledDocumentation = shared.prepareBundledDocumentation
 def prepareEclipseResources = shared.prepareEclipseResources
-
 def packagedSurfaceProbeJar = renamer.classes(tasks.named('surfaceIntegrationTestModJar', Jar)) {
     map.from minecraft.dependency.toSrgFile
     output = layout.buildDirectory.file('surface-integration-fixture/surfaceprobe-reobf.jar')
@@ -27,11 +28,11 @@ tasks.named('jar', Jar) {
     manifest {
         attributes([
                 'Specification-Title'      : 'OreSpawn',
-                'Specification-Vendor'     : 'SkyBlade1978',
+                'Specification-Vendor'     : project.mod_vendor,
                 'Specification-Version'    : '1',
                 'Implementation-Title'     : base.archivesName.get(),
                 'Implementation-Version'   : project.version,
-                'Implementation-Vendor'    : 'SkyBlade1978',
+                'Implementation-Vendor'    : project.mod_vendor,
                 'OreSpawn-API-Version'     : '1',
                 'FMLAT'                    : 'accesstransformer.cfg',
                 'Maven-Artifact'           : expectedMavenCoordinate,
@@ -90,7 +91,7 @@ def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
 tasks.register('verifyReleaseConfiguration') {
     group = 'verification'
     doLast {
-        if (project.mod_version != '4.1.1.115021'
+        if (project.mod_version != '4.1.7.115021'
                 || project.mod_group != expectedMavenGroup
                 || project.minecraft_version != '1.15.2'
                 || project.forge_version != '31.2.57'
@@ -104,9 +105,9 @@ tasks.register('verifyReleaseConfiguration') {
             throw new GradleException('Unexpected dispatcher or Java target metadata')
         }
         List<String> expectedPublicArtifacts = [
-                'OreSpawn-4.1.1.115021.jar',
-                'OreSpawn-4.1.1.115021-sources.jar',
-                'OreSpawn-4.1.1.115021-javadoc.jar'
+                'OreSpawn-4.1.7.115021.jar',
+                'OreSpawn-4.1.7.115021-sources.jar',
+                'OreSpawn-4.1.7.115021-javadoc.jar'
         ]
         if (base.archivesName.get() != expectedMavenArtifact
                 || expectedReleaseFiles.get().collect { it.toString() } != expectedPublicArtifacts) {
@@ -123,7 +124,7 @@ tasks.register('verifyReleaseConfiguration') {
                 'src/main/java/zone/moddev/mc/orespawn/worldgen/LegacyMineralogyProfileMigration.java',
                 'README.md', 'CHANGELOG.txt'
         ].each { path ->
-            if (!file(path).getText('UTF-8').contains('4.1.1.115021')) {
+            if (!file(path).getText('UTF-8').contains('4.1.7.115021')) {
                 throw new GradleException("Release identity missing from ${path}")
             }
         }
@@ -138,11 +139,11 @@ tasks.register('verifyReleaseConfiguration') {
                 .getText('UTF-8').contains('SCHEMA_VERSION = 8')
                 || !file('src/main/java/zone/moddev/mc/orespawn/worldgen/WorldGeologyProfile.java')
                 .getText('UTF-8').contains('SCHEMA_VERSION = 7')) {
-            throw new GradleException('Global/world schemas must remain 8/7')
+            throw new GradleException('Global/world schemas must remain 6/5')
         }
         def schema = new JsonSlurper().parse(file('docs/schemas/orespawn-provider.schema.json'))
         if (!(schema.properties.schema_version.enum as List).contains(5)) {
-            throw new GradleException('Provider schema must remain version 5')
+            throw new GradleException('Provider schema must remain version 4')
         }
     }
 }
@@ -178,8 +179,8 @@ def verifyDocumentationParity = tasks.register('verifyDocumentationParity') {
     dependsOn releaseJar
     doLast {
         List<String> expected = documentationFiles()
-        if (expected.size() != 20 || !expected.contains('VERSIONS.md')) {
-            throw new GradleException("Expected exactly 20 tracked guide files including VERSIONS.md, found ${expected}")
+        if (expected.size() != 22 || !expected.contains('VERSIONS.md')) {
+            throw new GradleException("Expected exactly 22 tracked guide files including VERSIONS.md, found ${expected}")
         }
         assertDocumentationTree(bundledDocumentationDirectory.asFile,
                 expected, 'generated resources')
@@ -209,8 +210,7 @@ tasks.register('verifyReleaseArtifacts') {
         File libs = layout.buildDirectory.dir('libs').get().asFile
         List<File> jars = (libs.listFiles() ?: [] as File[])
                 .findAll { it.name.endsWith('.jar') }.sort { it.name }
-        // Provider interpolation yields GString values; normalize them before
-        // comparing with real filesystem String names.
+        // Convert interpolated GStrings to Strings before comparing them with filesystem names.
         List<String> expected = expectedReleaseFiles.get()
                 .collect { it.toString() }.sort()
         if (jars.collect { it.name } != expected) {
@@ -232,10 +232,10 @@ tasks.register('verifyReleaseArtifacts') {
                 }
                 [
                         'src/test/', 'src/biomeIntegrationTest/', 'src/clientIntegrationTest/',
-                        'src/nativeOreIntegrationTest/', 'src/oreSourceMineralsTest/',
-                        'src/oreSourceAdvantageTest/', 'src/worldHashTest/', '/testmod/',
-                        'agent-notes/', 'surfaceprobe', 'clientprobe', 'nativeoreprobe',
-                        'worldhashprobe', 'oresource-', 'NativeOreProbeBridge', 'ci-fixtures/',
+                        'src/oreSourceMineralsTest/', 'src/oreSourceAdvantageTest/', 'src/worldHashTest/',
+                        'agent-notes/', 'surfaceprobe', 'clientprobe', 'adminprobe', 'admintoolsprobe', 'adminIntegrationTest', 'admin-fixture', 'parityprobe', 'parityIntegrationTest', 'parity-fixture', 'worldhashprobe',
+                        'nativeoreprobe', 'native-ore-fixture', 'nativeOreIntegrationTest',
+                        'oresource-minerals', 'oresource-advantage', 'ci-fixtures/',
                         'org/junit/', 'org/mockito/', 'net/bytebuddy/',
                         'Mineralogy-1.15.2-5.1.1.jar'
                 ].each { forbidden ->
@@ -324,6 +324,7 @@ tasks.register('writeReleaseChecksums') {
     group = 'verification'
     dependsOn tasks.named('verifyReleaseArtifacts')
     def outputFile = layout.buildDirectory.file('release/SHA256SUMS')
+    inputs.files(releaseJar, tasks.named('sourcesJar'), tasks.named('javadocJar'))
     outputs.file(outputFile)
     doLast {
         File output = outputFile.get().asFile
@@ -350,8 +351,7 @@ tasks.register('verifyPreparedReleaseArtifacts') {
             throw new GradleException('preparedReleaseDir is required')
         }
         File prepared = file(preparedReleaseDir.get())
-        // Provider interpolation yields GString values; normalize them before
-        // comparing with real filesystem String names.
+        // Convert interpolated GStrings to Strings before comparing them with filesystem names.
         List<String> expected = expectedReleaseFiles.get()
                 .collect { it.toString() }.sort()
         List<File> jars = (prepared.listFiles() ?: [] as File[])

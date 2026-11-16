@@ -9,12 +9,54 @@ import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import net.minecraft.util.ResourceLocation;
 
 class OreSourcePoliciesTest {
 	private static final ResourceLocation SULFUR = id("orespawn:sulfur");
 	private static final ResourceLocation OVERWORLD = id("minecraft:overworld");
+
+	@Test
+	void importedBuiltInPatternsShareTheStandardChannelButExplicitChannelsStaySeparate() {
+		JsonObject rule = new JsonParser().parse("{\"pattern\":{\"type\":\"orespawn:precision\"}}").getAsJsonObject();
+		assertEquals(OreSourcePolicies.STANDARD, OreSourcePolicies.placementChannel(rule));
+		rule.addProperty("placement_channel", "orespawn:precision");
+		assertEquals(id("orespawn:precision"), OreSourcePolicies.placementChannel(rule));
+		rule.remove("placement_channel");
+		rule.addProperty("pattern", "example:precision");
+		assertEquals(id("example:precision"), OreSourcePolicies.placementChannel(rule));
+	}
+
+	@Test
+	void retainedChannelMustMatchItsOwnPatternWithoutChangingTheProfile() {
+		JsonObject profile = new JsonParser().parse("{\"ores\":{\"example:ore\":{\"dimensions\":{"
+				+ "\"minecraft:overworld\":{\"pattern\":{\"type\":\"orespawn:precision\"}}}}}}").getAsJsonObject();
+		String before = profile.toString();
+		assertTrue(OreSourcePolicies.legacyChannelSelection(profile, id("example:ore"), OVERWORLD,
+				id("orespawn:precision"), OreSourcePolicies.STANDARD));
+		assertFalse(OreSourcePolicies.legacyChannelSelection(profile, id("example:ore"), OVERWORLD,
+				id("orespawn:clusters"), OreSourcePolicies.STANDARD));
+		assertEquals(before, profile.toString());
+		profile.getAsJsonObject("ores").getAsJsonObject("example:ore").getAsJsonObject("dimensions")
+				.getAsJsonObject("minecraft:overworld").addProperty("placement_channel", "orespawn:standard");
+		assertFalse(OreSourcePolicies.legacyChannelSelection(profile, id("example:ore"), OVERWORLD,
+				id("orespawn:precision"), OreSourcePolicies.STANDARD));
+	}
+
+	@Test
+	void baseElectricIsRecognisedWithoutChangingAnExistingWorldsPolicy() {
+		OreSourcePolicies.Group shared = group();
+		shared.add(candidate("mineralogy:sulfur", "mineralogy", "mineralogy:sulfur_ore",
+				"forge:ores/sulfur", true, true, false, false));
+		shared.add(candidate("baseelectric:sulfur", "baseelectric", "baseelectric:sulfur_ore",
+				"forge:ores/sulfur", true, true, false, false));
+		JsonObject fresh = OreSourcePolicies.createPolicy(shared, false);
+		assertEquals("consolidated", fresh.get("mode").getAsString());
+		assertEquals("mineralogy:sulfur", fresh.getAsJsonObject("placement_sources")
+				.get("orespawn:standard").getAsString());
+		assertSeparate(OreSourcePolicies.createPolicy(shared, true));
+	}
 
 	@Test
 	void newWorldBalancesOnlyTwoLoadedOrdinaryOwnersWithAnExactSharedTag() {

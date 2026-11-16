@@ -18,6 +18,8 @@ provider guides give the exact Java and JSON contracts.
 - [Templates](TEMPLATES.md)
 - [Biomes and world materials](BIOMES.md)
 - [Dimensions](DIMENSIONS.md)
+- [Natural rock formations](ROCK_FORMATIONS.md)
+- [Admin commands and distribution reports](ADMIN_TOOLS.md)
 - [Migration](MIGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Versioning and release conventions](VERSIONS.md)

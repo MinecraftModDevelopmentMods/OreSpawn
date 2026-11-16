@@ -63,3 +63,6 @@ using the group's placement rule.
 These dummy providers appear only in this named client and the automated
 ore-source checks. They do not enter ordinary Eclipse launches or release jars.
 The manual profile has no automatic world creation or shutdown probe.
+
+`verification/admin-tools.gradle` owns isolated clear/undo and restart checks.
+`verification/parity.gradle` owns native retrogen, formation and fluid fixtures.

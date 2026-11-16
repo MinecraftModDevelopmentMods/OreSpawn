@@ -63,3 +63,10 @@ Provider mods suppress native generation only after
 - `/orespawn reload` reloads providers and the active world profile.
 - `/orespawn retrogen [radius]` queues currently loaded chunks only.
 - `/orespawn dump-biomes` writes `config/orespawn-biomes.txt`.
+## Check what actually generated
+
+Use `/orespawn survey 0` for a loaded chunk's measured counts. A rule's
+frequency is an expected attempt rate, not a guaranteed number of blocks.
+`/orespawn explain <rule-id>` reports the active rule and host checks without
+consuming generation randomness. Surveys report incomplete coverage instead
+of loading chunks. See [Admin tools](ADMIN_TOOLS.md) for examples.

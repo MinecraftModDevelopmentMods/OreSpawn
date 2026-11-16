@@ -31,11 +31,18 @@ final class BiomeFeatureInstaller {
 		boolean vanillaOreGate = OreSpawnOreGeneration.needsVanillaOreGate(dimension);
 		boolean surfaces = config != null && config.hasSurfaces();
 		boolean flatBedrock = FlatBedrockFeature.enabledFor(dimension);
+		boolean aquifers = AquiferMaterialSubstitution.enabledFor(dimension);
 		if (!terrain && !managedOres && !fluidDeposits && !vanillaOreGate
-				&& !surfaces && !flatBedrock) return;
+				&& !surfaces && !flatBedrock && !aquifers) return;
 		for (Biome biome : ForgeRegistries.BIOMES.getValues()) {
 			installFeatures(biome, terrain, managedOres, fluidDeposits,
 					vanillaOreGate, surfaces, flatBedrock);
+			if (aquifers) {
+				for (GenerationStage.Decoration stage : GenerationStage.Decoration.values())
+					VanillaSpringCompatibility.rewriteFeatureList(biome.getFeatures(stage), false, true);
+				placeUniqueAt(biome.getFeatures(GenerationStage.Decoration.RAW_GENERATION),
+						AquiferMaterialSubstitution.configuredFeature(), 0);
+			}
 		}
 	}
 
@@ -62,6 +69,10 @@ final class BiomeFeatureInstaller {
 		if (vanillaOreGate) VanillaOreFeatureGate.wrapFeatureList(underground);
 		if (terrain) {
 			StoneReplacer.removeVanillaMatchingStoneFeatures(underground);
+			if (NaturalFormations.hasConfiguredFormations()) {
+				for (GenerationStage.Decoration stage : GenerationStage.Decoration.values())
+					VanillaSpringCompatibility.rewriteFeatureList(biome.getFeatures(stage), true, false);
+			}
 		}
 		if (managedOres) addUnique(underground, OreSpawnOreGeneration.configuredFeature());
 		if (fluidDeposits) addUnique(underground, FluidDepositFeature.configuredFeature());

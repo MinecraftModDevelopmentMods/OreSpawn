@@ -38,9 +38,9 @@ class MmdOreConflictCatalogTest {
 
 	@Test
 	void establishedPrioritiesAndDimensionProvidersRemainDistinct() {
-		assertEquals(Arrays.asList("mineralogy", "baseminerals", "electricadvantage"),
+		assertEquals(Arrays.asList("mineralogy", "baseminerals", "baseelectric", "electricadvantage"),
 				MmdOreConflictCatalog.priority("sulfur"));
-		assertEquals(Arrays.asList("baseminerals", "electricadvantage"),
+		assertEquals(Arrays.asList("baseminerals", "baseelectric", "electricadvantage"),
 				MmdOreConflictCatalog.priority("lithium"));
 		assertEquals(Collections.emptyList(), MmdOreConflictCatalog.priority("copper"));
 		assertTrue(MmdOreConflictCatalog.netherOnly("nethermetals"));

@@ -71,8 +71,13 @@ public final class WorldGeologyProfile {
 
 	public static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
 			GeologyMode geologyMode, boolean placeFluidDeposits) {
+		return fromGlobalConfig(globalRoot, geologyMode, placeFluidDeposits, true);
+	}
+
+	static WorldGeologyProfile fromGlobalConfig(JsonObject globalRoot,
+			GeologyMode geologyMode, boolean placeFluidDeposits, boolean chooseOreSourceDefaults) {
 		JsonObject root = JsonCopies.copy(globalRoot);
-		OreSourcePolicies.initialize(root, false);
+		if (chooseOreSourceDefaults) OreSourcePolicies.initialize(root, false);
 		if (!root.has("geology_mode")) {
 			root.addProperty("geology_mode", geologyMode.name().toLowerCase(Locale.ROOT));
 		}
@@ -102,6 +107,7 @@ public final class WorldGeologyProfile {
 		// Schema 1 stored only mode, oil and formations.
 		// Fill the missing fields from the active pack profile.
 		JsonObject migrated = fallback.rootCopy();
+		migrated.remove(NaturalFormations.SECTION);
 		copyIfPresent(json, migrated, "geology_mode");
 		copyIfPresent(json, migrated, "place_crude_oil");
 		copyIfPresent(json, migrated, "formations");
