@@ -18,7 +18,7 @@ plugins {
 
 group = project.mod_group
 version = project.mod_version
-base.archivesName = 'OreSpawn'
+base.archivesName = project.mod_artifact
 
 def versionParts = project.mod_version.toString().tokenize('.')
 if (versionParts.size() != 4 || !versionParts.every { it ==~ /\d+/ }) {
@@ -36,8 +36,8 @@ if (versionParts[3] != expectedTargetVersion) {
 ext.functional_version = versionParts[0..2].join('.')
 ext.display_version = project.mod_version
 ext.release_tag = project.mod_version
-def expectedMavenGroup = 'zone.moddev.mc.orespawn'
-def expectedMavenArtifact = 'OreSpawn'
+def expectedMavenGroup = project.mod_group
+def expectedMavenArtifact = project.mod_artifact
 def expectedMavenCoordinate = "${expectedMavenGroup}:${expectedMavenArtifact}:${project.version}"
 
 java {
@@ -266,6 +266,9 @@ tasks.named('processResources', ProcessResources) {
     dependsOn prepareBundledDocumentation
     filteringCharset = 'UTF-8'
     inputs.property('version', project.version)
+    ['mod_id', 'mod_name', 'mod_license', 'mod_issue_url', 'mod_url', 'mod_authors', 'mod_description'].each { key ->
+        inputs.property(key, project.property(key))
+    }
     inputs.property('minecraft_version', project.minecraft_version)
     inputs.property('forge_version_range', project.forge_version_range)
     inputs.property('loader_version_range', project.loader_version_range)
@@ -273,6 +276,9 @@ tasks.named('processResources', ProcessResources) {
     filesMatching('META-INF/mods.toml') {
         expand([
                 version: project.version,
+                mod_id: project.mod_id, mod_name: project.mod_name, mod_license: project.mod_license,
+                mod_issue_url: project.mod_issue_url, mod_url: project.mod_url,
+                mod_authors: project.mod_authors, mod_description: project.mod_description,
                 minecraft_version: project.minecraft_version,
                 forge_version_range: project.forge_version_range,
                 loader_version_range: project.loader_version_range,
@@ -321,3 +327,6 @@ apply from: 'gradle/verification/packaged-forge.gradle'
 apply from: 'gradle/verification/ore-sources.gradle'
 apply from: 'gradle/verification/performance.gradle'
 apply from: 'gradle/verification/native-ores.gradle'
+
+apply from: 'gradle/verification/admin-tools.gradle'
+apply from: 'gradle/verification/parity.gradle'

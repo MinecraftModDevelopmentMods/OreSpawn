@@ -17,6 +17,7 @@ import net.minecraft.client.gui.screen.CreateWorldScreen;
 import net.minecraft.client.gui.screen.MainMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.GameType;
 import net.minecraft.world.WorldSettings;
@@ -28,6 +29,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.TickEvent;
 import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfile;
+import zone.moddev.mc.orespawn.worldgen.WorldGeologyProfileManager;
 
 /** Build-only client probe. It is compiled and packaged outside every release artifact. */
 @Mod(ClientProbeTestMod.MODID)
@@ -46,6 +48,7 @@ public final class ClientProbeTestMod {
 	private int editorFrames;
 	private boolean worldSettingsOpened;
 	private boolean longEditorRoundTrip;
+	private boolean vanillaOreSourcesVerified;
 	private List<Widget> worldCreationButtons;
 
 	public ClientProbeTestMod() {
@@ -114,6 +117,21 @@ public final class ClientProbeTestMod {
 						worldSettingsOpened = true;
 						validateCaptions((OreSpawnWorldSettingsScreen) minecraft.currentScreen);
 						validateLongEditorRoundTrip(minecraft, minecraft.currentScreen);
+						String localizedCaption = System.getProperty("clientprobe.recommendedCaption", "");
+						if (!localizedCaption.isEmpty()) {
+							String actual = I18n.format("button.orespawn.recommended");
+							if (!localizedCaption.equals(actual)) {
+								throw new IllegalStateException("Unexpected Recommended Defaults caption: " + actual);
+							}
+							Properties values = new Properties();
+							values.setProperty("recommended", actual);
+							try (FileOutputStream output = new FileOutputStream("client-locale-pass.properties")) {
+								values.store(output, "OreSpawn localized editor check");
+							}
+							minecraft.shutdown();
+							nextState(10);
+							break;
+						}
 						nextState(3);
 					}
 					break;
@@ -195,8 +213,8 @@ public final class ClientProbeTestMod {
 			Button button = (Button) widget;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(button.getMessage());
 			if (!attemptedButtons.add(caption)) continue;
-			String lower = caption.toLowerCase(java.util.Locale.ROOT);
-			if (lower.equals("done") || lower.equals("cancel") || lower.contains("recommended")) continue;
+			if (I18n.format("gui.done").equals(caption) || I18n.format("gui.cancel").equals(caption)
+					|| I18n.format("button.orespawn.recommended").equals(caption)) continue;
 			return button;
 		}
 		return null;
@@ -217,7 +235,7 @@ public final class ClientProbeTestMod {
 		}
 	}
 
-	private static void validateOreSourcesRoute(Minecraft minecraft, OreSpawnScreen materials) {
+	private void validateOreSourcesRoute(Minecraft minecraft, OreSpawnScreen materials) {
 		Button ores = buttonWithCaption(materials,
 				net.minecraft.client.resources.I18n.format("tab.orespawn.ores"));
 		if (ores == null) throw new IllegalStateException("Missing ORES tab");
@@ -232,6 +250,10 @@ public final class ClientProbeTestMod {
 			throw new IllegalStateException("Ore Sources route did not open");
 		}
 		OreSourceListScreen opened = (OreSourceListScreen) minecraft.currentScreen;
+		if (!vanillaOreSourcesVerified && Boolean.getBoolean("clientprobe.vanillaOreSources")) {
+			validateVanillaOreSources(opened);
+			vanillaOreSourcesVerified = true;
+		}
 		Button addGroup = buttonWithCaption(opened, "+");
 		if (addGroup == null) throw new IllegalStateException("Missing Add Group control");
 		addGroup.onPress();
@@ -244,6 +266,55 @@ public final class ClientProbeTestMod {
 		if (minecraft.currentScreen != materials) {
 			throw new IllegalStateException("Ore Sources did not return to ORES");
 		}
+	}
+
+	private static void validateVanillaOreSources(OreSourceListScreen screen) {
+		WorldGeologyProfile pending = WorldGeologyProfileManager.pendingNewWorldProfile();
+		if (pending.manageVanillaOres()) {
+			throw new IllegalStateException("The standalone Show All check must run with vanilla management off");
+		}
+		validateVanillaOreRows(screen);
+		GeologyEditorSession session = new GeologyEditorSession(pending);
+		JsonObject before = session.profile().rootCopy();
+		for (GeologyEditorSession.OreSourceGroup group : session.oreSourceGroups()) {
+			if (group.hasManagedPlacementSource() || !"keep_separate".equals(group.mode)) {
+				throw new IllegalStateException("Show All should not put OreSpawn in charge of vanilla generation");
+			}
+		}
+		if (!before.equals(session.profile().rootCopy())) {
+			throw new IllegalStateException("Listing vanilla ores must not change the profile");
+		}
+		System.out.println("VANILLA_ORE_SOURCES_PASS management=off rows=8 profile=unchanged");
+	}
+
+	private static void validateVanillaOreRows(OreSourceListScreen screen) {
+		if (firstList(screen).size() != 0) {
+			throw new IllegalStateException("Routine vanilla ores should start hidden");
+		}
+		Button showAll = buttonWithCaption(screen, I18n.format("button.orespawn.show_all"));
+		if (showAll == null) throw new IllegalStateException("Missing Show All control");
+		showAll.onPress();
+		CompactScrollList groups = firstList(screen);
+		String[] expected = { "Coal", "Diamond", "Emerald", "Gold", "Iron", "Lapis", "Quartz", "Redstone" };
+		if (groups.size() != expected.length) {
+			throw new IllegalStateException("Show All should list eight vanilla ores, found " + groups.size());
+		}
+		for (int row = 0; row < expected.length; row++) {
+			if (!groups.rowText(row).startsWith(expected[row] + " - ")) {
+				throw new IllegalStateException("Unexpected vanilla ore row: " + groups.rowText(row));
+			}
+		}
+		Button hideSingles = buttonWithCaption(screen, I18n.format("button.orespawn.ore_source.hide_single"));
+		if (hideSingles == null) throw new IllegalStateException("Missing Hide Singles control");
+		hideSingles.onPress();
+		if (firstList(screen).size() != 0) throw new IllegalStateException("Hide Singles should hide vanilla ores");
+	}
+
+	private static CompactScrollList firstList(OreSpawnScreen screen) {
+		for (Widget widget : screen.qualificationButtons()) {
+			if (widget instanceof CompactScrollList) return (CompactScrollList) widget;
+		}
+		throw new IllegalStateException("Missing Groups list");
 	}
 
 	private static Button buttonWithCaption(OreSpawnScreen screen, String caption) {
@@ -360,7 +431,7 @@ public final class ClientProbeTestMod {
 		for (Widget widget : screen.qualificationButtons()) {
 			if (!(widget instanceof Button)) continue;
 			String caption = TextFormatting.getTextWithoutFormattingCodes(((Button) widget).getMessage());
-			if ("done".equalsIgnoreCase(caption)) {
+			if (I18n.format("gui.done").equals(caption)) {
 				((Button) widget).onPress();
 				return;
 			}
@@ -381,6 +452,7 @@ public final class ClientProbeTestMod {
 		Properties values = new Properties();
 		values.setProperty("world_settings_opened", Boolean.toString(worldSettingsOpened));
 		values.setProperty("long_editor_roundtrip", Boolean.toString(longEditorRoundTrip));
+		values.setProperty("vanilla_ore_sources_verified", Boolean.toString(vanillaOreSourcesVerified));
 		values.setProperty("editor_routes", Integer.toString(editorRoutes.size()));
 		values.setProperty("editor_classes", editorRoutes.toString());
 		values.setProperty("first_world_rendered", Boolean.toString(firstWorldFrames >= 8));

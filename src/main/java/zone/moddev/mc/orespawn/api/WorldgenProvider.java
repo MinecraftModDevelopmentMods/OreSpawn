@@ -12,11 +12,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -28,11 +30,14 @@ import net.minecraft.util.ResourceLocation;
 public final class WorldgenProvider {
 	private final String modId;
 	private final int revision;
+	private final boolean mergeNewEntriesIntoExistingWorlds;
 	private final JsonObject definition;
 
-	private WorldgenProvider(String modId, int revision, JsonObject definition) {
+	private WorldgenProvider(String modId, int revision, boolean mergeNewEntriesIntoExistingWorlds,
+			JsonObject definition) {
 		this.modId = modId;
 		this.revision = revision;
+		this.mergeNewEntriesIntoExistingWorlds = mergeNewEntriesIntoExistingWorlds;
 		this.definition = JsonCopies.copy(definition);
 	}
 
@@ -48,7 +53,16 @@ public final class WorldgenProvider {
 		return revision;
 	}
 
-	/** Returns a defensive JSON representation matching provider schema 5. */
+	/**
+	 * Whether provider entries introduced after a world was created may be merged
+	 * into that world's saved profile. Providers default to the historical
+	 * merge-enabled behaviour.
+	 */
+	public boolean mergeNewEntriesIntoExistingWorlds() {
+		return mergeNewEntriesIntoExistingWorlds;
+	}
+
+	/** Returns defensive provider JSON; formation contributors use schema 6. */
 	public JsonObject toJson() {
 		return JsonCopies.copy(definition);
 	}
@@ -56,6 +70,7 @@ public final class WorldgenProvider {
 	public static final class Builder {
 		private final String modId;
 		private final int revision;
+		private boolean mergeNewEntriesIntoExistingWorlds = true;
 		private final LinkedHashMap<ResourceLocation, RockDefinition> rocks = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, OreDefinition> ores = new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, FluidDepositDefinition> fluidDeposits =
@@ -69,6 +84,16 @@ public final class WorldgenProvider {
 		private final LinkedHashMap<ResourceLocation, DimensionMaterialsDefinition> dimensionMaterials =
 				new LinkedHashMap<>();
 		private final LinkedHashMap<ResourceLocation, GeologyTemplate> templates = new LinkedHashMap<>();
+		private final LinkedHashMap<ResourceLocation, JsonObject> rockFormations = new LinkedHashMap<>();
+
+		/** Declares a natural substrate formation. Settings and materials are baked before generation. */
+		public Builder rockFormation(ResourceLocation id, ResourceLocation type, JsonObject definition) {
+			JsonObject value = JsonCopies.copy(Objects.requireNonNull(definition));
+			value.addProperty("type", Objects.requireNonNull(type).toString());
+			if (rockFormations.putIfAbsent(Objects.requireNonNull(id), value) != null)
+				throw new IllegalArgumentException("Duplicate rock formation " + id);
+			return this;
+		}
 
 		private Builder(String modId, int revision) {
 			this.modId = requireModId(modId);
@@ -76,6 +101,16 @@ public final class WorldgenProvider {
 				throw new IllegalArgumentException("Provider revision must be at least 1");
 			}
 			this.revision = revision;
+		}
+
+		/**
+		 * Controls whether newly declared entries are added to already-created world
+		 * profiles. Set this to false when definitions capture structural add-on
+		 * configuration that must only take effect for new worlds.
+		 */
+		public Builder mergeNewEntriesIntoExistingWorlds(boolean value) {
+			mergeNewEntriesIntoExistingWorlds = value;
+			return this;
 		}
 
 		public Builder rock(RockDefinition rock) {
@@ -198,21 +233,26 @@ public final class WorldgenProvider {
 			if (rocks.isEmpty() && ores.isEmpty() && fluidDeposits.isEmpty()
 					&& geomes.isEmpty() && biomeRules.isEmpty()
 					&& terrainDimensions.isEmpty() && biomePalettes.isEmpty()
-					&& dimensionMaterials.isEmpty() && templates.isEmpty()) {
+					&& dimensionMaterials.isEmpty() && templates.isEmpty() && rockFormations.isEmpty()) {
 				throw new IllegalStateException("A provider must declare at least one contribution");
 			}
 			requireOwned(rocks.keySet(), "rock");
 			requireOwned(ores.keySet(), "ore");
 			requireOwned(fluidDeposits.keySet(), "fluid deposit");
 			requireOwned(geomes.keySet(), "geome");
-			requireOwned(terrainDimensions.keySet(), "terrain dimension");
+			// Terrain-dimension keys identify Minecraft dimensions. Unlike provider-owned
+			// rocks, ores, palettes and templates, they are intentionally not namespaced
+			// to the provider (for example minecraft:overworld or minecraft:the_end).
 			requireOwned(biomePalettes.keySet(), "biome palette");
 			requireOwned(dimensionMaterials.keySet(), "dimension materials");
 			requireOwned(templates.keySet(), "template");
+			requireOwned(rockFormations.keySet(), "rock formation");
 			JsonObject root = new JsonObject();
-			root.addProperty("schema_version", 5);
+			root.addProperty("schema_version", rockFormations.isEmpty() ? 5 : 6);
 			root.addProperty("provider_modid", modId);
 			root.addProperty("provider_revision", revision);
+			root.addProperty("merge_new_entries_into_existing_worlds",
+					mergeNewEntriesIntoExistingWorlds);
 			root.add("rocks", object(rocks));
 			root.add("ores", object(ores));
 			root.add("fluid_deposits", object(fluidDeposits));
@@ -222,7 +262,12 @@ public final class WorldgenProvider {
 			root.add("biome_palettes", object(biomePalettes));
 			root.add("dimension_materials", object(dimensionMaterials));
 			root.add("templates", object(templates));
-			return new WorldgenProvider(modId, revision, root);
+			if (!rockFormations.isEmpty()) {
+				JsonObject formations = new JsonObject();
+				rockFormations.forEach((id, value) -> formations.add(id.toString(), JsonCopies.copy(value)));
+				root.add("rock_formations", formations);
+			}
+			return new WorldgenProvider(modId, revision, mergeNewEntriesIntoExistingWorlds, root);
 		}
 
 		private void requireOwned(Collection<ResourceLocation> ids, String type) {
@@ -378,7 +423,7 @@ public final class WorldgenProvider {
 		public static Builder builder(ResourceLocation id, ResourceLocation block) { return new Builder(id, block); }
 		public ResourceLocation id() { return id; }
 		public ResourceLocation block() { return block; }
-		/** Material shared by interchangeable ore outputs. */
+		/** Stable semantic material shared by interchangeable ore outputs. */
 		public Optional<ResourceLocation> material() { return Optional.ofNullable(material); }
 		public boolean enabled() { return enabled; }
 		public List<OreOutputDefinition> outputs() { return outputs; }
@@ -410,7 +455,7 @@ public final class WorldgenProvider {
 			for (Entry<OreDimensionSelector, OreDimensionDefinition> entry : dimensionSelectors.entrySet()) {
 				selectors.add(entry.getKey().id().toString(), entry.getValue().toJson());
 			}
-			if (selectors.size() > 0) json.add("dimension_selectors", selectors);
+			if (selectors.entrySet().size() > 0) json.add("dimension_selectors", selectors);
 			return json;
 		}
 
@@ -434,6 +479,7 @@ public final class WorldgenProvider {
 				this.block = Objects.requireNonNull(block, "block");
 			}
 			public Builder enabled(boolean value) { enabled = value; return this; }
+			/** Declares the semantic material used for source arbitration. */
 			public Builder material(ResourceLocation value) { material = Objects.requireNonNull(value); return this; }
 			public Builder nativeGeneration(boolean value) { nativeGeneration = value; return this; }
 			public Builder suppressVanilla(boolean value) { suppressVanilla = value; return this; }
@@ -543,6 +589,7 @@ public final class WorldgenProvider {
 		private final Set<String> excludedBiomeDictionary;
 		private final Map<ResourceLocation, Double> hostBlockWeights;
 		private final Map<ResourceLocation, Double> hostTagWeights;
+		private final Double backgroundGenerationScale;
 
 		private OreDimensionDefinition(Builder builder) {
 			dimension = builder.dimension;
@@ -574,6 +621,7 @@ public final class WorldgenProvider {
 					new LinkedHashSet<>(builder.excludedBiomeDictionary));
 			hostBlockWeights = immutableMap(builder.hostBlockWeights);
 			hostTagWeights = immutableMap(builder.hostTagWeights);
+			backgroundGenerationScale = builder.backgroundGenerationScale;
 		}
 
 		public static Builder builder(ResourceLocation dimension) { return new Builder(dimension); }
@@ -582,13 +630,13 @@ public final class WorldgenProvider {
 		public int minY() { return minY; }
 		public int maxY() { return maxY; }
 		public double attempts() { return frequency; }
-		/** Fixed quantity used by older consumers that do not support a range. */
+		/** Compatibility value for consumers that only understand a fixed quantity. */
 		public int quantity() { return (minQuantity + maxQuantity + 1) / 2; }
 		public int minQuantity() { return minQuantity; }
 		public int maxQuantity() { return maxQuantity; }
 		public OrePattern pattern() { return pattern; }
 		public ResourceLocation patternType() { return patternType; }
-		/** Placement frequency, shape and host budget are selected per channel. */
+		/** Stable channel whose placement budget is arbitrated independently. */
 		public ResourceLocation placementChannel() { return placementChannel; }
 		public JsonObject patternSettings() { return JsonCopies.copy(patternSettings); }
 		public OreHeightDistribution heightDistribution() { return heightDistribution; }
@@ -606,6 +654,15 @@ public final class WorldgenProvider {
 		public Set<String> excludedBiomeDictionary() { return excludedBiomeDictionary; }
 		public Map<ResourceLocation, Double> hostBlockWeights() { return hostBlockWeights; }
 		public Map<ResourceLocation, Double> hostTagWeights() { return hostTagWeights; }
+		/**
+		 * Optional scale applied to other OreSpawn-managed generation and vanilla
+		 * generation for this rule's primary output in this dimension. The rule
+		 * declaring the controller remains unscaled.
+		 */
+		public OptionalDouble backgroundGenerationScale() {
+			return backgroundGenerationScale == null ? OptionalDouble.empty()
+					: OptionalDouble.of(backgroundGenerationScale.doubleValue());
+		}
 
 		@Override
 		public JsonObject toJson() {
@@ -635,15 +692,19 @@ public final class WorldgenProvider {
 			json.addProperty("vertical_spread", verticalSpread);
 			json.addProperty("node_size", nodeSize);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) { families.add(family.configName()); }
+			for (GeologyFamily family : hostFamilies) { families.add(new JsonPrimitive(family.configName())); }
 			json.add("host_families", families);
 			json.add("geomes", weights(geomes));
-			json.add("host_blocks", weightedIds(hostBlocks, hostBlockWeights, "block"));
+			JsonArray hosts = weightedIds(hostBlocks, hostBlockWeights, "block");
+			json.add("host_blocks", hosts);
 			json.add("host_tags", weightedIds(hostTags, hostTagWeights, "tag"));
 			json.add("biome_ids", ids(biomeIds));
 			json.add("excluded_biome_ids", ids(excludedBiomeIds));
 			json.add("biome_dictionary", strings(biomeDictionary));
 			json.add("excluded_biome_dictionary", strings(excludedBiomeDictionary));
+			if (backgroundGenerationScale != null) {
+				json.addProperty("background_generation_scale", backgroundGenerationScale);
+			}
 			return json;
 		}
 
@@ -674,6 +735,7 @@ public final class WorldgenProvider {
 			private final Set<String> excludedBiomeDictionary = new LinkedHashSet<>();
 			private final Map<ResourceLocation, Double> hostBlockWeights = new LinkedHashMap<>();
 			private final Map<ResourceLocation, Double> hostTagWeights = new LinkedHashMap<>();
+			private Double backgroundGenerationScale;
 
 			private Builder(ResourceLocation dimension) { this.dimension = Objects.requireNonNull(dimension, "dimension"); }
 			public Builder enabled(boolean value) { enabled = value; return this; }
@@ -694,6 +756,7 @@ public final class WorldgenProvider {
 				patternSettings = JsonCopies.copy(Objects.requireNonNull(settings, "settings"));
 				return this;
 			}
+			/** Overrides the placement-budget channel for this dimension rule. */
 			public Builder placementChannel(ResourceLocation value) {
 				placementChannel = Objects.requireNonNull(value);
 				return this;
@@ -705,12 +768,22 @@ public final class WorldgenProvider {
 			public Builder hostFamily(GeologyFamily value) { hostFamilies.add(value); return this; }
 			public Builder geomeWeight(ResourceLocation geome, double value) { geomes.put(geome, value); return this; }
 			public Builder hostBlock(ResourceLocation value) { hostBlocks.add(value); return this; }
+
+
 			public Builder hostTag(ResourceLocation value) { hostTags.add(value); return this; }
 			public Builder biome(ResourceLocation value) { biomeIds.add(value); return this; }
 			public Builder excludeBiome(ResourceLocation value) { excludedBiomeIds.add(value); return this; }
 			public Builder biomeDictionary(String value) { biomeDictionary.add(nonBlank(value)); return this; }
 			public Builder excludeBiomeDictionary(String value) {
 				excludedBiomeDictionary.add(nonBlank(value)); return this;
+			}
+			/**
+			 * Scales background generation for the same primary resource and dimension.
+			 * The declaring rule is the controller and is not itself scaled.
+			 */
+			public Builder backgroundGenerationScale(double value) {
+				backgroundGenerationScale = value;
+				return this;
 			}
 			public Builder hostBlock(ResourceLocation value, double weight) {
 				hostBlocks.add(value);
@@ -729,11 +802,16 @@ public final class WorldgenProvider {
 						|| minQuantity < 1 || minQuantity > maxQuantity || maxQuantity > 64
 						|| !Double.isFinite(discardChanceOnAirExposure)
 						|| discardChanceOnAirExposure < 0.0D || discardChanceOnAirExposure > 1.0D
+						|| (backgroundGenerationScale != null
+								&& (!Double.isFinite(backgroundGenerationScale)
+										|| backgroundGenerationScale < 0.0D
+										|| backgroundGenerationScale > 1.0D))
 						|| spread < 0 || spread > 64 || verticalSpread < 0 || verticalSpread > 64
 						|| nodeSize < 1 || nodeSize > 32) {
 					throw new IllegalStateException("Invalid ore placement values for " + dimension);
 				}
-				if (enabled && hostFamilies.isEmpty() && hostBlocks.isEmpty() && hostTags.isEmpty()) {
+				if (enabled && hostFamilies.isEmpty() && hostBlocks.isEmpty()
+						&& hostTags.isEmpty()) {
 					throw new IllegalStateException("Enabled ore dimension has no hosts: " + dimension);
 				}
 				return new OreDimensionDefinition(this);
@@ -890,7 +968,7 @@ public final class WorldgenProvider {
 			json.addProperty("min_solid_cover", minSolidCover);
 			json.addProperty("min_solid_shell", minSolidShell);
 			JsonArray families = new JsonArray();
-			for (GeologyFamily family : hostFamilies) families.add(family.configName());
+			for (GeologyFamily family : hostFamilies) families.add(new JsonPrimitive(family.configName()));
 			json.add("host_families", families);
 			json.add("host_blocks", ids(hostBlocks));
 			json.add("host_tags", ids(hostTags));
@@ -1057,7 +1135,7 @@ public final class WorldgenProvider {
 			json.addProperty("enabled", enabled);
 			json.add("biome_ids", ids(biomeIds));
 			JsonArray namespaces = new JsonArray();
-			for (String namespace : biomeNamespaces) { namespaces.add(namespace); }
+			for (String namespace : biomeNamespaces) { namespaces.add(new JsonPrimitive(namespace)); }
 			json.add("biome_namespaces", namespaces);
 			json.add("host_blocks", ids(hostBlocks));
 			json.add("host_tags", ids(hostTags));
@@ -1258,6 +1336,7 @@ public final class WorldgenProvider {
 		private final Set<String> requiredMods;
 		private final boolean autoSelect;
 		private final int autoSelectPriority;
+		private final boolean preserveFormationOverrides;
 		private final JsonObject profile;
 
 		private GeologyTemplate(Builder builder) {
@@ -1267,6 +1346,7 @@ public final class WorldgenProvider {
 			requiredMods = Collections.unmodifiableSet(new LinkedHashSet<>(builder.requiredMods));
 			autoSelect = builder.autoSelect;
 			autoSelectPriority = builder.autoSelectPriority;
+			preserveFormationOverrides = builder.preserveFormationOverrides;
 			profile = JsonCopies.copy(builder.profile);
 		}
 
@@ -1284,10 +1364,11 @@ public final class WorldgenProvider {
 			json.addProperty("name_key", nameKey);
 			json.addProperty("description_key", descriptionKey);
 			JsonArray mods = new JsonArray();
-			for (String mod : requiredMods) { mods.add(mod); }
+			for (String mod : requiredMods) { mods.add(new JsonPrimitive(mod)); }
 			json.add("required_mods", mods);
 			json.addProperty("auto_select", autoSelect);
 			json.addProperty("auto_select_priority", autoSelectPriority);
+			if (preserveFormationOverrides) json.addProperty("preserve_formation_overrides", true);
 			json.add("profile", JsonCopies.copy(profile));
 			return json;
 		}
@@ -1299,6 +1380,7 @@ public final class WorldgenProvider {
 			private final Set<String> requiredMods = new LinkedHashSet<>();
 			private boolean autoSelect;
 			private int autoSelectPriority;
+			private boolean preserveFormationOverrides;
 			private final JsonObject profile = new JsonObject();
 			private Builder(ResourceLocation id) {
 				this.id = Objects.requireNonNull(id, "id");
@@ -1306,6 +1388,8 @@ public final class WorldgenProvider {
 				descriptionKey = nameKey + ".description";
 			}
 			public Builder translationKeys(String name, String description) { nameKey = name; descriptionKey = description; return this; }
+			/** Tune stock formations only; keep authored overrides, removals and external providers. */
+			public Builder preserveFormationOverrides(boolean value) { preserveFormationOverrides = value; return this; }
 			public Builder requiresMod(String value) { requiredMods.add(requireModId(value)); return this; }
 			public Builder autoSelect(boolean value) { autoSelect = value; return this; }
 			public Builder autoSelectPriority(int value) { autoSelectPriority = value; return this; }
@@ -1357,13 +1441,13 @@ public final class WorldgenProvider {
 
 	private static JsonArray ids(Collection<ResourceLocation> values) {
 		JsonArray json = new JsonArray();
-		for (ResourceLocation value : values) { json.add(value.toString()); }
+		for (ResourceLocation value : values) { json.add(new JsonPrimitive(value.toString())); }
 		return json;
 	}
 
 	/**
-	 * A provider's biome palette, which supplements or replaces the biomes chosen by a dimension.
-	 * No separate biome framework is required.
+	 * A provider-owned set of biomes which can augment or replace an existing
+	 * dimension biome source without depending on a particular biome framework.
 	 */
 	public static final class BiomePaletteDefinition implements JsonDefinition {
 		private final ResourceLocation id;
@@ -1703,7 +1787,7 @@ public final class WorldgenProvider {
 
 	private static JsonArray strings(Collection<String> values) {
 		JsonArray json = new JsonArray();
-		for (String value : values) { json.add(value); }
+		for (String value : values) { json.add(new JsonPrimitive(value)); }
 		return json;
 	}
 
@@ -1713,7 +1797,7 @@ public final class WorldgenProvider {
 		for (ResourceLocation value : values) {
 			Double weight = weights.get(value);
 			if (weight == null || weight.doubleValue() == 1.0D) {
-				json.add(value.toString());
+				json.add(new JsonPrimitive(value.toString()));
 			} else {
 				JsonObject entry = new JsonObject();
 				entry.addProperty(idKey, value.toString());

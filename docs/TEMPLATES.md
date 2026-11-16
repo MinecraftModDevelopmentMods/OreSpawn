@@ -24,3 +24,7 @@ auto-switch after installation or provider updates.
 
 Use namespaced template IDs such as `examplemod:ancient_sea`. Translation keys
 for the selector belong to the provider resource pack.
+Templates may set `preserve_formation_overrides: true` when tuning stock
+formations. This keeps authored world edits, disabled rules, deliberate
+removals and external provider files intact. Without the option, template
+overlays retain their existing behavior.
